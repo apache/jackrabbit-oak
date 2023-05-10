@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.*;
 import java.io.IOException;

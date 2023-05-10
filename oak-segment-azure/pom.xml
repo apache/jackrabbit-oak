@@ -40,7 +40,6 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                          <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
@@ -93,6 +92,12 @@
     <!-- D E P E N D E N C I E S -->
     <!-- ====================================================================== -->
     <dependencies>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-shaded-guava</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Optional OSGi dependencies, used only when running within OSGi -->
         <dependency>
             <groupId>org.osgi</groupId>

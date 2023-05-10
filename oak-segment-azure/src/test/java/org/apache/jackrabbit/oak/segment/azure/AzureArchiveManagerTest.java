@@ -68,7 +68,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;

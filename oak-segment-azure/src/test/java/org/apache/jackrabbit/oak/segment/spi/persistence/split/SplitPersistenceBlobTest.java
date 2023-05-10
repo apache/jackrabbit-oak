@@ -24,7 +24,7 @@ import java.security.InvalidKeyException;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.microsoft.azure.storage.StorageException;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -52,7 +52,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 
 public class SplitPersistenceBlobTest {

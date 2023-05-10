@@ -35,7 +35,7 @@ import java.security.InvalidKeyException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.google.common.collect.Lists.reverse;
+import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.stream.Collectors.toList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;

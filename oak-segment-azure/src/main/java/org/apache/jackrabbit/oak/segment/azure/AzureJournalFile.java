@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlob;
@@ -39,7 +39,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.google.common.collect.Lists.partition;
+import static org.apache.jackrabbit.guava.common.collect.Lists.partition;
 
 public class AzureJournalFile implements JournalFile {
 
@@ -210,7 +210,7 @@ public class AzureJournalFile implements JournalFile {
                 .addAll(firstBlock.isEmpty() ? ImmutableList.of() : ImmutableList.of(firstBlock))
                 .addAll(remainingBlocks)
                 .build();
-            
+
             for (List<String> entries : allBlocks) {
                 if (lineCount >= lineLimit) {
                     int parsedSuffix = parseCurrentSuffix();
