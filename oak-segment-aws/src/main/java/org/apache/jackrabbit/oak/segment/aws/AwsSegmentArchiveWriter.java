@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
