@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static com.google.common.base.Strings.nullToEmpty;
+import static org.apache.jackrabbit.guava.common.base.Strings.nullToEmpty;
 import static java.lang.Thread.currentThread;
 
 import java.io.BufferedInputStream;
@@ -46,14 +46,14 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.ResultContinuation;
