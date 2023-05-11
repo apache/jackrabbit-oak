@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import com.google.common.util.concurrent.AbstractListeningExecutorService;
+import org.apache.jackrabbit.guava.common.util.concurrent.AbstractListeningExecutorService;
 
 import java.util.Collections;
 import java.util.List;

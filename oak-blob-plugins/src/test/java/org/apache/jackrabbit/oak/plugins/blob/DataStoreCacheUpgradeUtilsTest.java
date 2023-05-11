@@ -20,8 +20,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;

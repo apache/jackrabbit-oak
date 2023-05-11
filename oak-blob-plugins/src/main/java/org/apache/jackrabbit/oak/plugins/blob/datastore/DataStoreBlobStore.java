@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.commons.io.IOUtils.closeQuietly;
 
 import java.io.BufferedInputStream;
@@ -78,13 +78,13 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 
 /**
  * BlobStore wrapper for DataStore. Wraps Jackrabbit 2 DataStore and expose them as BlobStores

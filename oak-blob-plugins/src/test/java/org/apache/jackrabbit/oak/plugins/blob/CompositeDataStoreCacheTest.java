@@ -28,11 +28,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
@@ -46,7 +46,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -102,7 +102,7 @@ public class CompositeDataStoreCacheTest extends AbstractDataStoreCacheTest {
         scheduledExecutor = Executors.newSingleThreadScheduledExecutor();
         closer.register(new ExecutorCloser(scheduledExecutor, 500, TimeUnit.MILLISECONDS));
 
-        fileCacheExecutor = sameThreadExecutor();
+        fileCacheExecutor = newDirectExecutorService();
 
         //cache instance
         cache =

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 import java.io.Closeable;
 import java.io.File;
@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 
 /**
  */

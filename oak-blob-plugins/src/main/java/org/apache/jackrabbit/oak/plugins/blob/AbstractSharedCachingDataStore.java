@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.copyInputStreamToFile;
 import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
 
@@ -56,12 +56,12 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Function;
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
-import com.google.common.io.Closeables;
-import com.google.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
 
 /**
  * Cache files locally and stage files locally for async uploads.

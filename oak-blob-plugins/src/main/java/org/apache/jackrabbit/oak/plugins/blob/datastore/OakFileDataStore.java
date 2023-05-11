@@ -24,6 +24,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ref.WeakReference;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,13 +34,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.io.BaseEncoding;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.io.BaseEncoding;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -46,11 +46,12 @@ import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.FileDataRecord;
 import org.apache.jackrabbit.core.data.FileDataStore;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
@@ -75,20 +76,11 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() {
         final String path = normalizeNoEndSeparator(new File(getPath()).getAbsolutePath());
-        return Files.fileTreeTraverser().postOrderTraversal(new File(path))
-                .filter(new Predicate<File>() {
-                    @Override
-                    public boolean apply(File input) {
-                        return input.isFile() &&
-                            !input.getParent().equals(path);
-                    }
-                })
-                .transform(new Function<File, DataIdentifier>() {
-                    @Override
-                    public DataIdentifier apply(File input) {
-                        return new DataIdentifier(input.getName());
-                    }
-                }).iterator();
+
+        return FileTreeTraverser.depthFirstPostOrder(new File(path))
+                .filter(file -> file.isFile() && !file.getParent().equals(path))
+                .map(file -> new DataIdentifier(file.getName()))
+                .iterator();
     }
 
     @Override
@@ -274,20 +266,11 @@ public class OakFileDataStore extends FileDataStore implements SharedDataStore {
     public Iterator<DataRecord> getAllRecords() {
         final String path = normalizeNoEndSeparator(new File(getPath()).getAbsolutePath());
         final OakFileDataStore store = this;
-        return Files.fileTreeTraverser().postOrderTraversal(new File(path))
-            .filter(new Predicate<File>() {
-                @Override
-                public boolean apply(File input) {
-                    return input.isFile() &&
-                        !input.getParent().equals(path);
-                }
-            })
-            .transform(new Function<File, DataRecord>() {
-                @Override
-                public DataRecord apply(File input) {
-                    return new FileDataRecord(store, new DataIdentifier(input.getName()), input);
-                }
-            }).iterator();
+
+        return FileTreeTraverser.depthFirstPostOrder(new File(path))
+                .filter(file -> file.isFile() && !file.getParent().equals(path))
+                .map(file -> (DataRecord) new FileDataRecord(store, new DataIdentifier(file.getName()), file))
+                .iterator();
     }
 
     @Override

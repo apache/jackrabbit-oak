@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
-import com.google.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
 import org.apache.jackrabbit.core.data.DataStore;

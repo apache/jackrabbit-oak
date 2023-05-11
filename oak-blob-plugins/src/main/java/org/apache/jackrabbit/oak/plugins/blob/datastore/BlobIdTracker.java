@@ -23,34 +23,35 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.base.Predicates.alwaysTrue;
-import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.io.Files.fileTreeTraverser;
-import static com.google.common.io.Files.move;
-import static com.google.common.io.Files.newWriter;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Predicates.alwaysTrue;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.io.Files.move;
+import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
 import static java.io.File.createTempFile;
 import static java.lang.System.currentTimeMillis;
 import static java.util.Collections.emptyIterator;
@@ -59,6 +60,7 @@ import static java.util.UUID.randomUUID;
 import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.stream.Collectors.toList;
 import static org.apache.commons.io.FileUtils.copyFile;
 import static org.apache.commons.io.FileUtils.forceDelete;
 import static org.apache.commons.io.FileUtils.forceMkdir;
@@ -506,13 +508,15 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             this.snapshotLock = new ReentrantLock();
 
             // Retrieve the process file if it exists
-            processFile =
-                fileTreeTraverser().breadthFirstTraversal(rootDir).firstMatch(IN_PROCESS.filter())
-                    .orNull();
+            processFile = FileTreeTraverser.breadthFirst(rootDir)
+                    .filter(file -> IN_PROCESS.filter().apply(file))
+                    .findFirst()
+                    .orElse(null);
 
             // Get the List of all generations available.
-            generations = synchronizedList(newArrayList(
-                fileTreeTraverser().breadthFirstTraversal(rootDir).filter(GENERATION.filter())));
+            generations = synchronizedList(FileTreeTraverser.breadthFirst(rootDir)
+                    .filter(file -> GENERATION.filter().apply(file))
+                    .collect(toList()));
 
             // Close/rename any existing in process
             nextGeneration();

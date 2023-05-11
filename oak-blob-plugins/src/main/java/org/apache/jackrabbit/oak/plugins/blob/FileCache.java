@@ -25,13 +25,13 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.cache.Cache;
@@ -43,16 +43,15 @@ import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Stopwatch;
-import com.google.common.cache.AbstractCache;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.cache.AbstractCache;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 
 /**
  */
@@ -307,31 +306,27 @@ public class FileCache extends AbstractCache<String, File> implements Closeable 
      * Retrieves all the files present in the fs cache folder and builds the in-memory cache.
      */
     private int build() {
-        int count = 0;
-
         // Move older generation cache downloaded files to the new folder
         DataStoreCacheUpgradeUtils.moveDownloadCache(parent);
 
         // Iterate over all files in the cache folder
-        Iterator<File> iter = Files.fileTreeTraverser().postOrderTraversal(cacheRoot)
-            .filter(new Predicate<File>() {
-                @Override public boolean apply(File input) {
-                    return input.isFile() && !normalizeNoEndSeparator(input.getParent())
-                        .equals(cacheRoot.getAbsolutePath());
-                }
-            }).iterator();
-        while (iter.hasNext()) {
-            File toBeSyncedFile = iter.next();
-            try {
-                put(toBeSyncedFile.getName(), toBeSyncedFile, false);
-                count++;
-                LOG.trace("Added file [{}} to in-memory cache", toBeSyncedFile);
-            } catch (Exception e) {
-                LOG.error("Error in putting cached file in map[{}]", toBeSyncedFile);
-            }
-        }
+        long count = FileTreeTraverser.depthFirstPostOrder(cacheRoot)
+                .filter(file -> file.isFile() &&
+                        !normalizeNoEndSeparator(file.getParent()).equals(cacheRoot.getAbsolutePath())
+                )
+                .flatMap(toBeSyncedFile -> {
+                    try {
+                        put(toBeSyncedFile.getName(), toBeSyncedFile, false);
+                        LOG.trace("Added file [{}} to in-memory cache", toBeSyncedFile);
+                        return Stream.of(toBeSyncedFile);
+                    } catch (Exception e) {
+                        LOG.error("Error in putting cached file in map[{}]", toBeSyncedFile);
+                        return Stream.empty();
+                    }
+                })
+                .count();
         LOG.trace("[{}] files put in im-memory cache", count);
-        return count;
+        return (int) count;
     }
 }
 

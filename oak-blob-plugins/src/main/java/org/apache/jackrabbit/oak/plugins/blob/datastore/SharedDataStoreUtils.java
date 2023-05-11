@@ -20,12 +20,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.Ordering;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.Ordering;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;

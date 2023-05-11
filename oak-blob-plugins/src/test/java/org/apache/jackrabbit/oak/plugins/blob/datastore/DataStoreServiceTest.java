@@ -32,7 +32,7 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.FileDataStore;

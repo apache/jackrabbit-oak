@@ -27,9 +27,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.apache.jackrabbit.oak.plugins.blob.SharedDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobIdTracker.ActiveDeletionTracker;
@@ -42,7 +42,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.lang.String.valueOf;
 import static java.util.UUID.randomUUID;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
