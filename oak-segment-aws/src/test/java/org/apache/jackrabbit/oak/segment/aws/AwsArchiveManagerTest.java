@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.aws;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;

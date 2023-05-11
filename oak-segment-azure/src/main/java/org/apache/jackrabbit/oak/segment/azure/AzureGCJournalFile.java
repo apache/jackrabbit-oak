@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import org.apache.commons.io.IOUtils;
