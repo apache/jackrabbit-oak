@@ -100,6 +100,7 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.descriptors.GenericDescriptors;
 import org.apache.jackrabbit.oak.OakVersion;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -116,6 +117,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
     private final QueryIndexProvider indexProvider;
     private final QueryEngineSettings queryEngineSettings;
     private final Descriptors baseDescriptors;
+    private final Feature forceApplyPendingMoves;
 
     private GenericDescriptors descriptors;
     
@@ -128,6 +130,8 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
      * @param defaultWorkspaceName the default workspace name;
      * @param indexProvider        index provider
      * @param securityProvider     The configured security provider.
+     * @param baseDescriptors      the base descriptors.
+     * @param forceApplyPendingMoves optional feature flag to force apply pending moves.
      */
     public ContentRepositoryImpl(@NotNull NodeStore nodeStore,
                                  @NotNull CommitHook commitHook,
@@ -135,7 +139,8 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
                                  QueryEngineSettings queryEngineSettings,
                                  @Nullable QueryIndexProvider indexProvider,
                                  @NotNull SecurityProvider securityProvider,
-                                 @Nullable Descriptors baseDescriptors) {
+                                 @Nullable Descriptors baseDescriptors,
+                                 @Nullable Feature forceApplyPendingMoves) {
         this.nodeStore = checkNotNull(nodeStore);
         this.commitHook = checkNotNull(commitHook);
         this.defaultWorkspaceName = checkNotNull(defaultWorkspaceName);
@@ -143,6 +148,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
         this.queryEngineSettings = queryEngineSettings != null ? queryEngineSettings : new QueryEngineSettings();
         this.indexProvider = indexProvider != null ? indexProvider : new CompositeQueryIndexProvider();
         this.baseDescriptors = baseDescriptors;
+        this.forceApplyPendingMoves = forceApplyPendingMoves;
     }
 
     @NotNull
@@ -163,7 +169,7 @@ public class ContentRepositoryImpl implements ContentRepository, Closeable {
         loginContext.login();
 
         return new ContentSessionImpl(loginContext, securityProvider, workspaceName, nodeStore,
-                commitHook, queryEngineSettings, indexProvider);
+                commitHook, queryEngineSettings, indexProvider, forceApplyPendingMoves);
     }
 
     @NotNull

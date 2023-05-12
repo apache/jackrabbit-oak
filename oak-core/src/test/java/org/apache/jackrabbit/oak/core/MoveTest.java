@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,6 +43,16 @@ import static org.junit.Assert.assertTrue;
 public class MoveTest extends AbstractSecurityTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(MoveTest.class);
+
+    @Before
+    public void setFeatureToggle() {
+        Tracker<FeatureToggle> toggleTracker = whiteboard.track(FeatureToggle.class);
+        for (FeatureToggle ft : toggleTracker.getServices()) {
+            if ("OAK-10147".equals(ft.getName())) {
+                ft.setEnabled(true);
+            }
+        }
+    }
 
     @Test
     public void move() throws Exception {

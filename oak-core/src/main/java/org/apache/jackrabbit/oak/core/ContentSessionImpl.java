@@ -33,7 +33,9 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthInfoImpl;
 import org.apache.jackrabbit.oak.spi.security.authentication.LoginContext;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +58,7 @@ class ContentSessionImpl implements ContentSession {
     private final CommitHook hook;
     private final QueryEngineSettings queryEngineSettings;
     private final QueryIndexProvider indexProvider;
+    private final Feature forceApplyPendingMoves;
     private final String sessionName;
 
     /**
@@ -70,7 +73,8 @@ class ContentSessionImpl implements ContentSession {
                               @NotNull NodeStore store,
                               @NotNull CommitHook hook,
                               QueryEngineSettings queryEngineSettings,
-                              @NotNull QueryIndexProvider indexProvider) {
+                              @NotNull QueryIndexProvider indexProvider,
+                              @Nullable Feature forceApplyPendingMoves) {
         this.loginContext = loginContext;
         this.securityProvider = securityProvider;
         this.workspaceName = workspaceName;
@@ -78,6 +82,7 @@ class ContentSessionImpl implements ContentSession {
         this.hook = hook;
         this.queryEngineSettings = queryEngineSettings;
         this.indexProvider = indexProvider;
+        this.forceApplyPendingMoves = forceApplyPendingMoves;
         this.sessionName = "session-" + SESSION_COUNTER.incrementAndGet();
     }
 
@@ -103,7 +108,8 @@ class ContentSessionImpl implements ContentSession {
     public Root getLatestRoot() {
         checkLive();
         return new MutableRoot(store, hook, workspaceName, loginContext.getSubject(),
-                securityProvider, queryEngineSettings, indexProvider, this);
+                securityProvider, queryEngineSettings, indexProvider,
+                forceApplyPendingMoves, this);
     }
 
     //-----------------------------------------------------------< Closable >---

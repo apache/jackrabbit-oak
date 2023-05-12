@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
 
 class MutableRoot implements Root, PermissionAware {
@@ -89,6 +90,8 @@ class MutableRoot implements Root, PermissionAware {
     private final QueryEngineSettings queryEngineSettings;
 
     private final QueryIndexProvider indexProvider;
+
+    private final Feature forceApplyPendingMoves;
 
     private final ContentSessionImpl session;
 
@@ -157,6 +160,7 @@ class MutableRoot implements Root, PermissionAware {
                  SecurityProvider securityProvider,
                  QueryEngineSettings queryEngineSettings,
                  QueryIndexProvider indexProvider,
+                 Feature forceApplyPendingMoves,
                  ContentSessionImpl session) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
@@ -166,6 +170,7 @@ class MutableRoot implements Root, PermissionAware {
         this.queryEngineSettings = queryEngineSettings;
         this.indexProvider = indexProvider;
         this.session = checkNotNull(session);
+        this.forceApplyPendingMoves = forceApplyPendingMoves;
 
         builder = store.getRoot().builder();
         secureBuilder = new SecureNodeBuilder(builder, permissionProvider);
@@ -370,7 +375,9 @@ class MutableRoot implements Root, PermissionAware {
      * @param t the new MutableTree.
      */
     void created(MutableTree t) {
-        trees.put(t, null);
+        if (forceApplyPendingMoves()) {
+            trees.put(t, null);
+        }
     }
 
     //------------------------------------------------------------< private >---
@@ -399,7 +406,13 @@ class MutableRoot implements Root, PermissionAware {
     }
 
     private void applyPendingMovesToKnownTrees() {
-        trees.forEach((t, o) -> { if (t != null) t.getName(); });
+        if (forceApplyPendingMoves()) {
+            trees.forEach((t, o) -> { if (t != null) t.getName(); });
+        }
+    }
+
+    private boolean forceApplyPendingMoves() {
+        return forceApplyPendingMoves != null && forceApplyPendingMoves.isEnabled();
     }
 
     //--------------------------------------------------------------------------------------------< PermissionAware >---
