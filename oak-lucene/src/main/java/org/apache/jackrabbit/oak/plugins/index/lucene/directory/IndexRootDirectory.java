@@ -29,14 +29,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.hash.Hashing;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -47,8 +47,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Represents the root directory on file system used for storing index copy locally.

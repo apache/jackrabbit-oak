@@ -28,7 +28,7 @@ import javax.jcr.query.Row;
 import javax.jcr.query.RowIterator;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.junit.After;
 import org.junit.Before;

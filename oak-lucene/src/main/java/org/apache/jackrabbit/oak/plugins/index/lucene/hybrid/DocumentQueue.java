@@ -33,10 +33,10 @@ import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.util.concurrent.Striped;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.util.concurrent.Striped;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.concurrent.NotifyingFutureTask;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
@@ -51,7 +51,7 @@ import org.apache.lucene.index.IndexableField;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class DocumentQueue implements Closeable, IndexingQueue {
     private static final PerfLogger PERF_LOGGER =

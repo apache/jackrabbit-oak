@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
 import java.util.Iterator;
 import java.util.Random;

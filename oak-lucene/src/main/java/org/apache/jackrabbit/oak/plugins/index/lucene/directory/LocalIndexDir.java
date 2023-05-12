@@ -24,7 +24,7 @@ import java.io.IOException;
 
 import org.apache.commons.io.FileUtils;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirectory.INDEX_METADATA_FILE_NAME;
 
 public final class LocalIndexDir implements Comparable<LocalIndexDir> {

@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;

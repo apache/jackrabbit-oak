@@ -24,8 +24,8 @@ import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.analysis.Analyzer;

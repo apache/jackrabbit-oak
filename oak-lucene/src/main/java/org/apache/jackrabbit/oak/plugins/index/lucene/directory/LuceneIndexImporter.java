@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.File;
 import java.io.IOException;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporterProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;

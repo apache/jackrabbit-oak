@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static com.google.common.collect.ImmutableList.copyOf;
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Iterators.transform;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static java.util.Arrays.asList;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -118,10 +118,10 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 @SuppressWarnings("ConstantConditions")
 public class LuceneIndexTest {
@@ -677,7 +677,7 @@ public class LuceneIndexTest {
         NodeState indexed = HOOK.processCommit(before, after,CommitInfo.EMPTY);
 
         File indexRootDir = new File(getIndexDir());
-        tracker = new IndexTracker(new IndexCopier(sameThreadExecutor(), indexRootDir));
+        tracker = new IndexTracker(new IndexCopier(newDirectExecutorService(), indexRootDir));
         tracker.update(indexed);
 
         assertQuery(tracker, indexed, "foo", "bar");
@@ -703,7 +703,7 @@ public class LuceneIndexTest {
 
         NodeState indexed = HOOK.processCommit(before, builder.getNodeState(),CommitInfo.EMPTY);
 
-        IndexCopier copier = new IndexCopier(sameThreadExecutor(), new File(getIndexDir()));
+        IndexCopier copier = new IndexCopier(newDirectExecutorService(), new File(getIndexDir()));
         tracker = new IndexTracker(copier);
         tracker.update(indexed);
 

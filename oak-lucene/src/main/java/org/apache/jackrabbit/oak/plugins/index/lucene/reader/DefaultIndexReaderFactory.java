@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;

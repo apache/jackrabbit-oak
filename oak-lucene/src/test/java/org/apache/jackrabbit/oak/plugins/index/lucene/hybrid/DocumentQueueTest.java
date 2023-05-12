@@ -26,11 +26,11 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -60,7 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.LocalIndexObserverTest.NOOP_EXECUTOR;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
@@ -112,14 +112,14 @@ public class DocumentQueueTest {
 
     @Test
     public void noIssueIfNoIndex() throws Exception{
-        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
         assertTrue(queue.add(LuceneDoc.forDelete("foo", "bar")));
         assertTrue(queue.getQueuedDocs().isEmpty());
     }
 
     @Test
     public void closeQueue() throws Exception{
-        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
         queue.close();
 
         try {
@@ -133,7 +133,7 @@ public class DocumentQueueTest {
     @Test
     public void noIssueIfNoWriter() throws Exception{
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
-        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
 
         tracker.update(indexed);
         assertTrue(queue.add(LuceneDoc.forDelete("/oak:index/fooIndex", "bar")));
@@ -144,7 +144,7 @@ public class DocumentQueueTest {
         IndexTracker tracker = createTracker();
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.NRT);
         tracker.update(indexed);
-        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
 
         Document d1 = new Document();
         d1.add(newPathField("/a/b"));
@@ -164,7 +164,7 @@ public class DocumentQueueTest {
 
         clock.waitUntil(refreshDelta);
 
-        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
 
         TopDocs td = doSearch("bar");
         assertEquals(1, td.totalHits);
@@ -225,7 +225,7 @@ public class DocumentQueueTest {
         NodeState indexed = createAndPopulateAsyncIndex(FulltextIndexConstants.IndexingMode.SYNC);
         tracker.update(indexed);
 
-        DocumentQueue queue = new DocumentQueue(2, tracker, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(2, tracker, newDirectExecutorService());
 
         TopDocs td = doSearch("bar");
         assertEquals(1, td.totalHits);
@@ -323,7 +323,7 @@ public class DocumentQueueTest {
     }
 
     private IndexTracker createTracker() throws IOException {
-        IndexCopier indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
+        IndexCopier indexCopier = new IndexCopier(newDirectExecutorService(), temporaryFolder.getRoot());
         indexFactory = new NRTIndexFactory(indexCopier, clock, TimeUnit.MILLISECONDS.toSeconds(refreshDelta), StatisticsProvider.NOOP);
         return new IndexTracker(
                 new DefaultIndexReaderFactory(defaultMountInfoProvider(), indexCopier),

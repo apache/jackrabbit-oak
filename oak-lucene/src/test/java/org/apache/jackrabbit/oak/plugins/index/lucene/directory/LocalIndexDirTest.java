@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

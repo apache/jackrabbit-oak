@@ -40,14 +40,14 @@ import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.CountingInputStream;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
@@ -105,8 +105,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;

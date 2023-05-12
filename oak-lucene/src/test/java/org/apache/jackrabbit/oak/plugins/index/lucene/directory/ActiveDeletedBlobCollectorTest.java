@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_FAILED;
 import static org.apache.jackrabbit.oak.plugins.index.IndexCommitCallback.IndexProgress.COMMIT_SUCCEDED;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -46,8 +46,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import ch.qos.logback.classic.Level;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.commons.CIHelper;
@@ -82,7 +82,7 @@ public class ActiveDeletedBlobCollectorTest {
 
     private void createBlobCollector() {
         adbc = new ActiveDeletedBlobCollectorImpl(clock,
-                new File(blobCollectionRoot.getRoot(), "/a"), sameThreadExecutor());
+                new File(blobCollectionRoot.getRoot(), "/a"), newDirectExecutorService());
     }
 
     @Test
@@ -280,11 +280,11 @@ public class ActiveDeletedBlobCollectorTest {
                         PosixFilePermission.GROUP_READ,
                         PosixFilePermission.OTHERS_READ));
 
-        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableExistingRootFolder, sameThreadExecutor());
+        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableExistingRootFolder, newDirectExecutorService());
         assertEquals("Unwritable existing root folder must have NOOP active blob collector",
                 ActiveDeletedBlobCollectorFactory.NOOP, adbc);
 
-        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableNonExistingRootFolder, sameThreadExecutor());
+        adbc = ActiveDeletedBlobCollectorFactory.newInstance(unwritableNonExistingRootFolder, newDirectExecutorService());
         assertEquals("Unwritable non-existing root folder must have NOOP active blob collector",
                 ActiveDeletedBlobCollectorFactory.NOOP, adbc);
     }
@@ -504,9 +504,9 @@ public class ActiveDeletedBlobCollectorTest {
     }
 
     class ChunkDeletionTrackingBlobStore implements GarbageCollectableBlobStore {
-        Set<String> deletedChunkIds = com.google.common.collect.Sets.newLinkedHashSet();
-        Set<String> failWithDSEForChunkIds = com.google.common.collect.Sets.newLinkedHashSet();
-        Set<String> failWithExceptionForChunkIds = com.google.common.collect.Sets.newLinkedHashSet();
+        Set<String> deletedChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
+        Set<String> failWithDSEForChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
+        Set<String> failWithExceptionForChunkIds = org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet();
         Runnable callback = null;
         volatile boolean markerChunkDeleted = false;
 

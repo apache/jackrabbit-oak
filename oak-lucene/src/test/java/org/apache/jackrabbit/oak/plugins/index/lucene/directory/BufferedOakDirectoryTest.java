@@ -23,7 +23,7 @@ import java.util.Random;
 import java.util.Set;
 
 import ch.qos.logback.classic.Level;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.PropertyState;

@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.collect.HashMultimap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Multimap;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
@@ -175,7 +175,7 @@ public class ExternalIndexObserverTest {
     @Test
     public void builder() throws Exception{
         ExternalObserverBuilder builder =
-                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.sameThreadExecutor(), 10);
+                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.newDirectExecutorService(), 10);
         Observer o = builder.build();
         o.contentChanged(INITIAL_CONTENT, CommitInfo.EMPTY_EXTERNAL);
         verifyNoInteractions(queue);
@@ -184,7 +184,7 @@ public class ExternalIndexObserverTest {
     @Test
     public void builder_NonFiltered() throws Exception{
         ExternalObserverBuilder builder =
-                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.sameThreadExecutor(), 10);
+                new ExternalObserverBuilder(queue, tracker,NOOP, MoreExecutors.newDirectExecutorService(), 10);
         assertIndexing(builder.build());
     }
 

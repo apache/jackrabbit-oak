@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;

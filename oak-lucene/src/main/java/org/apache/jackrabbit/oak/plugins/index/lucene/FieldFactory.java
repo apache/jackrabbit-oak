@@ -22,7 +22,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 
-import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;

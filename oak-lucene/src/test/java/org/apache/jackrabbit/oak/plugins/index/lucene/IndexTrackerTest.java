@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;

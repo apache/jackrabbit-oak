@@ -52,7 +52,7 @@ import org.apache.lucene.codecs.Codec;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import ch.qos.logback.classic.Level;
 

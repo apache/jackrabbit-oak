@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.property;
 import java.util.Collections;
 import java.util.Set;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.property.PropertyIndexUtil;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROPERTY_INDEX;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexUtil.PROP_HEAD_BUCKET;

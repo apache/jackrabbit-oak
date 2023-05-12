@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.IndexFieldProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

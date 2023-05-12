@@ -35,7 +35,7 @@ import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.fixture.DocumentMemoryFixture;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
@@ -69,7 +69,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertNotNull;
@@ -101,7 +101,7 @@ public class HybridIndexClusterIT extends AbstractClusterTest {
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory,nrtIndexFactory);
         LuceneIndexProvider provider = new LuceneIndexProvider(tracker);
-        DocumentQueue queue = new DocumentQueue(100, tracker, sameThreadExecutor());
+        DocumentQueue queue = new DocumentQueue(100, tracker, newDirectExecutorService());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
                 tracker,
                 null,

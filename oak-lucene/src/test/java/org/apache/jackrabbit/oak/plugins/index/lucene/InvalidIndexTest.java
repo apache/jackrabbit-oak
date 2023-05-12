@@ -45,7 +45,7 @@ import org.junit.Test;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.junit.Assert.assertTrue;

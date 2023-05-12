@@ -35,8 +35,8 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -50,8 +50,8 @@ import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class CopyOnWriteDirectory extends FilterDirectory {

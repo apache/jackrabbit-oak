@@ -25,7 +25,7 @@ import java.io.Reader;
 import java.lang.reflect.Field;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.NodeStateAnalyzerFactory.NodeStateResourceLoader;
