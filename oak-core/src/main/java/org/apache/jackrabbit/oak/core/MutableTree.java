@@ -66,6 +66,7 @@ final class MutableTree extends AbstractMutableTree {
         this.name = checkNotNull(name);
         this.nodeBuilder = nodeBuilder;
         this.pendingMoves = checkNotNull(pendingMoves);
+        this.root.created(this);
     }
 
     //------------------------------------------------------------< AbstractMutableTree >---
