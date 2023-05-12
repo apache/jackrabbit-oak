@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.search.util;
 
 import java.util.Collections;
 
-import com.google.common.collect.Iterables;
-import com.google.common.primitives.Ints;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.primitives.Ints;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 
 /**
  * Utility class to retrieve configuration values for index definitions.

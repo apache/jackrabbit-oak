@@ -18,15 +18,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.util;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.junit.Test;
 
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 

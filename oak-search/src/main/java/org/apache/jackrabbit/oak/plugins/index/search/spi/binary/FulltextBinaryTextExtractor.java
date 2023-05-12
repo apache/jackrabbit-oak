@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.binary;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.CountingInputStream;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Blob;
