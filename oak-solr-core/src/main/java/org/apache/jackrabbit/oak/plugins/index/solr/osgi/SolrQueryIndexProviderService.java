@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Deactivate;
