@@ -22,9 +22,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import java.util.Collection;
 import java.util.Map;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ListMultimap;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;

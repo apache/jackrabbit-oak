@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
 import java.io.IOException;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;

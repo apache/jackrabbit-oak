@@ -31,10 +31,10 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.io.ByteStreams;
-import com.google.common.io.Closer;
-import com.google.common.io.CountingInputStream;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -58,7 +58,7 @@ import org.apache.lucene.store.IOContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 public class IndexConsistencyChecker {

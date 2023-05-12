@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 class LuceneDoc implements LuceneDocInfo {
     final String indexPath;

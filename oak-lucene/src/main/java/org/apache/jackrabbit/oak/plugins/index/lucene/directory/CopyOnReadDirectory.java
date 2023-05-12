@@ -31,9 +31,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.IndexCopier;
 import org.apache.lucene.store.Directory;
@@ -44,7 +44,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static java.util.Arrays.stream;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
@@ -264,7 +264,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
     /**
      * Close the files _after_ the method returns (asynchronously).
-     * 
+     *
      * On close file which are not present in remote are removed from local.
      * CopyOnReadDir is opened at different revisions of the index state
      *

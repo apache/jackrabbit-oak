@@ -115,7 +115,6 @@
                 org.apache.jackrabbit.oak.plugins.index.lucene.spi,
             </Export-Package>
             <Import-Package>
-                <!-- OAK-7182 -->${guava.osgi.import},
                 org.apache.lucene.sandbox.*;resolution:=optional,
                 !org.apache.lucene.*,
                 !org.apache.jackrabbit.oak.cache,
@@ -216,13 +215,6 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-search</artifactId>
       <version>${project.version}</version>
-    </dependency>
-
-    <!-- General utility libraries -->
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <scope>provided</scope>
     </dependency>
 
     <!-- Lucene dependencies -->

@@ -23,12 +23,12 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Multimap;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalProperty;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 class IndexedPaths implements JournalProperty, Iterable<IndexedPathInfo> {
     private final Multimap<String, String> indexedPaths;

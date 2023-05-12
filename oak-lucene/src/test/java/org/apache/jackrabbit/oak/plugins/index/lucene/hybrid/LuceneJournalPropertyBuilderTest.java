@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.hybrid;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import org.apache.jackrabbit.guava.common.collect.HashMultimap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
