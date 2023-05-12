@@ -23,10 +23,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Throwables;
-import com.google.common.base.Ticker;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Throwables;
+import org.apache.jackrabbit.guava.common.base.Ticker;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

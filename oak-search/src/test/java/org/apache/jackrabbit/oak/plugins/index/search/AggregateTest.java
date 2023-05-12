@@ -28,10 +28,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.ListMultimap;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -43,8 +43,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableList.of;
-import static com.google.common.collect.Iterables.toArray;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;

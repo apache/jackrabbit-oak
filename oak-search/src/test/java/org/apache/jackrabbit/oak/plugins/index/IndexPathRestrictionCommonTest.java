@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -49,7 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.junit.Assert.assertEquals;
 

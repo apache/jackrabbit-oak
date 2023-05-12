@@ -24,7 +24,7 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -35,7 +35,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;

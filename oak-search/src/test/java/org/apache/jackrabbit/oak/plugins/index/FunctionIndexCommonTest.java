@@ -43,8 +43,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.event.Level;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 

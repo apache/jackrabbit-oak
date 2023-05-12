@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -35,7 +35,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;

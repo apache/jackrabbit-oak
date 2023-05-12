@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Ticker;
+import org.apache.jackrabbit.guava.common.base.Ticker;
 
-public class VirtualTicker extends Ticker{
+public class VirtualTicker extends Ticker {
     private long time;
 
     @Override

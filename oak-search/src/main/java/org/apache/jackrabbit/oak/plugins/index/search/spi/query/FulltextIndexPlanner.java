@@ -29,9 +29,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
+import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Multimap;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.StrictPathRestriction;
@@ -60,9 +60,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_SCORE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
