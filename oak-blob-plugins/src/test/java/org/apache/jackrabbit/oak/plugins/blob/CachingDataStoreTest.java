@@ -30,9 +30,9 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Iterators;
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -56,7 +56,7 @@ import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.commons.codec.binary.Hex.encodeHexString;
 import static org.apache.jackrabbit.oak.spi.blob.BlobOptions.UploadType.SYNCHRONOUS;
 import static org.junit.Assert.assertEquals;
@@ -133,7 +133,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.setStagingSplitPercentage(uploadSplit);
         dataStore.listeningExecutor = listeningExecutor;
         dataStore.schedulerExecutor = scheduledExecutor;
-        dataStore.executor = sameThreadExecutor();
+        dataStore.executor = newDirectExecutorService();
         dsPath = new File(root.getAbsolutePath(), "ds").getAbsolutePath();
         dataStore.setPath(dsPath);
         dataStore.init(root.getAbsolutePath());

@@ -24,8 +24,8 @@ import java.util.Set;
 
 import javax.management.openmbean.TabularData;
 
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;

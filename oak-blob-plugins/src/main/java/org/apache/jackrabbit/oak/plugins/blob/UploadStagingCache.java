@@ -35,17 +35,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Optional;
-import com.google.common.cache.Weigher;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
+import org.apache.jackrabbit.guava.common.base.Optional;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.Files;
+import org.apache.jackrabbit.guava.common.util.concurrent.FutureCallback;
+import org.apache.jackrabbit.guava.common.util.concurrent.Futures;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListeningExecutorService;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.util.NamedThreadFactory;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -61,7 +61,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Objects.toStringHelper;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.plugins.blob.DataStoreCacheUpgradeUtils

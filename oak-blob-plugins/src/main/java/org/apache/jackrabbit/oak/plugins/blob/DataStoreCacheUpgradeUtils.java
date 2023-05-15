@@ -18,19 +18,21 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.serialization.ValidatingObjectInputStream;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,33 +109,26 @@ public class DataStoreCacheUpgradeUtils {
         final List<String> exceptions = ImmutableList.of("tmp", UPLOAD_STAGING_DIR, DOWNLOAD_DIR);
         File newDownloadDir = new File(path, DOWNLOAD_DIR);
 
-        Iterator<File> iterator =
-            Files.fileTreeTraverser().postOrderTraversal(path)
-                .filter(new Predicate<File>() {
-                    @Override public boolean apply(File input) {
-                        return input.isFile()
-                            && !input.getParentFile().equals(path)
-                            && !notInExceptions(input, exceptions);
+        FileTreeTraverser.depthFirstPostOrder(path)
+                .filter(file -> file.isFile()
+                        && !file.getParentFile().equals(path)
+                        && !notInExceptions(file, exceptions))
+                .forEach(download -> {
+                    LOG.trace("Download cache file absolute pre-upgrade path {}", download);
+
+                    File newDownload = new File(newDownloadDir,
+                            download.getAbsolutePath().substring(path.getAbsolutePath().length()));
+                    newDownload.getParentFile().mkdirs();
+                    LOG.trace("Downloaded cache file absolute post-upgrade path {}", newDownload);
+
+                    try {
+                        FileUtils.moveFile(download, newDownload);
+                        LOG.info("Download cache file [{}] moved to [{}]", download, newDownload);
+                        recursiveDelete(download, path);
+                    } catch (Exception e) {
+                        LOG.warn("Unable to move download cache file [{}] to [{}]", download, newDownload);
                     }
-                }).iterator();
-
-        while (iterator.hasNext()) {
-            File download = iterator.next();
-            LOG.trace("Download cache file absolute pre-upgrade path " + download);
-
-            File newDownload = new File(newDownloadDir,
-                download.getAbsolutePath().substring(path.getAbsolutePath().length()));
-            newDownload.getParentFile().mkdirs();
-            LOG.trace("Downloaded cache file absolute post-upgrade path " + newDownload);
-
-            try {
-                FileUtils.moveFile(download, newDownload);
-                LOG.info("Download cache file [{}] moved to [{}]", download, newDownload);
-                recursiveDelete(download, path);
-            } catch (Exception e) {
-                LOG.warn("Unable to move download cache file [{}] to [{}]", download, newDownload);
-            }
-        }
+                });
     }
 
     /**

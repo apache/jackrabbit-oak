@@ -28,8 +28,8 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;

@@ -26,7 +26,7 @@ import java.util.Arrays;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -34,7 +34,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.junit.Test;
 
-import static com.google.common.io.ByteStreams.toByteArray;
+import static org.apache.jackrabbit.guava.common.io.ByteStreams.toByteArray;
 import static org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils.randomStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

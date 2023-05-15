@@ -24,7 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.io.CountingInputStream;
+import org.apache.jackrabbit.guava.common.io.CountingInputStream;
 import org.jetbrains.annotations.NotNull;
 
 

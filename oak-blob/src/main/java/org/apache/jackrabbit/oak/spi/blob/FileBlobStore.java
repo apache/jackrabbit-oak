@@ -29,16 +29,11 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.FluentIterable;
-import com.google.common.io.Files;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
-import org.jetbrains.annotations.Nullable;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 
 /**
  * A file blob store.
@@ -231,7 +226,7 @@ public class FileBlobStore extends AbstractBlobStore {
                 old.renameTo(f);
                 f = getFile(digest, false);
             }
-            if ((maxLastModifiedTime <= 0) 
+            if ((maxLastModifiedTime <= 0)
                     || FileUtils.isFileOlder(f, maxLastModifiedTime)) {
                 f.delete();
                 count++;
@@ -242,30 +237,14 @@ public class FileBlobStore extends AbstractBlobStore {
 
     @Override
     public Iterator<String> getAllChunkIds(final long maxLastModifiedTime) throws Exception {
-        FluentIterable<File> iterable = Files.fileTreeTraverser().postOrderTraversal(baseDir);
-        final Iterator<File> iter =
-                iterable.filter(new Predicate<File>() {
+        return FileTreeTraverser.depthFirstPostOrder(baseDir)
+                .filter(file -> {
                     // Ignore the directories and files newer than maxLastModifiedTime if specified
-                    @Override
-                    public boolean apply(@Nullable File input) {
-                        if (!input.isDirectory() && (
-                                (maxLastModifiedTime <= 0)
-                                    || FileUtils.isFileOlder(input, maxLastModifiedTime))) {
-                            return true;
-                        }
-                        return false;
-                    }
-                }).iterator();
-        return new AbstractIterator<String>() {
-            @Override
-            protected String computeNext() {
-                if (iter.hasNext()) {
-                    File file = iter.next();
-                    return FilenameUtils.removeExtension(file.getName());
-                }
-                return endOfData();
-            }
-        };
+                    return !file.isDirectory() &&
+                            ((maxLastModifiedTime <= 0) || FileUtils.isFileOlder(file, maxLastModifiedTime));
+                })
+                .map(file -> FilenameUtils.removeExtension(file.getName()))
+                .iterator();
     }
 
     @Override
