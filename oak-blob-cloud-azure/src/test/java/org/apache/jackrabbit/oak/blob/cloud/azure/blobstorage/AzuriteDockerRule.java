@@ -26,6 +26,8 @@ import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
+import java.util.UUID;
+
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
 import org.junit.rules.TestRule;
@@ -39,12 +41,14 @@ public class AzuriteDockerRule implements TestRule {
     public static final String ACCOUNT_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
     public static final String ACCOUNT_NAME = "devstoreaccount1";
 
+    private static final String CONTAINER_SUFFIX = UUID.randomUUID().toString().substring(0, 8);
+
     private final DockerRule wrappedRule;
 
     public AzuriteDockerRule() {
         wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
             .image(IMAGE)
-            .name("oak-test-azurite")
+            .name("oak-test-azurite-" + CONTAINER_SUFFIX)
             .ports("10000")
             .addStartedListener(container -> {
                 container.waitForPort("10000/tcp");
