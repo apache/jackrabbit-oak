@@ -376,9 +376,25 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         test.addChild("baz").setProperty("foo", "other text");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'tormenta')", List.of("/test"));
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'tormenta')", List.of("/test")));
+    }
+
+    @Test
+    public void fulltextSearchWithKStemmer() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("KStem");
         });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "the foxes jumping quickly");
+        test.addChild("baz").setProperty("foo", "other text");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'quick')", List.of("/test")));
     }
 
     @Test
@@ -400,9 +416,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         test.addChild("test").setProperty("foo", "fox running");
         root.commit();
 
-        assertEventually(() -> {
-            assertQuery("select * from [nt:base] where CONTAINS(*, 'run')", List.of());
-        });
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'run')", List.of()));
     }
 
     @Test
@@ -525,6 +539,197 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'brown')", List.of("/bar")));
+    }
+
+    @Test
+    public void fulltextSearchWithNGram() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree edgeNGram = filters.addChild("NGram");
+            edgeNGram.setProperty("minGramSize", "2");
+            edgeNGram.setProperty("maxGramSize", "3");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "quick");
+        test.addChild("baz").setProperty("foo", "kciuq");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'qui')", List.of("/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'ck')", List.of("/bar"));
+        });
+    }
+    @Test
+    public void fulltextSearchWithEdgeNGram() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree edgeNGram = filters.addChild("EdgeNGram");
+            edgeNGram.setProperty("minGramSize", "1");
+            edgeNGram.setProperty("maxGramSize", "3");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "quick");
+        test.addChild("baz").setProperty("foo", "kciuq");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'qui')", List.of("/bar")));
+    }
+
+    @Test
+    public void fulltextSearchWithElision() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree elision = filters.addChild("Elision");
+            elision.setProperty("articles", "articles.txt");
+            elision.addChild("articles.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "j\ns\nc\nt");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "j'examine");
+        test.addChild("baz").setProperty("foo", "other content");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'examine')", List.of("/bar")));
+    }
+
+    @Test
+    public void fulltextSearchWithKeepWord() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree kw = filters.addChild("KeepWord");
+            kw.setProperty("words", "words.txt");
+            kw.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
+                    .setProperty(JcrConstants.JCR_DATA, "dog\nelephant\nfox");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "the quick fox jumps over the lazy dog");
+        test.addChild("baz").setProperty("foo", "some other content");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'dog')", List.of("/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'lazy')", List.of());
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'content')", List.of());
+        });
+    }
+
+    @Test
+    public void fulltextSearchWithLength() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree length = filters.addChild("Length");
+            length.setProperty("min", "0");
+            length.setProperty("max", "4");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "the quick brown fox jumps over the lazy dog");
+        test.addChild("baz").setProperty("foo", "more content");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'fox')", List.of("/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'brown')", List.of());
+        });
+    }
+
+    @Test
+    public void fulltextSearchWithLimitTokenCount() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Whitespace");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree length = filters.addChild("LimitTokenCount");
+            length.setProperty("maxTokenCount", "2");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "quick brown fox jumps over the lazy dog");
+        test.addChild("baz").setProperty("foo", "more content");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'brown')", List.of("/bar"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'fox')", List.of());
+        });
+    }
+
+    @Test
+    public void fulltextSearchWithLanguageBasedNormalization() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("GermanNormalization");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "über");
+        test.addChild("baz").setProperty("foo", "other text");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'uber')", List.of("/test")));
+    }
+
+    @Test
+    public void fulltextSearchWithPatternCapture() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree pcg = filters.addChild("PatternCaptureGroup");
+            pcg.setProperty("pattern", "(([a-z]+)(\\d*))");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "abc123def456");
+        test.addChild("baz").setProperty("foo", "other text");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'def')", List.of("/test")));
+    }
+
+    @Test
+    public void fulltextSearchWithShingle() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            Tree shingle = filters.addChild("Shingle");
+            shingle.setProperty("minShingleSize", "2");
+            shingle.setProperty("maxShingleSize", "3");
+            shingle.setProperty("outputUnigrams", "false");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("test").setProperty("foo", "quick brown fox jumps");
+        test.addChild("baz").setProperty("foo", "other text");
+        root.commit();
+
+        assertEventually(() -> assertQuery("select * from [nt:base] where CONTAINS(*, 'quick brown')", List.of("/test")));
     }
 
     //OAK-4805
