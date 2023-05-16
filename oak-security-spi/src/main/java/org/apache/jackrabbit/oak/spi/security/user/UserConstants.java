@@ -19,8 +19,6 @@ package org.apache.jackrabbit.oak.spi.security.user;
 import java.util.Collection;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
-import java.util.Collection;
-
 /**
  * User management related constants. Please note that all names and paths
  * are OAK names/paths and therefore are not suited to be used in JCR context
@@ -81,6 +79,8 @@ public interface UserConstants {
 
     /**
      * Configuration option defining the names of the impersonatorPrincipals field.
+     * @since Oak 1.54.0
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-10173">OAK-10173</a>
      */
     String PARAM_IMPERSONATOR_PRINCIPAL_NAMES = "impersonatorPrincipals";
 
