@@ -17,14 +17,14 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.jcr.RepositoryException;
 import java.security.Principal;
-import java.util.Iterator;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,10 +42,10 @@ public interface ImpersonationTestUtil {
 
      * @param configs The configuration object to be spied. If null, a new mock object will be created.
      * @param impersonatorGroupId The impersonator group ID to be returned when searching in the config for
-     *                            <code>PARAM_IMPERSONATOR_GROUPS_ID</code>.
+     *                            {@code PARAM_IMPERSONATOR_GROUPS_ID}.
      * @return A mocked configuration object with the specified impersonator group ID.
      */
-    static ConfigurationParameters getMockedConfigs(ConfigurationParameters configs, String impersonatorGroupId) {
+    @NotNull static ConfigurationParameters getMockedConfigs(@Nullable ConfigurationParameters configs, @NotNull String impersonatorGroupId) {
         ConfigurationParameters configMock;
         if (configs != null) {
             configMock = spy(configs);
@@ -58,7 +58,7 @@ public interface ImpersonationTestUtil {
         return configMock;
     }
 
-    static ConfigurationParameters getMockedConfigs(String impersonatorGroupId) {
+    @NotNull static ConfigurationParameters getMockedConfigs(@NotNull String impersonatorGroupId) {
         return getMockedConfigs(null, impersonatorGroupId);
     }
 
@@ -71,7 +71,7 @@ public interface ImpersonationTestUtil {
      * @param user the existing user object to attach a config to
      * @return a mock user object with mocked configuration parameters
      */
-    static UserImpl getUserWithMockedConfigs(String impersonatorGroupName, UserImpl user) {
+    @NotNull static UserImpl getUserWithMockedConfigs(@NotNull String impersonatorGroupName, @NotNull UserImpl user) {
         ConfigurationParameters configMock = getMockedConfigs(impersonatorGroupName);
 
         UserManagerImpl userManagerMock = spy(user.getUserManager());
@@ -83,14 +83,14 @@ public interface ImpersonationTestUtil {
         return userMock;
     }
 
-    static Authorizable getAuthorizableWithPrincipal(Principal principal) throws RepositoryException {
-        Authorizable authorizable = mock(Authorizable.class);
-        when(authorizable.getPrincipal()).thenReturn(principal);
+    @NotNull static User getUserWithPrincipal(@NotNull Principal principal) throws RepositoryException {
+        User user = mock(User.class);
+        when(user.getPrincipal()).thenReturn(principal);
 
-        return authorizable;
+        return user;
     }
 
-    static PrincipalManager getMockedPrincipalManager(String impersonatorName, Principal principal) {
+    @NotNull static PrincipalManager getMockedPrincipalManager(@NotNull String impersonatorName, @NotNull Principal principal) {
         PrincipalManager principalManagerMocked = mock(PrincipalManager.class);
         when(principalManagerMocked.getPrincipal(impersonatorName)).thenReturn(principal);
 
