@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
+import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -26,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.tree.TreeAware;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
+import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -35,6 +38,9 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
+import java.util.Set;
+
+import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_IMPERSONATOR_PRINCIPAL_NAMES;
 
 public final class Utils {
 
@@ -93,7 +99,7 @@ public final class Utils {
     /**
      * Return {@code true} if the given principal can impersonate all users. 
      * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()} 
-     * returns {@code true}.
+     * returns {@code true} OR if the user contains a principal name configured to impersonate all users.
      * 
      * @param principal A non-null principal instance.
      * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
@@ -103,12 +109,80 @@ public final class Utils {
     public static boolean canImpersonateAllUsers(@NotNull Principal principal, @NotNull UserManager userManager) {
         try {
             Authorizable authorizable = userManager.getAuthorizable(principal);
-            return authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
+            if (authorizable == null || authorizable.isGroup()) {
+                return false;
+            }
+
+            return ((User)authorizable).isAdmin() || Utils.isImpersonator(authorizable, userManager);
         } catch (RepositoryException e) {
             log.debug(e.getMessage());
-            return false;        
+            return false;
         }
     }
+
+    /**
+     * Return {@code true} if the given authorizable has the right to impersonate.
+     * The implementation tests if the given authorizable refers to an existing {@code Principal} that is either member
+     * of a configured impersonator group or is has its name amongst configured impersonators. Both those configurations
+     * are under the PARAM_IMPERSONATOR_PRINCIPAL_NAMES configuration value.
+     *
+     * @param authorizable A non-null authorizable instance.
+     * @param userMng The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
+     * @return {@code true} if the given authorizable is an impersonator; {@code false} if that condition is not met
+     * or if the evaluation failed.
+     */
+    public static boolean isImpersonator(@NotNull Authorizable authorizable, @NotNull UserManager userMng) throws RepositoryException {
+        UserManagerImpl userManager = (UserManagerImpl)userMng;
+        Set<String> impersonatorPrincipals = Set.of(userManager.getConfig().getConfigValue(
+                PARAM_IMPERSONATOR_PRINCIPAL_NAMES,
+                new String[]{}));
+        if (impersonatorPrincipals.isEmpty()) {
+            return false;
+        }
+
+        Principal userPrincipal = authorizable.getPrincipal();
+        PrincipalManager principalManager = userManager.getPrincipalManager();
+        for (String impersonatorPrincipalName: impersonatorPrincipals) {
+            Principal impersonatorPrincipal = principalManager.getPrincipal(impersonatorPrincipalName);
+            if (impersonatorPrincipal == null) {
+                continue;
+            }
+
+            if (GroupPrincipals.isGroup(impersonatorPrincipal)) {
+                if (((GroupPrincipal)impersonatorPrincipal).isMember(userPrincipal)) {
+                    return true;
+                }
+            } else if (impersonatorPrincipalName.equals(userPrincipal.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Return {@code true} if the given principal is admin.
+     * The implementation tests if the given principal refers to an existing {@code User} for which {@link User#isAdmin()}
+     * returns {@code true}.
+     *
+     * @param principal A non-null principal instance.
+     * @param userManager The user manager used for the lookup calling {@link UserManager#getAuthorizable(Principal))}
+     * @return {@code true} if the given principal is admin; {@code false} if that condition is not met
+     * or if the evaluation failed.
+     */
+    public static boolean isAdmin(@NotNull Principal principal, @NotNull UserManager userManager) {
+        try {
+            Authorizable authorizable = userManager.getAuthorizable(principal);
+            if (authorizable == null || authorizable.isGroup()) {
+                return false;
+            }
+
+            return ((User)authorizable).isAdmin();
+        } catch (RepositoryException e) {
+            log.debug(e.getMessage());
+            return false;
+        }
+    }
+
     
     @Nullable
     private static String getPrincipalName(@NotNull Authorizable authorizable) {
