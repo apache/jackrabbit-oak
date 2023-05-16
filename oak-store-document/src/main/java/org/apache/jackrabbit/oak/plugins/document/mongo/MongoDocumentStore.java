@@ -1168,26 +1168,32 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     /**
-     * Performs a conditional update (e.g. using
-     * {@link Condition.Type#EXISTS} and only update the
-     * document if the condition is <code>true</code>. The returned documents are
-     * immutable.
-     * <p>
-     * In case of a {@code DocumentStoreException} (e.g. when a communication
-     * error occurs) only some updates may have been applied. In this case
-     * it is the responsibility of the caller to check which {@link UpdateOp}s
-     * were applied and take appropriate action. The implementation however ensures
-     * that the result of the operations are properly reflected in the document
-     * cache. That is, an implementation could simply evict the documents related
-     * to the given update operations from the cache.
+     * Try to apply all the {@link UpdateOp}s with at least MongoDB requests as
+     * possible. The return value is the list of the old documents (before
+     * applying changes). The mechanism is as follows:
      *
-     * @param collection the collection
-     * @param updateOps  the update operation List
-     * @return the list containing old documents or <code>null</code> if the condition is not met
-     * or if the document wasn't found. The order in the result list reflects the order
-     * in the updateOps parameter
-     * @throws DocumentStoreException if the operation failed. E.g. because of
-     *                                an I/O error.
+     * <ol>
+     * <li>For each UpdateOp try to read the assigned document from the cache.
+     *     Add them to {@code oldDocs}.</li>
+     * <li>Prepare a list of all UpdateOps that doesn't have their documents and
+     *     read them in one find() call. Add results to {@code oldDocs}.</li>
+     * <li>Prepare a bulk update. For each remaining UpdateOp add following
+     *     operation:
+     *   <ul>
+     *   <li>Find document with the same id and the same mod_count as in the
+     *       {@code oldDocs}.</li>
+     *   <li>Apply changes from the UpdateOps.</li>
+     *   </ul>
+     * </li>
+     * <li>Execute the bulk update.</li>
+     * </ol>
+     *
+     * If some other process modifies the target documents between points 2 and
+     * 3, the mod_count will be increased as well and the bulk update will fail
+     * for the concurrently modified docs. The method will then remove the
+     * failed documents from the {@code oldDocs} and restart the process from
+     * point 2. It will stop after 3rd iteration.
+     *
      * @see #createOrUpdate(Collection, List)
      */
     @Override
@@ -1199,6 +1205,7 @@ public class MongoDocumentStore implements DocumentStore {
         final Map<UpdateOp, T> results = new LinkedHashMap<>(updateOps.size());
 
         final Stopwatch watch = startWatch();
+        int retryCount = 0;
         try {
             for (UpdateOp updateOp : updateOps) {
                 UpdateOp clone = updateOp.copy();
@@ -1216,6 +1223,7 @@ public class MongoDocumentStore implements DocumentStore {
             }
 
             for (int i = 0; i <= bulkRetries; i++) {
+                retryCount = i;
                 if (operationsToCover.size() <= 2) {
                     // bulkUpdate() method invokes Mongo twice, so sending 2 updates
                     // in bulk mode wouldn't result in any performance gain
@@ -1239,7 +1247,7 @@ public class MongoDocumentStore implements DocumentStore {
             throw handleException(e, collection, Iterables.transform(updateOps, UpdateOp::getId));
         } finally {
             stats.doneFindAndModify(watch.elapsed(NANOSECONDS), collection, updateOps.stream().map(UpdateOp::getId).collect(toList()),
-                    false, true, 0);
+                    false, true, retryCount);
         }
         final List<T> resultList = new ArrayList<>(results.values());
         log("findAndUpdate returns", resultList);
@@ -1412,7 +1420,6 @@ public class MongoDocumentStore implements DocumentStore {
                             // 1. oldDoc is null
                             // 2. document didn't get updated i.e. modCount is same after update operation
                             log("Skipping updating doc cache for {}", key);
-                            return;
                         } else {
                             NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
                             docsToCache.add(newDoc);
