@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.After;
 import org.junit.Assume;
 import org.junit.Before;
@@ -139,8 +140,10 @@ public class MongoDBExceptionTest {
 
     @Test
     public void createOrUpdate16MBDoc() {
-
-        UpdateOp updateOp = new UpdateOp("/foo", true);
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+        String id = "/foo";
+        UpdateOp updateOp = new UpdateOp(id, true);
         updateOp = create16MBProp(updateOp);
         exceptionMsg = "Document to upsert is larger than 16777216";
         try {
@@ -148,7 +151,10 @@ public class MongoDBExceptionTest {
             fail("DocumentStoreException expected");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
+            String log = customizer.getLogs().toString();
+            assertTrue("Message doesn't contain the id", log.contains(id));
         }
+        customizer.finished();
     }
 
     @Test
@@ -173,13 +179,17 @@ public class MongoDBExceptionTest {
     public void multiCreateOrUpdate16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<>();
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+        String id1 = "/test";
+        String id2 = "/foo";
 
-        UpdateOp op = new UpdateOp("/test", true);
+        UpdateOp op = new UpdateOp(id1, true);
         op = create1MBProp(op);
 
         store.createOrUpdate(Collection.NODES, op);
 
-        UpdateOp op1 = new UpdateOp("/foo", true);
+        UpdateOp op1 = new UpdateOp(id2, true);
         op1 = create16MBProp(op1);
 
         // Updating both doc with 16MB
@@ -193,29 +203,38 @@ public class MongoDBExceptionTest {
             fail("DocumentStoreException expected");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
+            String log = customizer.getLogs().toString();
+            assertTrue("Message doesn't contain the id", log.contains(id1));
         }
+        customizer.finished();
     }
 
     @Test
     public void create16MBDoc() {
 
         List<UpdateOp> updateOps = new ArrayList<>();
-
-        UpdateOp op1 = new UpdateOp("/test", true);
+        LogCustomizer customizer = LogCustomizer.forLogger(MongoDocumentStore.class.getName()).create();
+        customizer.starting();
+        String id1 = "/test";
+        String id2 = "/foo";
+        UpdateOp op1 = new UpdateOp(id1, true);
         op1 = create1MBProp(op1);
 
-        UpdateOp op2 = new UpdateOp("/foo", false);
+        UpdateOp op2 = new UpdateOp(id2, false);
         op2 = create1MBProp(op2);
         op2 = create16MBProp(op2);
 
         updateOps.add(op1);
         updateOps.add(op2);
         assertFalse(store.create(Collection.NODES, updateOps));
+        String log = customizer.getLogs().toString();
+        assertTrue("Message doesn't contain the id", log.contains(id2));
     }
 
     @Test
     public void findAndUpdate16MBDoc() throws Exception {
-        UpdateOp op = new UpdateOp("/foo", true);
+        String id = "/foo";
+        UpdateOp op = new UpdateOp(id, true);
         op = create1MBProp(op);
         store.createOrUpdate(Collection.NODES, op);
         op = create16MBProp(op);
@@ -225,6 +244,7 @@ public class MongoDBExceptionTest {
             fail("DocumentStoreException expected");
         } catch (DocumentStoreException e) {
             assertThat(e.getMessage(), containsString(exceptionMsg));
+            assertThat(e.getMessage(), containsString(id));
        }
     }
 
