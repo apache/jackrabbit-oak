@@ -72,6 +72,7 @@ under the License.
         <item href="query/lucene.html" name="Lucene Index" />
         <item href="query/elastic.html" name="Elastic Index" />
         <item href="query/property-index.html" name="Property Index" />
+        <item href="query/hybrid-index.html" name="Hybrid Index" />
         <item href="query/solr.html" name="Solr Index" />
       </item>
       <item href="security/overview.html" name="Security" collapse="false">
