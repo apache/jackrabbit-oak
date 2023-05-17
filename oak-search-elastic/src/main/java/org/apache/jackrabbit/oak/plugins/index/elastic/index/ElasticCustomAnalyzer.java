@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.ContentTransformer;
+import org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.ParameterTransformer;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -63,10 +65,10 @@ import java.util.Spliterators;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.LUCENE_VERSIONS;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.CONTENT_TRANSFORMERS;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.UNSUPPORTED_LUCENE_PARAMETERS;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.LUCENE_ELASTIC_TRANSFORMERS;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticCustomAnalyzerMappings.FILTERS;
 
@@ -87,24 +89,7 @@ public class ElasticCustomAnalyzer {
             JcrConstants.JCR_PRIMARYTYPE
     );
 
-    /*
-     * In some cases lucene cannot be used for parsing. This map contains pluggable transformers to execute on specific
-     * filter keys.
-     */
-    private static final Map<String, Function<String, Stream<String>>> CONTENT_TRANSFORMERS;
-
-    static {
-        CONTENT_TRANSFORMERS = new LinkedHashMap<>();
-        CONTENT_TRANSFORMERS.put("mapping", line -> {
-            if (line.length() == 0 || line.startsWith("#")) {
-                return Stream.empty();
-            } else {
-                return Stream.of(line.replaceAll("\"", ""));
-            }
-        });
-    }
-
-    private static final Function<String, Stream<String>> NOOP_TRANSFORMATION = Stream::of;
+    private static final ContentTransformer NOOP_TRANSFORMATION = s -> s;
 
     @Nullable
     public static IndexSettingsAnalysis.Builder buildCustomAnalyzers(NodeState state, String analyzerName) {
@@ -178,20 +163,17 @@ public class ElasticCustomAnalyzer {
 
             String name;
             List<String> content = null;
-            List<Function<Map<String, Object>, Map<String, Object>>> transformers;
+            List<ParameterTransformer> transformers;
             try {
                 Class<? extends AbstractAnalysisFactory> tff = lookup.apply(t.getName());
 
-                Map<String, String> changes =
-                        LUCENE_VERSIONS.entrySet().stream()
+                List<String> unsupportedParameters =
+                        UNSUPPORTED_LUCENE_PARAMETERS.entrySet().stream()
                                 .filter(k -> k.getKey().isAssignableFrom(tff))
                                 .map(Map.Entry::getValue)
-                                .findFirst().orElseGet(Collections::emptyMap);
+                                .findFirst().orElseGet(Collections::emptyList);
                 Map<String, String> luceneArgs = StreamSupport.stream(child.getProperties().spliterator(), false)
-                        .filter(ps -> {
-                            String value = changes.get(ps.getName());
-                            return value == null || value.length() > 0;
-                        })
+                        .filter(ps -> !unsupportedParameters.contains(ps.getName()))
                         .collect(Collectors.toMap(PropertyState::getName, ps -> ps.getValue(Type.STRING)));
 
                 AbstractAnalysisFactory luceneFactory = tff.getConstructor(Map.class).newInstance(luceneArgs);
@@ -199,9 +181,7 @@ public class ElasticCustomAnalyzer {
                     AbstractWordsFileFilterFactory wordsFF = ((AbstractWordsFileFilterFactory) luceneFactory);
                     // this will parse/load the content handling different formats, comments, etc
                     wordsFF.inform(new NodeStateResourceLoader(child));
-                    content = wordsFF.getWords().stream().map(w ->
-                            new String(new String(((char[]) w)).getBytes(StandardCharsets.UTF_8))
-                    ).collect(Collectors.toList());
+                    content = wordsFF.getWords().stream().map(w -> new String(((char[]) w))).collect(Collectors.toList());
                 }
 
                 name = normalize((String) tff.getField("NAME").get(null));
@@ -210,8 +190,8 @@ public class ElasticCustomAnalyzer {
                         .map(Map.Entry::getValue)
                         .collect(Collectors.toList());
             } catch (Exception e) {
-                LOG.warn("unable introspect lucene internal factories to perform transformations. " +
-                        "Current configuration will be used: {}", e.getMessage());
+                LOG.warn("Unable introspect lucene internal factories to perform transformations. " +
+                        "Current configuration will be used", e);
                 name = normalize(t.getName());
                 transformers = List.of();
             }
@@ -244,14 +224,15 @@ public class ElasticCustomAnalyzer {
         return filters;
     }
 
-    private static List<String> loadContent(NodeState file, String name, Function<String, Stream<String>> transformer) throws IOException {
+    private static List<String> loadContent(NodeState file, String name, ContentTransformer transformer) throws IOException {
         Blob blob = ConfigUtil.getBlob(file, name);
         try (Reader content = new InputStreamReader(Objects.requireNonNull(blob).getNewStream(), StandardCharsets.UTF_8)) {
             try (BufferedReader br = new BufferedReader(content)) {
                 return br.lines()
                         .map(String::trim)
                         // apply specific transformations
-                        .flatMap(transformer)
+                        .map(transformer::transform)
+                        .filter(Objects::nonNull)
                         .collect(Collectors.toList());
             }
         }
@@ -284,8 +265,7 @@ public class ElasticCustomAnalyzer {
         return convertNodeState(state, List.of(), List.of());
     }
 
-    private static Map<String, Object> convertNodeState(NodeState state, List<Function<Map<String, Object>, Map<String, Object>>> transformers,
-                                                        List<String> preloadedContent) {
+    private static Map<String, Object> convertNodeState(NodeState state, List<ParameterTransformer> transformers, List<String> preloadedContent) {
         Map<String, Object> luceneParams = StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
                 .filter(ps -> ps.getType() != Type.BINARY &&
                         !ps.isArray() &&
@@ -306,7 +286,7 @@ public class ElasticCustomAnalyzer {
                         }).collect(Collectors.toList()));
                     } else return value;
                 }));
-        return transformers.stream().reduce(luceneParams, (lp, t) -> t.apply(lp), (lp1, lp2) -> {
+        return transformers.stream().reduce(luceneParams, (lp, t) -> t.transform(lp), (lp1, lp2) -> {
             lp1.putAll(lp2);
             return lp1;
         });

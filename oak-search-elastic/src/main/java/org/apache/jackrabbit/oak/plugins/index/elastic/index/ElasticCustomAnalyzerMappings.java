@@ -34,37 +34,71 @@ import org.apache.lucene.analysis.shingle.ShingleFilterFactory;
 import org.apache.lucene.analysis.synonym.SynonymFilterFactory;
 import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.util.ElisionFilterFactory;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class ElasticCustomAnalyzerMappings {
 
     /*
-     * Compatibility mappings between the different lucene versions
+     * List of lucene parameters not support in the version referenced in Elastic
      */
-    protected static final Map<Class<? extends AbstractAnalysisFactory>, Map<String, String>> LUCENE_VERSIONS;
+    protected static final Map<Class<? extends AbstractAnalysisFactory>, List<String>> UNSUPPORTED_LUCENE_PARAMETERS;
 
     static {
-        LUCENE_VERSIONS = new LinkedHashMap<>();
-        LUCENE_VERSIONS.put(CommonGramsFilterFactory.class, Map.of("query_mode", ""));
-        LUCENE_VERSIONS.put(AbstractWordsFileFilterFactory.class, Map.of("enablePositionIncrements", ""));
-        LUCENE_VERSIONS.put(SynonymFilterFactory.class, Map.of("lenient", ""));
-        LUCENE_VERSIONS.put(EdgeNGramFilterFactory.class, Map.of("preserveOriginal", ""));
-        LUCENE_VERSIONS.put(LengthFilterFactory.class, Map.of("enablePositionIncrements", ""));
-        LUCENE_VERSIONS.put(NGramFilterFactory.class, Map.of("keepShortTerm", "", "preserveOriginal", ""));
+        UNSUPPORTED_LUCENE_PARAMETERS = Map.of(
+                CommonGramsFilterFactory.class, List.of("query_mode"),
+                AbstractWordsFileFilterFactory.class, List.of("enablePositionIncrements"),
+                SynonymFilterFactory.class, List.of("lenient"),
+                EdgeNGramFilterFactory.class, List.of("preserveOriginal"),
+                LengthFilterFactory.class, List.of("enablePositionIncrements"),
+                NGramFilterFactory.class, List.of("keepShortTerm", "preserveOriginal")
+        );
+    }
+
+    @FunctionalInterface
+    protected interface ContentTransformer {
+        @Nullable
+        String transform(String line);
+    }
+
+    /*
+     * In some cases lucene cannot be used for parsing. This map contains pluggable transformers to execute on specific
+     * filter keys.
+     */
+    protected static final Map<String, ContentTransformer> CONTENT_TRANSFORMERS;
+
+    static {
+        CONTENT_TRANSFORMERS = new LinkedHashMap<>();
+        CONTENT_TRANSFORMERS.put("mapping", line -> {
+            if (line.length() == 0 || line.startsWith("#")) {
+                return null;
+            } else {
+                return line.replaceAll("\"", "");
+            }
+        });
+    }
+
+    @FunctionalInterface
+    protected interface ParameterTransformer {
+        /**
+         * Transforms the input lucene parameters into elastic ones
+         */
+        Map<String, Object> transform(Map<String, Object> luceneParams);
     }
 
     /*
      * Transform function for lucene parameters to elastic
      */
-    protected static final Map<Class<? extends AbstractAnalysisFactory>, Function<Map<String, Object>, Map<String, Object>>> LUCENE_ELASTIC_TRANSFORMERS;
+    protected static final Map<Class<? extends AbstractAnalysisFactory>, ParameterTransformer> LUCENE_ELASTIC_TRANSFORMERS;
 
     static {
+        // BiFunction<T, U, R>
+        // renames the key from input parameters (T) using the key value map (U) and returns back the transformed parameters (R)
         BiFunction<Map<String, Object>, Map<String, String>, Map<String, Object>> reKey = (luceneParams, keys) -> {
             keys.forEach((key, value) -> {
                 if (luceneParams.containsKey(key)) {
