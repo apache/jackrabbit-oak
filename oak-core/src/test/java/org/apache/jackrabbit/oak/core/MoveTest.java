@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.AbstractSecurityTest;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.core.MutableRoot.Move;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.junit.Before;
@@ -31,6 +32,8 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.commons.lang3.reflect.FieldUtils.getDeclaredField;
+import static org.apache.commons.lang3.reflect.FieldUtils.readDeclaredField;
 import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.plugins.tree.TreeUtil.addChild;
@@ -118,14 +121,11 @@ public class MoveTest extends AbstractSecurityTest {
     }
 
     private int countMoves(Tree t) throws Exception {
-        Field pendingMoves = MutableTree.class.getDeclaredField("pendingMoves");
-        pendingMoves.setAccessible(true);
-        return countMoves(pendingMoves.get(t));
+        return countMoves(readDeclaredField(t, "pendingMoves", true));
     }
 
     private int countMoves(Object move) throws Exception {
-        Field m = MutableRoot.Move.class.getDeclaredField("next");
-        m.setAccessible(true);
+        Field m = getDeclaredField(Move.class, "next", true);
         int i = 0;
         while (move != null) {
             i++;

@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.core;
 
+import static java.util.Collections.newSetFromMap;
 import static java.util.Collections.synchronizedMap;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -31,6 +32,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import javax.security.auth.Subject;
@@ -126,7 +129,7 @@ class MutableRoot implements Root, PermissionAware {
      */
     private final MoveTracker moveTracker = new MoveTracker();
 
-    private final Map<MutableTree, Object> trees = synchronizedMap(new WeakHashMap<>());
+    private final Set<MutableTree> trees = newSetFromMap(synchronizedMap(new WeakHashMap<>()));
 
     /**
      * Number of {@link #updated} occurred.
@@ -376,7 +379,7 @@ class MutableRoot implements Root, PermissionAware {
      */
     void created(MutableTree t) {
         if (forceApplyPendingMoves()) {
-            trees.put(t, null);
+            trees.add(t);
         }
     }
 
@@ -407,7 +410,7 @@ class MutableRoot implements Root, PermissionAware {
 
     private void applyPendingMovesToKnownTrees() {
         if (forceApplyPendingMoves()) {
-            trees.forEach((t, o) -> { if (t != null) t.getName(); });
+            trees.stream().filter(Objects::nonNull).forEach(MutableTree::getName);
         }
     }
 
