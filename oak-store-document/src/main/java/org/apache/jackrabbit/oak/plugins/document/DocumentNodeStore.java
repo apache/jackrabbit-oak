@@ -731,6 +731,7 @@ public final class DocumentNodeStore
                 new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this);
         commitQueue.setStatisticsCollector(nodeStoreStatsCollector);
+        commitQueue.setSuspendTimeoutMillis(builder.getSuspendTimeoutMillis());
         batchCommitQueue = new BatchCommitQueue(store);
         // prepare background threads
         backgroundReadThread = new Thread(

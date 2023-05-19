@@ -23,6 +23,7 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
+import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_SEGMENT_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
@@ -281,4 +282,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
             name = "Document Node Store Compression",
             description = "Select compressor type for collections. 'Snappy' is the default supported compression.")
     String collectionCompressionType() default "snappy";
+
+    @AttributeDefinition(
+            name = "Suspend timeout",
+            description = "Timeout for a suspended commit after it conflicted with" +
+                    "a change that is not yet visible. Default: 60000 (milliseconds).")
+    long suspendTimeoutMillis() default DEFAULT_SUSPEND_TIMEOUT;
 }
