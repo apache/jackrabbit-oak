@@ -257,7 +257,7 @@ public final class FileIOUtils {
                 writeAsLine(writer, transformer.apply(iterator.next()), escape);
                 count++;
                 if (logger != null) {
-                    if (count % 1000 == 0) {
+                    if (count % 100000 == 0) {
                         logger.info(Strings.nullToEmpty(message) + count);
                     }
                 }

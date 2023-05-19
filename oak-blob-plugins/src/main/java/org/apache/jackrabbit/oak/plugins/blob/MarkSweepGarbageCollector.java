@@ -421,7 +421,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             lineIterator.forEachRemaining(line -> {
                 String id = line.split(DELIM)[0];
                 long length = DataStoreBlobStore.BlobId.of(id).getLength();
-                LOG.info("Blob {} has size {}", id, length);
+                LOG.debug("Blob {} has size {}", id, length);
 
                 stats.getCollector().updateNumBlobReferences(1);
 
@@ -662,7 +662,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                     saveBatchToFile(idBatch, writer);
                                 }
 
-                                if (count.get() % getBatchCount() == 0) {
+                                if (count.get() > 0 && count.get() % getBatchCount() == 0) {
                                     LOG.info("Collected ({}) blob references", count.get());
                                 }
                             } catch (Exception e) {
