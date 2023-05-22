@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import java.util.Locale;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,27 +23,7 @@ public class GuavaDeprecation {
 
     private static final Logger LOG = LoggerFactory.getLogger(GuavaDeprecation.class);
 
-    private static final String DEFAULT = "error";
-
-    private static final String TLOGLEVEL = System.getProperty(GuavaDeprecation.class + ".LOGLEVEL", DEFAULT);
-
-    private static String LOGLEVEL;
-
-    static {
-        String t;
-
-        switch (TLOGLEVEL.toLowerCase(Locale.ENGLISH)) {
-            case "error":
-            case "warn":
-                t = TLOGLEVEL.toLowerCase(Locale.ENGLISH);
-                break;
-            default:
-                t = DEFAULT;
-                break;
-        }
-
-        LOGLEVEL = t;
-    }
+    private static String LOGLEVEL = "error";
 
     private GuavaDeprecation() {
     }
