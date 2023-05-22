@@ -160,11 +160,6 @@ public class MongoDocumentStore implements DocumentStore {
      * which we block any data modification operation when system has been throttled.
      */
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
-
-    /**
-     * Document size of 16MB is a limit in Mongo
-     */
-    private static final long SIZE_LIMIT = 16777216;
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
