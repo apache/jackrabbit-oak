@@ -114,9 +114,6 @@ import com.mongodb.client.model.WriteModel;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 
-import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Filters.exists;
 import static java.util.Objects.isNull;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
@@ -131,7 +128,6 @@ import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.asDocumentStoreException;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MOD_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
@@ -1390,7 +1386,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         try {
-            final BulkModifyResult bulkResult = sendBulkModify(collection, bulkOperations.values(), oldDocs);
+            final BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, false);
             final Set<String> potentiallyUpdatedDocsSet = difference(bulkOperations.keySet(), bulkResult.failedUpdates);
 
             // fetch all the docs which haven't failed, they might have passed
@@ -1470,7 +1466,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
 
         try {
-            BulkUpdateResult bulkResult = sendBulkUpdate(collection, bulkOperations.values(), oldDocs);
+            BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, true);
 
             if (collection == Collection.NODES) {
                 List<NodeDocument> docsToCache = new ArrayList<NodeDocument>();
@@ -1551,50 +1547,10 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     @NotNull
-    private <T extends Document> BulkModifyResult sendBulkModify(final Collection<T> collection,
-                                                                 final java.util.Collection<UpdateOp> updateOps,
-                                                                 final Map<String, T> oldDocs) {
-
-        final MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
-        final List<WriteModel<BasicDBObject>> updates = new ArrayList<>(updateOps.size());
-        final String[] bulkIds = new String[updateOps.size()];
-        int i = 0;
-        for (UpdateOp updateOp : updateOps) {
-            String id = updateOp.getId();
-            Bson query = createQueryForUpdate(id, updateOp.getConditions());
-            T oldDoc = oldDocs.get(id);
-            if (oldDoc == null || oldDoc == NULL) {
-                query = and(query, exists(MOD_COUNT, false));
-            } else {
-                query = and(query, eq(MOD_COUNT, oldDoc.getModCount()));
-            }
-            updates.add(new UpdateOneModel<>(query, createUpdate(updateOp, false), new UpdateOptions().upsert(false)));
-            bulkIds[i++] = id;
-        }
-
-        BulkWriteResult bulkResult;
-        Set<String> failedUpdates = new HashSet<>();
-        BulkWriteOptions options = new BulkWriteOptions().ordered(false);
-        try {
-            bulkResult = execute(session -> {
-                if (session != null) {
-                    return dbCollection.bulkWrite(session, updates, options);
-                } else {
-                    return dbCollection.bulkWrite(updates, options);
-                }
-            }, collection);
-        } catch (MongoBulkWriteException e) {
-            bulkResult = e.getWriteResult();
-            for (BulkWriteError err : e.getWriteErrors()) {
-                failedUpdates.add(bulkIds[err.getIndex()]);
-            }
-        }
-
-        return new BulkModifyResult(failedUpdates, bulkResult.getModifiedCount());
-    }
-
-    private <T extends Document> BulkUpdateResult sendBulkUpdate(Collection<T> collection,
-            java.util.Collection<UpdateOp> updateOps, Map<String, T> oldDocs) {
+    private <T extends Document> BulkRequestResult sendBulkRequest(final Collection<T> collection,
+                                                                   final java.util.Collection<UpdateOp> updateOps,
+                                                                   final Map<String, T> oldDocs,
+                                                                   final boolean isUpsert) {
         MongoCollection<BasicDBObject> dbCollection = getDBCollection(collection);
         List<WriteModel<BasicDBObject>> writes = new ArrayList<>(updateOps.size());
         String[] bulkIds = new String[updateOps.size()];
@@ -1602,17 +1558,15 @@ public class MongoDocumentStore implements DocumentStore {
         for (UpdateOp updateOp : updateOps) {
             String id = updateOp.getId();
             Bson query = createQueryForUpdate(id, updateOp.getConditions());
-            // fail on insert when isNew == false
-            boolean failInsert = !updateOp.isNew();
+            // fail on insert when isNew == false OR isUpsert == false
+            boolean failInsert = !(isUpsert && updateOp.isNew());
             T oldDoc = oldDocs.get(id);
             if (oldDoc == null || oldDoc == NodeDocument.NULL) {
                 query = Filters.and(query, Filters.exists(Document.MOD_COUNT, false));
             } else {
                 query = Filters.and(query, Filters.eq(Document.MOD_COUNT, oldDoc.getModCount()));
             }
-            writes.add(new UpdateOneModel<>(query,
-                    createUpdate(updateOp, failInsert),
-                    new UpdateOptions().upsert(true))
+            writes.add(new UpdateOneModel<>(query, createUpdate(updateOp, failInsert), new UpdateOptions().upsert(isUpsert))
             );
             bulkIds[i++] = id;
         }
@@ -1638,7 +1592,7 @@ public class MongoDocumentStore implements DocumentStore {
         for (BulkWriteUpsert upsert : bulkResult.getUpserts()) {
             upserts.add(bulkIds[upsert.getIndex()]);
         }
-        return new BulkUpdateResult(failedUpdates, upserts);
+        return new BulkRequestResult(failedUpdates, upserts, bulkResult.getModifiedCount());
     }
 
     @Override
@@ -2379,26 +2333,16 @@ public class MongoDocumentStore implements DocumentStore {
         T call(@Nullable ClientSession session) throws DocumentStoreException;
     }
 
-    private static class BulkUpdateResult {
+    private static class BulkRequestResult {
 
         private final Set<String> failedUpdates;
 
         private final Set<String> upserts;
-
-        private BulkUpdateResult(Set<String> failedUpdates, Set<String> upserts) {
-            this.failedUpdates = failedUpdates;
-            this.upserts = upserts;
-        }
-    }
-
-    private static class BulkModifyResult {
-
-        private final Set<String> failedUpdates;
-
         private final int modifiedCount;
 
-        private BulkModifyResult(Set<String> failedUpdates, int modifiedCount) {
+        private BulkRequestResult(Set<String> failedUpdates, Set<String> upserts, int modifiedCount) {
             this.failedUpdates = failedUpdates;
+            this.upserts = upserts;
             this.modifiedCount = modifiedCount;
         }
     }
