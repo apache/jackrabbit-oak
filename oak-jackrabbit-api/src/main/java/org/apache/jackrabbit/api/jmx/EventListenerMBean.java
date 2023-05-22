@@ -18,12 +18,15 @@ package org.apache.jackrabbit.api.jmx;
 
 import javax.management.openmbean.CompositeData;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * MBean interface for exposing information about a registered observation
  * listener.
  *
  * @see <a href="https://issues.apache.org/jira/browse/JCR-3608">JCR-3608</a>
  */
+@ProviderType
 public interface EventListenerMBean {
 
     /** Class name of the event listener */

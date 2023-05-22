@@ -18,6 +18,8 @@ package org.apache.jackrabbit.api;
 
 import javax.jcr.Binary;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Referenceable binary. In addition to the normal JCR {@link Binary}
  * functionality, implementations of this class contain a <em>secure
@@ -26,6 +28,7 @@ import javax.jcr.Binary;
  * long as both the source and target servers use the same underlying
  * storage for binaries.
  */
+@ProviderType
 public interface ReferenceBinary extends Binary {
 
     /**

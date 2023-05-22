@@ -16,17 +16,19 @@
  */
 package org.apache.jackrabbit.api.security.user;
 
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-
 import java.util.Iterator;
 import java.util.Set;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * A Group is a collection of {@link #getMembers() Authorizable}s.
  */
+@ProviderType
 public interface Group extends Authorizable {
 
     /**

@@ -18,6 +18,8 @@ package org.apache.jackrabbit.api.management;
 
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * The repository manager provides life-cycle management features for
  * repositories.
@@ -26,6 +28,7 @@ import javax.jcr.RepositoryException;
  * for example some implementations may not support starting a repository after
  * is has been stopped.
  */
+@ProviderType
 public interface RepositoryManager {
 
     /**
