@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.plugins.index.counter;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -46,6 +47,8 @@ import javax.management.InstanceNotFoundException;
 import javax.management.AttributeNotFoundException;
 import javax.management.MBeanException;
 import javax.security.auth.login.LoginException;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.Executors;
@@ -63,16 +66,29 @@ public class NodeCounterMetricTest {
     private MetricStatisticsProvider statsProvider;
     private static final String mBeanName = "org.apache.jackrabbit.oak:name=NODE_COUNT_FROM_ROOT,type=Metrics";
     private ObjectName mBeanObjectName;
+    private NodeStore nodeStore;
+    private Whiteboard wb;
+    private ContentRepository repository;
+    private ContentSession session;
 
     @Before
     public void before() throws NoSuchWorkspaceException, LoginException, MalformedObjectNameException {
         executor = Executors.newSingleThreadScheduledExecutor();
         statsProvider = new MetricStatisticsProvider(ManagementFactory.getPlatformMBeanServer(), executor);
         mBeanObjectName = new ObjectName(mBeanName);
+        nodeStore = new MemoryNodeStore();
+        Oak oak = getOak(nodeStore);
+        wb = oak.getWhiteboard();
+        repository = oak.createContentRepository();
+        session = repository.login(null, null);
     }
 
     @After
-    public void after() {
+    public void after() throws Exception {
+        session.close();
+        if (repository instanceof Closeable) {
+            ((Closeable) repository).close();
+        }
         // we have to deregister the statistics provider after each test case, as the call to
         // ManagementFactory.getPlatformMBeanServer() would otherwise return the mBean server with the statistics
         // provider from the first test case and reuse it.
@@ -82,13 +98,8 @@ public class NodeCounterMetricTest {
 
     @Test
     public void testMetricWhenAddingNodes() throws CommitFailedException, IOException, ReflectionException,
-            InstanceNotFoundException, AttributeNotFoundException, MBeanException, NoSuchWorkspaceException,
-            LoginException {
-        NodeStore nodeStore = new MemoryNodeStore();
-        Oak oak = getOak(nodeStore);
-        ContentSession session = oak.createContentRepository().login(null, null);
+            InstanceNotFoundException, AttributeNotFoundException, MBeanException {
         Root root = session.getLatestRoot();
-        Whiteboard wb = oak.getWhiteboard();
         setCounterIndexSeed(root, 2);
         root.commit();
 
@@ -101,13 +112,8 @@ public class NodeCounterMetricTest {
 
     @Test
     public void testMetricWhenDeletingNodes() throws CommitFailedException, ReflectionException,
-            AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException,
-            NoSuchWorkspaceException, LoginException {
-        NodeStore nodeStore = new MemoryNodeStore();
-        Oak oak = getOak(nodeStore);
-        ContentSession session = oak.createContentRepository().login(null, null);
+            AttributeNotFoundException, InstanceNotFoundException, MBeanException, IOException {
         Root root = session.getLatestRoot();
-        Whiteboard wb = oak.getWhiteboard();
         setCounterIndexSeed(root, 1);
 
         MBeanServerConnection server = ManagementFactory.getPlatformMBeanServer();
