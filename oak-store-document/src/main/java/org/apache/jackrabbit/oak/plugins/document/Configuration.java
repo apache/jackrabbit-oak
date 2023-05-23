@@ -284,8 +284,9 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     String collectionCompressionType() default "snappy";
 
     @AttributeDefinition(
-            name = "Suspend timeout",
+            name = "Commit Suspend timeout",
             description = "Timeout for a suspended commit after it conflicted with" +
-                    "a change that is not yet visible. Default: 60000 (milliseconds).")
+                    "a change that is not yet visible. Default: " + DEFAULT_SUSPEND_TIMEOUT +
+                    " (milliseconds).")
     long suspendTimeoutMillis() default DEFAULT_SUSPEND_TIMEOUT;
 }
