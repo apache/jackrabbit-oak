@@ -348,9 +348,9 @@ public class DataStoreCommandTest {
 
         File dump = temporaryFolder.newFolder();
         List<String> argsList = Lists
-            .newArrayList("--check-consistency", storeFixture.getConnectionString(),
+            .newArrayList(storeFixture.getConnectionString(),
                 "--out-dir", dump.getAbsolutePath(), "--reset-log-config", "false", "--work-dir",
-                temporaryFolder.newFolder().getAbsolutePath());
+                temporaryFolder.newFolder().getAbsolutePath(), "--check-consistency");
         if (!Strings.isNullOrEmpty(additionalParams)) {
             argsList.add(additionalParams);
         }
@@ -364,7 +364,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testConsistency(dump, data, false);
+        testConsistency(dump, data, false, false);
     }
 
     @Test
@@ -373,7 +373,7 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 1);
         storeFixture.close();
 
-        testConsistency(dump, data, true);
+        testConsistency(dump, data, true, false);
     }
 
     @Test
@@ -553,7 +553,16 @@ public class DataStoreCommandTest {
         Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
         storeFixture.close();
 
-        testConsistency(dump, data, false);
+        testConsistency(dump, data, false, false);
+    }
+
+    @Test
+    public void testConsistencyMarkOnly() throws Exception {
+        File dump = temporaryFolder.newFolder();
+        Data data = prepareData(storeFixture, blobFixture, 10, 5, 0);
+        storeFixture.close();
+
+        testConsistency(dump, data, false, false, true);
     }
 
     @Test
@@ -714,13 +723,13 @@ public class DataStoreCommandTest {
     }
 
 
-    private void testConsistency(File dump, Data data, boolean verbose) throws Exception {
-        testConsistency(dump, data, verbose, false);
+    private void testConsistency(File dump, Data data, boolean verbose, boolean verboseRootPath) throws Exception {
+        testConsistency(dump, data, verbose, verboseRootPath, false);
     }
 
-    private void testConsistency(File dump, Data data, boolean verbose, boolean verboseRootPath) throws Exception {
+    private void testConsistency(File dump, Data data, boolean verbose, boolean verboseRootPath, boolean markOnly) throws Exception {
         List<String> argsList = Lists
-            .newArrayList("--check-consistency", "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
+            .newArrayList("--check-consistency", String.valueOf(markOnly), "--" + getOption(blobFixture.getType()), blobFixture.getConfigPath(),
                 storeFixture.getConnectionString(), "--out-dir", dump.getAbsolutePath(), "--work-dir",
                 temporaryFolder.newFolder().getAbsolutePath());
         if (!Strings.isNullOrEmpty(additionalParams)) {
@@ -732,8 +741,12 @@ public class DataStoreCommandTest {
         }
         DataStoreCommand cmd = new DataStoreCommand();
         cmd.execute(argsList.toArray(new String[0]));
-
-        assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
+        
+        if (!markOnly) {
+            assertFileEquals(dump, "avail-", Sets.difference(data.added, data.missingDataStore));
+        } else {
+            assertFileNull(dump, "avail-");
+        }
 
         // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
         assertFileEquals(dump, "marked-", verbose ?
@@ -742,14 +755,18 @@ public class DataStoreCommandTest {
                 (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
                         encodedIdsAndPath(Sets.difference(data.added, data.deleted), blobFixture.getType(), data.idToPath, false) :
                         Sets.difference(data.added, data.deleted));
-
-        // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
-        assertFileEquals(dump, "gccand-", verbose ?
-            encodedIdsAndPath(verboseRootPath ? Sets.intersection(data.addedSubset, data.missingDataStore) :
-                    data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
-            (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
-                encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, false) :
-                data.missingDataStore);
+        
+        if (!markOnly) {
+            // Verbose would have paths as well as ids changed but normally only DocumentNS would have paths suffixed
+            assertFileEquals(dump, "gccand-", verbose ?
+                    encodedIdsAndPath(verboseRootPath ? Sets.intersection(data.addedSubset, data.missingDataStore) :
+                            data.missingDataStore, blobFixture.getType(), data.idToPath, true) :
+                    (storeFixture instanceof StoreFixture.MongoStoreFixture) ?
+                            encodedIdsAndPath(data.missingDataStore, blobFixture.getType(), data.idToPath, false) :
+                            data.missingDataStore);
+        } else {
+            assertFileNull(dump, "gccand-");
+        }
     }
 
     private void testDumpRef(File dump, Data data, boolean verbose, boolean verboseRootPath) throws Exception {
