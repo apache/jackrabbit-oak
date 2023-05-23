@@ -286,8 +286,7 @@ public class UnrecoveredRevisionTest {
     
     @Before
     public void setup() throws Exception {
-        int createOrUpdateBatchSize = 1;
-        setup(createOrUpdateBatchSize);
+        setup(1);
     }
 
     private void setup(int createOrUpdateBatchSize) throws InterruptedException {
