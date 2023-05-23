@@ -192,6 +192,7 @@ public class UnrecoveredRevisionTest {
             lateOps.addAll(al.subList(max, updateOps.size()));
         }
         
+        @SuppressWarnings("unused")
         private <T extends Document> List<String> trimString(Collection<T> collection, List<String> updateOps) {
             int max = allowedOps(collection, updateOps.size());
             ArrayList<String> al = new ArrayList<>(updateOps);
