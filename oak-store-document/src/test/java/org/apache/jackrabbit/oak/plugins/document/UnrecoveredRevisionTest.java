@@ -41,6 +41,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -659,6 +660,7 @@ public class UnrecoveredRevisionTest {
         advanceClock(1, TimeUnit.SECONDS);
     }
     
+    @SuppressWarnings("unused")
     private void printNodes(DocumentNodeStore ns, String... paths) {
         for (String aPath : paths) {
             Path p = Path.fromString(aPath);
@@ -671,7 +673,8 @@ public class UnrecoveredRevisionTest {
                 System.out.println("DOES NOT EXIST");
             } else {
                 DocumentNodeState dns = (DocumentNodeState) n;
-                NodeDocument doc = dns.getDocument();
+                Path path = dns.getPath();
+                NodeDocument doc = ns.getDocumentStore().find(Collection.NODES, Utils.getIdFromPath(path));
                 System.out.println(doc.format());
             }
             System.out.println();
