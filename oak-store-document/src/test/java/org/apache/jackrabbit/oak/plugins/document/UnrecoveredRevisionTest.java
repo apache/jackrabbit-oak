@@ -251,14 +251,14 @@ public class UnrecoveredRevisionTest {
         @Override
         public <T extends Document> void remove(Collection<T> collection,
                 List<String> keys) {
-            throw new IllegalStateException("not yet implemented");
+            throw new UnsupportedOperationException("not yet implemented");
 //            super.remove(collection, trimString(collection, keys));
         }
         
         @Override
         public <T extends Document> int remove(Collection<T> collection,
                 Map<String, Long> toRemove) {
-            throw new IllegalStateException("not yet implemented");
+            throw new UnsupportedOperationException("not yet implemented");
         }
         
         @Override
@@ -271,7 +271,7 @@ public class UnrecoveredRevisionTest {
         public <T extends Document> int remove(Collection<T> collection,
                 String indexedProperty, long startValue, long endValue)
                 throws DocumentStoreException {
-            throw new IllegalStateException("not yet implemented");
+            throw new UnsupportedOperationException("not yet implemented");
         }
     }
 
