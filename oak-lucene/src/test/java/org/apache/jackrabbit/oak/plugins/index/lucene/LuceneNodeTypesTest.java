@@ -59,6 +59,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 
+// TODO: move this test in oak-search common
 public class LuceneNodeTypesTest extends AbstractQueryTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexAggregation2Test.class);
@@ -169,4 +170,6 @@ public class LuceneNodeTypesTest extends AbstractQueryTest {
         List<String> explain = executeQuery(query, XPATH);
         assertThat(explain.get(0), containsString(TEST_INDEX_NAME));
     }
+
+    // TODO: add test with duplicate props across multiple node types
 }
