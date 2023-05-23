@@ -629,7 +629,7 @@ Maintenance commands for the DataStore:
 * Data store consistency check
 
 
-    $ java -jar oak-run-*.jar datastore [--check-consistency|--collect-garbage [true]] \
+    $ java -jar oak-run-*.jar datastore [--check-consistency [true]|--collect-garbage [true]] \
             [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <ds_path>] \
             [--out-dir <output_path>] \
             [--work-dir <temporary_path>] \
@@ -643,7 +643,7 @@ Maintenance commands for the DataStore:
 The following operations are available:
     
     --collect-garbage          - Execute garbage collection on the data store. If only mark phase to be run specify a true parameter.
-    --check-consistency        - List all the missing blobs by doing a consistency check.
+    --check-consistency        - List all the missing blobs by doing a consistency check. If only mark phase to be run specify a true parameter, in which case only the references will be retrieved.
     --dump-ref                 - List all the blob references in the node store
     --dump-id                  - List all the ids in the data store
     --get-metadata             - Retrieves a machine readable format GC datastore metadata
@@ -695,7 +695,7 @@ The command to be executed when using this option is:
 
     $ java -classpath oak-run-*.jar:simpleclient_common-0.6.0.jar:simpleclient-0.6.0.jar:simpleclient_dropwizard-0.6.0.jar:simpleclient_pushgateway-0.6.0.jar \
         org.apache.jackrabbit.oak.run.Main \
-        datastore [--check-consistency|--collect-garbage [true]] \
+        datastore [--check-consistency [true]|--collect-garbage [true]] \
         [--s3ds <s3ds_config>|--fds <fds_config>|--azureds <s3ds_config>|fake-ds-path <ds_path>] \
         [--out-dir <output_path>] \
         [--work-dir <temporary_path>] \
