@@ -70,6 +70,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
+import org.mockito.Mockito;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
@@ -128,6 +129,11 @@ public abstract class AbstractSecurityTest {
             }
             Configuration.setConfiguration(null);
         }
+    }
+
+    @After
+    public void clearMocks() {
+        Mockito.framework().clearInlineMocks();
     }
 
     protected ContentRepository getContentRepository() {

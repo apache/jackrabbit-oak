@@ -20,7 +20,10 @@ import java.security.Principal;
 import java.security.PrivilegedAction;
 import java.security.Provider;
 import java.security.Security;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+
 import javax.jcr.GuestCredentials;
 import javax.jcr.SimpleCredentials;
 import javax.security.auth.Subject;
@@ -42,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.PreAuthContext;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;
@@ -55,10 +59,19 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
 
     private LoginContextProviderImpl lcProvider;
 
+    private final List<String> registeredProviderNames = new ArrayList<>();
+
     @Override
     public void before() throws Exception {
         super.before();
         lcProvider = newLoginContextProviderImpl(ConfigurationParameters.EMPTY);
+    }
+
+    @After
+    public void removeSecurityProvider() {
+        for (String name : registeredProviderNames) {
+            Security.removeProvider(name);
+        }
     }
 
     private LoginContextProviderImpl newLoginContextProviderImpl(ConfigurationParameters params) {
@@ -67,7 +80,7 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
     }
 
     @NotNull
-    private static String addProvider(boolean enableAppName) throws Exception {
+    private String addProvider(boolean enableAppName) throws Exception {
         Provider.Service service = mock(Provider.Service.class);
         when(service.newInstance(null)).thenReturn(new ConfigurationSpi() {
             @Override
@@ -85,6 +98,7 @@ public class LoginContextProviderImplTest extends AbstractSecurityTest {
         Provider provider = when(mock(Provider.class).getName()).thenReturn(name).getMock();
         when(provider.getService("Configuration", "JavaLoginConfig")).thenReturn(service);
         Security.addProvider(provider);
+        registeredProviderNames.add(name);
         return provider.getName();
     }
 

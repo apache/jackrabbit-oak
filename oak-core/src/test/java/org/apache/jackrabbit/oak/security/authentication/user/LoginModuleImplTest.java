@@ -86,7 +86,6 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -106,7 +105,6 @@ public class LoginModuleImplTest extends AbstractSecurityTest {
     @Override
     public void after() throws Exception {
         try {
-            clearInvocations(monitor);
             if (user != null) {
                 user.remove();
                 root.commit();
