@@ -84,6 +84,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
         assertEquals("STRICT", config.leaseCheckMode());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
+        assertEquals(CommitQueue.DEFAULT_SUSPEND_TIMEOUT, config.suspendTimeoutMillis());
     }
 
     @Test

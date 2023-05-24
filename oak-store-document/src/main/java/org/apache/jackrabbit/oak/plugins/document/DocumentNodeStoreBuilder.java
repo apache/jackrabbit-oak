@@ -20,6 +20,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgumen
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
 import static java.util.Objects.isNull;
+import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
 
@@ -162,6 +163,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -676,6 +678,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     public long getRevisionGCMaxAge() {
         return maxRevisionGCAgeMillis;
+    }
+
+    public T setSuspendTimeoutMillis(long suspendTimeoutMillis) {
+        this.suspendTimeoutMillis = suspendTimeoutMillis;
+        return thisBuilder();
+    }
+
+    public long getSuspendTimeoutMillis() {
+        return suspendTimeoutMillis;
     }
 
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {

@@ -466,6 +466,7 @@ public class DocumentNodeStoreService {
                 setPrefetchFeature(prefetchFeature).
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
+                setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
