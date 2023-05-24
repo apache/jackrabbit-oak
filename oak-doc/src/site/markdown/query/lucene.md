@@ -762,10 +762,15 @@ defaults to 5
 
 #### <a name="analyzers"></a>Analyzers
 
+If no analyzer is specified, then `OakAnalyzer` is used, which uses the
+Apache Lucene `StandardTokenizer`, the `LowerCaseFilter`,
+and the `WordDelimiterFilter` with the following options:
+`GENERATE_WORD_PARTS`, `STEM_ENGLISH_POSSESSIVE`, and `GENERATE_NUMBER_PARTS`.
+
 `@since Oak 1.5.5, 1.4.7, 1.2.19`
-Unless custom analyzer is configured (as documented below), in-built analyzer
-can be configured to include original term as well to be indexed. This is
-controlled by setting boolean property `indexOriginalTerm` on analyzers node.
+Unless custom analyzer is explicitly configured (as documented below), the built-in analyzer
+can be configured to include the original term as well (`PRESERVE_ORIGINAL`). This is
+controlled by setting boolean property `indexOriginalTerm` on analyzers node:
 
     /oak:index/assetType
       - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -845,7 +850,17 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
 
 #### Examples
 
-Adding stemming support
+To convert umlauts using ASCII folding, use:
+```
+    + analyzers
+      + default
+        + tokenizer
+          - name = "Standard"
+        + filters (nt:unstructured) // the filters needs to be ordered
+          + ASCIIFolding
+```
+
+For stemming support, use:
 ```
 1. Use an analyzer which has stemming included by default e.g. EnglishAnalyzer which has PorterStemFilter.
     + analyzers
