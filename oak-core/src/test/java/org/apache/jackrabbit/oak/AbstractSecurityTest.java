@@ -129,10 +129,6 @@ public abstract class AbstractSecurityTest {
             }
             Configuration.setConfiguration(null);
         }
-    }
-
-    @After
-    public void clearMocks() {
         Mockito.framework().clearInlineMocks();
     }
 
