@@ -62,8 +62,8 @@ public class CoalesceImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
-        PropertyExistenceImpl pe = operand1.getPropertyExistence();
-        return pe != null ? pe : operand2.getPropertyExistence();
+        // we could support "<function> is not null", but right now we don't
+        return null;
     }
 
     @Override
