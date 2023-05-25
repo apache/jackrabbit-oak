@@ -359,6 +359,9 @@ public class FileStore extends AbstractFileStore {
                     stats.flushed();
                 });
             }
+        } catch (UnrecoverableArchiveException e) {
+            log.error("Critical failure while flushing pending changes. Shutting down the FileStore.", e);
+            close();
         } catch (IOException e) {
             log.warn("Failed to flush the TarMK at {}", directory, e);
         }
