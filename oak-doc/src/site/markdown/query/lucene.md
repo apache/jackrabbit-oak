@@ -850,7 +850,10 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
 
 #### Examples
 
-To convert umlauts using ASCII folding, use:
+To convert umlauts using ASCII folding, use the following. 
+(ASCII folding converts characters to Basic Latin where possible. 
+This includes umlauts, characters with accents, and so on.)
+
 ```
     + analyzers
       + default
