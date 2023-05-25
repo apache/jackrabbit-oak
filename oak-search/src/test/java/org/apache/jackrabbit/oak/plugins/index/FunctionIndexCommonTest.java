@@ -31,6 +31,7 @@ import java.util.Set;
 
 import javax.jcr.PropertyType;
 
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -45,6 +46,8 @@ import org.slf4j.event.Level;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Lists;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.JcrConstants.NT_UNSTRUCTURED;
 
 public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
@@ -1247,6 +1250,97 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
                 "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
                 getIndexProvider() + "upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
 
+    }
+
+    @Test
+    public void testCoalesceWithoutIndex() throws CommitFailedException {
+        final String age = "age";
+        final String experience = "experience";
+
+        Tree t = root.getTree("/");
+        Tree indexDefn = createTestIndexNode("test-index-no-coalesce", t, indexOptions.getIndexType());
+        TestUtil.useV2(indexDefn);
+
+        Tree props = TestUtil.newRulePropTree(indexDefn, NT_UNSTRUCTURED);
+        TestUtil.enableForOrdered(props, age);
+        TestUtil.enableForOrdered(props, experience);
+
+        root.commit();
+
+        List<String> expected = Lists.newArrayList();
+        List<String> expected2 = Lists.newArrayList();
+        Tree content = root.getTree("/").addChild("content");
+        t = content.addChild("test1");
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+        t.setProperty(age, 1);
+        t.setProperty(experience, 1);
+        expected.add(t.getPath());
+        expected2.add(t.getPath());
+
+        t = content.addChild("test2");
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+        t.setProperty(age, 2);
+        t.setProperty(experience, 6);
+        expected.add(t.getPath());
+        expected2.add(t.getPath());
+
+        t = content.addChild("test3");
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+        t.setProperty(experience, 3);
+        expected.add(t.getPath());
+        expected2.add(t.getPath());
+
+        t = content.addChild("test4");
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+        t.setProperty(age, 4);
+        expected.add(t.getPath());
+        expected2.add(t.getPath());
+
+        t = content.addChild("test5");
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+        t.setProperty(age, 6);
+        t.setProperty(experience, 2);
+
+        t = content.addChild("test6");
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+        t.setProperty(age, 10);
+
+        t = content.addChild("test7");
+        t.setProperty(JCR_PRIMARYTYPE, NT_UNSTRUCTURED, Type.NAME);
+        t.setProperty(age, 25);
+        expected2.add(t.getPath());
+
+        root.commit();
+
+        // asserting the initial state
+        for (String s : expected) {
+            Assert.assertTrue("wrong initial state", root.getTree(s).exists());
+        }
+
+        String statement =
+                "SELECT * " +
+                        "FROM [" + NT_UNSTRUCTURED + "] AS c " +
+                        "WHERE " +
+                        "( " +
+                        "COALESCE(c.[" + age + "], c.[" + experience + "]) < 5)" +
+                        " AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
+                        "ORDER BY COALESCE(c.[" + age + "], c.[" + experience + "]) DESC ";
+
+
+        TestUtil.assertEventually(() -> assertQuery(statement, SQL2, expected), 3000 * 5);
+
+        final String statement2 =
+                "SELECT * " +
+                        "FROM [" + NT_UNSTRUCTURED + "] AS c " +
+                        "WHERE " +
+                        "( " +
+                        "COALESCE(c.[" + age + "], c.[" + experience + "]) < 5" +
+                        " OR (COALESCE(c.[" + age + "], c.[" + experience+ "]) = 25))" +
+                        " AND ISDESCENDANTNODE(c, '" + content.getPath() + "') " +
+                        "ORDER BY COALESCE(c.[" + age + "], c.[" + experience + "]) DESC ";
+
+
+        TestUtil.assertEventually(() -> assertQuery(statement2, SQL2, expected2), 3000 * 5);
     }
 
     protected String explain(String query) {
