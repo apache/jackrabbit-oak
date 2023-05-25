@@ -264,6 +264,8 @@ Examples:
 Ordering by an indexed property will use that index if possible.
 If there is no index that can be used for the given sort order,
 then the result is fully read in memory and sorted there.
+If an index for ordering is used, then only entries are listed where
+the given property (or function) is not null.
 
 As a special case, sorting by "jcr:score" in descending order is ignored 
 (removed from the list), as this is what the fulltext index does anyway

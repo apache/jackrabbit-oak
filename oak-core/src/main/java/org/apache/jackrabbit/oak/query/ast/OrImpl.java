@@ -144,7 +144,7 @@ public class OrImpl extends ConstraintImpl {
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         // for the condition "x=1 or x=2", the existence condition
-        // "x is not null" be be derived
+        // "x is not null" can be derived
         Set<PropertyExistenceImpl> result = null;
         for (ConstraintImpl constraint : constraints) {
             if (result == null) {
