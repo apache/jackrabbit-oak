@@ -770,7 +770,7 @@ and the `WordDelimiterFilter` with the following options:
 `@since Oak 1.5.5, 1.4.7, 1.2.19`
 Unless custom analyzer is explicitly configured (as documented below), the built-in analyzer
 can be configured to include the original term as well (`PRESERVE_ORIGINAL`). This is
-controlled by setting boolean property `indexOriginalTerm` on analyzers node:
+controlled by setting boolean property `indexOriginalTerm` on the `analyzers` node:
 
     /oak:index/assetType
       - jcr:primaryType = "oak:QueryIndexDefinition"
