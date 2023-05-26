@@ -200,7 +200,7 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
             results.addAll(store.findAndUpdate(collection, updateOps));
         } finally {
             throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime), collection,
-                    updateOps.stream().map(UpdateOp::getId).collect(toList()), false, true, 0);
+                    updateOps.stream().map(UpdateOp::getId).collect(toList()), true, 0);
         }
         return results;
     }

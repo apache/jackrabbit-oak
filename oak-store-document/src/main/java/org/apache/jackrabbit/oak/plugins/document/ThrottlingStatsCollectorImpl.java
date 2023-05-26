@@ -133,13 +133,13 @@ public class ThrottlingStatsCollectorImpl implements ThrottlingStatsCollector {
     }
 
     @Override
-    public void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids, boolean newEntry,
+    public void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids,
                                   boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, newEntry, ids, isNodesCollectionUpdated(),
+        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, false, ids, isNodesCollectionUpdated(),
                 getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
-        perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "findAndModify [{}]", ids);
+        perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "findAndModify {}", ids);
     }
 
     @Override

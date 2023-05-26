@@ -283,7 +283,6 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
-    @NotNull
     public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
         try {
             logMethod("findAndUpdate", collection, updateOps);

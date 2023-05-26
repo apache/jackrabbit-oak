@@ -65,11 +65,10 @@ public interface ThrottlingStatsCollector {
      * @param throttlingTimeNanos time taken
      * @param collection the collection
      * @param ids List of document ids which got updated
-     * @param newEntry true if the document was newly created due to given operation
      * @param success true if the update was success
      * @param retryCount number of retries done to get the update
      */
-    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids, boolean newEntry,
+    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids,
                            boolean success, int retryCount);
 
     /**

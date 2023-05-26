@@ -1243,7 +1243,7 @@ public class MongoDocumentStore implements DocumentStore {
             throw handleException(e, collection, Iterables.transform(updateOps, UpdateOp::getId));
         } finally {
             stats.doneFindAndModify(watch.elapsed(NANOSECONDS), collection, updateOps.stream().map(UpdateOp::getId).collect(toList()),
-                    false, true, retryCount);
+                    true, retryCount);
         }
         final List<T> resultList = new ArrayList<>(results.values());
         log("findAndUpdate returns", resultList);
@@ -1415,7 +1415,7 @@ public class MongoDocumentStore implements DocumentStore {
                             // simply ignore updating the document cache in case
                             // 1. oldDoc is null
                             // 2. document didn't get updated i.e. modCount is same after update operation
-                            log("Skipping updating doc cache for {}", key);
+                            log("Skipping updating doc cache for ", key);
                         } else {
                             NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
                             docsToCache.add(newDoc);
@@ -1437,7 +1437,7 @@ public class MongoDocumentStore implements DocumentStore {
                     // at time of modify operation, and we didn't anything for it
                     // or oldDoc is present and modCount is same,
                     // so document had not been updated.
-                    log("{} didn't get updated, returning null.", e.getKey());
+                    log(" didn't get updated, returning null.", e.getKey());
                     result.put(e.getValue(), null);
                 } else {
                     // document had been updated, seal the document and add in the result map

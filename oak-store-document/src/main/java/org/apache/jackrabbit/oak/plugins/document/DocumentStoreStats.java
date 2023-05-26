@@ -284,13 +284,13 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     }
 
     @Override
-    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids, boolean newEntry,
+    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids,
                                   boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, newEntry, ids, isNodesCollectionUpdated(), getStatsConsumer(),
+        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, false, ids, isNodesCollectionUpdated(), getStatsConsumer(),
                 getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
-        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findAndModify [{}]", ids);
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findAndModify {}", ids);
     }
 
     @Override
