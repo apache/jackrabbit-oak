@@ -417,6 +417,22 @@ public class BlobGCTest {
     }
 
     @Test
+    public void checkConsistencyMarkOnly() throws Exception {
+        log.info("Starting checkConsistencyMarkOnly()");
+
+        long afterSetupTime = clock.getTime();
+        log.info("after setup time {}", afterSetupTime);
+
+        MarkSweepGarbageCollector collector = cluster.getCollector(0);
+        long missing = collector.checkConsistency(true);
+
+        assertEquals(0, missing);
+        assertStats(cluster.statsProvider, 1, 0, 0, 0, cluster.blobStoreState.blobsPresent.size(), cluster.blobSize,
+                CONSISTENCY_NAME);
+        assertStatsBean(collector.getConsistencyOperationStats(), 1, 0, 0);
+    }
+
+    @Test
     public void checkConsistencyFailure() throws Exception {
         log.info("Starting checkConsistencyFailure()");
 

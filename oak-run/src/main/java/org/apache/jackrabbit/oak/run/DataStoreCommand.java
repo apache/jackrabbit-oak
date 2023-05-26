@@ -269,7 +269,7 @@ public class DataStoreCommand implements Command {
             } else {
                 MarkSweepGarbageCollector collector = getCollector(fixture, dataStoreOpts, opts, closer);
                 if (dataStoreOpts.checkConsistency()) {
-                    long missing = collector.checkConsistency();
+                    long missing = collector.checkConsistency(dataStoreOpts.consistencyCheckMarkOnly());
                     log.warn("Found {} missing blobs", missing);
 
                     if (dataStoreOpts.isVerbose()) {

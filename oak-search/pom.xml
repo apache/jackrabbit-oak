@@ -69,6 +69,7 @@
                 <configuration>
                     <excludes>
                         <exclude>**/lms-data.tsv</exclude>
+                        <exclude>**/stopwords-snowball.txt</exclude>
                     </excludes>
                 </configuration>
             </plugin>

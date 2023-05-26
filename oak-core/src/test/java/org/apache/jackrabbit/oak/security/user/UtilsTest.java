@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Map;
 
@@ -45,7 +46,6 @@ import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 
 import static org.apache.jackrabbit.oak.security.user.Utils.canImpersonateAllUsers;
-import static org.apache.jackrabbit.oak.security.user.Utils.isImpersonator;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.DEFAULT_ADMIN_ID;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.PARAM_ADMIN_ID;
 import static org.junit.Assert.assertEquals;
@@ -244,14 +244,43 @@ public class UtilsTest extends AbstractSecurityTest {
 
         Group impersonatorGroup = userManagerSpy.createGroup(impersonatorGroupId);
         Authorizable authorizable = userManagerSpy.getAuthorizable(getTestUser().getID());
+        assertNotNull(authorizable);
+        
+        assertFalse(canImpersonateAllUsers(authorizable.getPrincipal(), userManagerSpy));
+        
         impersonatorGroup.addMember(authorizable);
         root.commit();
 
-        assertTrue(canImpersonateAllUsers(new PrincipalImpl(getTestUser().getID()), userManagerSpy));
+        assertTrue(canImpersonateAllUsers(authorizable.getPrincipal(), userManagerSpy));
+    }
+
+    @Test
+    public void testCanImpersonateAllConfiguredNonExistingPrincipal() throws Exception {
+        String impersonatorName = "nonExisting";
+
+        UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
+        ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), impersonatorName);
+        when(userManagerSpy.getConfig()).thenReturn(configs);
+
+        Authorizable authorizable = userManagerSpy.getAuthorizable(getTestUser().getID());
+        assertNotNull(authorizable);
+        assertFalse(canImpersonateAllUsers(authorizable.getPrincipal(), userManagerSpy));
     }
 
     @Test
     public void testIsImpersonatorByPrincipal() throws Exception {
+        Principal impersonatorPrincipal = getTestUser().getPrincipal();
+
+        UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
+        ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), impersonatorPrincipal.getName());
+        when(userManagerSpy.getConfig()).thenReturn(configs);
+
+        User user = userManagerSpy.getAuthorizable(getTestUser().getID(), User.class);
+        assertNotNull(user);
+        assertTrue(canImpersonateAllUsers(user.getPrincipal(), userManagerSpy));
+    }
+    @Test
+    public void testIsImpersonatorByNonMatchingPrincipal() throws Exception {
         String impersonatorName = "impersonator";
         Principal impersonatorPrincipal = new PrincipalImpl(impersonatorName);
 
@@ -261,26 +290,39 @@ public class UtilsTest extends AbstractSecurityTest {
 
         PrincipalManager principalManagerMock = ImpersonationTestUtil.getMockedPrincipalManager(impersonatorName, impersonatorPrincipal);
         when(userManagerSpy.getPrincipalManager()).thenReturn(principalManagerMock);
-        root.commit();
-        Authorizable authorizableMock = ImpersonationTestUtil.getAuthorizableWithPrincipal(impersonatorPrincipal);
 
-        assertTrue(isImpersonator(authorizableMock, userManagerSpy));
+        User user = userManagerSpy.getAuthorizable(getTestUser().getID(), User.class);
+        assertNotNull(user);
+        assertFalse(canImpersonateAllUsers(user.getPrincipal(), userManagerSpy));
+    }
+    
+    @Test
+    public void testIsImpersonatorOtherMgrImpl() throws Exception {
+        Principal p = new PrincipalImpl("mockPrincipal");
+        
+        User userMock = when(mock(User.class).getPrincipal()).thenReturn(p).getMock();
+        UserManager umMock = when(mock(UserManager.class).getAuthorizable(p)).thenReturn(userMock).getMock();
+        
+        assertFalse(canImpersonateAllUsers(p, umMock));
+        verify(umMock).getAuthorizable(p);
+        verify(userMock).isGroup();
+        verify(userMock).isAdmin();
+        verifyNoMoreInteractions(userMock, umMock);
     }
 
     @Test
     public void testIsImpersonatorByGroup() throws Exception {
-        String userName = "user";
         String groupName = "impersonator_group";
-        Principal impersonatorPrincipal = new PrincipalImpl(userName);
+        Principal impersonatorPrincipal = getTestUser().getPrincipal();
         Principal impersonatorGroupPrincipal = new GroupPrincipal() {
             @Override
             public boolean isMember(@NotNull Principal member) {
-                return member.getName().equals(userName);
+                return member.getName().equals(impersonatorPrincipal.getName());
             }
 
             @Override
-            public Enumeration<? extends Principal> members() {
-                return null;
+            public @NotNull Enumeration<? extends Principal> members() {
+                return Collections.emptyEnumeration();
             }
 
             @Override
@@ -292,13 +334,11 @@ public class UtilsTest extends AbstractSecurityTest {
         UserManagerImpl userManagerSpy = spy((UserManagerImpl)getUserManager(root));
         ConfigurationParameters configs = ImpersonationTestUtil.getMockedConfigs(userManagerSpy.getConfig(), groupName);
         when(userManagerSpy.getConfig()).thenReturn(configs);
-
+        
         PrincipalManager principalManagerMock = ImpersonationTestUtil.getMockedPrincipalManager(groupName, impersonatorGroupPrincipal);
         when(userManagerSpy.getPrincipalManager()).thenReturn(principalManagerMock);
-        root.commit();
-        Authorizable authorizableMock = ImpersonationTestUtil.getAuthorizableWithPrincipal(impersonatorPrincipal);
-
-        assertTrue(isImpersonator(authorizableMock, userManagerSpy));
+        
+        assertTrue(canImpersonateAllUsers(impersonatorPrincipal, userManagerSpy));
     }
     
     @Test

@@ -158,7 +158,7 @@ With Oak 1.0 impersonation is implemented as follows:
    along with the current `AuthInfo` object.
 3. these `ImpersonationCredentials` are passed to `Repository.login`
 
-Whether or not impersonation succeeds consequently both depends on the authentication
+If impersonation succeeds consequently both depends on the authentication
 setup and on some implementation specific validation that make sure the
 editing session is allowed to impersonate the user identified by the credentials
 passed to the impersonate call.
@@ -170,23 +170,23 @@ with `ImpersonationCredentials` and applies the following logic:
   as long as the user is still valid (i.e. exists and has not been disabled).
 - **Regular Impersonation**: Impersonation another user will only succeed if
   the impersonated user is valid (i.e. exists and is not disabled) _and_ the
-  the user associated with the editing session is allowed to impersonate this
+  user associated with the editing session is allowed to impersonate this
   user. The latter depends on the [User Management](../user.html) implementation
-  specifically on the return value of `User.getImpersonation().allows(Subject subject)`.
+  specifically on the return value of `User.getImpersonation().allows(Subject subject)`. See [User Management : The Default Implementation](../user/default.html) for details.
 
 ##### ImpersonationCredentials
 
 Since the implementation of `Session.impersonate` no longer uses `SimpleCredentials`
 to transport the original `Subject` but rather performs the login with dedicated
 [ImpersonationCredentials], impersonation is no longer restricted to `SimpleCredentials`
-being passed to `Session#impersonate` call. Instead the specified credentials are
+being passed to `Session#impersonate` call. Instead, the specified credentials are
 passed to a new instance of `ImpersonationCredentials` delegating the evaluation
 and validation of the specified `Credentials` to the configured login module(s).
 
 This modification will not affect applications that used JCR API to impersonate
 a given session. Note however that applications relying on the Jackrabbit
 implementation and manually creating `SimpleCredentials` with a
-`SecurityConstants.IMPERSONATOR_ATTRIBUTE`, would need to be refactor after
+`SecurityConstants.IMPERSONATOR_ATTRIBUTE`, would need to be refactored after
 migration to Oak.
 
 ##### Impersonation with Custom Authentication Setup

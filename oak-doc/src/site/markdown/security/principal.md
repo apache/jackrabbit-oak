@@ -34,12 +34,13 @@ extensions present with Jackrabbit API.
 
 The Jackrabbit API provides support for principal management (i.e. discovery) that 
 are missing in JCR. The relevant interfaces are defined in the 
-`org.apache.jackrabbit.api.security.principal' package space:
+[org.apache.jackrabbit.api.security.principal](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/security/principal/package-summary.html) package space:
 
 - `PrincipalManager`
 - `PrincipalIterator`
 - `JackrabbitPrincipal` extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html)
     - `ItemBasedPrincipal`
+- `GroupPrincipal` extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html) replacing the removed `java.security.acl.Group` (see [OAK-7024](https://issues.apache.org/jira/browse/OAK-7024)).
 
 #### Differences wrt Jackrabbit 2.x
 

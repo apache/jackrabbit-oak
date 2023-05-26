@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Impersonation;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -37,7 +36,6 @@ import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 import java.security.Principal;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -131,9 +129,10 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         Set<Principal> principals = subject.getPrincipals();
         Set<String> principalNames = new HashSet<>();
         for (Principal principal : principals) {
-                principalNames.add(principal.getName());
+            principalNames.add(principal.getName());
         }
 
+        // OAK-10173 : short-cut if the subject contains any of the configured principal names that can impersonate all users
         if (isImpersonator(principalNames)){
             return true;
         }
@@ -158,7 +157,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     @NotNull
-    private Set<String> getImpersonatorNames(@NotNull Tree userTree) {
+    private static Set<String> getImpersonatorNames(@NotNull Tree userTree) {
         Set<String> princNames = new HashSet<>();
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         if (impersonators != null) {
@@ -169,7 +168,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         return princNames;
     }
 
-    private void updateImpersonatorNames(@NotNull Tree userTree, @NotNull Set<String> principalNames) {
+    private static void updateImpersonatorNames(@NotNull Tree userTree, @NotNull Set<String> principalNames) {
         if (principalNames.isEmpty()) {
             userTree.removeProperty(REP_IMPERSONATORS);
         } else {

@@ -421,7 +421,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             lineIterator.forEachRemaining(line -> {
                 String id = line.split(DELIM)[0];
                 long length = DataStoreBlobStore.BlobId.of(id).getLength();
-                LOG.info("Blob {} has size {}", id, length);
+                LOG.debug("Blob {} has size {}", id, length);
 
                 stats.getCollector().updateNumBlobReferences(1);
 
@@ -662,7 +662,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
                                     saveBatchToFile(idBatch, writer);
                                 }
 
-                                if (count.get() % getBatchCount() == 0) {
+                                if (count.get() > 0 && count.get() % getBatchCount() == 0) {
                                     LOG.info("Collected ({}) blob references", count.get());
                                 }
                             } catch (Exception e) {
@@ -685,15 +685,9 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             closeQuietly(writer);
         }
     }
-
-    /**
-     * Checks for the DataStore consistency and reports the number of missing blobs still referenced.
-     *
-     * @return the missing blobs
-     * @throws Exception
-     */
+    
     @Override
-    public long checkConsistency() throws Exception {
+    public long checkConsistency(boolean markOnly) throws Exception {
         consistencyStatsCollector.start();
         Stopwatch sw = Stopwatch.createStarted();
 
@@ -702,47 +696,36 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long candidates = 0;
 
         try {
-            LOG.info("Starting blob consistency check");
-
-            // Find all blobs available in the blob store
-            ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
-                true));
-            executor.execute(blobIdRetriever);
+            LOG.info("Starting blob consistency check with markOnly = {}", markOnly);
 
             // Mark all used blob references
+            // Create a time marker in the data store if applicable
+            String uniqueSuffix = UUID.randomUUID().toString();
+            GarbageCollectionType.get(blobStore).addMarkedStartMarker(blobStore, repoId, uniqueSuffix);
             iterateNodeTree(fs, true);
             // Move the marked references file to the data store meta area if applicable
-            String uniqueSuffix = UUID.randomUUID().toString();
             GarbageCollectionType.get(blobStore).addMarked(blobStore, fs, repoId, uniqueSuffix);
             consistencyStatsCollector.updateMarkDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-
-            try {
-                blobIdRetriever.get();
-            } catch (ExecutionException e) {
-                LOG.warn("Error occurred while fetching all the blobIds from the BlobStore");
-                threw = false;
-                throw e;
-            }
 
             if (SharedDataStoreUtils.isShared(blobStore)) {
                 // Retrieve all other marked present in the datastore
                 List<DataRecord> refFiles =
-                    ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
+                        ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REFERENCES.getType());
 
                 // Get all the repositories registered
                 List<DataRecord> repoFiles =
-                    ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
+                        ((SharedDataStore) blobStore).getAllMetadataRecords(SharedStoreRecordType.REPOSITORY.getType());
                 LOG.info("Repositories registered {}", repoFiles);
 
                 // Retrieve repos for which reference files have not been created
                 Set<String> unAvailRepos =
-                    SharedDataStoreUtils.refsNotAvailableFromRepos(repoFiles, refFiles);
+                        SharedDataStoreUtils.refsNotAvailableFromRepos(repoFiles, refFiles);
                 LOG.info("Repositories with unavailable references {}", unAvailRepos);
-                
+
                 if (!unAvailRepos.isEmpty()) {
                     throw new NotAllRepositoryMarkedException("Not all repositories have marked references available");
                 }
-                
+
                 if (refFiles.size() > 0) {
                     File temp = new File(root, repoId + UUID.randomUUID().toString());
                     copyFile(fs.getMarkedRefs(), temp);
@@ -760,30 +743,45 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
 
             // Get size
             getBlobReferencesSize(fs, consistencyStats);
+            
+            if (!markOnly) {
+                // Find all blobs available in the blob store
+                ListenableFutureTask<Integer> blobIdRetriever = ListenableFutureTask.create(new BlobIdRetriever(fs,
+                        true));
+                executor.execute(blobIdRetriever);
 
-            LOG.trace("Starting difference phase of the consistency check");
-            FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
-                fs.getAvailableRefs(),
-                fs.getMarkedRefs(),
-                transformer);
-            // If tracking then also filter ids being tracked which are active deletions for lucene
-            candidates = BlobCollectionType.get(blobStore).filter(blobStore, iter, fs);
-
-            GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
-
-            LOG.trace("Ending difference phase of the consistency check");
-            LOG.info("Consistency check found [{}] missing blobs", candidates);
-
-            if (candidates > 0) {
-                try (LineIterator lineIterator = new LineIterator(new FileReader(fs.getGcCandidates()))) {
-                    while(lineIterator.hasNext()) {
-                        LOG.warn("Missing Blob [{}]", lineIterator.nextLine());
-                    }
+                try {
+                    blobIdRetriever.get();
+                } catch (ExecutionException e) {
+                    LOG.warn("Error occurred while fetching all the blobIds from the BlobStore");
+                    threw = false;
+                    throw e;
                 }
-                LOG.warn("Consistency check failure in the the blob store : {}, check missing candidates in file {}",
+
+                LOG.trace("Starting difference phase of the consistency check");
+                FileLineDifferenceIterator iter = new FileLineDifferenceIterator(
+                        fs.getAvailableRefs(),
+                        fs.getMarkedRefs(),
+                        transformer);
+                // If tracking then also filter ids being tracked which are active deletions for lucene
+                candidates = BlobCollectionType.get(blobStore).filter(blobStore, iter, fs);
+
+                GarbageCollectionType.get(blobStore).removeAllMarkedReferences(blobStore);
+
+                LOG.trace("Ending difference phase of the consistency check");
+                LOG.info("Consistency check found [{}] missing blobs", candidates);
+
+                if (candidates > 0) {
+                    try (LineIterator lineIterator = new LineIterator(new FileReader(fs.getGcCandidates()))) {
+                        while (lineIterator.hasNext()) {
+                            LOG.warn("Missing Blob [{}]", lineIterator.nextLine());
+                        }
+                    }
+                    LOG.warn("Consistency check failure in the the blob store : {}, check missing candidates in file {}",
                             blobStore, fs.getGcCandidates().getAbsolutePath());
-                consistencyStatsCollector.finishFailure();
-                consistencyStatsCollector.updateNumDeleted(candidates);
+                    consistencyStatsCollector.finishFailure();
+                    consistencyStatsCollector.updateNumDeleted(candidates);
+                }
             }
         } finally {
             if (!traceOutput && (!LOG.isTraceEnabled() && candidates == 0)) {
@@ -793,6 +791,17 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
             consistencyStatsCollector.updateDuration(sw.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
         }
         return candidates;
+    }
+
+    /**
+     * Checks for the DataStore consistency and reports the number of missing blobs still referenced.
+     *
+     * @return the missing blobs
+     * @throws Exception
+     */
+    @Override
+    public long checkConsistency() throws Exception {
+        return checkConsistency(false);
     }
 
     public void setTraceOutput(boolean trace) {

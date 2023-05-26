@@ -48,6 +48,9 @@ import org.apache.jackrabbit.guava.common.util.concurrent.AtomicDouble;
 import com.mongodb.Block;
 import com.mongodb.DBObject;
 import com.mongodb.MongoBulkWriteException;
+import com.mongodb.MongoWriteException;
+import com.mongodb.MongoCommandException;
+import com.mongodb.WriteError;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.ReadPreference;
@@ -81,6 +84,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.bson.BsonMaximumSizeExceededException;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -159,7 +163,6 @@ public class MongoDocumentStore implements DocumentStore {
      * which we block any data modification operation when system has been throttled.
      */
     public static final long DEFAULT_THROTTLING_TIME_MS = Long.getLong("oak.mongo.throttlingTime", 20);
-
     /**
      * nodeNameLimit for node name based on Mongo Version
      */
@@ -1136,6 +1139,15 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return oldDoc;
+        } catch (MongoWriteException e) {
+            WriteError werr = e.getError();
+            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'.",
+                    updateOp.getId(), werr.getMessage());
+            throw handleException(e, collection, updateOp.getId());
+        } catch (MongoCommandException e) {
+            LOG.error("Failed to update the document with Id={} with MongoCommandException message ='{}'. ",
+                    updateOp.getId(), e.getMessage());
+            throw handleException(e, collection, updateOp.getId());
         } catch (Exception e) {
             throw handleException(e, collection, updateOp.getId());
         } finally {
@@ -1491,6 +1503,14 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 insertSuccess = true;
                 return true;
+            } catch (BsonMaximumSizeExceededException e) {
+                for (T doc : docs) {
+                    LOG.error("Failed to create one of the documents " +
+                                    "with BsonMaximumSizeExceededException message = '{}'. " +
+                                    "The document id={} has estimated size={} in VM.",
+                                    e.getMessage(), doc.getId(), doc.getMemory());
+                }
+                return false;
             } catch (MongoException e) {
                 return false;
             }
@@ -1892,7 +1912,6 @@ public class MongoDocumentStore implements DocumentStore {
         BasicDBObject maxUpdates = new BasicDBObject();
         BasicDBObject incUpdates = new BasicDBObject();
         BasicDBObject unsetUpdates = new BasicDBObject();
-
         // always increment modCount
         updateOp.increment(Document.MOD_COUNT, 1);
 
