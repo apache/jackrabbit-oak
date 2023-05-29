@@ -1389,39 +1389,47 @@ public class MongoDocumentStore implements DocumentStore {
             final BulkRequestResult bulkResult = sendBulkRequest(collection, bulkOperations.values(), oldDocs, false);
             final Set<String> potentiallyUpdatedDocsSet = difference(bulkOperations.keySet(), bulkResult.failedUpdates);
 
-            // fetch all the docs which haven't failed, they might have passed
-            final Map<String, T> updatedDocsMap = findDocuments(collection, potentiallyUpdatedDocsSet);
+            final Map<String, T> updatedDocsMap = new HashMap<>(potentiallyUpdatedDocsSet.size());
 
-            if (collection == NODES) {
+            final List<NodeDocument> docsToCache = new ArrayList<>();
 
-                List<NodeDocument> docsToCache = new ArrayList<>();
+            if (bulkResult.modifiedCount == potentiallyUpdatedDocsSet.size()) {
+                // all documents had been updated, now we can simply
+                // apply the update op on oldDocs and update the cache
+                potentiallyUpdatedDocsSet.forEach(key -> {
+                    T oldDoc = oldDocs.get(key);
+                    if (isNull(oldDoc) || oldDoc == NULL) {
+                        log("Skipping updating doc cache for ", key);
+                        return;
+                    }
+                    T newDoc = applyChanges(collection, oldDoc, bulkOperations.get(key));
+                    updatedDocsMap.put(newDoc.getId(), newDoc);
+                    if (collection == NODES) {
+                        docsToCache.add((NodeDocument) newDoc);
+                    }
+                });
+            } else {
+                // some documents might have not been updated, lets fetch them from database
+                // and found out which had not been updated
+                updatedDocsMap.putAll(findDocuments(collection, potentiallyUpdatedDocsSet));
 
-                if (bulkResult.modifiedCount == potentiallyUpdatedDocsSet.size()) {
-                    // all documents had been updated, now we can simply
-                    // apply the update op on oldDocs and update the cache
-                    potentiallyUpdatedDocsSet.forEach(key -> {
-                        T oldDoc = oldDocs.get(key);
-                        if (oldDoc != null && oldDoc != NULL) {
-                            NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
-                            docsToCache.add(newDoc);
-                        }
-                    });
-                } else {
-                    // some documents might have not been updated, lets fetch them from database
-                    // and found out which had not been updated
-                    updatedDocsMap.forEach((key, value) -> {
-                        T oldDoc = oldDocs.get(key);
-                        if (isNull(oldDoc) || oldDoc == NULL || Objects.equals(oldDoc.getModCount(), value.getModCount())) {
-                            // simply ignore updating the document cache in case
-                            // 1. oldDoc is null
-                            // 2. document didn't get updated i.e. modCount is same after update operation
-                            log("Skipping updating doc cache for ", key);
-                        } else {
-                            NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key));
-                            docsToCache.add(newDoc);
-                        }
-                    });
-                }
+                updatedDocsMap.forEach((key, value) -> {
+                    T oldDoc = oldDocs.get(key);
+                    if (isNull(oldDoc) || oldDoc == NULL || Objects.equals(oldDoc.getModCount(), value.getModCount())) {
+                        // simply ignore updating the document cache in case
+                        // 1. oldDoc is null
+                        // 2. document didn't get updated i.e. modCount is same after update operation
+                        log("Skipping updating doc cache for ", key);
+                        return;
+                    }
+                    if (collection == NODES) {
+                        docsToCache.add((NodeDocument) applyChanges(collection, oldDoc, bulkOperations.get(key)));
+                    }
+                });
+            }
+
+            // updates nodesCache if
+            if (collection == NODES && docsToCache.size() > 0) {
                 nodesCache.putNonConflictingDocs(tracker, docsToCache);
             }
             oldDocs.keySet().removeAll(bulkResult.failedUpdates);

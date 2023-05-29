@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.ObjIntConsumer;
-import java.util.function.Predicate;
 
 import static java.util.Objects.requireNonNull;
 
