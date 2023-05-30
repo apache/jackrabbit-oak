@@ -635,8 +635,6 @@ public class VersionGarbageCollector {
                                     phases.stop(GCPhase.COLLECTING);
                                 }
 
-                                // TODO : remove this code, I don't think its possible to fetch these documents
-                                //  who doesn't have _modified field
                                 final Long modified = doc.getModified();
                                 if (modified == null) {
                                     monitor.warn("collectDetailGarbage : document has no _modified property : {}",
@@ -874,8 +872,7 @@ public class VersionGarbageCollector {
 
             timer.reset().start();
             try {
-                // TODO create an api to bulk update findAndUpdate Ops
-                updatedDocs = (int) updateOpList.stream().map(op -> ds.findAndUpdate(NODES, op)).filter(Objects::nonNull).count();
+                updatedDocs = (int) ds.findAndUpdate(NODES, updateOpList).stream().filter(Objects::nonNull).count();
                 stats.updatedDetailedGCDocsCount += updatedDocs;
                 log.info("Updated [{}] documents", updatedDocs);
                 // now reset delete metadata
