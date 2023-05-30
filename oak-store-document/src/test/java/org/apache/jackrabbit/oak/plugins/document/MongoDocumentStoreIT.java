@@ -284,19 +284,20 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         DocumentStore docStore = mk.getDocumentStore();
         DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
         Revision rev = Revision.newRevision(0);
-        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        List<UpdateOp> inserts = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
                     new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
             inserts.add(n.asOperation(rev));
         }
-        docStore.create(Collection.NODES, inserts);
+        docStore.create(NODES, inserts);
 
         List<UpdateOp> updateOps = new ArrayList<>(10);
+        final Revision updateRev = Revision.newRevision(0);
         for (int i = 0; i < 10; i++) {
             UpdateOp updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + i)), false);
-            updateOp.set("prop", 20L);
-            updateOp.contains("prop", true);
+            updateOp.setMapEntry("prop", updateRev, "20");
+            updateOp.contains(MODIFIED_IN_SECS, true);
             updateOps.add(updateOp);
         }
 
@@ -311,19 +312,20 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         DocumentStore docStore = mk.getDocumentStore();
         DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
         Revision rev = Revision.newRevision(0);
-        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        List<UpdateOp> inserts = new ArrayList<>(10);
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
                     new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
             inserts.add(n.asOperation(rev));
         }
-        docStore.create(Collection.NODES, inserts);
+        docStore.create(NODES, inserts);
 
         List<UpdateOp> updateOps = new ArrayList<>(10);
+        final Revision updateRev = Revision.newRevision(0);
         for (int i = 0; i < 10; i++) {
             UpdateOp updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + i)), false);
-            updateOp.set("prop", 20L);
-            updateOp.contains("prop", false);
+            updateOp.setMapEntry("prop", updateRev, "20");
+            updateOp.contains(MODIFIED_IN_SECS, false);
             updateOps.add(updateOp);
         }
 
@@ -337,7 +339,7 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
         DocumentStore docStore = mk.getDocumentStore();
         DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
         Revision rev = Revision.newRevision(0);
-        List<UpdateOp> inserts = new ArrayList<UpdateOp>();
+        List<UpdateOp> inserts = new ArrayList<>(20);
         for (int i = 0; i < 10; i++) {
             DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
                     new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
@@ -348,18 +350,19 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
             inserts.add(n.asOperation(rev));
 
         }
-        docStore.create(Collection.NODES, inserts);
+        docStore.create(NODES, inserts);
 
         List<UpdateOp> updateOps = new ArrayList<>(20);
+        final Revision updateRev = Revision.newRevision(0);
         for (int i = 0; i < 10; i++) {
             UpdateOp updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + i)), false);
-            updateOp.set("prop", 20L);
-            updateOp.contains("prop", false);
+            updateOp.setMapEntry("prop", updateRev, "20");
+            updateOp.contains(MODIFIED_IN_SECS, false);
             updateOps.add(updateOp);
 
             updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + (i+100))), false);
             updateOp.set("prop2", 20L);
-            updateOp.contains("prop", false);
+            updateOp.contains(MODIFIED_IN_SECS, true);
             updateOps.add(updateOp);
         }
 
