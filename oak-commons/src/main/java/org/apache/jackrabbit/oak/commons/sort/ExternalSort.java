@@ -700,7 +700,7 @@ public class ExternalSort {
      * @param buffers
      *            Where the data should be read.
      * @param typeToString
-     *            function to map string to custom type. User for coverting line to custom type for the
+     *            function to map string to custom type. User for converting line to custom type for the
      *            purpose of sorting
      *
      */

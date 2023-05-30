@@ -143,7 +143,9 @@ public class FlatFileNodeStoreBuilder {
         /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
          */
-        MULTITHREADED_TRAVERSE_WITH_SORT
+        MULTITHREADED_TRAVERSE_WITH_SORT,
+
+        PIPELINED
     }
 
     public FlatFileNodeStoreBuilder(File workDir, MemoryManager memoryManager) {
@@ -294,6 +296,14 @@ public class FlatFileNodeStoreBuilder {
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
                         blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate);
+            case PIPELINED:
+                log.info("Using PipelinedStrategy");
+                return new PipelinedStrategy(
+                        nodeStateEntryTraverserFactory.getDocumentStore(),
+                        nodeStateEntryTraverserFactory.getDocumentNodeStore(),
+                        nodeStateEntryTraverserFactory.getRootRevision(),
+                        comparator, blobStore, dir, algorithm, pathPredicate);
+
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

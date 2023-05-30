@@ -66,7 +66,7 @@ public class MongoDocumentTraverser {
             return lastModifiedRange;
         }
 
-        private BsonDocument getFindQuery() {
+        BsonDocument getFindQuery() {
             String lastModifiedRangeQueryPart = "{$gte:" + lastModifiedRange.getLastModifiedFrom() + ",";
             lastModifiedRangeQueryPart += "$lt:" + lastModifiedRange.getLastModifiedTo() + "}";
             String idRangeQueryPart = "";

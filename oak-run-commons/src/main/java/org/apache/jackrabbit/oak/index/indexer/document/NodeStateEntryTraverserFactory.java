@@ -18,10 +18,17 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
 
 public interface NodeStateEntryTraverserFactory {
 
     NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange range);
 
+    // For testing purposes only, remove before opening a PR
+    default MongoDocumentStore getDocumentStore() { return null; }
+    default RevisionVector getRootRevision() { return null; }
+    default DocumentNodeStore getDocumentNodeStore(){ return null; }
 }

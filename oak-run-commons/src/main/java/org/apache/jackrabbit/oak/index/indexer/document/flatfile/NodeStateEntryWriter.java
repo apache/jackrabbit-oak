@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -68,6 +70,25 @@ public class NodeStateEntryWriter {
         return sb.toString();
     }
 
+    public void writeTo(BufferedWriter bw, List<String> pathElements, String nodeStateAsJson) throws IOException {
+        if (pathElements.isEmpty()) {
+            bw.write("/");
+        } else {
+            for (String part : pathElements) {
+                bw.write("/");
+                bw.write(part);
+            }
+        }
+        bw.write(DELIMITER);
+        bw.write(nodeStateAsJson);
+    }
+
+    public void writeTo(BufferedWriter bw, String path, String nodeStateAsJson) throws IOException {
+        bw.write(path);
+        bw.write(DELIMITER);
+        bw.write(nodeStateAsJson);
+    }
+
     public String asJson(NodeState nodeState) {
         jw.resetWriter();
         jw.object();
@@ -88,13 +109,13 @@ public class NodeStateEntryWriter {
 
     //~-----------------------------------< Utilities to parse >
 
-    public static String getPath(String entryLine){
+    public static String getPath(String entryLine) {
         return entryLine.substring(0, getDelimiterPosition(entryLine));
     }
 
     public static String[] getParts(String line) {
         int pos = getDelimiterPosition(line);
-        return new String[] {line.substring(0, pos), line.substring(pos + 1)};
+        return new String[]{line.substring(0, pos), line.substring(pos + 1)};
     }
 
     private static int getDelimiterPosition(String entryLine) {

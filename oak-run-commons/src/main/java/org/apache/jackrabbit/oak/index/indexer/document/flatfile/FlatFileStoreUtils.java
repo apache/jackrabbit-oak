@@ -36,7 +36,7 @@ import java.util.List;
 /**
  * This class provides common utility functions for building FlatFileStore.
  */
-class FlatFileStoreUtils {
+public class FlatFileStoreUtils {
 
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.

@@ -138,6 +138,18 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                                 traversalLogger.trace(id);
                             });
         }
+
+        public MongoDocumentStore getDocumentStore() {
+            return documentStore;
+        }
+
+        public RevisionVector getRootRevision() {
+            return rootRevision;
+        }
+
+        public DocumentNodeStore getDocumentNodeStore() {
+            return documentNodeStore;
+        }
     }
 
     private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements,
@@ -216,6 +228,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         for (IndexDefinition indexDf : indexDefinitions) {
             preferredPathElements.addAll(indexDf.getRelativeNodeNames());
         }
+        log.info("indexDef: {}", indexDefinitions);
+        log.info("indexDef path filter: {}", indexDefinitions.iterator().next().getPathFilter());
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
             preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
