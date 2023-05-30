@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.Timer;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -48,7 +46,6 @@ import static org.apache.jackrabbit.oak.plugins.document.ThrottlingStatsCollecto
 import static org.apache.jackrabbit.oak.plugins.document.ThrottlingStatsCollectorImpl.NODES_UPDATE_THROTTLING;
 import static org.apache.jackrabbit.oak.plugins.document.ThrottlingStatsCollectorImpl.NODES_UPDATE_THROTTLING_TIMER;
 import static org.junit.Assert.assertEquals;
-import static org.slf4j.LoggerFactory.getILoggerFactory;
 
 /**
  * Junit for {@link ThrottlingStatsCollectorImpl}
@@ -174,6 +171,51 @@ public class ThrottlingStatsCollectorImplTest {
         assertEquals(2, getMeter(NODES_UPDATE_THROTTLING).getCount());
         assertEquals(100, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
         assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+
+    }
+
+    @Test
+    public void doneBulkFindAndModify() {
+
+        // no node had been updated i.e. empty list of Ids
+        stats.doneFindAndModify(100, NODES, of(), true, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+
+        // 2 nodes had been updated
+        stats.doneFindAndModify(100, NODES, of("foo", "bar"), true, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(2, getMeter(NODES_UPDATE_THROTTLING).getCount());
+        assertEquals(50, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
+
+        // fails to update 2 nodes without retrying
+        stats.doneFindAndModify(100, NODES, of("foo", "bar"), false, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(2, getMeter(NODES_UPDATE_THROTTLING).getCount());
+        assertEquals(50, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
+
+        // entry updated after 3 retries
+        stats.doneFindAndModify(100, NODES, of("foo", "bar"), true, 3);
+        assertEquals(4, getMeter(NODES_UPDATE_THROTTLING).getCount());
+        assertEquals(50, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
+
+        // update is done on Journal collection
+        stats.doneFindAndModify(100, JOURNAL, of("foo", "bar"), true, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT_THROTTLING).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(4, getMeter(NODES_UPDATE_THROTTLING).getCount());
+        assertEquals(50, getTimer(NODES_UPDATE_THROTTLING_TIMER).getSnapshot().getMax());
+        assertEquals(3, getMeter(NODES_UPDATE_RETRY_COUNT_THROTTLING).getCount());
+        assertEquals(1, getMeter(NODES_UPDATE_FAILURE_THROTTLING).getCount());
 
     }
 

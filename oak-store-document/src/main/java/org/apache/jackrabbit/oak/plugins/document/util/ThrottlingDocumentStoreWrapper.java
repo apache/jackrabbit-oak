@@ -191,6 +191,18 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @NotNull
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        final long throttlingTime = performThrottling(collection);
+        try {
+            return store.findAndUpdate(collection, updateOps);
+        } finally {
+            throttlingStatsCollector.doneFindAndModify(MILLISECONDS.toNanos(throttlingTime), collection,
+                    updateOps.stream().map(UpdateOp::getId).collect(toList()), true, 0);
+        }
+    }
+
+    @Override
     public CacheInvalidationStats invalidateCache() {
         return store.invalidateCache();
     }

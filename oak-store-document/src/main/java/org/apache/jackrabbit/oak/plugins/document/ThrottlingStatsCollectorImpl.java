@@ -29,8 +29,8 @@ import org.slf4j.Logger;
 
 import java.util.List;
 
+import static java.util.List.of;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getCreateStatsConsumer;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getJournalStatsConsumer;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getStatsConsumer;
@@ -126,10 +126,20 @@ public class ThrottlingStatsCollectorImpl implements ThrottlingStatsCollector {
     public void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, String key, boolean newEntry,
                                   boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, newEntry, c -> c == NODES,
+        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, newEntry, of(key), isNodesCollectionUpdated(),
                 getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "findAndModify [{}]", key);
+    }
+
+    @Override
+    public void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids,
+                                  boolean success, int retryCount) {
+
+        modifyMetricUpdater.update(collection, retryCount, throttlingTimeNanos, success, false, ids, isNodesCollectionUpdated(),
+                getStatsConsumer(), getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+
+        perfLog(perfLog, PERF_LOG_THRESHOLD, throttlingTimeNanos, "findAndModify {}", ids);
     }
 
     @Override

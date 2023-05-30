@@ -138,7 +138,7 @@ public class ReadOnlyDocumentStoreWrapperTest {
             uoeThrown = false;
 
             try {
-                readOnlyStore.findAndUpdate(collection, null);
+                readOnlyStore.findAndUpdate(collection, (UpdateOp) null);
             } catch (UnsupportedOperationException uoe) {
                 //catch uoe thrown by read only wrapper
                 uoeThrown = true;

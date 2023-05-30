@@ -20,18 +20,27 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
+import static java.lang.Long.parseLong;
+import static java.util.List.of;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.Path.fromString;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -267,5 +276,113 @@ public class MongoDocumentStoreIT extends AbstractMongoConnectionTest {
                 20, null);
         docs.forEach(d -> assertEquals(4 , d.keySet().size()));
         assertEquals(10, docs.size());
+    }
+
+    // OAK-10213
+    @Test
+    public void findAndUpdateBulk() {
+        DocumentStore docStore = mk.getDocumentStore();
+        DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<>(10);
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
+                    new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(NODES, inserts);
+
+        List<UpdateOp> updateOps = new ArrayList<>(10);
+        final Revision updateRev = Revision.newRevision(0);
+        for (int i = 0; i < 10; i++) {
+            UpdateOp updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + i)), false);
+            updateOp.setMapEntry("prop", updateRev, "20");
+            updateOp.contains(MODIFIED_IN_SECS, true);
+            updateOps.add(updateOp);
+        }
+
+        List<NodeDocument> docs = docStore.findAndUpdate(NODES, updateOps);
+        assertEquals(10, docs.size());
+        docs.forEach(doc -> assertTrue(doc.isSealed()));
+        docs.forEach(d -> assertEquals(10L, parseLong(d.getLocalMap("prop").get(d.getLocalMap("prop").firstKey()))));
+    }
+
+    @Test
+    public void findAndUpdateBulkNotFound() {
+        DocumentStore docStore = mk.getDocumentStore();
+        DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<>(10);
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
+                    new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
+            inserts.add(n.asOperation(rev));
+        }
+        docStore.create(NODES, inserts);
+
+        List<UpdateOp> updateOps = new ArrayList<>(10);
+        final Revision updateRev = Revision.newRevision(0);
+        for (int i = 0; i < 10; i++) {
+            UpdateOp updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + i)), false);
+            updateOp.setMapEntry("prop", updateRev, "20");
+            updateOp.contains(MODIFIED_IN_SECS, false);
+            updateOps.add(updateOp);
+        }
+
+        List<NodeDocument> docs = docStore.findAndUpdate(NODES, updateOps);
+        assertEquals(10, docs.size());
+        docs.forEach(Assert::assertNull);
+    }
+
+    @Test
+    public void findAndUpdateBulkNotAllFound() {
+        DocumentStore docStore = mk.getDocumentStore();
+        DocumentNodeStore store = builderProvider.newBuilder().setAsyncDelay(0).getNodeStore();
+        Revision rev = Revision.newRevision(0);
+        List<UpdateOp> inserts = new ArrayList<>(20);
+        for (int i = 0; i < 10; i++) {
+            DocumentNodeState n = new DocumentNodeState(store, fromString("/node-" + i),
+                    new RevisionVector(rev), of(new LongPropertyState("prop", 10L)), false, null);
+            inserts.add(n.asOperation(rev));
+
+            n = new DocumentNodeState(store, fromString("/node-" + (i+100)),
+                    new RevisionVector(rev), of(new LongPropertyState("prop2", 10L)), false, null);
+            inserts.add(n.asOperation(rev));
+
+        }
+        docStore.create(NODES, inserts);
+
+        List<UpdateOp> updateOps = new ArrayList<>(20);
+        final Revision updateRev = Revision.newRevision(0);
+        for (int i = 0; i < 10; i++) {
+            UpdateOp updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + i)), false);
+            updateOp.setMapEntry("prop", updateRev, "20");
+            updateOp.contains(MODIFIED_IN_SECS, false);
+            updateOps.add(updateOp);
+
+            updateOp = new UpdateOp(getIdFromPath(fromString("/node-" + (i+100))), false);
+            updateOp.set("prop2", 20L);
+            updateOp.contains(MODIFIED_IN_SECS, true);
+            updateOps.add(updateOp);
+        }
+
+        List<NodeDocument> docs = docStore.findAndUpdate(NODES, updateOps);
+        assertEquals(20, docs.size());
+
+        Map<String, NodeDocument> updatedIdsMap = docs.stream().filter(Objects::nonNull).collect(toMap(Document::getId, identity()));
+
+        for (int i = 0; i < 10; i++) {
+            // ids starting from /node-1 to /node-9
+            // should be null since they were not updated
+            assertNull(updatedIdsMap.get(getIdFromPath(fromString("/node-" + i))));
+
+            NodeDocument d = updatedIdsMap.get(getIdFromPath(fromString("/node-" + (i+100))));
+            // ids starting from /node-100 to /node-109
+            // should be non-null since they were updated
+            assertNotNull(d);
+            assertTrue(d.isSealed());
+            // returned docs are previous docs with property "prop2" set to 10L
+            assertEquals(10L, parseLong(d.getLocalMap("prop2").get(d.getLocalMap("prop2").firstKey())));
+        }
     }
 }
