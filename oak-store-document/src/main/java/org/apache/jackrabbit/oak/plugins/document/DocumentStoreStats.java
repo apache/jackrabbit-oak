@@ -37,9 +37,9 @@ import org.apache.jackrabbit.stats.TimeSeriesStatsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.List.of;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.isNodesCollectionUpdated;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getJournalStatsConsumer;
 import static org.apache.jackrabbit.oak.plugins.document.util.StatsCollectorUtil.getStatsConsumer;
@@ -277,10 +277,20 @@ public class DocumentStoreStats implements DocumentStoreStatsCollector, Document
     public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, String key, boolean newEntry,
                                   boolean success, int retryCount) {
 
-        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, newEntry, c -> c == NODES, getStatsConsumer(),
+        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, newEntry, of(key), isNodesCollectionUpdated(), getStatsConsumer(),
                 getStatsConsumer(), MeterStats::mark, MeterStats::mark);
 
         perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findAndModify [{}]", key);
+    }
+
+    @Override
+    public void doneFindAndModify(long timeTakenNanos, Collection<? extends Document> collection, List<String> ids,
+                                  boolean success, int retryCount) {
+
+        modifyMetricUpdater.update(collection, retryCount, timeTakenNanos, success, false, ids, isNodesCollectionUpdated(), getStatsConsumer(),
+                getStatsConsumer(), MeterStats::mark, MeterStats::mark);
+
+        perfLog(perfLog, PERF_LOG_THRESHOLD, timeTakenNanos, "findAndModify {}", ids);
     }
 
     @Override
