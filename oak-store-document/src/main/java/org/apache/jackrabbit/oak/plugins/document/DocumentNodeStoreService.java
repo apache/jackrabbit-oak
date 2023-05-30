@@ -473,7 +473,9 @@ public class DocumentNodeStoreService {
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setPrefetchFeature(prefetchFeature).
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
+                setDocStoreDetailedGCFeature(docStoreDetailedGCFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
+                setDetailedGCEnabled(config.detailedGCEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 

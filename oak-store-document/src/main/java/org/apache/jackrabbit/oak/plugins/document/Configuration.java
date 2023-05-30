@@ -290,4 +290,12 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "a change that is not yet visible. Default: " + DEFAULT_SUSPEND_TIMEOUT +
                     " (milliseconds).")
     long suspendTimeoutMillis() default DEFAULT_SUSPEND_TIMEOUT;
+
+    @AttributeDefinition(
+            name = "Document Node Store Detailed GC",
+            description = "Boolean value indicating whether Detailed GC should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_DETAILED_GC_ENABLED +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.detailedGCEnabled'")
+    boolean detailedGCEnabled() default DEFAULT_DETAILED_GC_ENABLED;
 }
