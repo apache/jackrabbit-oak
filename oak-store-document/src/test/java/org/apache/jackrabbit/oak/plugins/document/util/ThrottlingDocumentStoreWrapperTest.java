@@ -28,6 +28,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import static java.util.List.of;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.BLOBS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.CLUSTER_NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
@@ -104,6 +105,14 @@ public class ThrottlingDocumentStoreWrapperTest {
         when(throttler.throttlingTime()).thenReturn(10L);
         DocumentStore store = new ThrottlingDocumentStoreWrapper(memStore, statsCollector);
         store.createOrUpdate(BLOBS, UPDATE_OP);
+        verify(memStore, atLeastOnce()).throttler();
+    }
+
+    @Test
+    public void testThrottlingForBulkFindAndUpdate() {
+        when(throttler.throttlingTime()).thenReturn(10L);
+        DocumentStore store = new ThrottlingDocumentStoreWrapper(memStore, statsCollector);
+        store.findAndUpdate(NODES, of(UPDATE_OP));
         verify(memStore, atLeastOnce()).throttler();
     }
 
