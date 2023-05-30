@@ -168,6 +168,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private boolean detailedGCEnabled;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -291,6 +292,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.throttlingEnabled;
     }
 
+    public T setDetailedGCEnabled(boolean b) {
+        this.detailedGCEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isDetailedGCEnabled() {
+        return this.detailedGCEnabled;
+    }
+
+
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
         return thisBuilder();
@@ -325,6 +336,11 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
+    public T setDocStoreDetailedGCFeature(@Nullable Feature docStoreDetailedGC) {
+        this.docStoreDetailedGCFeature = docStoreDetailedGC;
+        return thisBuilder();
+    }
+
     @Nullable
     public Feature getNoChildOrderCleanupFeature() {
         return noChildOrderCleanupFeature;
@@ -338,6 +354,10 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     @Nullable
     public Feature getCancelInvalidationFeature() {
         return cancelInvalidationFeature;
+    }
+
+    public Feature getDocStoreDetailedGCFeature() {
+        return docStoreDetailedGCFeature;
     }
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {

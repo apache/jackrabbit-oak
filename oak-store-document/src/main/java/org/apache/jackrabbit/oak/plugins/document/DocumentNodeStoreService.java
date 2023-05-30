@@ -487,7 +487,9 @@ public class DocumentNodeStoreService {
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
+                setDocStoreDetailedGCFeature(docStoreDetailedGCFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
+                setDetailedGCEnabled(config.detailedGCEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
