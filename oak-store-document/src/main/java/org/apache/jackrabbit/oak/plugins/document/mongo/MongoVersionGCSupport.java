@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.exists;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
@@ -142,7 +144,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         // _modified >= fromModified && _modified < toModified
         final Bson query = and(gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
                 lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)));
-        final Bson sort = Filters.eq(MODIFIED_IN_SECS, 1);
+        final Bson sort = eq(MODIFIED_IN_SECS, 1);
         final FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query)
                 .sort(sort)
@@ -233,10 +235,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     public long getOldestModifiedTimestamp(final Clock clock) {
         LOG.info("getOldestModifiedTimestamp() <- start");
 
-        final Bson sort = Filters.eq(MODIFIED_IN_SECS, 1);
+        final Bson sort = eq(MODIFIED_IN_SECS, 1);
         final List<Long> result = new ArrayList<>(1);
 
-        getNodeCollection().find().sort(sort).limit(1).forEach(
+        // we need to add query condition to ignore `previous` documents which doesn't have this field
+        final Bson query = exists(MODIFIED_IN_SECS);
+
+        getNodeCollection().find(query).sort(sort).limit(1).forEach(
                 (Consumer<BasicDBObject>) document ->
                         ofNullable(store.convertFromDBObject(NODES, document))
                                 .ifPresent(doc -> {
