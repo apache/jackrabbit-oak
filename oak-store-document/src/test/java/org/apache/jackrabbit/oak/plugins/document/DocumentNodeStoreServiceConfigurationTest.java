@@ -85,6 +85,7 @@ public class DocumentNodeStoreServiceConfigurationTest {
         assertEquals(Arrays.asList("/"), Arrays.asList(config.persistentCacheIncludes()));
         assertEquals("STRICT", config.leaseCheckMode());
         assertEquals(DEFAULT_THROTTLING_ENABLED, config.throttlingEnabled());
+        assertEquals(DEFAULT_DETAILED_GC_ENABLED, config.detailedGCEnabled());
         assertEquals(CommitQueue.DEFAULT_SUSPEND_TIMEOUT, config.suspendTimeoutMillis());
     }
 
@@ -102,6 +103,14 @@ public class DocumentNodeStoreServiceConfigurationTest {
         addConfigurationEntry(preset, "throttlingEnabled", throttleDocStore);
         Configuration config = createConfiguration();
         assertEquals(throttleDocStore, config.throttlingEnabled());
+    }
+
+    @Test
+    public void detailedGCEnabled() throws Exception {
+        boolean detailedGCDocStore = true;
+        addConfigurationEntry(preset, "detailedGCEnabled", detailedGCDocStore);
+        Configuration config = createConfiguration();
+        assertEquals(detailedGCDocStore, config.detailedGCEnabled());
     }
 
     @Test
