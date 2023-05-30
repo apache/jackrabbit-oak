@@ -54,11 +54,7 @@ public class NodeStateEntryWriter {
     }
 
     public String toString(String path, String nodeStateAsJson) {
-        StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + path.length() + 1);
-        sb.append(path)
-                .append(DELIMITER)
-                .append(nodeStateAsJson);
-        return sb.toString();
+        return path + DELIMITER + nodeStateAsJson;
     }
 
     public String toString(List<String> pathElements, String nodeStateAsJson) {

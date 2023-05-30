@@ -83,8 +83,8 @@ public class PipelinedStrategy implements SortStrategy {
     private NotificationEmitter emitter;
     private final Compression algorithm;
     private long entryCount;
-    private List<File> sortedFiles = new ArrayList<>();
-    private Predicate<String> pathPredicate;
+    private final List<File> sortedFiles = new ArrayList<>();
+    private final Predicate<String> pathPredicate;
 
     private final ExecutorService dumpThread = Executors.newSingleThreadExecutor(
             new ThreadFactoryBuilder().setNameFormat("mongo-dump").setDaemon(true).build()

@@ -13,7 +13,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
@@ -73,9 +72,7 @@ public class PipelinedSortBatchTask implements Runnable {
                     i++;
                 }
                 nseBatch.clear();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            } catch (IOException e) {
+            } catch (InterruptedException | IOException e) {
                 throw new RuntimeException(e);
             }
         }

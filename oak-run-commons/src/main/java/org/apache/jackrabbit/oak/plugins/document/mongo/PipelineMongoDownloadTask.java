@@ -3,7 +3,6 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import com.mongodb.BasicDBObject;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.MongoCollection;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -16,7 +15,6 @@ import org.bson.BsonInt64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
