@@ -95,6 +95,8 @@ public class AsyncLaneSwitcher {
             idxBuilder.setProperty(clone(IndexConstants.ASYNC_PROPERTY_NAME, previousAsync));
         }
         idxBuilder.removeProperty(ASYNC_PREVIOUS);
+        // Set the refresh flag to true here otherwise the lane changes won't reflect in the storedIndexDefinition.
+        idxBuilder.setProperty(IndexConstants.REFRESH_PROPERTY_NAME, true);
     }
 
     public static boolean isNone(PropertyState previousAsync) {
