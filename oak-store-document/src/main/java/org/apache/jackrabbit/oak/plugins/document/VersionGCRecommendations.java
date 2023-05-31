@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -31,6 +30,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Long.MAX_VALUE;
+import static java.util.Map.of;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP;
 
@@ -120,8 +121,8 @@ public class VersionGCRecommendations {
             oldestPossibleFullGC = detailedGCTimestamp - 1;
         }
 
-        TimeInterval scopeFullGC = new TimeInterval(oldestPossibleFullGC, Long.MAX_VALUE);
-        scopeFullGC = scopeFullGC.notLaterThan(keep.fromMs);
+        TimeInterval fullGCTimeInternal = new TimeInterval(oldestPossibleFullGC, MAX_VALUE);
+        fullGCTimeInternal = fullGCTimeInternal.notLaterThan(keep.fromMs);
 
         suggestedIntervalMs = settings.get(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP);
         if (suggestedIntervalMs > 0) {
@@ -181,7 +182,7 @@ public class VersionGCRecommendations {
         this.precisionMs = options.precisionMs;
         this.ignoreDueToCheckPoint = ignoreDueToCheckPoint;
         this.scope = scope;
-        this.scopeFullGC = scopeFullGC;
+        this.scopeFullGC = fullGCTimeInternal;
         this.scopeIsComplete = scope.toMs >= keep.fromMs;
         this.maxCollect = collectLimit;
         this.suggestedIntervalMs = suggestedIntervalMs;
@@ -205,7 +206,7 @@ public class VersionGCRecommendations {
             stats.needRepeat = true;
         } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint) {
             // success, we would not expect to encounter revisions older than this in the future
-            setLongSetting(ImmutableMap.of(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs,
+            setLongSetting(of(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs,
                     SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, stats.oldestModifiedGced));
 
             int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
@@ -254,7 +255,7 @@ public class VersionGCRecommendations {
     }
 
     private void setLongSetting(String propName, long val) {
-        setLongSetting(Map.of(propName, val));
+        setLongSetting(of(propName, val));
     }
 
     private void setLongSetting(final Map<String, Long> propValMap) {
