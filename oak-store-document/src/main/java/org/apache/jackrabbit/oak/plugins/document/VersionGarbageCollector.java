@@ -62,6 +62,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.stream.Collectors.joining;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
@@ -604,7 +605,7 @@ public class VersionGarbageCollector {
          * @param headRevision the current head revision of node store
          */
         private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec)
-                throws IOException, LimitExceededException {
+                throws IOException {
             int docsTraversed = 0;
             boolean foundDoc = true;
             long oldestModifiedGCed = rec.scopeFullGC.fromMs;
@@ -647,11 +648,9 @@ public class VersionGarbageCollector {
                                     oldestModifiedGCed = modified;
                                 }
 
-                                if (gc.hasGarbage()) {
-                                    if (phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
-                                        gc.removeGarbage(phases.stats);
-                                        phases.stop(GCPhase.DETAILED_GC_CLEANUP);
-                                    }
+                                if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
+                                    gc.removeGarbage(phases.stats);
+                                    phases.stop(GCPhase.DETAILED_GC_CLEANUP);
                                 }
 
                                 oldestModifiedGCed = modified == null ? fromModified : modified;
@@ -861,8 +860,8 @@ public class VersionGarbageCollector {
             monitor.info("Proceeding to update [{}] documents", updateOpList.size());
 
             if (log.isDebugEnabled()) {
-                String collect = updateOpList.stream().map(UpdateOp::getId).collect(Collectors.joining(","));
-                log.trace("Performing batch update of documents with following id's. \n" + collect);
+                String collect = updateOpList.stream().map(UpdateOp::getId).collect(joining(","));
+                log.debug("Performing batch update of documents with following id's [{}]", collect);
             }
 
             if (cancel.get()) {
