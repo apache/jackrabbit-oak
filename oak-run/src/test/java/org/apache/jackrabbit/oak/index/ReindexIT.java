@@ -25,6 +25,7 @@ import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
@@ -184,7 +185,6 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         String explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString("traverse"));
         assertThat(explain, not(containsString(TEST_INDEX_PATH)));
-
         int foo2Count = getFooCount(fixture2, "foo");
         assertEquals(fooCount + 100, foo2Count);
         assertNotNull(fixture2.getNodeStore().retrieve(checkpoint));
@@ -213,7 +213,6 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
         IndexRepositoryFixture fixture4 = new LuceneRepositoryFixture(storeDir);
         int foo4Count = getFooCount(fixture4, "foo");
-
         //new count should be same as previous
         assertEquals(foo2Count, foo4Count);
 
@@ -227,6 +226,20 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         //Updates to the index definition should have got picked up
         String explain4 = getQueryPlan(fixture4, "select * from [nt:base] where [bar] is not null");
         assertThat(explain4, containsString(TEST_INDEX_PATH));
+
+        // Run the async index update
+        // This is needed for the refresh of the stored index def to take place.
+        fixture4.getAsyncIndexUpdate("async").run();
+
+        // check if the stored index def has the correct async property set
+        NodeState index = fixture4.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+        NodeState storedDef = index.getChildNode(":index-definition");
+
+        // This assertion checks that the diff b/w index def and stored index def should not have async property in it.
+        assertFalse(JsopDiff.diffToJsop(index, storedDef).contains("async"));
+
+        // This checks that the stored index def has the proper async value set.
+        assertTrue(storedDef.toString().contains("async = async"));
         fixture4.close();
     }
 
