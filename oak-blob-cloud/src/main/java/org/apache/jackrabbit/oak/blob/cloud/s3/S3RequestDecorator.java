@@ -26,7 +26,15 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.SSEAlgorithm;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
-import com.amazonaws.util.StringUtils;
+import com.amazonaws.services.s3.model.SSECustomerKey;
+
+import java.util.Objects;
+
+import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
+import static com.amazonaws.util.StringUtils.hasValue;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEYID;
 
 /**
  * This class to sets encrption mode in S3 request.
@@ -37,16 +45,23 @@ public class S3RequestDecorator {
     Properties props;
     SSEAwsKeyManagementParams sseParams;
 
+    SSECustomerKey sseCustomerKey;
+
     public S3RequestDecorator(Properties props) {
         String encryptionType = props.getProperty(S3Constants.S3_ENCRYPTION);
         if (encryptionType != null) {
-            this.dataEncryption = dataEncryption.valueOf(encryptionType);
+            this.dataEncryption = DataEncryption.valueOf(encryptionType);
 
             if (encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
                 String keyId = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
                 sseParams = new SSEAwsKeyManagementParams();
-                if (!StringUtils.isNullOrEmpty(keyId)) {
+                if (hasValue(keyId)) {
                     sseParams.withAwsKmsKeyId(keyId);
+                }
+            } else if (Objects.equals(S3_ENCRYPTION_SSE_C, encryptionType)) {
+                final String keyId = props.getProperty(S3_SSE_C_KEYID);
+                if (hasValue(keyId)) {
+                    sseCustomerKey = new SSECustomerKey(keyId.getBytes(UTF_8));
                 }
             }
         }
@@ -67,6 +82,10 @@ public class S3RequestDecorator {
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 /*Set*/
                 request.withSSEAwsKeyManagementParams(sseParams);
+                break;
+            case SSE_C:
+                metadata.setSSEAlgorithm(AES256.getAlgorithm());
+                request.withSSECustomerKey(sseCustomerKey);
                 break;
             case NONE:
                 break;
@@ -90,6 +109,10 @@ public class S3RequestDecorator {
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
+            case SSE_C:
+                metadata.setSSEAlgorithm(AES256.getAlgorithm());
+                request.withSourceSSECustomerKey(sseCustomerKey).withDestinationSSECustomerKey(sseCustomerKey);
+                break;
             case NONE:
                 break;
         }
@@ -109,6 +132,10 @@ public class S3RequestDecorator {
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
+            case SSE_C:
+                metadata.setSSEAlgorithm(AES256.getAlgorithm());
+                request.withSSECustomerKey(sseCustomerKey);
+                break;
             case NONE:
                 break;
         }
@@ -124,12 +151,20 @@ public class S3RequestDecorator {
               if (keyId != null) {
                   request = request.withKmsCmkId(keyId);
               }
+              break;
+          case SSE_C:
+              request = request.withSSEAlgorithm(AES256).withSSECustomerKey(getSseCustomerKey());
+              break;
         }
         return request;
     }
 
     private SSEAwsKeyManagementParams getSSEParams() {
         return this.sseParams;
+    }
+
+    private SSECustomerKey getSseCustomerKey() {
+        return this.sseCustomerKey;
     }
 
     private DataEncryption getDataEncryption() {
@@ -141,7 +176,7 @@ public class S3RequestDecorator {
      *
      */
     private enum DataEncryption {
-        SSE_S3, SSE_KMS, NONE;
+        SSE_S3, SSE_KMS, SSE_C, NONE;
     }
 
 }

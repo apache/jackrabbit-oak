@@ -108,9 +108,19 @@ public final class S3Constants {
     public static final String S3_ENCRYPTION_SSE_KMS = "SSE_KMS";
 
     /**
+     *  Constant to set SSE_KMS encryption.
+     */
+    public static final String S3_ENCRYPTION_SSE_C = "SSE_C";
+
+    /**
      *  Constant to set keyID for SSE_KMS encryption.
      */
     public static final String S3_SSE_KMS_KEYID = "kmsKeyId";
+
+    /**
+     *  Constant to set keyID for SSE_C encryption.
+     */
+    public static final String S3_SSE_C_KEYID = "sseCustomerKeyId";
 
     /**
      *  Constant to set S3 signature for SSE_KMS encryption.
