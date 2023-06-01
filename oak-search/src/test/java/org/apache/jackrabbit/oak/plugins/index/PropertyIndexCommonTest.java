@@ -382,21 +382,41 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         test.addChild("c").setProperty("propa", createCal("14/04/1770"));
         root.commit();
 
-        assertEventually(() ->
-                {
-                    try {
-                        assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/1768"), asList("/test/b", "/test/c"));
-                    } catch (ParseException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-        );
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/1768"), asList("/test/b", "/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/1769"), asList("/test/b", "/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/1769"), singletonList("/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] <> " + dt("14/03/1769"), asList("/test/a", "/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] > " + dt("15/02/1768") + " and [propa] < " + dt("13/04/1770"), singletonList("/test/b"));
+            assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+        });
+    }
 
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/1769"), asList("/test/b", "/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/1769"), asList("/test/a"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] <> " + dt("14/03/1769"), asList("/test/a", "/test/c"));
-        assertQuery("select [jcr:path] from [nt:base] where [propa] > " + dt("15/02/1768") + " and [propa] < " + dt("13/04/1770"), asList("/test/b"));
-        assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+    @Test
+    public void dateQueryWithEmptyValue() throws Exception {
+        Tree idx = indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "textField", "imageLaunchDate")
+        );
+        Tree aggregates = idx.addChild("aggregates").addChild("nt:base");
+        Tree include0 = aggregates.addChild("include0");
+        include0.setProperty("path", "jcr:content/metadata/product", Type.STRING);
+
+        Tree dateField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("imageLaunchDate");
+        dateField.setProperty("name", "jcr:content/metadata/product/imageLaunchDate");
+        dateField.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        dateField.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("textField", "foo");
+        Tree content = a.addChild("jcr:content").addChild("metadata").addChild("product");
+        content.setProperty("imageLaunchDate", "", Type.STRING);
+        root.commit();
+
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [textField] = 'foo'", singletonList("/test/a")));
     }
 
     protected String explain(String query) {
@@ -410,14 +430,18 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         return t;
     }
 
-    private static Calendar createCal(String dt) throws java.text.ParseException {
+    private static Calendar createCal(String dt) throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
         Calendar cal = Calendar.getInstance();
         cal.setTime(sdf.parse(dt));
         return cal;
     }
 
-    private static String dt(String date) throws ParseException {
-        return String.format("CAST ('%s' AS DATE)", ISO8601.format(createCal(date)));
+    private static String dt(String date) {
+        try {
+            return String.format("CAST ('%s' AS DATE)", ISO8601.format(createCal(date)));
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
