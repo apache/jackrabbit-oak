@@ -28,13 +28,14 @@ import com.amazonaws.services.s3.model.SSEAlgorithm;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.model.SSECustomerKey;
 
-import java.util.Objects;
-
 import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
 import static com.amazonaws.util.StringUtils.hasValue;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEYID;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEYID;
 
 /**
  * This class to sets encrption mode in S3 request.
@@ -48,20 +49,25 @@ public class S3RequestDecorator {
     SSECustomerKey sseCustomerKey;
 
     public S3RequestDecorator(Properties props) {
-        String encryptionType = props.getProperty(S3Constants.S3_ENCRYPTION);
+        final String encryptionType = props.getProperty(S3_ENCRYPTION);
         if (encryptionType != null) {
             this.dataEncryption = DataEncryption.valueOf(encryptionType);
 
-            if (encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
-                String keyId = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-                sseParams = new SSEAwsKeyManagementParams();
-                if (hasValue(keyId)) {
-                    sseParams.withAwsKmsKeyId(keyId);
+            switch (encryptionType) {
+                case S3_ENCRYPTION_SSE_KMS: {
+                    final String keyId = props.getProperty(S3_SSE_KMS_KEYID);
+                    sseParams = new SSEAwsKeyManagementParams();
+                    if (hasValue(keyId)) {
+                        sseParams.withAwsKmsKeyId(keyId);
+                    }
+                    break;
                 }
-            } else if (Objects.equals(S3_ENCRYPTION_SSE_C, encryptionType)) {
-                final String keyId = props.getProperty(S3_SSE_C_KEYID);
-                if (hasValue(keyId)) {
-                    sseCustomerKey = new SSECustomerKey(keyId.getBytes(UTF_8));
+                case S3_ENCRYPTION_SSE_C: {
+                    final String keyId = props.getProperty(S3_SSE_C_KEYID);
+                    if (hasValue(keyId)) {
+                        sseCustomerKey = new SSECustomerKey(keyId.getBytes(UTF_8));
+                    }
+                    break;
                 }
             }
         }
