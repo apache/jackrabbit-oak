@@ -803,7 +803,7 @@ public class Oak {
                 indexProvider,
                 securityProvider,
                 new AggregatingDescriptors(t),
-                newFeature("OAK-10147", whiteboard)) {
+                newFeature("FT_CLASSIC_MOVE_OAK-10147", whiteboard)) {
             @Override
             public void close() throws IOException {
                 super.close();

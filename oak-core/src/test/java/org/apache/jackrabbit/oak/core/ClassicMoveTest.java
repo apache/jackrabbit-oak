@@ -59,7 +59,7 @@ public class ClassicMoveTest {
         Tracker<FeatureToggle> toggleTracker = whiteboard.track(FeatureToggle.class);
         for (FeatureToggle ft : toggleTracker.getServices()) {
             // enable classic move implementation
-            if ("OAK-10147".equals(ft.getName())) {
+            if ("FT_CLASSIC_MOVE_OAK-10147".equals(ft.getName())) {
                 ft.setEnabled(true);
             }
         }
