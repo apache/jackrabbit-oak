@@ -15,23 +15,24 @@
    limitations under the License.
 -->
 
-Permissions : The Default Implementation
---------------------------------------------------------------------------------
+# Permissions : The Default Implementation
 
-### General Notes
+<!-- MACRO{toc} -->
+
+## General Notes
 
 The default implementation of the `PermissionProvider` interface evaluates permissions
 based on the information stored in a dedicated part of the repository content call
 the [permission store](#permissionStore).
 
 <a name="default_implementation"></a>
-### Characteristics of the Permission Evaluation
+## Characteristics of the Permission Evaluation
 
-#### Regular Permission Evaluation
+### Regular Permission Evaluation
 
 See section [Permission Evaluation in Detail](evaluation.html).
 
-#### Readable Trees
+### Readable Trees
 
 Oak 1.0 comes with a configurable set of subtrees that are read-accessible to all
 subjects irrespective of other access control content taking effect. The original
@@ -48,7 +49,7 @@ option. However, it is important to note that many JCR API calls rely on the
 accessibility of the namespace, nodetype and privilege information. Removing the
 corresponding paths from the configuration will most probably have undesired effects.
 
-#### Administrative Access
+### Administrative Access
 
 In the default implementation following principals always have full access to
 the whole content repository (except for hidden items that are not exposed
@@ -61,15 +62,15 @@ on the Oak API) irrespective of the access control content:
 evaluation and is currently not reflected in other security models nor methods
 that deal with the administrator (i.e. `User#isAdmin`).
 
-#### Permission Evaluation in Multiplexed Stores
+### Permission Evaluation in Multiplexed Stores
 
 See section [Multiplexing support in the PermissionStore](multiplexing.html).
 
 <a name="representation"></a>
-### Representation in the Repository
+## Representation in the Repository
 
 <a name="permissionStore"></a>
-#### Permission Store
+### Permission Store
 
 The permission evaluation present with Oak 1.0 keeps a dedicated location where
 permissions are being stored for later evaluation. The store is kept in sync
@@ -114,7 +115,7 @@ Each per path store looks as follows
         }
     }
 
-##### Accessing the Permission Store
+#### Accessing the Permission Store
 
 It is important to understand that the permission store is a implementation
 specific structure that is maintained by the system itself. For this reason
@@ -130,7 +131,7 @@ use the regular JCR and Jackrabbit permission and access control management API
 as listed in the [introduction](../permission.html#jcr_api) and in section 
 [Using the Access Control Management API](../accesscontrol/editing.html).
 
-#### Node Type Definitions
+### Node Type Definitions
 
 For the permission store the following built-in node types have been defined:
 
@@ -156,7 +157,7 @@ implementation (`VersionablePathHook`).
       - * (PATH) protected ABORT
 
 <a name="validation"></a>
-### Validation
+## Validation
 
 The consistency of this content structure is asserted by a dedicated `PermissionValidator`.
 The corresponding errors are all of type `Access` with the following codes:
@@ -168,9 +169,9 @@ The corresponding errors are all of type `Access` with the following codes:
 | 0022              | Version storage: Removal of intermediate node            |
 
 <a name="configuration"></a>
-### Configuration
+## Configuration
 
-#### Configuration Parameters
+### Configuration Parameters
 
 The default implementation supports the following configuration parameters:
 
@@ -181,12 +182,22 @@ The default implementation supports the following configuration parameters:
 | `PARAM_ADMINISTRATIVE_PRINCIPALS` | String[]            | \-       | The names of the additional principals that have full permission and for which the permission evaluation can be skipped altogether. |
 | | | | |
 
-##### Supported Values for PARAM_PERMISSIONS_JR2
+#### Supported Values for PARAM_PERMISSIONS_JR2
 
 - `REMOVE_NODE`: if present, the permission evaluation will traverse down the hierarchy upon node removal. This config flag is a best effort approach but doesn't guarantee an identical behavior.
 - `USER_MANAGEMENT`: if set permissions for user related items will be evaluated the same way as regular JCR items irrespective of their protection status.
 
-##### Differences to Jackrabbit 2.x
+#### Differences to Jackrabbit 2.x
 
 The `omit-default-permission` configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
 Since there are no permissions installed by default this flag has become superfluous.
+
+## Known Limitations
+### Isolated Access Control Properties
+As reported in [OAK-10269](https://issues.apache.org/jira/browse/OAK-10269) the default permission evaluation will not enforce `jcr:readAccessControl` privilege being granted for isolated access control properties that are not located below a node that marks an access control policy.
+
+All access control properties shipped with Oak are associated with an access control policy node. The issue therefore only applies to custom models that
+- define isolated access control properties (through custom `Context.definesProperty` implementation)
+- rely on the default authorization model to enforce `READ_ACCESS_CONTROL` permission
+
+
