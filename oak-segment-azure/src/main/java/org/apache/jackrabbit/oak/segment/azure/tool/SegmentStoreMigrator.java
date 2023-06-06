@@ -25,8 +25,8 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
-import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
@@ -62,6 +62,8 @@ public class SegmentStoreMigrator implements Closeable  {
 
     private static final int READ_THREADS = 20;
 
+    private static final Retrier RETRIER = Retrier.withParams(16, 5000);
+
     private final SegmentNodeStorePersistence source;
 
     private final SegmentNodeStorePersistence target;
@@ -86,21 +88,21 @@ public class SegmentStoreMigrator implements Closeable  {
     }
 
     public void migrate() throws IOException, ExecutionException, InterruptedException {
-        runWithRetry(() -> migrateJournal(), 16, 5);
-        runWithRetry(() -> migrateGCJournal(), 16, 5);
-        runWithRetry(() -> migrateManifest(), 16, 5);
+        RETRIER.execute(this::migrateJournal);
+        RETRIER.execute(this::migrateGCJournal);
+        RETRIER.execute(this::migrateManifest);
         migrateArchives();
     }
 
-    private Void migrateJournal() throws IOException {
+    private void migrateJournal() throws IOException {
         if (revisionCount == 0) {
             log.info("Number of revisions configured to be copied is 0. Skip copying journal.");
-            return null;
+            return;
         }
         log.info("{}/journal.log -> {}", sourceName, targetName);
         if (!source.getJournalFile().exists()) {
             log.info("No journal at {}; skipping.", sourceName);
-            return null;
+            return;
         }
         List<String> journal = new ArrayList<>();
 
@@ -123,10 +125,9 @@ public class SegmentStoreMigrator implements Closeable  {
                 writer.writeLine(line);
             }
         }
-        return null;
     }
 
-    private Void migrateGCJournal() throws IOException {
+    private void migrateGCJournal() throws IOException {
         log.info("{}/gc.log -> {}", sourceName, targetName);
         GCJournalFile targetGCJournal = target.getGCJournalFile();
         if (appendMode) {
@@ -135,18 +136,16 @@ public class SegmentStoreMigrator implements Closeable  {
         for (String line : source.getGCJournalFile().readLines()) {
             targetGCJournal.writeLine(line);
         }
-        return null;
     }
 
-    private Void migrateManifest() throws IOException {
+    private void migrateManifest() throws IOException {
         log.info("{}/manifest -> {}", sourceName, targetName);
         if (!source.getManifestFile().exists()) {
             log.info("No manifest at {}; skipping.", sourceName);
-            return null;
+            return;
         }
         Properties manifest = source.getManifestFile().load();
         target.getManifestFile().save(manifest);
-        return null;
     }
 
     private void migrateArchives() throws IOException, ExecutionException, InterruptedException {
@@ -191,68 +190,40 @@ public class SegmentStoreMigrator implements Closeable  {
     private void migrateSegments(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws ExecutionException, InterruptedException, IOException {
         List<Future<Segment>> futures = new ArrayList<>();
         for (SegmentArchiveEntry entry : reader.listSegments()) {
-            futures.add(executor.submit(() -> runWithRetry(() -> {
+            futures.add(executor.submit(() -> RETRIER.execute(() -> {
                 Segment segment = new Segment(entry);
                 segment.read(reader);
                 return segment;
-            }, 16, 5)));
+            })));
         }
 
         for (Future<Segment> future : futures) {
             Segment segment = future.get();
-            runWithRetry(() -> {segment.write(writer); return null;}, 16, 5);
+            RETRIER.execute(() -> segment.write(writer));
         }
     }
 
     private void migrateBinaryRef(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
-        Future<Buffer> future = executor.submit(() -> runWithRetry(() -> reader.getBinaryReferences(), 16, 5));
+        Future<Buffer> future = executor.submit(() -> RETRIER.execute(reader::getBinaryReferences));
         Buffer binaryReferences = future.get();
         if (binaryReferences != null) {
             byte[] array = fetchByteArray(binaryReferences);
-            runWithRetry(() -> {writer.writeBinaryReferences(array); return null;}, 16, 5);
+            RETRIER.execute(() -> writer.writeBinaryReferences(array));
         }
     }
 
     private void migrateGraph(SegmentArchiveReader reader, SegmentArchiveWriter writer) throws IOException, ExecutionException, InterruptedException {
-        Future<Buffer> future = executor.submit(() -> runWithRetry(() -> {
+        Future<Buffer> future = executor.submit(() -> RETRIER.execute(() -> {
             if (reader.hasGraph()) {
                 return reader.getGraph();
             } else {
                 return null;
             }
-        }, 16, 5));
+        }));
         Buffer graph = future.get();
         if (graph != null) {
             byte[] array = fetchByteArray(graph);
-            runWithRetry(() -> {writer.writeGraph(array); return null;}, 16, 5);
-        }
-    }
-
-    static <T> T runWithRetry(Producer<T> producer, int maxAttempts, int intervalSec) throws IOException {
-        IOException ioException = null;
-        RepositoryNotReachableException repoNotReachableException = null;
-        for (int i = 0; i < maxAttempts; i++) {
-            try {
-                return producer.produce();
-            } catch (IOException e) {
-                log.error("Can't execute the operation. Retrying (attempt {})", i, e);
-                ioException = e;
-            } catch (RepositoryNotReachableException e) {
-                log.error("Can't execute the operation. Retrying (attempt {})", i, e);
-                repoNotReachableException = e;
-            }
-            try {
-                Thread.sleep(intervalSec * 1000);
-            } catch (InterruptedException e) {
-                log.error("Interrupted", e);
-            }
-        }
-        if (ioException != null) {
-            throw ioException;
-        } else if (repoNotReachableException != null) {
-            throw repoNotReachableException;
-        } else {
-            throw new IllegalStateException();
+            RETRIER.execute(() -> writer.writeGraph(array));
         }
     }
 
@@ -264,11 +235,6 @@ public class SegmentStoreMigrator implements Closeable  {
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
-    }
-
-    @FunctionalInterface
-    interface Producer<T> {
-        T produce() throws IOException;
     }
 
     static class Segment {
