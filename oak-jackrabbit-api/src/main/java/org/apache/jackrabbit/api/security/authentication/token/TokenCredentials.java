@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.api.security.authentication.token;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import java.util.HashMap;
 
 import javax.jcr.Credentials;
-import java.util.HashMap;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <code>TokenCredentials</code> implements the <code>Credentials</code>
@@ -28,6 +30,7 @@ import java.util.HashMap;
  * {@link javax.jcr.SimpleCredentials} this credentials implementation allows
  * to set additional attributes.
  */
+@ProviderType
 public final class TokenCredentials implements Credentials {
 
     private final String token;

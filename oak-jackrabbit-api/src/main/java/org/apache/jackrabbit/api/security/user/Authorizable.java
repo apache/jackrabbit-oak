@@ -16,15 +16,16 @@
  */
 package org.apache.jackrabbit.api.security.user;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import java.security.Principal;
 import java.util.Iterator;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.Value;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * The Authorizable is the common base interface for {@link User} and
@@ -58,6 +59,7 @@ import javax.jcr.Value;
  * @see User
  * @see Group
  */
+@ProviderType
 public interface Authorizable {
 
     /**

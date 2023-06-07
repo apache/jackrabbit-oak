@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.api.security.user;
 
-import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
-import org.jetbrains.annotations.NotNull;
+import java.security.Principal;
 
 import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
-import java.security.Principal;
+
+import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * The <code>Impersonation</code> maintains Principals that are allowed to
@@ -31,6 +33,7 @@ import java.security.Principal;
  *
  * @see User#getImpersonation()
  */
+@ProviderType
 public interface Impersonation {
     
     /**

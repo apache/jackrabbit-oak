@@ -18,6 +18,8 @@ package org.apache.jackrabbit.api.observation;
 
 import static java.util.Arrays.copyOf;
 
+import org.osgi.annotation.versioning.ConsumerType;
+
 /**
  * A storage object for event filter configuration.
  * <p>
@@ -84,6 +86,7 @@ import static java.util.Arrays.copyOf;
  * must meet all the restrictions.
  *
  */
+@ConsumerType
 public class JackrabbitEventFilter {  // TODO extends EventFilter once JCR 2.1 is out
     private int eventTypes;
     private String absPath;

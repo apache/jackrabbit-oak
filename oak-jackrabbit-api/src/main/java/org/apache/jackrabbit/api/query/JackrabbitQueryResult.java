@@ -18,12 +18,15 @@ package org.apache.jackrabbit.api.query;
 
 import javax.jcr.query.QueryResult;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * The Jackrabbit query result interface. This interface contains the
  * Jackrabbit-specific extensions to the JCR {@link QueryResult} interface.
  *
  * @since Jackrabbit 2.6
  */
+@ProviderType
 public interface JackrabbitQueryResult extends QueryResult {
 
     /**

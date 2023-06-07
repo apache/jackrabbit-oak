@@ -48,13 +48,17 @@ import org.slf4j.LoggerFactory;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
 
-    private static int RETRY_ATTEMPTS = Integer.getInteger("segment.azure.retry.attempts", 5);
+    private static final String RETRY_ATTEMPTS_PROP = "segment.azure.retry.attempts";
+    private static final int DEFAULT_RETRY_ATTEMPTS = 5;
 
-    private static int RETRY_BACKOFF_SECONDS = Integer.getInteger("segment.azure.retry.backoff", 5);
+    private static final String RETRY_BACKOFF_PROP = "segment.azure.retry.backoff";
+    private static final int DEFAULT_RETRY_BACKOFF_SECONDS = 5;
 
-    private static int TIMEOUT_EXECUTION = Integer.getInteger("segment.timeout.execution", 30);
+    private static final String TIMEOUT_EXECUTION_PROP = "segment.timeout.execution";
+    private static final int DEFAULT_TIMEOUT_EXECUTION = 30;
 
-    private static int TIMEOUT_INTERVAL = Integer.getInteger("segment.timeout.interval", 1);
+    private static final String TIMEOUT_INTERVAL_PROP = "segment.timeout.interval";
+    private static final int DEFAULT_TIMEOUT_INTERVAL = 1;
 
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
@@ -65,18 +69,22 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
         BlobRequestOptions defaultRequestOptions = segmentStoreDirectory.getServiceClient().getDefaultRequestOptions();
         if (defaultRequestOptions.getRetryPolicyFactory() == null) {
-            if (RETRY_ATTEMPTS > 0) {
-                defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(RETRY_BACKOFF_SECONDS), RETRY_ATTEMPTS));
+            int retryAttempts = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
+            if (retryAttempts > 0) {
+                Integer retryBackoffSeconds = Integer.getInteger(RETRY_BACKOFF_PROP, DEFAULT_RETRY_BACKOFF_SECONDS);
+                defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(retryBackoffSeconds), retryAttempts));
             }
         }
         if (defaultRequestOptions.getMaximumExecutionTimeInMs() == null) {
-            if (TIMEOUT_EXECUTION > 0) {
-                defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_EXECUTION));
+            int timeoutExecution = Integer.getInteger(TIMEOUT_EXECUTION_PROP, DEFAULT_TIMEOUT_EXECUTION);
+            if (timeoutExecution > 0) {
+                defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(timeoutExecution));
             }
         }
         if (defaultRequestOptions.getTimeoutIntervalInMs() == null) {
-            if (TIMEOUT_INTERVAL > 0) {
-                defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(TIMEOUT_INTERVAL));
+            int timeoutInterval = Integer.getInteger(TIMEOUT_INTERVAL_PROP, DEFAULT_TIMEOUT_INTERVAL);
+            if (timeoutInterval > 0) {
+                defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(timeoutInterval));
             }
         }
     }

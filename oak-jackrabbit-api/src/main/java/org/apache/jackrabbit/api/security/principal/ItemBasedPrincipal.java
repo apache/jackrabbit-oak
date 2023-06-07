@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.api.security.principal;
 
-import org.jetbrains.annotations.NotNull;
-
 import javax.jcr.RepositoryException;
+
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <code>ItemBasedPrincipal</code> is a <code>Principal</code> having a
@@ -26,6 +27,7 @@ import javax.jcr.RepositoryException;
  * inherited from the {@link java.security.Principal} interface it therefore
  * provides a {@link #getPath()} method.
  */
+@ProviderType
 public interface ItemBasedPrincipal extends JackrabbitPrincipal {
 
     /**

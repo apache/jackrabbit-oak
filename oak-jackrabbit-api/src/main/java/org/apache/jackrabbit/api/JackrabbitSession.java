@@ -30,10 +30,12 @@ import javax.jcr.UnsupportedRepositoryOperationException;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Jackrabbit specific extension of the JCR {@link javax.jcr.Session} interface.
  */
+@ProviderType
 public interface JackrabbitSession extends Session {
 
     /**

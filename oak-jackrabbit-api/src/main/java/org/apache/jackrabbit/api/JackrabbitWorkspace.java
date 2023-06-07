@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.api;
 
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
+import org.osgi.annotation.versioning.ProviderType;
 import org.xml.sax.InputSource;
 
 import javax.jcr.AccessDeniedException;
@@ -27,6 +28,7 @@ import javax.jcr.Workspace;
  * The Jackrabbit workspace interface. This interface contains the
  * Jackrabbit-specific extensions to the JCR {@link Workspace} interface.
  */
+@ProviderType
 public interface JackrabbitWorkspace extends Workspace {
 
     /**

@@ -16,14 +16,15 @@
  */
 package org.apache.jackrabbit.api.security.authorization;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.NamespaceException;
 import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <code>PrivilegeManager</code> is a jackrabbit specific extensions to
@@ -33,6 +34,7 @@ import javax.jcr.security.Privilege;
  *
  * @see javax.jcr.security.AccessControlManager#privilegeFromName(String) 
  */
+@ProviderType
 public interface PrivilegeManager {
 
     /**

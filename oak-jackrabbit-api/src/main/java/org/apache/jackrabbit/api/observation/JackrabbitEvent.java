@@ -18,11 +18,14 @@ package org.apache.jackrabbit.api.observation;
 
 import javax.jcr.observation.Event;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * This is an extension of the event interface which provides
  * a method to detect whether the changes happened on locally
  * or remotely in a clustered environment.
  */
+@ProviderType
 public interface JackrabbitEvent extends Event {
 
     /**
