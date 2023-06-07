@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.upgrade;
 
 import java.util.Iterator;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 
 public class AsciiArtTicker implements ProgressTicker {
     @Override

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.upgrade;
 
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 
 public class SimpleTicker implements ProgressTicker {
     private final int maxTicks;
