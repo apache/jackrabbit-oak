@@ -23,6 +23,7 @@ import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.NodeType;
 import javax.jcr.nodetype.NodeTypeManager;
 
+import org.osgi.annotation.versioning.ProviderType;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -36,6 +37,7 @@ import org.xml.sax.SAXException;
  * @deprecated Use standard JCR 2.0 API methods defined by
  * {@link NodeTypeManager} instead.
  */
+@ProviderType
 public interface JackrabbitNodeTypeManager extends NodeTypeManager {
 
     /**

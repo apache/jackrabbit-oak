@@ -16,17 +16,19 @@
  */
 package org.apache.jackrabbit.api.security.authorization;
 
-import org.jetbrains.annotations.NotNull;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.security.AccessControlException;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.Privilege;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
+
+import javax.jcr.RepositoryException;
+import javax.jcr.security.AccessControlException;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
+
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * <p>Wrapper around a set of {@link Privilege}s that allows to test if a given list of privilege names in included. This 
@@ -43,6 +45,7 @@ import java.util.stream.Stream;
  * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String) 
  * @see org.apache.jackrabbit.api.security.JackrabbitAccessControlManager#getPrivilegeCollection(String, Set) 
  */
+@ProviderType
 public interface PrivilegeCollection {
 
     /**

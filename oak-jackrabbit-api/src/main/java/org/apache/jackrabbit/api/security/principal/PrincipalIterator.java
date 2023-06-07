@@ -16,14 +16,17 @@
  */
 package org.apache.jackrabbit.api.security.principal;
 
-import org.jetbrains.annotations.NotNull;
+import java.security.Principal;
 
 import javax.jcr.RangeIterator;
-import java.security.Principal;
+
+import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * A {@link RangeIterator} iterating over <code>Principal</code>s.<br>
  */
+@ProviderType
 public interface PrincipalIterator extends RangeIterator {
 
     /**

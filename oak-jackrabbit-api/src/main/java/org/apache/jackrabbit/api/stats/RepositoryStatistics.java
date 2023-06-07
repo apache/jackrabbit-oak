@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.api.stats;
 
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Statistics on core repository operations
  * 
  */
+@ProviderType
 public interface RepositoryStatistics {
 
     /**

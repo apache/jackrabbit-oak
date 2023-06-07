@@ -19,11 +19,13 @@ package org.apache.jackrabbit.api.jmx;
 import javax.management.openmbean.TabularData;
 
 import org.apache.jackrabbit.api.stats.QueryStat;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * JMX Bindings for {@link QueryStat}.
  * 
  */
+@ProviderType
 public interface QueryStatManagerMBean {
 
     String NAME = "org.apache.jackrabbit:type=QueryStats";

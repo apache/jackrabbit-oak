@@ -16,10 +16,13 @@
  */
 package org.apache.jackrabbit.api.stats;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Statistics on query operations
  * 
  */
+@ProviderType
 public interface QueryStat {
 
     /**

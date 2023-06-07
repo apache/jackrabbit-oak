@@ -18,10 +18,13 @@ package org.apache.jackrabbit.api.stats;
 
 import java.io.Serializable;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Object that holds statistical info about a query.
  * 
  */
+@ProviderType
 public interface QueryStatDto extends Serializable {
 
     long getDuration();

@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.api.security.principal;
 
+import java.security.Principal;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import java.security.Principal;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * This interface defines the principal manager which is the clients view on all
@@ -48,6 +49,7 @@ import java.security.Principal;
  * used concurrently for backwards compatibility reasons. See JCR-4249 for more
  * details.
  */
+@ProviderType
 public interface PrincipalManager {
 
     /**

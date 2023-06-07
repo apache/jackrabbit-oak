@@ -16,11 +16,12 @@
  */
 package org.apache.jackrabbit.api.security.user;
 
+import javax.jcr.Credentials;
+import javax.jcr.RepositoryException;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Credentials;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * User is a special {@link Authorizable} that can be authenticated and
@@ -29,6 +30,7 @@ import javax.jcr.Credentials;
  * @see #getCredentials()
  * @see #getImpersonation()
  */
+@ProviderType
 public interface User extends Authorizable {
 
     /**

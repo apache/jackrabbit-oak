@@ -18,5 +18,5 @@
 /**
  * Jackrabbit extensions for user management.
  */
-@org.osgi.annotation.versioning.Version("2.4.3")
+@org.osgi.annotation.versioning.Version("2.4.4")
 package org.apache.jackrabbit.api.security.user;

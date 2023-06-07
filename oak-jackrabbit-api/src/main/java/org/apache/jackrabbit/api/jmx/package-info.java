@@ -18,5 +18,5 @@
 /**
  * JMX management interfaces for JCR.
  */
-@org.osgi.annotation.versioning.Version("2.3.0")
+@org.osgi.annotation.versioning.Version("2.3.1")
 package org.apache.jackrabbit.api.jmx;

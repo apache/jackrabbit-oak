@@ -19,9 +19,12 @@ package org.apache.jackrabbit.api.management;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ConsumerType;
+
 /**
  * The listener interface for receiving garbage collection scan events.
  */
+@ConsumerType
 public interface MarkEventListener {
 
     /**
