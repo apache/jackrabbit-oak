@@ -359,6 +359,15 @@ public class JsopBuilder implements JsopWriter {
         return buff.length();
     }
 
+    /*
+       Reset data in buffer.
+       This should be called if partial json data is flushed out
+       and rest of the json is still being created.
+     */
+    public void flushWriter() {
+        buff.setLength(0);
+    }
+
     /**
      * Beautify (format) the json / jsop string.
      *

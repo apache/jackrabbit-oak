@@ -19,28 +19,62 @@
 
 package org.apache.jackrabbit.oak.json;
 
-import java.util.Arrays;
-import java.util.List;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.oak.api.Tree;
+import ch.qos.logback.classic.Level;
+import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.commons.junit.TemporarySystemProperty;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class JsonSerializerTest {
+    @Rule
+    public TemporarySystemProperty temporarySystemProperty = new TemporarySystemProperty();
+
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    LogCustomizer customLogs;
+
+    @Before
+    public void setup() {
+        customLogs = LogCustomizer.forLogger(JsonSerializer.class.getName())
+                .filter(Level.WARN)
+                .create();
+        customLogs.starting();
+    }
+
+    @After
+    public void cleanup() {
+        customLogs.finished();
+    }
+
 
     @Test
-    public void childOrder() throws Exception{
+    public void childOrder() throws Exception {
         NodeBuilder builder = EMPTY_NODE.builder();
         builder.child("a");
         builder.child("b");
@@ -67,9 +101,84 @@ public class JsonSerializerTest {
         assertEquals(expectedOrder, childNames);
     }
 
-    private String serialize(NodeState nodeState){
+    @Test
+    public void jsonNotFlushedInChunks() throws Exception {
+        System.setProperty(JsonSerializer.WRITER_FLUSH_THRESHOLD_KEY, "" + 10);
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.child("a");
+        builder.child("b");
+        builder.child("c");
+        List<String> expectedOrder = Arrays.asList("a", "c", "b");
+        builder.setProperty(":childOrder", expectedOrder, Type.NAMES);
+
+        NodeState state = builder.getNodeState();
+        String json = serialize(state);
+
+        JsopReader reader = new JsopTokenizer(json);
+        List<String> childNames = Lists.newArrayList();
+        reader.read('{');
+        do {
+            String key = reader.readString();
+            reader.read(':');
+            if (reader.matches('{')) {
+                childNames.add(key);
+                reader.matches('}');
+            }
+
+        } while (reader.matches(','));
+        Assert.assertTrue(customLogs.getLogs().stream().filter(n -> n.contains("Json is not getting flushed in chunks:")).findFirst().isPresent());
+        assertEquals(expectedOrder, childNames);
+    }
+
+    @Test
+    public void jsonFlushedInChunks() throws Exception {
+        System.setProperty(JsonSerializer.WRITER_FLUSH_THRESHOLD_KEY, "" + 10);
+        NodeBuilder builder = EMPTY_NODE.builder();
+        builder.child("a");
+        builder.child("b");
+        builder.child("c");
+        builder.child("d");
+
+        List<String> expectedOrder = Arrays.asList("a", "c", "b", "d");
+        builder.setProperty(":childOrder", expectedOrder, Type.NAMES);
+
+        NodeState state = builder.getNodeState();
+        String json = serializeJsonFlushedInChunks(state);
+
+        JsopReader reader = new JsopTokenizer(json);
+        List<String> childNames = Lists.newArrayList();
+        reader.read('{');
+        do {
+            String key = reader.readString();
+            reader.read(':');
+            if (reader.matches('{')) {
+                childNames.add(key);
+                reader.matches('}');
+            }
+
+        } while (reader.matches(','));
+        Assert.assertFalse(customLogs.getLogs().stream().filter(n -> n.contains("Json is not getting flushed in chunks:")).findFirst().isPresent());
+        assertEquals(expectedOrder, childNames);
+    }
+
+    private String serialize(NodeState nodeState) {
         JsopBuilder json = new JsopBuilder();
         new JsonSerializer(json, "{\"properties\":[\"*\", \"-:*\"]}", new BlobSerializer()).serialize(nodeState);
         return json.toString();
+    }
+
+    private String serializeJsonFlushedInChunks(NodeState nodeState) throws IOException {
+        PrintWriter pw;
+        OutputStream writerStream;
+        File outFile = temporaryFolder.newFile();
+        OutputStream os = new BufferedOutputStream(FileUtils.openOutputStream(outFile));
+        writerStream = os;
+        pw = new PrintWriter(writerStream);
+
+        JsopBuilder json = new JsopBuilder();
+        new JsonSerializer(json, "{\"properties\":[\"*\", \"-:*\"]}", new BlobSerializer(), pw).serialize(nodeState);
+        pw.print(json);
+        pw.flush();
+        return Files.readAllLines(Paths.get(outFile.toURI())).get(0);
     }
 }

@@ -25,7 +25,7 @@ import static org.apache.jackrabbit.oak.api.Type.LONG;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
-import java.util.Collection;
+import java.io.PrintWriter;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -79,10 +79,15 @@ public class JsonSerializer {
     private final BlobSerializer blobs;
 
     private final boolean catchExceptions;
+    private final PrintWriter printWriter;
+    public static final String WRITER_FLUSH_THRESHOLD_KEY = "oak.writerFlushThreshold";
+
+    private final long defaultWriterFlushThreshold = 100*1024*1024L; // 100 MB
+    private final long writerFlushThresholdBytes = Long.getLong(WRITER_FLUSH_THRESHOLD_KEY, defaultWriterFlushThreshold);
 
     private JsonSerializer(
             JsopWriter json, int depth, long offset, int maxChildNodes,
-            JsonFilter filter, BlobSerializer blobs, boolean catchExceptions) {
+            JsonFilter filter, BlobSerializer blobs, boolean catchExceptions, PrintWriter printWriter) {
         this.json = checkNotNull(json);
         this.depth = depth;
         this.offset = offset;
@@ -90,6 +95,14 @@ public class JsonSerializer {
         this.filter = checkNotNull(filter);
         this.blobs = checkNotNull(blobs);
         this.catchExceptions = catchExceptions;
+        this.printWriter = printWriter;
+    }
+
+    private JsonSerializer(
+            JsopWriter json, int depth, long offset, int maxChildNodes,
+            JsonFilter filter, BlobSerializer blobs, boolean catchExceptions) {
+        this(json, depth, offset, maxChildNodes,
+                filter, blobs, catchExceptions, null);
     }
 
     public JsonSerializer(
@@ -123,9 +136,14 @@ public class JsonSerializer {
                 new JsonFilter(filter), blobs, false);
     }
 
+    public JsonSerializer(JsopWriter json, String filter, BlobSerializer blobs, PrintWriter printWriter) {
+        this(json, Integer.MAX_VALUE, 0, Integer.MAX_VALUE,
+                new JsonFilter(filter), blobs, false, printWriter);
+    }
+
     protected JsonSerializer getChildSerializer() {
         return new JsonSerializer(
-                json, depth - 1, 0, maxChildNodes, filter, blobs, catchExceptions);
+                json, depth - 1, 0, maxChildNodes, filter, blobs, catchExceptions, printWriter);
     }
 
     public void serialize(NodeState node) {
@@ -184,6 +202,13 @@ public class JsonSerializer {
         }
 
         json.endObject();
+        if (printWriter != null && json instanceof JsopBuilder && ((JsopBuilder) json).length() >= writerFlushThresholdBytes) {
+            printWriter.print(json);
+            printWriter.flush();
+            ((JsopBuilder) json).flushWriter();
+        } else if (printWriter == null || !(json instanceof JsopBuilder)) {
+            log.warn("Json is not getting flushed in chunks: printWriter:{}, isJsonInstanceofJsonBuilder:{}", printWriter, json instanceof JsopBuilder);
+        }
     }
 
     private Iterable<? extends ChildNodeEntry> getChildNodeEntries(NodeState node, String basePath) {

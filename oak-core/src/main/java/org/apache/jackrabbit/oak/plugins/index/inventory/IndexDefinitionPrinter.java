@@ -67,10 +67,10 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
             for (String indexPath : indexPathService.getIndexPaths()) {
                 json.key(indexPath);
                 NodeState idxState = NodeStateUtils.getNode(root, indexPath);
-                createSerializer(json).serialize(idxState);
+                createSerializer(json, printWriter).serialize(idxState);
             }
             json.endObject();
-            printWriter.print(JsopBuilder.prettyPrint(json.toString()));
+            printWriter.print(json);
         }
     }
 
@@ -78,7 +78,7 @@ public class IndexDefinitionPrinter implements InventoryPrinter {
         this.filter = filter;
     }
 
-    private JsonSerializer createSerializer(JsopBuilder json) {
-        return new JsonSerializer(json, filter, new Base64BlobSerializer());
+    private JsonSerializer createSerializer(JsopBuilder json, PrintWriter printWriter) {
+        return new JsonSerializer(json, filter, new Base64BlobSerializer(), printWriter);
     }
 }
