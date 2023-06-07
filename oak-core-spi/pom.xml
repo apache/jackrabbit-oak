@@ -42,10 +42,6 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Import-Package>
-              <!-- OAK-7182 -->${guava.osgi.import},
-              *
-            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.cache,
               org.apache.jackrabbit.oak.commons.jmx,
