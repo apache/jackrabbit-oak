@@ -17,20 +17,24 @@
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.junit.Assume;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * A MongoDB {@link DockerRule}.
  */
-public class MongoDockerRule extends DockerRule {
+public class MongoDockerRule implements TestRule {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDockerRule.class);
 
@@ -57,19 +61,46 @@ public class MongoDockerRule extends DockerRule {
         DOCKER_AVAILABLE = available;
     }
 
+    private final DockerRule wrappedRule;
+
+    private final AtomicReference<Exception> startupException = new AtomicReference<>();
+
     public MongoDockerRule() {
-        super(ImmutableDockerConfig.builder()
+        wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
                 .name(CONFIG_NAME)
                 .image(IMAGE)
                 .ports("27017")
                 .allowRunningBetweenUnitTests(true)
                 .alwaysRemoveContainer(true)
-                .addStartedListener(container -> container.waitForPort("27017/tcp"))
+                .addStartedListener(container -> {
+                    try {
+                        container.waitForPort("27017/tcp");
+                    } catch (IllegalStateException e) {
+                        startupException.set(e);
+                        throw e;
+                    }
+                })
                 .build());
     }
 
+    @Override
+    public Statement apply(Statement statement, Description description) {
+        Statement base = wrappedRule.apply(statement, description);
+        return new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                try {
+                    base.evaluate();
+                } catch (Throwable e) {
+                    Assume.assumeNoException(startupException.get());
+                    throw e;
+                }
+            }
+        };
+    }
+
     public int getPort() {
-        return getContainer().getPortBinding("27017/tcp").getPort();
+        return wrappedRule.getContainer().getPortBinding("27017/tcp").getPort();
     }
 
     public static boolean isDockerAvailable() {

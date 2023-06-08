@@ -25,6 +25,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.StreamSupport;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
