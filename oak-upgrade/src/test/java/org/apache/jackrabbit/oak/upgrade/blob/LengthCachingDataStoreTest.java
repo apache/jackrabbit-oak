@@ -32,8 +32,8 @@ import java.nio.charset.Charset;
 import java.util.Properties;
 import java.util.Random;
 
-import com.google.common.io.ByteSource;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;

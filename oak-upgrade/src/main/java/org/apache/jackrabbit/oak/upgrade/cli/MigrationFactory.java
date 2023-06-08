@@ -35,8 +35,8 @@ import org.apache.jackrabbit.oak.upgrade.cli.parser.DatastoreArguments;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.MigrationOptions;
 import org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class MigrationFactory {
 
