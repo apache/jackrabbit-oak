@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark.wikipedia;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static java.lang.Math.min;
 
 import java.io.BufferedInputStream;

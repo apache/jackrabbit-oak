@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.scalability.benchmarks.search;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.scalability.benchmarks.ScalabilityBenchmark;

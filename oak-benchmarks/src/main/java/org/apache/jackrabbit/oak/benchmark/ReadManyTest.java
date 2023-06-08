@@ -28,7 +28,7 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.JcrUtils;
 
-import com.google.common.io.ByteStreams;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 abstract class ReadManyTest extends AbstractTest {
 
