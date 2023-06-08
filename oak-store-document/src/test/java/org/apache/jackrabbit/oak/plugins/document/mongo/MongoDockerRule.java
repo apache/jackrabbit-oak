@@ -63,7 +63,7 @@ public class MongoDockerRule implements TestRule {
 
     private final DockerRule wrappedRule;
 
-    private final AtomicReference<Exception> startupException = new AtomicReference<>();
+    private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
 
     public MongoDockerRule() {
         wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
@@ -76,7 +76,7 @@ public class MongoDockerRule implements TestRule {
                     try {
                         container.waitForPort("27017/tcp");
                     } catch (IllegalStateException e) {
-                        startupException.set(e);
+                        STARTUP_EXCEPTION.set(e);
                         throw e;
                     }
                 })
@@ -92,7 +92,7 @@ public class MongoDockerRule implements TestRule {
                 try {
                     base.evaluate();
                 } catch (Throwable e) {
-                    Assume.assumeNoException(startupException.get());
+                    Assume.assumeNoException(STARTUP_EXCEPTION.get());
                     throw e;
                 }
             }
