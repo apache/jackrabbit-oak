@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-public interface NodeStateEntryTraverserFactory {
+class PipelinedNodeStateHolder {
+    private final String line;
+    private final String[] pathElements;
 
-    NodeStateEntryTraverser create(TraversingRange range);
+    public PipelinedNodeStateHolder(String line, String[] pathElements) {
+        this.pathElements = pathElements;
+        this.line = line;
+    }
 
-    // For testing purposes only, remove before opening a PR
-    default MongoDocumentStore getDocumentStore() { return null; }
-    default RevisionVector getRootRevision() { return null; }
-    default DocumentNodeStore getDocumentNodeStore(){ return null; }
+    public String[] getPathElements() {
+        return pathElements;
+    }
+
+    /**
+     * Line here contains the path also
+     */
+    public String getLine() {
+        return line;
+    }
 }

@@ -19,10 +19,6 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
@@ -32,11 +28,15 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
+import java.io.IOException;
+import java.io.Writer;
+import java.util.List;
+
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class NodeStateEntryWriter {
     private static final String OAK_CHILD_ORDER = ":childOrder";
-    private static final String DELIMITER = "|";
+    public static final String DELIMITER = "|";
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
@@ -57,6 +57,12 @@ public class NodeStateEntryWriter {
         return path + DELIMITER + nodeStateAsJson;
     }
 
+    public void writeTo(Writer writer, NodeStateEntry nse) throws IOException {
+        writer.write(nse.getPath());
+        writer.write(DELIMITER);
+        writer.write(asJson(nse.getNodeState()));
+    }
+
     public String toString(List<String> pathElements, String nodeStateAsJson) {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
         StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
@@ -64,25 +70,6 @@ public class NodeStateEntryWriter {
         pathJoiner.appendTo(sb, pathElements);
         sb.append(DELIMITER).append(nodeStateAsJson);
         return sb.toString();
-    }
-
-    public void writeTo(BufferedWriter bw, List<String> pathElements, String nodeStateAsJson) throws IOException {
-        if (pathElements.isEmpty()) {
-            bw.write("/");
-        } else {
-            for (String part : pathElements) {
-                bw.write("/");
-                bw.write(part);
-            }
-        }
-        bw.write(DELIMITER);
-        bw.write(nodeStateAsJson);
-    }
-
-    public void writeTo(BufferedWriter bw, String path, String nodeStateAsJson) throws IOException {
-        bw.write(path);
-        bw.write(DELIMITER);
-        bw.write(nodeStateAsJson);
     }
 
     public String asJson(NodeState nodeState) {

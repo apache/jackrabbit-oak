@@ -22,6 +22,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Test;
 
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.MultithreadedTraverseWithSortStrategy.DirectoryHelper;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.junit.Assert.assertEquals;
 
 public class MultithreadedTraverseWithSortStrategyTest {
@@ -55,7 +55,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         assertEquals(lastModifiedBreakpoints.size(), ranges.size());
         for (int i = 0; i < lastModifiedBreakpoints.size(); i++) {
             long lm = lastModifiedBreakpoints.get(i);
-            LastModifiedRange lmRange = new LastModifiedRange(lm, i < lastModifiedBreakpoints.size() - 1 ? lastModifiedBreakpoints.get(i+1) : lm+1);
+            LastModifiedRange lmRange = new LastModifiedRange(lm, i < lastModifiedBreakpoints.size() - 1 ? lastModifiedBreakpoints.get(i + 1) : lm + 1);
             assertEquals(ranges.get(i), new TraversingRange(lmRange, null));
         }
     }

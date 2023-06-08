@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -302,7 +303,7 @@ public class FlatFileNodeStoreBuilder {
                         nodeStateEntryTraverserFactory.getDocumentStore(),
                         nodeStateEntryTraverserFactory.getDocumentNodeStore(),
                         nodeStateEntryTraverserFactory.getRootRevision(),
-                        comparator, blobStore, dir, algorithm, pathPredicate);
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate);
 
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
