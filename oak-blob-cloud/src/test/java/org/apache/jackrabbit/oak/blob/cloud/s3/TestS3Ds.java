@@ -281,6 +281,8 @@ public class TestS3Ds extends AbstractDataStoreTest {
                 putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
                 putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
                 break;
+            default:
+                break;
         }
 
         putreq.setEntity(new InputStreamEntity(inputstream , length));

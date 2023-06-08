@@ -1167,22 +1167,22 @@ public class S3Backend extends AbstractSharedBackend {
         private long lastModified;
         private String bucket;
         private boolean isMeta;
-        private final S3RequestDecorator s3RequestDecorator;
+        private final S3RequestDecorator s3ReqDecorator;
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified, long length, final S3RequestDecorator s3RequestDecorator) {
-            this(backend, s3service, bucket, key, lastModified, length, false, s3RequestDecorator);
+            DataIdentifier key, long lastModified, long length, final S3RequestDecorator s3ReqDecorator) {
+            this(backend, s3service, bucket, key, lastModified, length, false, s3ReqDecorator);
         }
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified, long length, boolean isMeta, final S3RequestDecorator s3RequestDecorator) {
+            DataIdentifier key, long lastModified, long length, boolean isMeta, final S3RequestDecorator s3ReqDecorator) {
             super(backend, key);
             this.s3service = s3service;
             this.lastModified = lastModified;
             this.length = length;
             this.bucket = bucket;
             this.isMeta = isMeta;
-            this.s3RequestDecorator = s3RequestDecorator;
+            this.s3ReqDecorator = s3ReqDecorator;
         }
 
         @Override
@@ -1204,7 +1204,7 @@ public class S3Backend extends AbstractSharedBackend {
                     LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", id, new Exception());
                 }
             }
-            return s3service.getObject(s3RequestDecorator.decorate(new GetObjectRequest(bucket, id))).getObjectContent();
+            return s3service.getObject(s3ReqDecorator.decorate(new GetObjectRequest(bucket, id))).getObjectContent();
         }
 
         @Override

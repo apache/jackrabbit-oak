@@ -17,9 +17,6 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.util.Properties;
-
-import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
@@ -31,9 +28,12 @@ import com.amazonaws.services.s3.model.SSEAlgorithm;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.model.SSECustomerKey;
 
+import java.util.Properties;
+
 import static com.amazonaws.HttpMethod.GET;
 import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
 import static com.amazonaws.util.StringUtils.hasValue;
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
@@ -71,6 +71,8 @@ public class S3RequestDecorator {
                     }
                     break;
                 }
+                default:
+                    break;
             }
         }
     }
@@ -79,12 +81,8 @@ public class S3RequestDecorator {
      * Set encryption in {@link GetObjectMetadataRequest}
      */
     public GetObjectMetadataRequest decorate(final GetObjectMetadataRequest request) {
-        switch (getDataEncryption()) {
-            case SSE_C:
-                request.withSSECustomerKey(sseCustomerKey);
-                break;
-            case NONE:
-                break;
+        if (requireNonNull(getDataEncryption()) == DataEncryption.SSE_C) {
+            request.withSSECustomerKey(sseCustomerKey);
         }
         return request;
     }
@@ -93,12 +91,8 @@ public class S3RequestDecorator {
      * Set encryption in {@link GetObjectRequest}
      */
     public GetObjectRequest decorate(final GetObjectRequest request) {
-        switch (getDataEncryption()) {
-            case SSE_C:
-                request.withSSECustomerKey(sseCustomerKey);
-                break;
-            case NONE:
-                break;
+        if (requireNonNull(getDataEncryption()) == DataEncryption.SSE_C) {
+            request.withSSECustomerKey(sseCustomerKey);
         }
         return request;
     }
@@ -189,6 +183,8 @@ public class S3RequestDecorator {
               break;
           case SSE_C:
               request = request.withSSECustomerKey(sseCustomerKey);
+              break;
+          default:
               break;
         }
         return request;
