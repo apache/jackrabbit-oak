@@ -46,7 +46,7 @@ public class AzuriteDockerRule implements TestRule {
 
     private final DockerRule wrappedRule;
 
-    private final AtomicReference<Exception> startupException = new AtomicReference<>();
+    private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
 
     public AzuriteDockerRule() {
         wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
@@ -58,7 +58,7 @@ public class AzuriteDockerRule implements TestRule {
                     container.waitForPort("10000/tcp");
                     container.waitForLog("Azurite Blob service is successfully listening at http://0.0.0.0:10000");
                 } catch (IllegalStateException e) {
-                    startupException.set(e);
+                    STARTUP_EXCEPTION.set(e);
                     throw e;
                 }
             })
@@ -111,7 +111,7 @@ public class AzuriteDockerRule implements TestRule {
                 try {
                     base.evaluate();
                 } catch (Throwable e) {
-                    Assume.assumeNoException(startupException.get());
+                    Assume.assumeNoException(STARTUP_EXCEPTION.get());
                     throw e;
                 }
             }
