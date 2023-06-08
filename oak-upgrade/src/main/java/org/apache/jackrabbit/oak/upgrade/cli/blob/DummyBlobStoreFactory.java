@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class DummyBlobStoreFactory implements BlobStoreFactory {
 

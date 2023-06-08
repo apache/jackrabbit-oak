@@ -17,11 +17,13 @@
 
 package org.apache.jackrabbit.api.security.user;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import javax.jcr.Value;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
+@ProviderType
 public interface QueryBuilder<T> {
 
     /**

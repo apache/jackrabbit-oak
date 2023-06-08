@@ -26,8 +26,8 @@ import java.util.Set;
 
 import javax.jcr.RepositoryException;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -68,10 +68,10 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.ImmutableSet.copyOf;
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Sets.union;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.copyOf;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Sets.union;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.oak.plugins.migration.NodeStateCopier.copyProperties;

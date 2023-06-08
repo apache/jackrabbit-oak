@@ -18,9 +18,12 @@ package org.apache.jackrabbit.api.security.user;
 
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * The {@code AuthorizableTypeException} signals an {@link Authorizable} type mismatch.
  */
+@ProviderType
 public class AuthorizableTypeException extends RepositoryException {
 
     public AuthorizableTypeException(String msg) {

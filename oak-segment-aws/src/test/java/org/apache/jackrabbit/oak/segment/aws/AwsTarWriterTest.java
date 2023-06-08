@@ -23,6 +23,8 @@ import com.amazonaws.services.s3.AmazonS3;
 
 import org.apache.jackrabbit.oak.segment.file.tar.TarWriterTest;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
 import org.junit.Before;
 import org.junit.ClassRule;
 
@@ -31,14 +33,34 @@ public class AwsTarWriterTest extends TarWriterTest {
     @ClassRule
     public static final S3MockRule s3Mock = new S3MockRule();
 
+    private S3Directory directory;
+
     @Before
-    @Override
     public void setUp() throws IOException {
         AmazonS3 s3 = s3Mock.createClient();
         long time = new Date().getTime();
-        S3Directory directory = new S3Directory(s3, "bucket-" + time, "oak");
+        directory = new S3Directory(s3, "bucket-" + time, "oak");
         directory.ensureBucket();
-        monitor = new TestFileStoreMonitor();
-        archiveManager = new AwsArchiveManager(directory, new IOMonitorAdapter(), monitor);
+    }
+
+    @Override
+    protected SegmentArchiveManager getSegmentArchiveManager() {
+        return new AwsArchiveManager(directory, new IOMonitorAdapter(), monitor);
+    }
+
+    @Override
+    protected SegmentArchiveManager getFailingSegmentArchiveManager() {
+        IOMonitorAdapter ioMonitor = new IOMonitorAdapter();
+        return new AwsArchiveManager(directory, ioMonitor, monitor) {
+            @Override
+            public SegmentArchiveWriter create(String archiveName) {
+                return new AwsSegmentArchiveWriter(directory.withDirectory(archiveName), archiveName, ioMonitor, monitor) {
+                    @Override
+                    public void writeGraph(byte[] data) throws IOException {
+                        throw new IOException("test");
+                    }
+                };
+            }
+        };
     }
 }

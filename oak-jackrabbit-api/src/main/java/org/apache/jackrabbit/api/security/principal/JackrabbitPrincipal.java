@@ -18,10 +18,13 @@ package org.apache.jackrabbit.api.security.principal;
 
 import java.security.Principal;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * <code>JackrabbitPrincipal</code> marks the principal to be the result of
  * authentication against the repository.
  */
+@ProviderType
 public interface JackrabbitPrincipal extends Principal {
 
 }

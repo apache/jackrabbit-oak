@@ -18,6 +18,8 @@ package org.apache.jackrabbit.api.management;
 
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Garbage collector for DataStore. This implementation iterates through all
  * nodes and reads the binary properties. To detect nodes that are moved while
@@ -36,6 +38,7 @@ import javax.jcr.RepositoryException;
  * gc.sweep();
  * </pre>
  */
+@ProviderType
 public interface DataStoreGarbageCollector {
 
     /**

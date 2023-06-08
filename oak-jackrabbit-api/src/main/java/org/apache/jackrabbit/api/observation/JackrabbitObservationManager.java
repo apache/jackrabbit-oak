@@ -20,9 +20,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.observation.EventListener;
 import javax.jcr.observation.ObservationManager;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Jackrabbit specific extensions to {@link javax.jcr.observation.ObservationManager}.
  */
+@ProviderType
 public interface JackrabbitObservationManager extends ObservationManager {
 
     /**

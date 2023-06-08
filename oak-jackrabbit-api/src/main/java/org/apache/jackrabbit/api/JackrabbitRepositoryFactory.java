@@ -19,10 +19,12 @@ package org.apache.jackrabbit.api;
 import javax.jcr.RepositoryException;
 import javax.jcr.RepositoryFactory;
 import org.apache.jackrabbit.api.management.RepositoryManager;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Classes that implement this interface additionally provide management features.
  */
+@ProviderType
 public interface JackrabbitRepositoryFactory extends RepositoryFactory {
 
     /**

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.upgrade;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.junit.Assert.assertEquals;
 

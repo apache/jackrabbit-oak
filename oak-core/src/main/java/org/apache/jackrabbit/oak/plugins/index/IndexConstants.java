@@ -36,6 +36,11 @@ public interface IndexConstants {
 
     String REINDEX_PROPERTY_NAME = "reindex";
 
+    /**
+     * Boolean property which signals to refresh the stored index definition
+     */
+    String REFRESH_PROPERTY_NAME = "refresh";
+
     String REINDEX_COUNT = "reindexCount";
 
     String REINDEX_ASYNC_PROPERTY_NAME = "reindex-async";

@@ -25,10 +25,13 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * The Jackrabbit repository interface. This interface contains the
  * Jackrabbit-specific extensions to the JCR {@link Repository} interface.
  */
+@ProviderType
 public interface JackrabbitRepository extends Repository {
 
     /**

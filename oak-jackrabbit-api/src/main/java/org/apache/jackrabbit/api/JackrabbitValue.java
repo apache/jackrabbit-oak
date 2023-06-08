@@ -18,6 +18,8 @@ package org.apache.jackrabbit.api;
 
 import javax.jcr.Value;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Values returned by Jackrabbit may implement this interface. The interface
  * defines optional features. An application should check if the returned value
@@ -29,6 +31,7 @@ import javax.jcr.Value;
  * }
  * </pre>
  */
+@ProviderType
 public interface JackrabbitValue extends Value {
 
     /**
