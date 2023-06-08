@@ -118,8 +118,10 @@ public final class S3Constants {
     public static final String S3_SSE_KMS_KEYID = "kmsKeyId";
 
     /**
-     *  Constant to set keyID for SSE_C encryption.
+     *  Constant to set base64 encoded keyID for SSE_C encryption.
      */
+    // please use  'openssl rand -base64 -out ssec.key 32' command to
+    // generate base64 encoded 32 bytes string customer key for SSE_C
     public static final String S3_SSE_C_KEYID = "sseCustomerKeyId";
 
     /**

@@ -19,8 +19,11 @@ package org.apache.jackrabbit.oak.blob.cloud.s3;
 
 import java.util.Properties;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -28,9 +31,9 @@ import com.amazonaws.services.s3.model.SSEAlgorithm;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
 import com.amazonaws.services.s3.model.SSECustomerKey;
 
+import static com.amazonaws.HttpMethod.GET;
 import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
 import static com.amazonaws.util.StringUtils.hasValue;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
@@ -43,7 +46,6 @@ import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEY
  */
 public class S3RequestDecorator {
     DataEncryption dataEncryption = DataEncryption.NONE;
-    Properties props;
     SSEAwsKeyManagementParams sseParams;
 
     SSECustomerKey sseCustomerKey;
@@ -65,12 +67,40 @@ public class S3RequestDecorator {
                 case S3_ENCRYPTION_SSE_C: {
                     final String keyId = props.getProperty(S3_SSE_C_KEYID);
                     if (hasValue(keyId)) {
-                        sseCustomerKey = new SSECustomerKey(keyId.getBytes(UTF_8));
+                        sseCustomerKey = new SSECustomerKey(keyId);
                     }
                     break;
                 }
             }
         }
+    }
+
+    /**
+     * Set encryption in {@link GetObjectMetadataRequest}
+     */
+    public GetObjectMetadataRequest decorate(final GetObjectMetadataRequest request) {
+        switch (getDataEncryption()) {
+            case SSE_C:
+                request.withSSECustomerKey(sseCustomerKey);
+                break;
+            case NONE:
+                break;
+        }
+        return request;
+    }
+
+    /**
+     * Set encryption in {@link GetObjectRequest}
+     */
+    public GetObjectRequest decorate(final GetObjectRequest request) {
+        switch (getDataEncryption()) {
+            case SSE_C:
+                request.withSSECustomerKey(sseCustomerKey);
+                break;
+            case NONE:
+                break;
+        }
+        return request;
     }
 
     /**
@@ -90,7 +120,6 @@ public class S3RequestDecorator {
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
             case SSE_C:
-                metadata.setSSEAlgorithm(AES256.getAlgorithm());
                 request.withSSECustomerKey(sseCustomerKey);
                 break;
             case NONE:
@@ -139,7 +168,6 @@ public class S3RequestDecorator {
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
             case SSE_C:
-                metadata.setSSEAlgorithm(AES256.getAlgorithm());
                 request.withSSECustomerKey(sseCustomerKey);
                 break;
             case NONE:
@@ -152,6 +180,7 @@ public class S3RequestDecorator {
     public GeneratePresignedUrlRequest decorate(GeneratePresignedUrlRequest request) {
         switch (getDataEncryption()) {
           case SSE_KMS:
+              if (request.getMethod() == GET) break; // KMS is not valid for GET Requests
               String keyId = getSSEParams().getAwsKmsKeyId();
               request = request.withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
               if (keyId != null) {
@@ -159,7 +188,7 @@ public class S3RequestDecorator {
               }
               break;
           case SSE_C:
-              request = request.withSSEAlgorithm(AES256).withSSECustomerKey(getSseCustomerKey());
+              request = request.withSSECustomerKey(sseCustomerKey);
               break;
         }
         return request;
@@ -167,10 +196,6 @@ public class S3RequestDecorator {
 
     private SSEAwsKeyManagementParams getSSEParams() {
         return this.sseParams;
-    }
-
-    private SSECustomerKey getSseCustomerKey() {
-        return this.sseCustomerKey;
     }
 
     private DataEncryption getDataEncryption() {
