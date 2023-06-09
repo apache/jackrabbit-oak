@@ -17,7 +17,7 @@
 package org.apache.jackrabbit.oak.run;
 
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.Modes;
 import org.apache.jackrabbit.oak.run.commons.Utils;
