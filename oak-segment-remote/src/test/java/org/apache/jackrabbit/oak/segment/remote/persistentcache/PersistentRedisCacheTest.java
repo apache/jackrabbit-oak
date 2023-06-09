@@ -54,7 +54,7 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
         Files.copy(redisTempExecutable, redisTargetExecutable, StandardCopyOption.REPLACE_EXISTING);
         RedisExecProvider execProvider = mock(RedisExecProvider.class);
         when(execProvider.get()).thenReturn(redisTargetExecutable.toFile());
-        redisServer = RedisServer.builder().redisExecProvider(execProvider).build();
+        redisServer = RedisServer.builder().setting("maxmemory 768mb").redisExecProvider(execProvider).build();
         redisServer.start();
         int port = redisServer.ports().get(0);
         ioMonitorAdapter = mock(IOMonitorAdapter.class);
