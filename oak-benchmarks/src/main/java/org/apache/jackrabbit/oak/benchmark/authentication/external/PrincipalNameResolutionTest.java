@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.benchmark.authentication.external;
 
 import javax.security.auth.login.Configuration;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.ConfigurationUtil;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
