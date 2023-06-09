@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.benchmark.util;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;

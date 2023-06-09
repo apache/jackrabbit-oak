@@ -36,7 +36,7 @@ import javax.jcr.query.Query;
 import java.io.File;
 import java.io.IOException;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 public class LucenePropertySearchTest extends SearchTest {
 

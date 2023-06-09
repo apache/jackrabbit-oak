@@ -27,7 +27,7 @@ import javax.jcr.nodetype.NodeTypeManager;
 
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 /**
  * Test for measuring the performance of setting a single property and

@@ -27,6 +27,7 @@ import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Assume;
@@ -36,8 +37,8 @@ import org.junit.runners.model.Statement;
 
 public class AzuriteDockerRule implements TestRule {
 
-    private static final String IMAGE = "mcr.microsoft.com/azure-storage/azurite:3.15.0";
-    
+    private static final String IMAGE = "mcr.microsoft.com/azure-storage/azurite:3.19.0";
+
     public static final String ACCOUNT_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
     public static final String ACCOUNT_NAME = "devstoreaccount1";
 
@@ -45,14 +46,21 @@ public class AzuriteDockerRule implements TestRule {
 
     private final DockerRule wrappedRule;
 
+    private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
+
     public AzuriteDockerRule() {
         wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
             .image(IMAGE)
             .name("oak-test-azurite-" + CONTAINER_SUFFIX)
             .ports("10000")
             .addStartedListener(container -> {
-                container.waitForPort("10000/tcp");
-                container.waitForLog("Azurite Blob service is successfully listening at http://0.0.0.0:10000");
+                try {
+                    container.waitForPort("10000/tcp");
+                    container.waitForLog("Azurite Blob service is successfully listening at http://0.0.0.0:10000");
+                } catch (IllegalStateException e) {
+                    STARTUP_EXCEPTION.set(e);
+                    throw e;
+                }
             })
             .addContainerConfigurer(builder -> builder.env("executable=blob"))
             .alwaysRemoveContainer(true)
@@ -96,7 +104,18 @@ public class AzuriteDockerRule implements TestRule {
             Assume.assumeNoException(t);
         }
 
-        return wrappedRule.apply(statement, description);
+        Statement base = wrappedRule.apply(statement, description);
+        return new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                try {
+                    base.evaluate();
+                } catch (Throwable e) {
+                    Assume.assumeNoException(STARTUP_EXCEPTION.get());
+                    throw e;
+                }
+            }
+        };
     }
 
     public int getMappedPort() {

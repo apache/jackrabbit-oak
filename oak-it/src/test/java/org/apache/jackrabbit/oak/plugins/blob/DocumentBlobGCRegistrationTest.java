@@ -27,7 +27,7 @@ import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.junit.After;
 import org.junit.BeforeClass;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.junit.Assume.assumeTrue;
 
 /**

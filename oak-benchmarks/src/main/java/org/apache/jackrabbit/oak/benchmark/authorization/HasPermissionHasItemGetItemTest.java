@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;

@@ -24,7 +24,7 @@ import org.apache.jackrabbit.oak.plugins.blob.AbstractBlobGCRegistrationTest;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 
 public class SegmentBlobGCRegistrationTest extends AbstractBlobGCRegistrationTest {

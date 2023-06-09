@@ -18,9 +18,9 @@
  */
 package org.apache.jackrabbit.oak.scalability.suites;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newConcurrentMap;
-import static com.google.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
 
 import java.io.PrintStream;
 import java.util.LinkedList;
@@ -37,9 +37,9 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.SimpleCredentials;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Splitter;
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
