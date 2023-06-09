@@ -259,6 +259,24 @@ public class MoveTest {
     }
 
     @Test
+    public void moveMovedMoved() throws CommitFailedException {
+        assumeFalse("Known issue with classic move implementation", classicMove);
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+
+        assertTrue(root.move("/x/xx", "/y/xx"));
+        assertTrue(root.move("/y", "/a"));
+        assertTrue(root.move("/a", "/z/a"));
+
+        assertTrue(xx.exists());
+        assertEquals("/z/a/xx", xx.getPath());
+
+        root.commit();
+        assertTrue(xx.exists());
+        assertEquals("/z/a/xx", xx.getPath());
+    }
+
+    @Test
     public void rename() throws CommitFailedException {
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
@@ -506,6 +524,33 @@ public class MoveTest {
         Tree xx = root.getTree("/x/xx");
         assertTrue(root.move("/x", "/q"));
         assertTrue(root.move("/q", "/x"));
+        assertEquals("/x/xx", xx.getPath());
+        root.commit();
+        assertEquals("/x/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveLoop() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        for (int i = 0; i < 5; i++) {
+            assertTrue(root.move("/x/xx", "/y/q"));
+            assertTrue(root.move("/y/q", "/x/xx"));
+        }
+        assertEquals("/x/xx", xx.getPath());
+        root.commit();
+        assertEquals("/x/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveLoopWithCommit() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        for (int i = 0; i < 5; i++) {
+            assertTrue(root.move("/x/xx", "/y/q"));
+            root.commit();
+            assertTrue(root.move("/y/q", "/x/xx"));
+        }
         assertEquals("/x/xx", xx.getPath());
         root.commit();
         assertEquals("/x/xx", xx.getPath());
