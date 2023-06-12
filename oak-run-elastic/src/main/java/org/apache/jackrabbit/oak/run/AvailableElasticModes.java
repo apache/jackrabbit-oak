@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.index.ElasticIndexCommand;
 import org.apache.jackrabbit.oak.index.ElasticPurgeOldIndexVersionCommand;
 import org.apache.jackrabbit.oak.run.commons.Command;

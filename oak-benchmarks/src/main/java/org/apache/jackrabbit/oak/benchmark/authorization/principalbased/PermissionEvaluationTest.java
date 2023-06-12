@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark.authorization.principalbased;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 

@@ -202,7 +202,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Override
             protected boolean hasProcessedReference(@NotNull String value) {
                 if (groupContentId.equals(value)) {
-                    log.warn("Cyclic group membership detected for contentId {}", groupContentId);
+                    log.error("Cyclic group membership detected for contentId {}", groupContentId);
                     return false;
                 }
                 return processedRefs.add(value);

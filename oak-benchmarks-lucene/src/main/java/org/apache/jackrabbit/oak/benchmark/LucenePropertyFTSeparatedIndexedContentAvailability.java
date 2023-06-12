@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.benchmark;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 import java.io.File;
 

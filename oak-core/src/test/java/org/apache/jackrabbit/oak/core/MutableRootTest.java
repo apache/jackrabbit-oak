@@ -23,7 +23,6 @@ import javax.security.auth.Subject;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -81,7 +80,7 @@ public class MutableRootTest {
         when(cs.toString()).thenReturn("contentSession");
         when(cs.getAuthInfo()).thenReturn(AuthInfoImpl.EMPTY);
         when(cs.getWorkspaceName()).thenReturn("default");
-        root = new MutableRoot(store, new EmptyHook(), "default", new Subject(), sp, null, null, cs);
+        root = new MutableRoot(store, new EmptyHook(), "default", new Subject(), sp, null, null, null, cs);
     }
 
     /**

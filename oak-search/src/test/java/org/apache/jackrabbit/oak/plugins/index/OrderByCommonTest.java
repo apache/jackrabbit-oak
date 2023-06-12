@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import javax.jcr.PropertyType;
@@ -120,6 +121,64 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
 
         assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz", asList("/test/b", "/test/a"));
         assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz DESC", asList("/test/a", "/test/b"));
+    }
+
+    @Test
+    public void orderByDateWithRegexPropertyIndex() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
+        builder.evaluatePathRestrictions();
+        Tree idx = indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
+        Tree props = TestUtil.newRulePropTree(idx, "nt:base");
+        Tree regexProp = TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+        regexProp.setProperty(FulltextIndexConstants.PROP_PROPERTY_INDEX, false);
+        regexProp.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, false);
+        regexProp.setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("baz", "zzzzzz");
+        a.setProperty("dt", "2013-06-21T08:30:48.119Z", Type.DATE);
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("baz", "aaaaaa");
+        b.setProperty("dt", "2021-12-17T12:45:48.119Z", Type.DATE);
+        Tree c = test.addChild("c");
+        c.setProperty("dt", "2023-06-05T16:59:48.119Z", Type.DATE);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] as a where isdescendantnode(a, '/test')";
+        assertOrderedQuery(query + " order by [dt]", asList("/test/a", "/test/b", "/test/c"));
+        assertOrderedQuery(query + " order by [dt] desc", asList("/test/c", "/test/b", "/test/a"));
+    }
+
+    @Test
+    @Ignore("https://github.com/apache/jackrabbit-oak/pull/649")
+    public void orderByDateWithRegexAnalyzedOnly() throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
+        builder.evaluatePathRestrictions();
+        Tree idx = indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
+        Tree props = TestUtil.newRulePropTree(idx, "nt:base");
+        Tree regexProp = TestUtil.enableForFullText(props, FulltextIndexConstants.REGEX_ALL_PROPS, true);
+        regexProp.setProperty(FulltextIndexConstants.PROP_USE_IN_EXCERPT, false);
+        regexProp.setProperty(FulltextIndexConstants.PROP_USE_IN_SPELLCHECK, false);
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("foo", "bar");
+        a.setProperty("baz", "zzzzzz");
+        a.setProperty("dt", "2013-06-21T08:30:48.119Z", Type.DATE);
+        Tree b = test.addChild("b");
+        b.setProperty("foo", "bar");
+        b.setProperty("baz", "aaaaaa");
+        b.setProperty("dt", "2021-12-17T12:45:48.119Z", Type.DATE);
+        Tree c = test.addChild("c");
+        c.setProperty("dt", "2023-06-05T16:59:48.119Z", Type.DATE);
+        root.commit();
+
+        String query = "select [jcr:path] from [nt:base] as a where isdescendantnode(a, '/test')";
+        assertOrderedQuery(query + " order by [dt]", asList("/test/a", "/test/b", "/test/c"));
+        assertOrderedQuery(query + " order by [dt] desc", asList("/test/c", "/test/b", "/test/a"));
     }
 
     @Test

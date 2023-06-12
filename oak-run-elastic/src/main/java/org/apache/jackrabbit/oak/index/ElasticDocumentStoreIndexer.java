@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.index.indexer.document.*;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 

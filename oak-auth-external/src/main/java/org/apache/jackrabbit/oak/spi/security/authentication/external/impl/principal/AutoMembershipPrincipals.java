@@ -127,15 +127,23 @@ final class AutoMembershipPrincipals {
     }
 
     boolean isInheritedMember(@NotNull String idpName, @NotNull Group group, @NotNull Authorizable authorizable) throws RepositoryException {
+        return isInheritedMember(idpName, group, authorizable, new HashSet<>());
+    }
+
+    boolean isInheritedMember(@NotNull String idpName, @NotNull Group group, @NotNull Authorizable authorizable, @NotNull Set<String> processedIds) throws RepositoryException {
         String groupId = group.getID();
+        if (!processedIds.add(groupId)) {
+            log.error("Cyclic group membership detected for group id {}", groupId);
+            return false;
+        }
         if (isMember(idpName, groupId, authorizable)) {
             return true;
         }
-        
+
         Iterator<Authorizable> declaredGroupMembers = Iterators.filter(group.getDeclaredMembers(), Authorizable::isGroup);
         while (declaredGroupMembers.hasNext()) {
             Group grMember = (Group) declaredGroupMembers.next();
-            if (isInheritedMember(idpName, grMember, authorizable)) {
+            if (isInheritedMember(idpName, grMember, authorizable, processedIds)) {
                 return true;
             }
         }

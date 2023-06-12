@@ -23,7 +23,7 @@ import javax.jcr.Node;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
-import com.google.common.io.ByteStreams;
+import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 public class SmallFileReadTest extends AbstractTest {
 
