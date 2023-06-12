@@ -1,57 +1,83 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.jackrabbit.oak.core;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.jackrabbit.oak.Oak;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.api.ContentSession;
+import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.api.Tree;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 
-import java.util.ArrayList;
-import java.util.List;
+/**
+ * Test methods (mostly) copied from oak-it RootTest and parameterized to run
+ * with {@link MutableRoot.ClassicMove} and {@link MutableRoot.NeoMove}.
+ */
+@RunWith(Parameterized.class)
+public class MoveTest {
 
-import org.apache.jackrabbit.oak.OakBaseTest;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
-import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.api.Tree.Status;
-import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-
-public class RootTest extends OakBaseTest {
+    private final boolean classicMove;
 
     private ContentSession session;
 
-    public RootTest(NodeStoreFixture fixture) {
-        super(fixture);
+    @Parameterized.Parameters(name="Classic Move: ({0})")
+    public static List<Boolean> classicMove() {
+        return Arrays.asList(true, false);
+    }
+
+    public MoveTest(boolean classicMove) {
+        this.classicMove = classicMove;
     }
 
     @Before
-    public void setUp() throws CommitFailedException {
-        session = createContentSession();
-
+    public void setUp() throws Exception {
+        Oak oak = new Oak().with(new OpenSecurityProvider());
+        Whiteboard whiteboard = oak.getWhiteboard();
+        session = oak.createContentSession();
+        if (classicMove) {
+            Tracker<FeatureToggle> toggleTracker = whiteboard.track(FeatureToggle.class);
+            for (FeatureToggle ft : toggleTracker.getServices()) {
+                // enable classic move implementation
+                if ("FT_CLASSIC_MOVE_OAK-10147".equals(ft.getName())) {
+                    ft.setEnabled(true);
+                }
+            }
+        }
         // Add test content
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
@@ -135,7 +161,7 @@ public class RootTest extends OakBaseTest {
         assertFalse(z.exists());
 
         x.addChild("z");
-        assertEquals(Status.NEW, z.getStatus());
+        assertEquals(Tree.Status.NEW, z.getStatus());
 
         x.getChild("z").setProperty("p", "2");
         PropertyState p = z.getProperty("p");
@@ -167,8 +193,8 @@ public class RootTest extends OakBaseTest {
 
         root.move("/parent", "/moved");
 
-        assertEquals(Status.NEW, parent.getStatus());
-        assertEquals(Status.NEW, n.getStatus());
+        assertEquals(Tree.Status.NEW, parent.getStatus());
+        assertEquals(Tree.Status.NEW, n.getStatus());
 
         assertEquals("/moved", parent.getPath());
         assertEquals("/moved/new", n.getPath());
@@ -217,6 +243,7 @@ public class RootTest extends OakBaseTest {
 
     @Test
     public void moveMoved() throws CommitFailedException {
+        assumeFalse("Known issue with classic move implementation", classicMove);
         Root root = session.getLatestRoot();
         Tree xx = root.getTree("/x/xx");
 
@@ -232,6 +259,24 @@ public class RootTest extends OakBaseTest {
     }
 
     @Test
+    public void moveMovedMoved() throws CommitFailedException {
+        assumeFalse("Known issue with classic move implementation", classicMove);
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+
+        assertTrue(root.move("/x/xx", "/y/xx"));
+        assertTrue(root.move("/y", "/a"));
+        assertTrue(root.move("/a", "/z/a"));
+
+        assertTrue(xx.exists());
+        assertEquals("/z/a/xx", xx.getPath());
+
+        root.commit();
+        assertTrue(xx.exists());
+        assertEquals("/z/a/xx", xx.getPath());
+    }
+
+    @Test
     public void rename() throws CommitFailedException {
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");
@@ -242,7 +287,7 @@ public class RootTest extends OakBaseTest {
         assertFalse(tree.hasChild("x"));
         assertTrue(tree.hasChild("xx"));
         assertEquals("/xx", x.getPath());
-        
+
         root.commit();
 
         assertFalse(tree.hasChild("x"));
@@ -292,7 +337,7 @@ public class RootTest extends OakBaseTest {
     }
 
     @Test
-    public void purgePreservesStatus() throws CommitFailedException {
+    public void purgePreservesStatus() {
         Tree x = session.getLatestRoot().getTree("/x");
         Tree added = x.addChild("added");
 
@@ -423,7 +468,94 @@ public class RootTest extends OakBaseTest {
         r.getChild("N6").remove();
         root.commit();
     }
-    
+
+    @Test
+    public void nonExistentSource() {
+        Root root = session.getLatestRoot();
+        assertFalse(root.move("/d", "/e"));
+    }
+
+    @Test
+    public void nonExistentDestinationParent() {
+        Root root = session.getLatestRoot();
+        assertFalse(root.move("/x", "/q/y"));
+    }
+
+    @Test
+    public void destinationExists() {
+        Root root = session.getLatestRoot();
+        assertFalse(root.move("/x", "/y"));
+    }
+
+    @Test
+    public void moveOne() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        assertTrue(root.move("/x/xx", "/y/xx"));
+        assertEquals("/y/xx", xx.getPath());
+        root.commit();
+        assertEquals("/y/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveSubTree() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        assertTrue(root.move("/x", "/y/x"));
+        assertEquals("/y/x/xx", xx.getPath());
+        root.commit();
+        assertEquals("/y/x/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveBack() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        assertTrue(root.move("/x/xx", "/y/q"));
+        assertTrue(root.move("/y/q", "/x/xx"));
+        assertEquals("/x/xx", xx.getPath());
+        root.commit();
+        assertEquals("/x/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveBackSubTree() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        assertTrue(root.move("/x", "/q"));
+        assertTrue(root.move("/q", "/x"));
+        assertEquals("/x/xx", xx.getPath());
+        root.commit();
+        assertEquals("/x/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveLoop() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        for (int i = 0; i < 5; i++) {
+            assertTrue(root.move("/x/xx", "/y/q"));
+            assertTrue(root.move("/y/q", "/x/xx"));
+        }
+        assertEquals("/x/xx", xx.getPath());
+        root.commit();
+        assertEquals("/x/xx", xx.getPath());
+    }
+
+    @Test
+    public void moveLoopWithCommit() throws Exception {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+        for (int i = 0; i < 5; i++) {
+            assertTrue(root.move("/x/xx", "/y/q"));
+            root.commit();
+            assertTrue(root.move("/y/q", "/x/xx"));
+        }
+        assertEquals("/x/xx", xx.getPath());
+        root.commit();
+        assertEquals("/x/xx", xx.getPath());
+    }
+
     private static void checkEqual(Tree tree1, Tree tree2) {
         assertEquals(tree1.getChildrenCount(Long.MAX_VALUE), tree2.getChildrenCount(Long.MAX_VALUE));
         assertEquals(tree1.getPropertyCount(), tree2.getPropertyCount());
