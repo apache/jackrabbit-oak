@@ -26,12 +26,12 @@ import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.NodeStoreFixtures;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.Parameterized;
 
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.commons.FixturesHelper.Fixture.MEMORY_NS;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class TransientMoveTest extends AbstractRepositoryTest {
@@ -45,7 +45,6 @@ public class TransientMoveTest extends AbstractRepositoryTest {
         return NodeStoreFixtures.asJunitParameters(singleton(MEMORY_NS));
     }
 
-    @Ignore("OAK-9660")
     @Test
     public void transientMove() throws Exception {
         // setup
@@ -91,7 +90,7 @@ public class TransientMoveTest extends AbstractRepositoryTest {
             // What we really want to do is copy the child, but creating a new node with the same name is sufficient.
             // In the real world, this would have content on it, so all the properties and children would be copied - for testing it doesn't matter.
             // JcrUtil.copy(child, parent, "child", false);
-            parent.addNode(child.getName(), child.getPrimaryNodeType().getName());
+            Node c = parent.addNode(child.getName(), child.getPrimaryNodeType().getName());
 
             assertTrue(session.hasPendingChanges()); // None of these changes have been persisted yet. This is to verify that no auto-saves have occurred.
 
@@ -99,6 +98,8 @@ public class TransientMoveTest extends AbstractRepositoryTest {
             session.move("/var/oak-bug/test/parent/child", "/var/oak-bug/test/parent/tmp-4321"); // NPE On this Call.
 
             session.save();
+
+            assertEquals("/var/oak-bug/test/parent/tmp-4321", c.getPath());
         } finally {
             session.logout();
         }
