@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.upgrade.cli.blob.AzureDataStoreFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 public class AzureDataStoreContainer implements BlobStoreContainer {
 

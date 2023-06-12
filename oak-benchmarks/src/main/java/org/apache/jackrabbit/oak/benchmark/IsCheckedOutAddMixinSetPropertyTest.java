@@ -27,7 +27,7 @@ import javax.jcr.Session;
 
 import java.util.List;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class IsCheckedOutAddMixinSetPropertyTest extends ReadDeepTreeTest {
     

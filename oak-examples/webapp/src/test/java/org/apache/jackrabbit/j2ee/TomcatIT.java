@@ -37,7 +37,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlElement;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlInput;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.io.Files;
 
 public class TomcatIT extends TestCase {
 

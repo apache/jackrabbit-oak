@@ -35,7 +35,7 @@ import javax.jcr.Repository;
 import java.io.File;
 import java.io.IOException;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 
 /*
 Similar to {@Link LuceneFullTextWithGlobalIndexSearchTest}. The only diff being this doesn't configure a global full text index

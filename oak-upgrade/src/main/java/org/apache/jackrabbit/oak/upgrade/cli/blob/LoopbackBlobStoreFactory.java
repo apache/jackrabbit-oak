@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.upgrade.cli.blob;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public class LoopbackBlobStoreFactory implements BlobStoreFactory {
 

@@ -53,6 +53,7 @@ public class ElasticIndexPlanner extends FulltextIndexPlanner {
             PropertyDefinition pd = rule.getConfig(propName);
             if (pd != null
                     && o.getPropertyType() != null
+                    && pd.propertyIndex
                     // functions on regexp-based properties must be skipped since the values cannot be indexed
                     && (!pd.isRegexp || !propName.startsWith(QueryConstants.FUNCTION_RESTRICTION_PREFIX))
                     && !o.getPropertyType().isArray()) {
