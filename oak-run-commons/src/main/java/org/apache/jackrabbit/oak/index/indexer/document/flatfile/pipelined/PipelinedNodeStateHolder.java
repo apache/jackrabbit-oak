@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-class PipelinedNodeStateHolder {
+final class PipelinedNodeStateHolder {
     private final String line;
     private final String[] pathElements;
 

@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
-public final class PipelinedNodeStateHolderFactory {
+final class PipelinedNodeStateHolderFactory {
     private final ArrayList<String> arrayBuilder = new ArrayList<>(16);
 
     public PipelinedNodeStateHolder create(String line) {

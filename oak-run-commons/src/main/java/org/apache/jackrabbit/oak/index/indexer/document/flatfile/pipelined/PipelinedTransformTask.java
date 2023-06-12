@@ -23,14 +23,11 @@ import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
 
 public class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> {
@@ -155,8 +152,6 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
                             }
                         }
                     }
-                    // Eagerly release the references to objects in the array, help the GB reclaim the memory
-                    Arrays.fill(dbObjectBatch, null);
                 }
             }
         } catch (Throwable t) {
@@ -165,57 +160,27 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
         }
     }
 
-//    private boolean writeEntry(ByteBuffer buffer, String path, String entryAsJson) {
-//        int sizePrefixPosition = buffer.position();
-//        // Leave space to write the size of the entry.
-//        int byteDataPosition = sizePrefixPosition + 4;
-//        if (buffer.remaining() <= 4) {
-//            // There is no space to write the entry. This check ensures that the call to set the position below will not fail
-//            return false;
-//        }
-//        buffer.mark();
-//        try {
-//            // First write the entry to the buffer, we can compute the size afterwards.
-//            buffer.position(byteDataPosition);
-//            buffer.put(path.getBytes(StandardCharsets.UTF_8));
-//            buffer.put(DELIMITER_BYTE_ARRAY);
-//            buffer.put(entryAsJson.getBytes(StandardCharsets.UTF_8));
-//            // The write above advanced the position to after the byte array representation of the entry,
-//            // so now we can compute its size
-//            int entrySize = buffer.position() - byteDataPosition;
-//            // And prefix it in the buffer
-//            buffer.putInt(sizePrefixPosition, entrySize);
-//            // The absolute write above does not change the position in the buffer that was left after writing the entry
-//            return true;
-//        } catch (BufferOverflowException ex) {
-//            // Not enough space to write the entry. Reset the buffer
-//            LOG.info("Not enough space to write entry: {} to buffer: {}. Space remaining: {}", path, buffer, buffer.remaining());
-//            buffer.reset();
-//            LOG.info("Buffer after reset: {}", buffer);
-//            return false;
-//        }
-//    }
+    private NodeStateEntry toNodeStateEntry(NodeDocument doc, DocumentNodeState dns) {
+        NodeStateEntry.NodeStateEntryBuilder builder = new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
+        if (doc.getModified() != null) {
+            builder.withLastModified(doc.getModified());
+        }
+        builder.withID(doc.getId());
+        return builder.build();
+    }
 
     private Iterable<NodeStateEntry> getEntries(NodeDocument doc) {
         Path path = doc.getPath();
-
         DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
-
         //At DocumentNodeState api level the nodeState can be null
         if (nodeState == null || !nodeState.exists()) {
             return List.of();
         }
-
-        return transform(
-                concat(List.of(nodeState), nodeState.getAllBundledNodesStates()),
-                dns -> {
-                    NodeStateEntry.NodeStateEntryBuilder builder = new NodeStateEntry.NodeStateEntryBuilder(dns, dns.getPath().toString());
-                    if (doc.getModified() != null) {
-                        builder.withLastModified(doc.getModified());
-                    }
-                    builder.withID(doc.getId());
-                    return builder.build();
-                }
-        );
+        ArrayList<NodeStateEntry> nodeStateEntries = new ArrayList<>();
+        nodeStateEntries.add(toNodeStateEntry(doc, nodeState));
+        for (DocumentNodeState dns : nodeState.getAllBundledNodesStates()) {
+            nodeStateEntries.add(toNodeStateEntry(doc, dns));
+        }
+        return nodeStateEntries;
     }
 }

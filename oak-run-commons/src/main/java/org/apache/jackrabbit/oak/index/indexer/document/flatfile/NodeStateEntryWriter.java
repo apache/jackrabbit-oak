@@ -36,7 +36,7 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class NodeStateEntryWriter {
     private static final String OAK_CHILD_ORDER = ":childOrder";
-    public static final String DELIMITER = "|";
+    private static final String DELIMITER = "|";
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
