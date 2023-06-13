@@ -443,10 +443,13 @@ public class MemoryNodeBuilder implements NodeBuilder {
         PropertyState head = builder.getNodeState().getProperty(MoveDetector.SOURCE_PATH);
         if (Objects.equal(base, head)) {
             // Both null: no source path annotation
-            // Both non null but equals: source path annotation is from a previous commit
+            // Both non-null but equals: source path annotation is from a previous commit
             return null;
         } else {
-            return head.getValue(Type.STRING);
+            // OAK-9660: base may have a source path and head does not.
+            // happens when this node had a source path and was transiently
+            // removed and added again (without source path).
+            return head != null ? head.getValue(Type.STRING) : null;
         }
     }
 
