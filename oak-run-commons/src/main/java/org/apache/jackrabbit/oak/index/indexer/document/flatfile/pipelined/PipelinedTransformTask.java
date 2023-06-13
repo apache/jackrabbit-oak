@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
@@ -45,6 +46,7 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTransformTask.class);
+    private static final AtomicInteger threadIdGenerator = new AtomicInteger();
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
@@ -55,6 +57,7 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
     private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
     private final Collection<NodeDocument> collection;
     private final NodeStateEntryWriter entryWriter;
+    private final int threadId = threadIdGenerator.getAndIncrement();
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
@@ -78,10 +81,11 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
     }
 
     @Override
-    public Result call() {
+    public Result call() throws Exception {
+        String originalName = Thread.currentThread().getName();
+        Thread.currentThread().setName("mongo-transform-" + threadId);
         try {
-            LOG.info("Starting transform task. mongoStore={}, queue: {}", mongoStore, mongoDocQueue);
-
+            LOG.info("Starting transform task");
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
             Stopwatch w = Stopwatch.createStarted();
             long totalEntryCount = 0;
@@ -101,7 +105,7 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     nonEmptyBatchesQueue.put(nseBatch);
-                    LOG.info("Dumped {} nodestates in json format in {}", totalEntryCount, w);
+                    LOG.info("Thread terminating. Dumped {} nodestates in json format in {}", totalEntryCount, w);
                     return new Result(totalEntryCount);
                 } else {
                     // Transform object
@@ -155,8 +159,10 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
                 }
             }
         } catch (Throwable t) {
-            LOG.error("Failed to traverse", t);
-            throw new RuntimeException(t);
+            LOG.warn("Thread terminating with exception: " + t);
+            throw t;
+        } finally {
+            Thread.currentThread().setName(originalName);
         }
     }
 
@@ -176,7 +182,7 @@ public class PipelinedTransformTask implements Callable<PipelinedTransformTask.R
         if (nodeState == null || !nodeState.exists()) {
             return List.of();
         }
-        ArrayList<NodeStateEntry> nodeStateEntries = new ArrayList<>();
+        ArrayList<NodeStateEntry> nodeStateEntries = new ArrayList<>(2);
         nodeStateEntries.add(toNodeStateEntry(doc, nodeState));
         for (DocumentNodeState dns : nodeState.getAllBundledNodesStates()) {
             nodeStateEntries.add(toNodeStateEntry(doc, dns));

@@ -57,14 +57,16 @@ public class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.R
     }
 
     @Override
-    public Result call() {
-        LOG.info("Sort entry batch task");
-
+    public Result call() throws Exception {
+        String originalName = Thread.currentThread().getName();
+        Thread.currentThread().setName("mongo-sort");
         try {
+            LOG.info("Starting sort and save task");
             while (true) {
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
+                    LOG.info("Terminating thread, processed {} entries", entriesProcessed);
                     return new Result(entriesProcessed);
                 }
                 sortAndSaveBatch(nseBuffer);
@@ -72,14 +74,16 @@ public class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.R
                 emptyBuffersQueue.put(nseBuffer);
             }
         } catch (Throwable t) {
-            LOG.warn("Error", t);
-            throw new RuntimeException(t);
+            LOG.warn("Thread terminating with exception: " + t);
+            throw t;
+        } finally {
+            Thread.currentThread().setName(originalName);
         }
     }
 
     private final byte[] copyBuffer = new byte[4096];
 
-    private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws IOException, InterruptedException {
+    private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
         ArrayList<SortKey> sortBuffer = nseb.getSortBuffer();
         ByteBuffer buffer = nseb.getBuffer();
         LOG.info("sortAndSaveBatch. Size of batch: {} {}", sortBuffer.size(), humanReadableByteCount(buffer.remaining()));
@@ -109,7 +113,6 @@ public class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.R
                     bytesRemaining -= bytesRead;
                 }
                 writer.write('\n');
-
                 textSize += entrySize + 1;
             }
         }
