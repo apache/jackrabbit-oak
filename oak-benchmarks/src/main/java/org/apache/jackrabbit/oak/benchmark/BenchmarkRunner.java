@@ -465,7 +465,8 @@ public class BenchmarkRunner {
                         new SetPropertyTransientTest(),
                         new GetURITest(),
                         new ISO8601FormatterTest(),
-                        new ReadBinaryPropertiesTest()
+                        new ReadBinaryPropertiesTest(),
+                        new AccessAfterMoveTest()
                 )
         );
 
