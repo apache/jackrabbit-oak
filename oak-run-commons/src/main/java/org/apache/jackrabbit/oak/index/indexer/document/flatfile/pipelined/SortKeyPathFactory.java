@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import java.util.ArrayList;
@@ -24,8 +23,19 @@ import java.util.Set;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
-public final class PathSortKeyFactory {
+/**
+ * Creates String[] representing a path efficiently. It implements the following optimizations:
+ * <ul>
+ * <li>Reuse an internal array list to accumulate the parts of the path, before creating a String[] sized to this particular path.
+ * <li><a href="https://www.baeldung.com/string/intern">Interns</a> the top level elements of the path.
+ * These are very likely to be repeated in most of the entries, so they are good candidates to be interned.
+ * </ul>
+ *
+ */
+public final class SortKeyPathFactory {
     private final ArrayList<String> arrayBuilder = new ArrayList<>(16);
+    // Common words that appear in paths.
+    // TODO: confirm that checking for the common words is a worthwhile optimization.
     private static final Set<String> commonWords = Set.of("content", "dam", "product-assets",
             "jcr:content", "jcr:title", "jcr:lastModified", "jcr:created", "jcr:primaryType", "jcr:uuid"
 //            "cq:tags", "cq:lastModified", "cq:lastModifiedBy", "cq:template", "cq:templatePath",

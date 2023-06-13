@@ -670,7 +670,7 @@ public class ExternalSort {
         try {
             for (File f : files) {
                 InputStream in = algorithm.getInputStream(new FileInputStream(f));
-                BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                BufferedReader br = new BufferedReader(new InputStreamReader(in, cs));
                 BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
                 bfbs.add(bfb);
             }

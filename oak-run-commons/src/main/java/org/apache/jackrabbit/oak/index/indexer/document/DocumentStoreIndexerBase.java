@@ -75,9 +75,9 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
-public abstract class DocumentStoreIndexerBase implements Closeable{
+public abstract class DocumentStoreIndexerBase implements Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final Logger traversalLog = LoggerFactory.getLogger(DocumentStoreIndexerBase.class.getName()+".traversal");
+    private final Logger traversalLog = LoggerFactory.getLogger(DocumentStoreIndexerBase.class.getName() + ".traversal");
     protected final Closer closer = Closer.create();
     protected final IndexHelper indexHelper;
     protected List<NodeStateIndexerProvider> indexerProviders;
@@ -128,27 +128,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
             //As first traversal is for dumping change the message prefix
             progressReporterPerTask.setMessagePrefix("Dumping from " + entryTraverserID);
             return new NodeStateEntryTraverser(entryTraverserID, rootRevision,
-                            documentNodeStore, documentStore, traversingRange)
-                            .withProgressCallback((id) -> {
-                                try {
-                                    progressReporterPerTask.traversedNode(() -> id);
-                                } catch (CommitFailedException e) {
-                                    throw new RuntimeException(e);
-                                }
-                                traversalLogger.trace(id);
-                            });
-        }
-
-        public MongoDocumentStore getDocumentStore() {
-            return documentStore;
-        }
-
-        public RevisionVector getRootRevision() {
-            return rootRevision;
-        }
-
-        public DocumentNodeStore getDocumentNodeStore() {
-            return documentNodeStore;
+                    documentNodeStore, documentStore, traversingRange)
+                    .withProgressCallback((id) -> {
+                        try {
+                            progressReporterPerTask.traversedNode(() -> id);
+                        } catch (CommitFailedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        traversalLogger.trace(id);
+                    });
         }
     }
 
@@ -165,7 +153,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
         DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
-        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L ,10);
+        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L, 10);
         FlatFileNodeStoreBuilder builder = null;
         int backOffTimeInMillis = 5000;
         MemoryManager memoryManager = new DefaultMemoryManager();
@@ -177,6 +165,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                         .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
                         .withPathPredicate(pathPredicate)
+                        .withRootRevision(rootDocumentState.getRootRevision())
+                        .withNodeStore(nodeStore)
+                        .withMongoDocumentStore(getMongoDocumentStore())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog, indexer));
                 for (File dir : previousDownloadDirs) {
@@ -187,7 +178,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
                 } else {
                     storeList.add(builder.build());
                 }
-                for (FlatFileStore item: storeList) {
+                for (FlatFileStore item : storeList) {
                     closer.register(item);
                 }
             } catch (CompositeException e) {
@@ -352,7 +343,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable{
         }
     }
 
-    private long getEstimatedDocumentCount(){
+    private long getEstimatedDocumentCount() {
         MongoConnection mongoConnection = indexHelper.getService(MongoConnection.class);
         if (mongoConnection != null) {
             return mongoConnection.getDatabase().getCollection("nodes").count();

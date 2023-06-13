@@ -18,26 +18,34 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import java.util.ArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
+public class ConfigHelper {
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
 
-/**
- * Factory of {@link PipelinedNodeStateHolder}, reuse an internal array list to reduce object allocation.
- * Not thread safe.
- */
-final class PipelinedNodeStateHolderFactory {
-    private final ArrayList<String> arrayBuilder = new ArrayList<>(16);
-
-    public PipelinedNodeStateHolder create(String line) {
-        String path = getPath(line);
-        arrayBuilder.clear();
-        for (String part : elements(path)) {
-            arrayBuilder.add(part);
+    public static int getEnvVariableAsInt(String name, int defaultValue) {
+        String value = System.getenv(name);
+        int result;
+        if (value == null) {
+            result = defaultValue;
+        } else {
+            result = Integer.parseInt(value);
         }
-        String[] pathElements = arrayBuilder.toArray(new String[0]);
-        return new PipelinedNodeStateHolder(line, pathElements);
+        LOG.info("Config {}={}", name, result);
+        return result;
     }
+
+//    private boolean getEnvVariableAsBoolean(String name, boolean defaultValue) {
+//        String value = System.getenv(name);
+//        boolean result;
+//        if (value == null) {
+//            result = defaultValue;
+//        } else {
+//            result = Boolean.parseBoolean(value);
+//        }
+//        LOG.info("Config {}={}", name, result);
+//        return result;
+//    }
 
 }
