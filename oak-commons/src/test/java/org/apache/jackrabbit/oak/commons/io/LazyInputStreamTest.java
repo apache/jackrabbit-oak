@@ -29,16 +29,11 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Locale;
 import java.util.function.Supplier;
 
-import org.apache.jackrabbit.oak.commons.GuavaDeprecation;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.event.Level;
 
 /**
  * Tests the LazyInputStream class.
@@ -103,82 +98,6 @@ public class LazyInputStreamTest {
 
         // test that the file is closed after reading the last byte
         in = new LazyInputStream(asInputStreamSupplier(file));
-        assertEquals(0, in.read());
-        assertEquals(-1, in.read());
-
-        in.close();
-
-        file.delete();
-    }
-
-    @Test
-    public void testDeprecatedLogs() throws IOException {
-        for (Level level : new Level[] { Level.DEBUG, Level.INFO, Level.WARN, Level.ERROR }) {
-            LogCustomizer lc = LogCustomizer.forLogger(GuavaDeprecation.class).enable(level).create();
-            lc.starting();
-            String defaultLevel = GuavaDeprecation.setLogLevel(level.toString().toLowerCase(Locale.ENGLISH));
-            try {
-                testDeprecated();
-                assertEquals(7, lc.getLogs().size());
-            } finally {
-                lc.finished();
-                GuavaDeprecation.setLogLevel(defaultLevel);
-            }
-        }
-    }
-
-    private void testDeprecated() throws IOException {
-        createFile();
-
-        // test open / close (without reading)
-        LazyInputStream in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
-        in.close();
-
-        // test reading too much and closing too much
-        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
-        assertEquals(0, in.read());
-        assertEquals(-1, in.read());
-        assertEquals(-1, in.read());
-        assertEquals(-1, in.read());
-        in.close();
-        in.close();
-        in.close();
-
-        // test markSupported, mark, and reset
-        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
-        assertFalse(in.markSupported());
-        in.mark(1);
-        assertEquals(0, in.read());
-        try {
-            in.reset();
-            fail();
-        } catch (IOException e) {
-            // expected
-        }
-        assertEquals(-1, in.read());
-        in.close();
-
-        // test read(byte[])
-        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
-        byte[] test = new byte[2];
-        assertEquals(1, in.read(test));
-        in.close();
-
-        // test read(byte[],int,int)
-        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
-        assertEquals(1, in.read(test, 0, 2));
-        in.close();
-
-        // test skip
-        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
-        assertEquals(2, in.skip(2));
-        assertEquals(-1, in.read(test));
-        in.close();
-
-        createFile();
-
-        // test that the file is closed after reading the last byte
-        in = new LazyInputStream(com.google.common.io.Files.asByteSource(file));
         assertEquals(0, in.read());
         assertEquals(-1, in.read());
 

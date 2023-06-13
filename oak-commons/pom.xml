@@ -45,10 +45,6 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Import-Package>
-              <!-- OAK-7182 -->${guava.osgi.import},
-              *
-            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.commons,
               org.apache.jackrabbit.oak.commons.cache,
@@ -91,11 +87,6 @@
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>

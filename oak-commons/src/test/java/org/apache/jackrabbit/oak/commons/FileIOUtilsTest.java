@@ -63,7 +63,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -98,23 +97,6 @@ public class FileIOUtilsTest {
 
         File f = folder.newFile();
         int count = writeStrings(added.iterator(), f, false, new java.util.function.Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
-            }
-        }, null, null);
-        assertEquals(added.size(), count);
-
-        Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
-        assertEquals(actual, retrieved);
-    }
-
-    @Test
-    public void writeCustomReadOrgStringsDeprecated() throws Exception {
-        Set<String> added = newHashSet("a-", "z-", "e-", "b-");
-        Set<String> actual = newHashSet("a", "z", "e", "b");
-
-        File f = folder.newFile();
-        int count = writeStrings(added.iterator(), f, false, new com.google.common.base.Function<String, String>() {
             @Nullable @Override public String apply(@Nullable String input) {
                 return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
             }
@@ -362,36 +344,12 @@ public class FileIOUtilsTest {
     }
 
     @Test
-    public void deprecatedfileIteratorTest() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
-        File f = assertWrite(added.iterator(), false, added.size());
-
-        BurnOnCloseFileIterator<String> iterator =
-            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()));
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(f.exists());
-    }
-
-    @Test
     public void fileIteratorBurnTest() throws Exception {
         Set<String> added = newHashSet("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
                 org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(!f.exists());
-    }
-
-    @Test
-    public void deprecatedFileIteratorBurnTest() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
-        File f = assertWrite(added.iterator(), false, added.size());
-
-        BurnOnCloseFileIterator<String> iterator =
-            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -410,18 +368,6 @@ public class FileIOUtilsTest {
     }
 
     @Test
-    public void deprecatedFileIteratorLineBreakTest() throws IOException {
-        Set<String> added = newHashSet(getLineBreakStrings());
-        File f = assertWrite(added.iterator(), true, added.size());
-
-        BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f, UTF_8.toString()),
-                f, (input) -> unescapeLineBreaks(input));
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(!f.exists());
-    }
-
-    @Test
     public void fileIteratorRandomizedTest() throws Exception {
         Set<String> added = newHashSet();
         for (int i = 0; i < 100; i++) {
@@ -431,21 +377,6 @@ public class FileIOUtilsTest {
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
                 FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(!f.exists());
-    }
-
-    @Test
-    public void deprecatedFileIteratorRandomizedTest() throws Exception {
-        Set<String> added = newHashSet();
-        for (int i = 0; i < 100; i++) {
-            added.add(getRandomTestString());
-        }
-        File f = assertWrite(added.iterator(), true, added.size());
-
-        BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f, UTF_8.toString()),
-                f, (input) -> unescapeLineBreaks(input));
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -475,27 +406,6 @@ public class FileIOUtilsTest {
 
         assertTrue(f.exists());
         assertTrue(!f2.exists());
-    }
-
-    @Test
-    public void testDeprecatedTransformingComparator() throws Exception {
-        Comparator<String> delegate = new Comparator<String>() {
-            @Override
-            public int compare(String o1, String o2) {
-                return o1.compareTo(o2);
-            }
-        };
-        com.google.common.base.Function<String, String> fun = new com.google.common.base.Function<String, String>() {
-            @Override
-            public String apply(String input) {
-                return input.toLowerCase(Locale.ENGLISH);
-            }
-        };
-        FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate, fun);
-
-        assertTrue(0 > delegate.compare("A", "a"));
-        assertTrue(0 < delegate.compare("a", "A"));
-        assertTrue(0 == comp.compare("a", "A"));
     }
 
     @Test
