@@ -24,28 +24,9 @@ import org.slf4j.LoggerFactory;
 public class ConfigHelper {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
 
-    public static int getEnvVariableAsInt(String name, int defaultValue) {
-        String value = System.getenv(name);
-        int result;
-        if (value == null) {
-            result = defaultValue;
-        } else {
-            result = Integer.parseInt(value);
-        }
+    public static int getSystemPropertyAsInt(String name, int defaultValue) {
+        int result = Integer.getInteger(name, defaultValue);
         LOG.info("Config {}={}", name, result);
         return result;
     }
-
-//    private boolean getEnvVariableAsBoolean(String name, boolean defaultValue) {
-//        String value = System.getenv(name);
-//        boolean result;
-//        if (value == null) {
-//            result = defaultValue;
-//        } else {
-//            result = Boolean.parseBoolean(value);
-//        }
-//        LOG.info("Config {}={}", name, result);
-//        return result;
-//    }
-
 }

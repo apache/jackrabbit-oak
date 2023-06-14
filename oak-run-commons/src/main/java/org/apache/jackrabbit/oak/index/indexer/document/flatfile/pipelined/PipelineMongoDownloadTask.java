@@ -67,7 +67,8 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
         }
     }
 
-    public static final String PIPELINED_DOWNLOAD_RETRY_DURING_SECONDS = "PIPELINED_DOWNLOAD_RETRY_DURING_SECONDS";
+    public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = 300;
     // Short retrial time, in most cases if the connection to a replica fails, trying again will establish a connection
     // to another replica which is up
     private final static long retryInitialIntervalMillis = 100;
@@ -117,7 +118,9 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
         };
 
         // Default retries for 5 minutes.
-        this.retryDuringSeconds = ConfigHelper.getEnvVariableAsInt(PIPELINED_DOWNLOAD_RETRY_DURING_SECONDS, 300);
+        this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
+                OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS,
+                DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS);
         this.dbCollection = MongoDocumentStoreHelper.getDBCollection(mongoStore, collection);
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI

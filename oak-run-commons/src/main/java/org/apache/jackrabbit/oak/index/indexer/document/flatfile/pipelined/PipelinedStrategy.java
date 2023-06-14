@@ -105,7 +105,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  * Reusing the buffers reduces significantly the pressure on the garbage collector and ensures that we do not run out
  * of memory, as the largest blocks of memory are pre-allocated and reused.
  * <p>
- * The total amount of memory used by the buffers is a configurable parameter (env variable {@link #PIPELINED_WORKING_MEMORY_MB}).
+ * The total amount of memory used by the buffers is a configurable parameter (env variable {@link #OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB}).
  * This memory is divided in {@code numberOfBuffers + 1 </code>} regions, each of
  * {@code regionSize = PIPELINED_WORKING_MEMORY_MB/(#numberOfBuffers + 1)} size.
  * Each ByteBuffer is of {@code regionSize} big. The extra region is to account for the memory taken by the {@link SortKey}
@@ -119,10 +119,15 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  * <h2>Retrials on broken MongoDB connections</h2>
  */
 public class PipelinedStrategy implements SortStrategy {
-    public static final String PIPELINED_MONGO_DOC_QUEUE_SIZE = "PIPELINED_MONGO_DOC_QUEUE_SIZE";
-    public static final String PIPELINED_MONGO_BLOCK_SIZE = "PIPELINED_MONGO_DOC_BATCH_SIZE";
-    public static final String PIPELINED_TRANSFORM_THREADS = "PIPELINED_TRANSFORM_THREADS";
-    public static final String PIPELINED_WORKING_MEMORY_MB = "PIPELINED_WORKING_MEMORY_MB";
+    public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = "oak.indexer.pipelined.mongoDocQueueSize";
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = 1000;
+    public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = "oak.indexer.pipelined.mongoDocBatchSize";
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = 50;
+    public static final String OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = "oak.indexer.pipelined.transformThreads";
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = 3;
+    public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
+    // 0 means autodetect
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = 0;
 
     static final BasicDBObject[] SENTINEL_MONGO_DOCUMENT = new BasicDBObject[0];
     static final NodeStateEntryBatch SENTINEL_NSE_BUFFER = new NodeStateEntryBatch(ByteBuffer.allocate(0), 0);
@@ -189,12 +194,23 @@ public class PipelinedStrategy implements SortStrategy {
         Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
     }
 
+
+    private int autodetectWorkingMemory() {
+        int maxHeapSizeMB = (int) (Runtime.getRuntime().maxMemory() / FileUtils.ONE_MB);
+        int workingMemoryMB = maxHeapSizeMB - 2048;
+        LOG.info("Auto detecting working memory. Maximum heap size: {} MB, selected working memory: {} MB", maxHeapSizeMB, workingMemoryMB);
+        return workingMemoryMB;
+    }
+
     @Override
     public File createSortedStoreFile() throws IOException {
-        int mongoDocBlockQueueSize = ConfigHelper.getEnvVariableAsInt(PIPELINED_MONGO_DOC_QUEUE_SIZE, 1000);
-        int mongoBatchSize = ConfigHelper.getEnvVariableAsInt(PIPELINED_MONGO_BLOCK_SIZE, 100);
-        int transformThreads = ConfigHelper.getEnvVariableAsInt(PIPELINED_TRANSFORM_THREADS, 1);
-        int workingMemoryMB = ConfigHelper.getEnvVariableAsInt(PIPELINED_WORKING_MEMORY_MB, 3000);
+        int mongoDocBlockQueueSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE);
+        int mongoBatchSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE);
+        int transformThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS);
+        int workingMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB);
+        if (workingMemoryMB == 0) {
+            workingMemoryMB = autodetectWorkingMemory();
+        }
 
         int numberOfThreads = 1 + transformThreads + 1; // dump, transform, sort threads.
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
@@ -217,10 +233,10 @@ public class PipelinedStrategy implements SortStrategy {
             int maxNumberOfEntries = memoryForEntriesMB * 1024 * 4; // Assuming that 1KB is enough for 4 entries.
             int maxNumberOfEntriesPerBuffer = maxNumberOfEntries / numberOfBuffers;
 
-            // A ByteBuffer can have be at most Integer.MAX_VALUE big
+            // A ByteBuffer can be at most Integer.MAX_VALUE bytes
             int bufferSizeBytes;
             {
-                long bufferSizeAsLong = ((long) workingMemoryMB * FileUtils.ONE_MB) / memoryArenas;
+                long bufferSizeAsLong = (workingMemoryMB * FileUtils.ONE_MB) / memoryArenas;
                 if (bufferSizeAsLong > Integer.MAX_VALUE) {
                     // Probably not necessary to subtract 16, just a safeguard to avoid boundary conditions.
                     bufferSizeBytes = Integer.MAX_VALUE - 16;
@@ -231,14 +247,13 @@ public class PipelinedStrategy implements SortStrategy {
             }
             if (bufferSizeBytes < MIN_ENTRY_BATCH_BUFFER_SIZE_MB * FileUtils.ONE_MB) {
                 throw new IllegalArgumentException("Entry batch buffer size too small: " + bufferSizeBytes +
-                        "bytes. Must be at least " + MIN_ENTRY_BATCH_BUFFER_SIZE_MB + "MB. " +
+                        "bytes. Must be at least " + MIN_ENTRY_BATCH_BUFFER_SIZE_MB + " MB. " +
                         "To increase the size of the buffers, either increase the size of the working memory region " +
-                        "(environment variable " + PIPELINED_WORKING_MEMORY_MB + ") or decrease the number of transform " +
-                        "threads (" + PIPELINED_TRANSFORM_THREADS + ")");
+                        "(system property" + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ") or decrease the number of transform " +
+                        "threads (" + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ")");
             }
-
-            LOG.info("Working memory: {} MB, number of buffers: {}, size of each buffer: {}, number of entries per buffer: {}",
-                    workingMemoryMB, numberOfBuffers, bufferSizeBytes, maxNumberOfEntriesPerBuffer);
+            LOG.info("Working memory: {} MB, number of buffers: {}, size of each buffer: {} MB, number of entries per buffer: {}",
+                    workingMemoryMB, numberOfBuffers, bufferSizeBytes / FileUtils.ONE_MB, maxNumberOfEntriesPerBuffer);
 
             // download -> transform thread.
             ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocBlockQueueSize);

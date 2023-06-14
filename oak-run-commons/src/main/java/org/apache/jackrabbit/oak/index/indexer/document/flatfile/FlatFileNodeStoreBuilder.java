@@ -151,7 +151,9 @@ public class FlatFileNodeStoreBuilder {
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
          */
         MULTITHREADED_TRAVERSE_WITH_SORT,
-
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
+         */
         PIPELINED
     }
 
