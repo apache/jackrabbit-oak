@@ -125,7 +125,8 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
-        this.readPreference = MongoDocumentStoreHelper.getConfiguredReadPreference(mongoStore, collection);
+//        this.readPreference = MongoDocumentStoreHelper.getConfiguredReadPreference(mongoStore, collection);
+        this.readPreference = ReadPreference.secondaryPreferred();
         LOG.info("Using read preference {}", readPreference.getName());
 
     }
@@ -139,9 +140,6 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
             MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(mongoStore, collection);
             //TODO This may lead to reads being routed to secondary depending on MongoURI
             //So caller must ensure that its safe to read from secondary
-
-            ReadPreference readPreference = MongoDocumentStoreHelper.getConfiguredReadPreference(mongoStore, collection);
-            LOG.info("Using read preference {}", readPreference.getName());
 
             this.nextLastModified = getFirstLastModified(dbCollection);
             long upperBoundLastModified = getLatestLastModified(dbCollection) + 1;
