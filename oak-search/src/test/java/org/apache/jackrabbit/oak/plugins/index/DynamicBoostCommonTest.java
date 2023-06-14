@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
@@ -167,15 +168,21 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         Tree testParent = createNodeWithType(root.getTree("/"), "test", JcrConstants.NT_UNSTRUCTURED, "");
 
         Tree predicted1 = createAssetNodeWithPredicted(testParent, "asset1", "titleone long");
+        predicted1.setProperty("jcr:mixinTypes", List.of("mix:referenceable"), Type.STRINGS);
+        predicted1.setProperty("jcr:uuid", UUID.randomUUID().toString());
         createPredictedTag(predicted1, "plant", 0.1);
         createPredictedTag(predicted1, "flower", 0.1);
 
         Tree predicted2 = createAssetNodeWithPredicted(testParent, "asset2", "titletwo long");
+        predicted2.setProperty("jcr:mixinTypes", List.of("mix:referenceable"), Type.STRINGS);
+        predicted2.setProperty("jcr:uuid", UUID.randomUUID().toString());
         createPredictedTag(predicted2, "plant", 0.9);
         createPredictedTag(predicted2, "flower", 0.1);
         createPredictedTag(predicted2, "coffee", 0.5);
 
         Tree predicted3 = createAssetNodeWithPredicted(testParent, "asset3", "titlethree short");
+        predicted3.setProperty("jcr:mixinTypes", List.of("mix:referenceable"), Type.STRINGS);
+        predicted3.setProperty("jcr:uuid", UUID.randomUUID().toString());
         createPredictedTag(predicted3, "plant", 0.5);
         createPredictedTag(predicted3, "blue", 0.5);
         root.commit();
@@ -202,8 +209,6 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         predictedTagsDynamicBoost.setProperty("name", "jcr:content/metadata/predictedTags/.*");
         predictedTagsDynamicBoost.setProperty("isRegexp", true);
         predictedTagsDynamicBoost.setProperty("dynamicBoost", true);
-        predictedTagsDynamicBoost.setProperty("propertyIndex", true);
-        predictedTagsDynamicBoost.setProperty("nodeScopeIndex", true);
 
         if (similarityTags) {
             Tree predictedTags = createNodeWithType(indexRuleProps, "predictedTags", JcrConstants.NT_UNSTRUCTURED, "");
@@ -211,6 +216,7 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
             predictedTags.setProperty("isRegexp", true);
             predictedTags.setProperty("similarityTags", true);
         }
+
         root.commit();
     }
 
