@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.io.Files;
@@ -48,6 +49,7 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -146,12 +148,16 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
     @Test
     public void reindexAndThenImport() throws Exception {
         createTestData(true);
+        int fooSuggestCount = 2;
+        int contentCount = 100;
+        addSuggestContent(fixture, "/testnode/suggest1", "foo", fooSuggestCount);
         fixture.getAsyncIndexUpdate("async").run();
 
         //Update index to bar property also but do not index yet
         indexBarPropertyAlso(fixture);
 
         int fooCount = getFooCount(fixture, "foo");
+        List<String> suggestResults1 = getSuggestResults(fixture);
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
 
         //Close the repository so as all changes are flushed
@@ -178,15 +184,18 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         //import
 
         IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
-        addTestContent(fixture2, "/testNode/b", "foo", 100);
-        addTestContent(fixture2, "/testNode/c", "bar", 100);
+        addTestContent(fixture2, "/testNode/b", "foo", contentCount);
+        addTestContent(fixture2, "/testNode/c", "bar", contentCount);
+        addSuggestContent(fixture2, "/testNode/suggest2", "foo", fooSuggestCount);
         fixture2.getAsyncIndexUpdate("async").run();
 
         String explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString("traverse"));
         assertThat(explain, not(containsString(TEST_INDEX_PATH)));
         int foo2Count = getFooCount(fixture2, "foo");
-        assertEquals(fooCount + 100, foo2Count);
+        List<String> suggestResults2 = getSuggestResults(fixture2);
+        assertEquals(suggestResults1.size() + fooSuggestCount, suggestResults2.size());
+        assertEquals(fooCount + contentCount + fooSuggestCount, foo2Count);
         assertNotNull(fixture2.getNodeStore().retrieve(checkpoint));
         fixture2.close();
 
@@ -213,8 +222,10 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
         IndexRepositoryFixture fixture4 = new LuceneRepositoryFixture(storeDir);
         int foo4Count = getFooCount(fixture4, "foo");
+        List<String> suggestResults4 = getSuggestResults(fixture4);
         //new count should be same as previous
         assertEquals(foo2Count, foo4Count);
+        assertEquals(suggestResults2.size(), suggestResults4.size());
 
         //Checkpoint must be released
         assertNull(fixture4.getNodeStore().retrieve(checkpoint));
@@ -387,6 +398,30 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         String explanation = explainRow.getValue("plan").getString();
         session.logout();
         return explanation;
+    }
+
+    public List<String> getSuggestResults(IndexRepositoryFixture fixture) throws Exception {
+        Session session = fixture.getAdminSession();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String sql = "SELECT [rep:suggest()] FROM [nt:base] WHERE SUGGEST('sugge')";
+        String explanation = getQueryPlan(fixture, sql);
+        assertThat(explanation, containsString("/oak:index/fooIndex"));
+
+        Query q = qm.createQuery(sql, Query.SQL);
+        List<String> result = getResult(q.execute(), "rep:suggest()");
+        assertNotNull(result);
+        return result;
+    }
+
+    private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+        List<String> results = Lists.newArrayList();
+        RowIterator it = result.getRows();
+        while (it.hasNext()) {
+            Row row = it.nextRow();
+            results.add(row.getValue(propertyName).getString());
+        }
+        return results;
     }
 
     public static <E extends Throwable> void assertExits(final int expectedStatus, final ThrowingExecutable<E> executable) throws E {
