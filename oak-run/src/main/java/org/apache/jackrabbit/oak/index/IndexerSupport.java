@@ -111,7 +111,7 @@ public class IndexerSupport {
 
     private void dumpIndexDefinitions(NodeStore nodeStore) throws IOException, CommitFailedException {
         IndexDefinitionPrinter printer = new IndexDefinitionPrinter(nodeStore, indexHelper.getIndexPathService());
-        printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\"]}");
+        printer.setFilter("{\"properties\":[\"*\", \"-:childOrder\"],\"nodes\":[\"*\", \"-:index-definition\", \"-:data\", \"-:suggest-data\"]}");
         PrinterDumper dumper = new PrinterDumper(getLocalIndexDir(), IndexDefinitionUpdater.INDEX_DEFINITIONS_JSON,
                 false, Format.JSON, printer);
         dumper.dump();

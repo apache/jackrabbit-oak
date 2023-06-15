@@ -32,6 +32,7 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
@@ -53,6 +54,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -111,15 +113,29 @@ public class ReindexIT extends AbstractIndexCommandTest {
         assertEquals(1, idxDirs.size());
     }
 
+    private void addSuggestContent(RepositoryFixture fixture, String basePath, String propName, int count) throws RepositoryException, IOException {
+        Session session = fixture.getAdminSession();
+        for (int i = 0; i < count; i++) {
+            getOrCreateByPath(basePath + i,
+                    "oak:Unstructured", session).setProperty(propName, "suggest Property " + i + basePath);
+        }
+        session.save();
+        session.logout();
+    }
+
     @Test
     public void reindexAndThenImport() throws Exception {
         createTestData(true);
+        int fooSuggestCount = 2;
+        int contentCount = 100;
+        addSuggestContent(fixture, "/testnode/suggest1", "foo", fooSuggestCount);
         fixture.getAsyncIndexUpdate("async").run();
 
         //Update index to bar property also but do not index yet
         indexBarPropertyAlso(fixture);
 
         int fooCount = getFooCount(fixture, "foo");
+        List<String> suggestResults1 = getSuggestResults(fixture, "foo");
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
 
         //Close the repository so as all changes are flushed
@@ -146,8 +162,9 @@ public class ReindexIT extends AbstractIndexCommandTest {
         //import
 
         RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
-        addTestContent(fixture2, "/testNode/b", "foo", 100);
-        addTestContent(fixture2, "/testNode/c", "bar", 100);
+        addTestContent(fixture2, "/testNode/b", "foo", contentCount);
+        addTestContent(fixture2, "/testNode/c", "bar", contentCount);
+        addSuggestContent(fixture2, "/testNode/suggest2", "foo", fooSuggestCount);
         fixture2.getAsyncIndexUpdate("async").run();
 
         String explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
@@ -155,7 +172,9 @@ public class ReindexIT extends AbstractIndexCommandTest {
         assertThat(explain, not(containsString(TEST_INDEX_PATH)));
 
         int foo2Count = getFooCount(fixture2, "foo");
-        assertEquals(fooCount + 100, foo2Count);
+        List<String> suggestResults2 = getSuggestResults(fixture2, "foo");
+        assertEquals(suggestResults1.size() + fooSuggestCount, suggestResults2.size());
+        assertEquals(fooCount + contentCount + fooSuggestCount, foo2Count);
         assertNotNull(fixture2.getNodeStore().retrieve(checkpoint));
         fixture2.close();
 
@@ -182,10 +201,11 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         RepositoryFixture fixture4 = new RepositoryFixture(storeDir);
         int foo4Count = getFooCount(fixture4, "foo");
+        List<String> suggestResults4 = getSuggestResults(fixture4, "foo");
 
         //new count should be same as previous
         assertEquals(foo2Count, foo4Count);
-
+        assertEquals(suggestResults2.size(), suggestResults4.size());
         //Checkpoint must be released
         assertNull(fixture4.getNodeStore().retrieve(checkpoint));
 
@@ -332,6 +352,27 @@ public class ReindexIT extends AbstractIndexCommandTest {
         int size = Iterators.size(result.getNodes());
         session.logout();
         return size;
+    }
+
+    public List<String> getSuggestResults(RepositoryFixture fixture, String propName) throws Exception {
+        Session session = fixture.getAdminSession();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String sql = "SELECT [rep:suggest()] FROM [nt:base] WHERE SUGGEST('sugge')";
+        Query q = qm.createQuery(sql, Query.SQL);
+        List<String> result = getResult(q.execute(), "rep:suggest()");
+        assertNotNull(result);
+        return result;
+    }
+
+    static List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+        List<String> results = Lists.newArrayList();
+        RowIterator it = result.getRows();
+        while (it.hasNext()) {
+            Row row = it.nextRow();
+            results.add(row.getValue(propertyName).getString());
+        }
+        return results;
     }
 
     private static String getQueryPlan(RepositoryFixture fixture, String query) throws RepositoryException, IOException {
