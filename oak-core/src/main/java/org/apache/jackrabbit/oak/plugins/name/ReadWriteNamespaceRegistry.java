@@ -25,6 +25,8 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -32,6 +34,8 @@ import org.apache.jackrabbit.oak.api.Tree;
  */
 public abstract class ReadWriteNamespaceRegistry
         extends ReadOnlyNamespaceRegistry {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ReadWriteNamespaceRegistry.class);
 
     public ReadWriteNamespaceRegistry(Root root) {
         super(root);
@@ -63,6 +67,8 @@ public abstract class ReadWriteNamespaceRegistry
     @Override
     public void registerNamespace(String prefix, String uri)
             throws RepositoryException {
+        LOG.error("registering: " + uri);
+
         if (prefix.isEmpty() && uri.isEmpty()) {
             return; // the default empty namespace is always registered
         } else if (prefix.isEmpty() || uri.isEmpty()) {
