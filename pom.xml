@@ -105,6 +105,7 @@
             <exclude>.git/**</exclude>
             <exclude>.idea/**</exclude>
             <exclude>.gitignore</exclude>
+            <exclude>oak-shaded-guava/dependency-reduced-pom.xml</exclude>
             <exclude>oak-doc/*.uxf</exclude>
             <exclude>oak-doc*/.*/**</exclude>
             <exclude>oak-doc*/*.iml</exclude>
