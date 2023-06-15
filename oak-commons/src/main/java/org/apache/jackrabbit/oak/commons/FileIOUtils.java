@@ -67,16 +67,6 @@ public final class FileIOUtils {
     };
 
     /**
-     * @deprecated use {@link Function#identity()} instead
-     */
-    @Deprecated(since = "1.20.0", forRemoval = true)
-    public final static com.google.common.base.Function<String, String> passThruTransformer = new com.google.common.base.Function<String, String>() {
-        @Nullable @Override public String apply(@Nullable String input) {
-            return input;
-        }
-    };
-
-    /**
      * Sorts the given file externally using the {@link #lexComparator} and removes duplicates.
      *
      * @param file file whose contents needs to be sorted
