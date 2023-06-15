@@ -25,19 +25,15 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
-import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.bson.BsonDocument;
-import org.bson.BsonNull;
-import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,7 +48,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Predicate;
 
 import static com.mongodb.client.model.Sorts.ascending;
-import static com.mongodb.client.model.Sorts.descending;
 
 class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
     public static class Result {
@@ -141,8 +136,7 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
             //TODO This may lead to reads being routed to secondary depending on MongoURI
             //So caller must ensure that its safe to read from secondary
 
-            this.nextLastModified = getFirstLastModified(dbCollection);
-            long upperBoundLastModified = getLatestLastModified(dbCollection) + 1;
+            this.nextLastModified = 0;
             this.lastIdDownloaded = null;
             Instant failureTimestamp = null;
             long retryInterval = retryInitialIntervalMillis;
@@ -152,13 +146,13 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
                 try {
                     if (lastIdDownloaded != null) {
                         LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
-                        downloadRange(new TraversingRange(new LastModifiedRange(nextLastModified, nextLastModified + 1), lastIdDownloaded));
+                        downloadRange(new DownloadRange(nextLastModified, nextLastModified + 1, lastIdDownloaded));
                         // Reset the retries
                         failureTimestamp = null;
                         // Continue downloading everything starting from the next _lastmodified value
-                        downloadRange(new TraversingRange(new LastModifiedRange(nextLastModified + 1, upperBoundLastModified), null));
+                        downloadRange(new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null));
                     } else {
-                        downloadRange(new TraversingRange(new LastModifiedRange(nextLastModified, upperBoundLastModified), null));
+                        downloadRange(new DownloadRange(nextLastModified, Long.MAX_VALUE, null));
                     }
                     LOG.info("Terminating thread, processed {} documents", documentsRead);
                     return new Result(documentsRead);
@@ -199,11 +193,11 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
         }
     }
 
-    private void downloadRange(TraversingRange range) throws InterruptedException, TimeoutException {
+    private void downloadRange(DownloadRange range) throws InterruptedException, TimeoutException {
         BasicDBObject[] block = new BasicDBObject[batchSize];
         int nextIndex = 0;
         BsonDocument findQuery = range.getFindQuery();
-        LOG.info("Traversing from {}: query: {}", range, findQuery);
+        LOG.info("Traversing: {}. Query: {}", range, findQuery);
         FindIterable<BasicDBObject> mongoIterable = dbCollection
                 .withReadPreference(readPreference)
                 .find(findQuery)
@@ -238,29 +232,6 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
     private void tryEnqueue(BasicDBObject[] block) throws TimeoutException, InterruptedException {
         if (!mongoDocQueue.offer(block, MONGO_QUEUE_OFFER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
             throw new TimeoutException("Timeout trying to enqueue batch of MongoDB documents. Waited " + MONGO_QUEUE_OFFER_TIMEOUT);
-        }
-    }
-
-    private long getFirstLastModified(MongoCollection<BasicDBObject> dbCollection) {
-        return getModified(dbCollection, ascending(NodeDocument.MODIFIED_IN_SECS));
-    }
-
-    private long getLatestLastModified(MongoCollection<BasicDBObject> dbCollection) {
-        return getModified(dbCollection, descending(NodeDocument.MODIFIED_IN_SECS));
-    }
-
-    private long getModified(MongoCollection<BasicDBObject> dbCollection, Bson sort) {
-        BsonDocument query = new BsonDocument();
-        query.append(NodeDocument.MODIFIED_IN_SECS, new BsonDocument().append("$ne", new BsonNull()));
-        try (MongoCursor<BasicDBObject> cursor = dbCollection
-                .find(query)
-                .sort(sort)
-                .limit(1)
-                .iterator()) {
-            if (!cursor.hasNext()) {
-                throw new IllegalStateException("Collection of nodes is empty");
-            }
-            return cursor.next().getLong(NodeDocument.MODIFIED_IN_SECS);
         }
     }
 

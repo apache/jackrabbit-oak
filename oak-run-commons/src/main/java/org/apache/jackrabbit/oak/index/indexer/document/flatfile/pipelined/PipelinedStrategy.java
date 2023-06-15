@@ -35,7 +35,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.management.NotificationEmitter;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -167,7 +166,6 @@ public class PipelinedStrategy implements SortStrategy {
 
     private final Comparator<NodeStateHolder> comparator;
     private final PathElementComparator pathComparator;
-    private NotificationEmitter emitter;
     private final Compression algorithm;
     private long entryCount;
     private final List<File> sortedFiles = new ArrayList<>();
