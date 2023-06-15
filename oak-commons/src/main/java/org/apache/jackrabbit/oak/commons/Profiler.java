@@ -65,6 +65,7 @@ public class Profiler implements Runnable {
             "sun," +
             "com.sun.," +
             "com.google.common.," +
+            "org.apache.jackrabbit.oak.guava.common.," +
             "com.mongodb.," +
             "org.bson"
             ).split(",");
