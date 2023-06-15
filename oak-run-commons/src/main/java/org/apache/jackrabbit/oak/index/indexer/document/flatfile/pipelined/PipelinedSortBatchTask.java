@@ -65,7 +65,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private long entriesProcessed = 0;
 
     public PipelinedSortBatchTask(File storeDir,
-                                  PathElementComparatorStringArray pathComparator,
+                                  PathElementComparator pathComparator,
                                   Compression algorithm,
                                   ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
                                   ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
@@ -95,8 +95,11 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 nseBuffer.reset();
                 emptyBuffersQueue.put(nseBuffer);
             }
+        } catch (InterruptedException t) {
+            LOG.warn("Thread interrupted");
+            throw t;
         } catch (Throwable t) {
-            LOG.warn("Thread terminating with exception: " + t);
+            LOG.warn("Thread terminating with exception.", t);
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);

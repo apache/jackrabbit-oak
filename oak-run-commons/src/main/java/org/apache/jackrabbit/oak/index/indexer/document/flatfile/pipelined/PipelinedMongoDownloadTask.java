@@ -54,7 +54,7 @@ import java.util.function.Predicate;
 import static com.mongodb.client.model.Sorts.ascending;
 import static com.mongodb.client.model.Sorts.descending;
 
-class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Result> {
+class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
     public static class Result {
         private final long documentsDownloaded;
 
@@ -73,7 +73,7 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
     // to another replica which is up
     private final static long retryInitialIntervalMillis = 100;
     private final static long retryMaxIntervalMillis = 10_000;
-    private static final Logger LOG = LoggerFactory.getLogger(PipelineMongoDownloadTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(2);
     private static final String TRAVERSER_ID_PREFIX = "NSET";
 
@@ -83,7 +83,7 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
     private final int batchSize;
     private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
     private final int retryDuringSeconds;
-    private final Logger traversalLog = LoggerFactory.getLogger(PipelineMongoDownloadTask.class.getName() + ".traversal");
+    private final Logger traversalLog = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class.getName() + ".traversal");
     private final MongoCollection<BasicDBObject> dbCollection;
     private final ReadPreference readPreference;
 
@@ -91,11 +91,11 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
     private long nextLastModified;
     private String lastIdDownloaded = null;
 
-    public <T extends Document> PipelineMongoDownloadTask(MongoDocumentStore mongoStore,
-                                                          Collection<T> collection,
-                                                          Predicate<String> filter,
-                                                          int batchSize,
-                                                          ArrayBlockingQueue<BasicDBObject[]> queue) {
+    public <T extends Document> PipelinedMongoDownloadTask(MongoDocumentStore mongoStore,
+                                                           Collection<T> collection,
+                                                           Predicate<String> filter,
+                                                           int batchSize,
+                                                           ArrayBlockingQueue<BasicDBObject[]> queue) {
         this.mongoStore = mongoStore;
         this.collection = collection;
         this.batchSize = batchSize;
@@ -188,8 +188,11 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
                     }
                 }
             }
+        } catch (InterruptedException t) {
+            LOG.warn("Thread interrupted");
+            throw t;
         } catch (Throwable t) {
-            LOG.warn("Thread terminating with exception: " + t);
+            LOG.warn("Thread terminating with exception.", t);
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);
@@ -255,7 +258,7 @@ class PipelineMongoDownloadTask implements Callable<PipelineMongoDownloadTask.Re
                 .limit(1)
                 .iterator()) {
             if (!cursor.hasNext()) {
-                return -1;
+                throw new IllegalStateException("Collection of nodes is empty");
             }
             return cursor.next().getLong(NodeDocument.MODIFIED_IN_SECS);
         }

@@ -165,8 +165,8 @@ public class PipelinedStrategy implements SortStrategy {
     private final BlobStore blobStore;
     private final File storeDir;
 
-    private final Comparator<PipelinedNodeStateHolder> comparator;
-    private final PathElementComparatorStringArray pathComparator;
+    private final Comparator<NodeStateHolder> comparator;
+    private final PathElementComparator pathComparator;
     private NotificationEmitter emitter;
     private final Compression algorithm;
     private long entryCount;
@@ -186,7 +186,7 @@ public class PipelinedStrategy implements SortStrategy {
         this.rootRevision = rootRevision;
         this.blobStore = blobStore;
         this.storeDir = storeDir;
-        this.pathComparator = new PathElementComparatorStringArray(preferredPathElements);
+        this.pathComparator = new PathElementComparator(preferredPathElements);
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.pathPredicate = pathPredicate;
         this.algorithm = algorithm;
@@ -278,7 +278,7 @@ public class PipelinedStrategy implements SortStrategy {
             }
 
             Stopwatch start = Stopwatch.createStarted();
-            PipelineMongoDownloadTask downloadTask = new PipelineMongoDownloadTask(
+            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(
                     docStore, Collection.NODES, s -> true, mongoBatchSize, mongoDocQueue
             );
             ecs.submit(downloadTask);
@@ -312,8 +312,8 @@ public class PipelinedStrategy implements SortStrategy {
                     Future<?> completedTask = ecs.take();
                     try {
                         Object result = completedTask.get();
-                        if (result instanceof PipelineMongoDownloadTask.Result) {
-                            PipelineMongoDownloadTask.Result downloadResult = (PipelineMongoDownloadTask.Result) result;
+                        if (result instanceof PipelinedMongoDownloadTask.Result) {
+                            PipelinedMongoDownloadTask.Result downloadResult = (PipelinedMongoDownloadTask.Result) result;
                             LOG.info("Download task finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
                             // Signal the end of documents to the transform threads.
                             for (int i = 0; i < transformThreads; i++) {
@@ -383,10 +383,9 @@ public class PipelinedStrategy implements SortStrategy {
         LOG.info("Proceeding to perform merge of {} sorted files", sortedFilesBatch.size());
         Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
-        PipelinedNodeStateHolderFactory factory = new PipelinedNodeStateHolderFactory();
         try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
-            Function<String, PipelinedNodeStateHolder> func1 = (line) -> line == null ? null : factory.create(line);
-            Function<PipelinedNodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new NodeStateHolder(line);
+            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFilesBatch,
                     writer,
                     comparator,

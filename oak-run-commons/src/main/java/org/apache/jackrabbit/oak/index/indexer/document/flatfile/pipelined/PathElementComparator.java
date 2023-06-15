@@ -23,10 +23,10 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import java.util.Comparator;
 import java.util.Set;
 
-class PathElementComparatorStringArray implements Comparator<String[]> {
+class PathElementComparator implements Comparator<String[]> {
     private final Set<String> preferred;
 
-    public PathElementComparatorStringArray(Set<String> preferredPathElements) {
+    public PathElementComparator(Set<String> preferredPathElements) {
         this.preferred = ImmutableSet.copyOf(preferredPathElements);
     }
 

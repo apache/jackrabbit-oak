@@ -116,7 +116,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             ArrayList<SortKey> sortArray = nseBatch.getSortBuffer();
             ByteBuffer nseBuffer = nseBatch.getBuffer();
 
-            SortKeyPathFactory sortKeyPathFactory = new SortKeyPathFactory();
             // Used to serialize a node state entry before writing it to the buffer
             ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
             OutputStreamWriter writer = new OutputStreamWriter(baos, PipelinedStrategy.FLATFILESTORE_CHARSET);
@@ -172,7 +171,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                     int bufferPos = nseBuffer.position();
                                     nseBuffer.putInt(entryData.length);
                                     nseBuffer.put(entryData);
-                                    String[] key = sortKeyPathFactory.genSortKey(nse.getPath());
+                                    String[] key = SortKey.genSortKeyPathElements(nse.getPath());
                                     sortArray.add(new SortKey(key, bufferPos));
                                     totalEntryCount++;
                                 }
@@ -181,8 +180,11 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     }
                 }
             }
+        } catch (InterruptedException t) {
+            LOG.warn("Thread interrupted");
+            throw t;
         } catch (Throwable t) {
-            LOG.warn("Thread terminating with exception: " + t);
+            LOG.warn("Thread terminating with exception.", t);
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);
