@@ -96,27 +96,31 @@ public class RDBVersionGCSupport extends VersionGCSupport {
 
     /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range .The two passed modified timestamps are in milliseconds
+     * within the given range and are greater than given @{@link NodeDocument#ID}.
+     * <p>
+     * The two passed modified timestamps are in milliseconds
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
+     * <p/>
      *
-     * @param fromModified the lower bound modified timestamp (inclusive)
-     * @param toModified the upper bound modified timestamp (exclusive)
-     * @param limit the limit of documents to return
-     * @param fromId the lower bound {@link NodeDocument#ID} (exclusive)
+     * @param fromModified  the lower bound modified timestamp (inclusive)
+     * @param toModified    the upper bound modified timestamp (exclusive)
+     * @param limit         the limit of documents to return
+     * @param fromId        the lower bound {@link NodeDocument#ID}
+     * @param includeFromId boolean indicating whether {@code fromId} is inclusive or not
      * @return matching documents.
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId) {
+                                                  @NotNull final String fromId, boolean includeFromId) {
         List<QueryCondition> conditions = of(new QueryCondition(MODIFIED_IN_SECS, "<", getModifiedInSecs(toModified)),
                 new QueryCondition(MODIFIED_IN_SECS, ">=", getModifiedInSecs(fromModified)),
-                new QueryCondition(ID, ">", of(fromId)));
+                new QueryCondition(ID, includeFromId ? ">=" : ">", of(fromId)));
         if (MODE == 1) {
             return getIterator(EMPTY_KEY_PATTERN, conditions);
         } else {
-            return store.queryAsIterable(NODES, fromId, null, EMPTY_KEY_PATTERN, conditions, limit, of(MODIFIED_IN_SECS, ID));
+            return store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, conditions, limit, of(MODIFIED_IN_SECS, ID));
         }
     }
 
@@ -287,7 +291,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         LOG.info("getOldestModifiedDoc() <- start");
         Iterable<NodeDocument> modifiedDocs = null;
         try {
-            modifiedDocs = getModifiedDocs(0L, clock.getTime(), 1, MIN_ID_VALUE);
+            modifiedDocs = getModifiedDocs(0L, clock.getTime(), 1, MIN_ID_VALUE, false);
             doc = modifiedDocs.iterator().hasNext() ? modifiedDocs.iterator().next() : NULL;
         } catch (DocumentStoreException ex) {
             LOG.error("getOldestModifiedDoc()", ex);
