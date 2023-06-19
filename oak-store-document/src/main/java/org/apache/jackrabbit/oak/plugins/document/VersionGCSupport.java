@@ -19,9 +19,12 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.Comparator.comparing;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.stream.Collectors.toList;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
@@ -52,7 +55,7 @@ public class VersionGCSupport {
 
     /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range and the {@link NodeDocument#DELETED} set to
+     * within the given range and the {@link NodeDocument#  DELETED} set to
      * {@code true}. The two passed modified timestamps are in milliseconds
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
@@ -79,12 +82,15 @@ public class VersionGCSupport {
      * @param fromModified the lower bound modified timestamp (inclusive)
      * @param toModified the upper bound modified timestamp (exclusive)
      * @param limit the limit of documents to return
+     * @param fromId the lower bound {@link NodeDocument#ID} (exclusive)
      * @return matching documents.
      */
-    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit) {
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
+                                                  final String fromId) {
         return StreamSupport
-                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, fromModified).spliterator(), false)
+                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, fromId).spliterator(), false)
                 .filter(input -> modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
+                .sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2))
                 .limit(limit)
                 .collect(toList());
     }
@@ -176,27 +182,26 @@ public class VersionGCSupport {
     }
 
     /**
-     * Retrieve the time of the oldest modified document.
+     * Retrieve the oldest modified document.
      *
-     * @return the timestamp of the oldest modified document.
+     * @return the oldest modified document.
      */
-    public long getOldestModifiedTimestamp(final Clock clock) {
+    public NodeDocument getOldestModifiedDoc(final Clock clock) {
         long ts = 0;
         long now = clock.getTime();
         Iterable<NodeDocument> docs = null;
 
         LOG.info("find oldest modified document");
         try {
-            docs = getModifiedDocs(ts, now, 1);
+            docs = getModifiedDocs(ts, now, 1, MIN_ID_VALUE);
             if (docs.iterator().hasNext()) {
-                Long modified = docs.iterator().next().getModified();
-                return modified != null ? modified : 0L;
+                return docs.iterator().next();
             }
         } finally {
             Utils.closeIfCloseable(docs);
         }
         LOG.info("find oldest modified document to be {}", Utils.timestampToString(ts));
-        return ts;
+        return NULL;
     }
 
     public long getDeletedOnceCount() throws UnsupportedOperationException {

@@ -971,8 +971,8 @@ public class RDBDocumentStore implements DocumentStore {
     public static String VERSIONPROP = "__version";
 
     // set of supported indexed properties
-    private static final Set<String> INDEXEDPROPERTIES = new HashSet<String>(Arrays.asList(new String[] { MODIFIED,
-            NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS, VERSIONPROP }));
+    private static final Set<String> INDEXEDPROPERTIES = new HashSet<>(Arrays.asList(MODIFIED,
+            NodeDocument.HAS_BINARY_FLAG, NodeDocument.DELETED_ONCE, NodeDocument.SD_TYPE, NodeDocument.SD_MAX_REV_TIME_IN_SECS, VERSIONPROP, ID));
 
     // set of required table columns
     private static final Set<String> REQUIREDCOLUMNS = Collections.unmodifiableSet(new HashSet<String>(Arrays.asList(
@@ -1840,7 +1840,7 @@ public class RDBDocumentStore implements DocumentStore {
     }
 
     protected <T extends Document> Iterable<T> queryAsIterable(final Collection<T> collection, String fromKey, String toKey,
-            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final String sortBy) {
+            final List<String> excludeKeyPatterns, final List<QueryCondition> conditions, final int limit, final List<String> sortBy) {
 
         final RDBTableMetaData tmd = getTable(collection);
         Set<String> allowedProps = Sets.intersection(INDEXEDPROPERTIES, tmd.getColumnProperties());
@@ -1850,6 +1850,16 @@ public class RDBDocumentStore implements DocumentStore {
                         + "'; supported properties are " + allowedProps;
                 LOG.info(message);
                 throw new UnsupportedIndexedPropertyException(message);
+            }
+        }
+
+        if (sortBy != null && !sortBy.isEmpty()) {
+            for (String key: sortBy) {
+                if (!allowedProps.contains(key)) {
+                    final String message = "indexed property " + key + " not supported. supported properties are " + allowedProps;
+                    LOG.error(message);
+                    throw new UnsupportedIndexedPropertyException(message);
+                }
             }
         }
 
