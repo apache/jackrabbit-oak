@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.Unsupport
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,7 +109,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  final String fromId) {
+                                                  @NotNull final String fromId) {
         List<QueryCondition> conditions = of(new QueryCondition(MODIFIED_IN_SECS, "<", getModifiedInSecs(toModified)),
                 new QueryCondition(MODIFIED_IN_SECS, ">=", getModifiedInSecs(fromModified)),
                 new QueryCondition(ID, ">", of(fromId)));
