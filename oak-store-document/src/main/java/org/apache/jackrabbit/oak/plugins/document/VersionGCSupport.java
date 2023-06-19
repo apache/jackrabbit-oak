@@ -74,21 +74,25 @@ public class VersionGCSupport {
 
     /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range .The two passed modified timestamps are in milliseconds
+     * within the given range and are greater than given @{@link NodeDocument#ID}.
+     * <p>
+     * The two passed modified timestamps are in milliseconds
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
+     * <p/>
      *
-     * @param fromModified the lower bound modified timestamp (inclusive)
-     * @param toModified the upper bound modified timestamp (exclusive)
-     * @param limit the limit of documents to return
-     * @param fromId the lower bound {@link NodeDocument#ID} (exclusive)
+     * @param fromModified  the lower bound modified timestamp (inclusive)
+     * @param toModified    the upper bound modified timestamp (exclusive)
+     * @param limit         the limit of documents to return
+     * @param fromId        the lower bound {@link NodeDocument#ID}
+     * @param includeFromId boolean indicating whether {@code fromId} is inclusive or not
      * @return matching documents.
      */
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId) {
+                                                  @NotNull final String fromId, boolean includeFromId) {
         return StreamSupport
-                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, fromId).spliterator(), false)
+                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, includeFromId ? "\0"+fromId : fromId).spliterator(), false)
                 .filter(input -> modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
                 .sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2))
                 .limit(limit)
@@ -193,7 +197,7 @@ public class VersionGCSupport {
 
         LOG.info("find oldest modified document");
         try {
-            docs = getModifiedDocs(ts, now, 1, MIN_ID_VALUE);
+            docs = getModifiedDocs(ts, now, 1, MIN_ID_VALUE, false);
             if (docs.iterator().hasNext()) {
                 return docs.iterator().next();
             }

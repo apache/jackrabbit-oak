@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
@@ -83,6 +84,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -318,6 +320,61 @@ public class VersionGarbageCollectorIT {
         for (int i = 0; i < 5_000; i++) {
             for (int j = 0; j < 10; j++) {
                 b2.getChildNode("z"+i).removeProperty("prop"+j);
+            }
+        }
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //2. Check that a deleted property is not collected before maxAge
+        //Clock cannot move back (it moved forward in #1) so double the maxAge
+        clock.waitUntil(clock.getTime() + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(50_000, stats.deletedPropsGCCount);
+
+    }
+
+    // Test when we have more than 1000 deleted properties with different revisions
+    @Test
+    @Ignore
+    public void testGCDeletedProps_2() throws Exception {
+        //1. Create nodes with properties
+        NodeBuilder b1 = null;
+        for (int k = 0; k < 50; k ++) {
+            b1 = store.getRoot().builder();
+            // Add property to node & save
+            for (int i = 0; i < 100; i++) {
+                for (int j = 0; j < 10; j++) {
+                    b1.child(k + "z" + i).setProperty("prop" + j, "foo", STRING);
+                }
+            }
+            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            // increase the clock to create new revision for next batch
+            clock.waitUntil(Revision.getCurrentTimestamp() + SECONDS.toMillis(k * 5));
+        }
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+
+        //Remove property
+        NodeBuilder b2 = store.getRoot().builder();
+        for (int k = 0; k < 50; k ++) {
+            for (int i = 0; i < 100; i++) {
+                for (int j = 0; j < 10; j++) {
+                    b2.getChildNode(k + "z" + i).removeProperty("prop" + j);
+                }
             }
         }
         store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
