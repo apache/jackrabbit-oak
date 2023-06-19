@@ -55,7 +55,7 @@ public class VersionGCSupport {
 
     /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range and the {@link NodeDocument#  DELETED} set to
+     * within the given range and the {@link NodeDocument#DELETED} set to
      * {@code true}. The two passed modified timestamps are in milliseconds
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
