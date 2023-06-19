@@ -21,8 +21,8 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
+import static com.mongodb.client.model.Filters.gt;
 import static java.util.Optional.ofNullable;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
@@ -34,6 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PATH;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
@@ -130,21 +131,26 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range in sorted order. The two passed modified timestamps
-     * are in milliseconds since the epoch and the implementation will convert them
-     * to seconds at the granularity of the {@link NodeDocument#MODIFIED_IN_SECS}
-     * field and then perform the comparison.
+     * within the given range .The two passed modified timestamps are in milliseconds
+     * since the epoch and the implementation will convert them to seconds at
+     * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
+     * then perform the comparison.
      *
      * @param fromModified the lower bound modified timestamp (inclusive)
-     * @param toModified   the upper bound modified timestamp (exclusive)
-     * @return matching documents in sorted order of {@link NodeDocument#MODIFIED_IN_SECS}
+     * @param toModified the upper bound modified timestamp (exclusive)
+     * @param limit the limit of documents to return
+     * @param fromId the lower bound {@link NodeDocument#ID} (exclusive)
+     * @return matching documents.
      */
     @Override
-    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit) {
-        // _modified >= fromModified && _modified < toModified
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
+                                                  final String fromId) {
+        // _modified >= fromModified && _modified < toModified && _id > fromId
         final Bson query = and(gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)));
-        final Bson sort = eq(MODIFIED_IN_SECS, 1);
+                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)), gt(ID, fromId));
+        // first sort by _modified and then by _id
+        final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
+
         final FindIterable<BasicDBObject> cursor = getNodeCollection()
                 .find(query)
                 .sort(sort)
@@ -232,11 +238,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * @return the timestamp of the oldest modified document.
      */
     @Override
-    public long getOldestModifiedTimestamp(final Clock clock) {
-        LOG.info("getOldestModifiedTimestamp() <- start");
+    public NodeDocument getOldestModifiedDoc(final Clock clock) {
+        LOG.info("getOldestModifiedDoc() <- start");
 
-        final Bson sort = eq(MODIFIED_IN_SECS, 1);
-        final List<Long> result = new ArrayList<>(1);
+        final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
+        final List<NodeDocument> result = new ArrayList<>(1);
 
         // we need to add query condition to ignore `previous` documents which doesn't have this field
         final Bson query = exists(MODIFIED_IN_SECS);
@@ -245,14 +251,13 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 (Consumer<BasicDBObject>) document ->
                         ofNullable(store.convertFromDBObject(NODES, document))
                                 .ifPresent(doc -> {
-                    long modifiedMs = SECONDS.toMillis(ofNullable(doc.getModified()).orElse(0L));
-                    LOG.info("getOldestDeletedOnceTimestamp() -> {}", Utils.timestampToString(modifiedMs));
-                    result.add(modifiedMs);
+                    LOG.info("getOldestModifiedDoc() -> {}", doc);
+                    result.add(doc);
                 }));
 
         if (result.isEmpty()) {
-            LOG.info("getOldestModifiedTimestamp() -> none found, return current time");
-            result.add(clock.getTime());
+            LOG.info("getOldestModifiedDoc() -> none found, return NULL document");
+            result.add(NULL);
         }
         return result.get(0);
     }

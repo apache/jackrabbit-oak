@@ -62,6 +62,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isCommitRootEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isRevisionsEntry;
@@ -668,7 +669,7 @@ public class Utils {
      * @return an {@link Iterable} over all documents in the store.
      */
     public static Iterable<NodeDocument> getAllDocuments(final DocumentStore store) {
-        return internalGetSelectedDocuments(store, null, 0, DEFAULT_BATCH_SIZE);
+        return internalGetSelectedDocuments(store, null, 0, MIN_ID_VALUE, DEFAULT_BATCH_SIZE);
     }
 
     /**
@@ -710,7 +711,7 @@ public class Utils {
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue, int batchSize) {
-        return internalGetSelectedDocuments(store, indexedProperty, startValue, batchSize);
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, MIN_ID_VALUE, batchSize);
     }
 
     /**
@@ -719,12 +720,21 @@ public class Utils {
      */
     public static Iterable<NodeDocument> getSelectedDocuments(
             DocumentStore store, String indexedProperty, long startValue) {
-        return internalGetSelectedDocuments(store, indexedProperty, startValue, DEFAULT_BATCH_SIZE);
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, MIN_ID_VALUE, DEFAULT_BATCH_SIZE);
+    }
+
+    /**
+     * Like {@link #getSelectedDocuments(DocumentStore, String, long, int)} with
+     * a default {@code batchSize}.
+     */
+    public static Iterable<NodeDocument> getSelectedDocuments(
+            DocumentStore store, String indexedProperty, long startValue, String fromId) {
+        return internalGetSelectedDocuments(store, indexedProperty, startValue, fromId, DEFAULT_BATCH_SIZE);
     }
 
     private static Iterable<NodeDocument> internalGetSelectedDocuments(
             final DocumentStore store, final String indexedProperty,
-            final long startValue, final int batchSize) {
+            final long startValue, String fromId, final int batchSize) {
         if (batchSize < 2) {
             throw new IllegalArgumentException("batchSize must be > 1");
         }
@@ -733,7 +743,7 @@ public class Utils {
             public Iterator<NodeDocument> iterator() {
                 return new AbstractIterator<NodeDocument>() {
 
-                    private String startId = NodeDocument.MIN_ID_VALUE;
+                    private String startId = fromId;
 
                     private Iterator<NodeDocument> batch = nextBatch();
 
