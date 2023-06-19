@@ -20,6 +20,7 @@ import static java.util.List.of;
 import static java.util.stream.Collectors.joining;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.asBytes;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBJDBCTools.asDocumentStoreException;
@@ -461,7 +462,7 @@ public class RDBDocumentStoreJDBC {
                             + excludeKeyPatterns + ", conditions=" + conditions + ", limit=" + limit)
                     : null);
             stmt = prepareQuery(connection, tmd, fields, minId,
-                    maxId, excludeKeyPatterns, conditions, limit, of("ID"));
+                    maxId, excludeKeyPatterns, conditions, limit, of(ID));
             rs = stmt.executeQuery();
             while (rs.next() && result.size() < limit) {
                 int field = 1;
@@ -968,7 +969,7 @@ public class RDBDocumentStoreJDBC {
         tmp.put(NodeDocument.SD_TYPE, "SDTYPE");
         tmp.put(NodeDocument.SD_MAX_REV_TIME_IN_SECS, "SDMAXREVTIME");
         tmp.put(RDBDocumentStore.VERSIONPROP, "VERSION");
-        tmp.put(NodeDocument.ID, "ID");
+        tmp.put(ID, "ID");
         INDEXED_PROP_MAPPING = Collections.unmodifiableMap(tmp);
     }
 
