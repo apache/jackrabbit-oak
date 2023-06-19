@@ -86,7 +86,7 @@ public class VersionGCSupport {
      * @return matching documents.
      */
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  final String fromId) {
+                                                  @NotNull final String fromId) {
         return StreamSupport
                 .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, fromId).spliterator(), false)
                 .filter(input -> modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
