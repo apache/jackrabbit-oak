@@ -33,6 +33,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import static java.lang.Long.MAX_VALUE;
 import static java.util.Comparator.comparing;
 import static java.util.List.of;
 import static java.util.Optional.ofNullable;
@@ -206,8 +207,8 @@ public class VersionGCSupportTest {
     public void findModifiedDocsWhenModifiedIsDifferent() {
         long secs = 42;
         long offset = SECONDS.toMillis(secs);
-        List<UpdateOp> updateOps = new ArrayList<>(5_001);
-        for (int i = 0; i < 5_001; i++) {
+        List<UpdateOp> updateOps = new ArrayList<>(5_000);
+        for (int i = 0; i < 5_000; i++) {
             Revision r = new Revision(offset + (i * 5), 0, 1);
             String id = getIdFromPath("/x" + i);
             ids.add(id);
@@ -223,9 +224,10 @@ public class VersionGCSupportTest {
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
         assertEquals(40L, oldestModifiedDocTs);
         assertEquals("1:/x0", oldestModifiedDocId);
+        boolean includeFromId = true;
 
         for(int i = 0; i < 5; i++) {
-            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), Long.MAX_VALUE, 1000, oldestModifiedDocId);
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, includeFromId);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
@@ -234,6 +236,7 @@ public class VersionGCSupportTest {
             }
             oldestModifiedDocId = oldestModifiedDoc.getId();
             oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+            includeFromId = false;
         }
     }
 
@@ -249,7 +252,7 @@ public class VersionGCSupportTest {
             setModified(op, r);
             updateOps.add(op);
         }
-        // create 5_000 nodes
+        // create 5_001 nodes
         store.create(NODES, updateOps);
 
         NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
@@ -257,9 +260,10 @@ public class VersionGCSupportTest {
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
         assertEquals(40L, oldestModifiedDocTs);
         assertEquals("1:/x0", oldestModifiedDocId);
+        boolean includeFromId = true;
 
         for(int i = 0; i < 5; i++) {
-            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), Long.MAX_VALUE, 1000, oldestModifiedDocId);
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, includeFromId);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
@@ -268,7 +272,21 @@ public class VersionGCSupportTest {
             }
             oldestModifiedDocId = oldestModifiedDoc.getId();
             oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+            includeFromId = false;
         }
+
+        // fetch last remaining document now
+        Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, false);
+        assertEquals(1, stream(modifiedDocs.spliterator(), false).count());
+        assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+        oldestModifiedDoc = modifiedDocs.iterator().next();
+        oldestModifiedDocId = oldestModifiedDoc.getId();
+        oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+
+        // all documents had been fetched, now we won't get any document
+        modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, false);
+        assertEquals(0, stream(modifiedDocs.spliterator(), false).count());
+
     }
 
     @Test
@@ -291,10 +309,10 @@ public class VersionGCSupportTest {
         }
         // create 5_000 nodes
         store.create(NODES, updateOps);
-
+        boolean includeFromId = true;
 
         for(int i = 0; i < 5; i++) {
-            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), Long.MAX_VALUE, 1000, oldestModifiedDocId);
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, includeFromId);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
@@ -303,7 +321,12 @@ public class VersionGCSupportTest {
             }
             oldestModifiedDocId = oldestModifiedDoc.getId();
             oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+            includeFromId = false;
         }
+
+        // all documents had been fetched, now we won't get any document
+        Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, false);
+        assertEquals(0, stream(modifiedDocs.spliterator(), false).count());
     }
 
     private void assertPossiblyDeleted(long fromSeconds, long toSeconds, long num) {
@@ -312,7 +335,7 @@ public class VersionGCSupportTest {
     }
 
     private void assertModified(long fromSeconds, long toSeconds, long num) {
-        Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE);
+        Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE, false);
         assertEquals(num, stream(docs.spliterator(), false).count());
         assertTrue(isInOrder(docs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
     }

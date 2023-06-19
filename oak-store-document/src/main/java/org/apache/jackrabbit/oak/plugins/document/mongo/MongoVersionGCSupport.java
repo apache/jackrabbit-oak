@@ -131,23 +131,27 @@ public class MongoVersionGCSupport extends VersionGCSupport {
 
     /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range .The two passed modified timestamps are in milliseconds
+     * within the given range and are greater than given @{@link NodeDocument#ID}.
+     * <p>
+     * The two passed modified timestamps are in milliseconds
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
+     * <p/>
      *
-     * @param fromModified the lower bound modified timestamp (inclusive)
-     * @param toModified the upper bound modified timestamp (exclusive)
-     * @param limit the limit of documents to return
-     * @param fromId the lower bound {@link NodeDocument#ID} (exclusive)
+     * @param fromModified  the lower bound modified timestamp (inclusive)
+     * @param toModified    the upper bound modified timestamp (exclusive)
+     * @param limit         the limit of documents to return
+     * @param fromId        the lower bound {@link NodeDocument#ID}
+     * @param includeFromId boolean indicating whether {@code fromId} is inclusive or not
      * @return matching documents.
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId) {
+                                                  @NotNull final String fromId, boolean includeFromId) {
         // _modified >= fromModified && _modified < toModified && _id > fromId
         final Bson query = and(gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)), gt(ID, fromId));
+                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)), includeFromId ? gte(ID, fromId) :gt(ID, fromId));
         // first sort by _modified and then by _id
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
 
