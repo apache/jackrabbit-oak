@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static java.util.Collections.emptyList;
 import static java.util.List.of;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.EMPTY_KEY_PATTERN;
 
@@ -99,18 +101,21 @@ public class RDBVersionGCSupport extends VersionGCSupport {
      * then perform the comparison.
      *
      * @param fromModified the lower bound modified timestamp (inclusive)
-     * @param toModified   the upper bound modified timestamp (exclusive)
-     * @param limit        the limit of documents to return
+     * @param toModified the upper bound modified timestamp (exclusive)
+     * @param limit the limit of documents to return
+     * @param fromId the lower bound {@link NodeDocument#ID} (exclusive)
      * @return matching documents.
      */
     @Override
-    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit) {
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
+                                                  final String fromId) {
         List<QueryCondition> conditions = of(new QueryCondition(MODIFIED_IN_SECS, "<", getModifiedInSecs(toModified)),
-                new QueryCondition(MODIFIED_IN_SECS, ">=", getModifiedInSecs(fromModified)));
+                new QueryCondition(MODIFIED_IN_SECS, ">=", getModifiedInSecs(fromModified)),
+                new QueryCondition(ID, ">", of(fromId)));
         if (MODE == 1) {
             return getIterator(EMPTY_KEY_PATTERN, conditions);
         } else {
-            return store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, conditions, limit, MODIFIED_IN_SECS);
+            return store.queryAsIterable(NODES, fromId, null, EMPTY_KEY_PATTERN, conditions, limit, of(MODIFIED_IN_SECS, ID));
         }
     }
 
@@ -275,24 +280,20 @@ public class RDBVersionGCSupport extends VersionGCSupport {
      * @return the timestamp of the oldest modified document.
      */
     @Override
-    public long getOldestModifiedTimestamp(Clock clock) {
-        long modifiedMs = Long.MIN_VALUE;
+    public NodeDocument getOldestModifiedDoc(Clock clock) {
+        NodeDocument doc = NULL;
 
-        LOG.info("getOldestModifiedTimestamp() <- start");
+        LOG.info("getOldestModifiedDoc() <- start");
+        Iterable<NodeDocument> modifiedDocs = null;
         try {
-            long modifiedSec = store.getMinValue(NODES, MODIFIED_IN_SECS, null, null, EMPTY_KEY_PATTERN, emptyList());
-            modifiedMs = TimeUnit.SECONDS.toMillis(modifiedSec);
+            modifiedDocs = getModifiedDocs(0L, clock.getTime(), 1, MIN_ID_VALUE);
+            doc = modifiedDocs.iterator().hasNext() ? modifiedDocs.iterator().next() : NULL;
         } catch (DocumentStoreException ex) {
-            LOG.error("getOldestModifiedTimestamp()", ex);
+            LOG.error("getOldestModifiedDoc()", ex);
+        } finally {
+            Utils.closeIfCloseable(modifiedDocs);
         }
-
-        if (modifiedMs > 0) {
-            LOG.info("getOldestModifiedTimestamp() -> {}", Utils.timestampToString(modifiedMs));
-            return modifiedMs;
-        } else {
-            LOG.info("getOldestModifiedTimestamp() -> none found, return current time");
-            return clock.getTime();
-        }
+        return doc;
     }
 
     @Override
