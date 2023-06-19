@@ -87,6 +87,8 @@ public class DocumentStoreCheck {
 
     private final boolean uuid;
 
+    private final boolean consistency;
+
     private DocumentStoreCheck(DocumentNodeStore ns,
                                DocumentStore store,
                                Closer closer,
@@ -100,7 +102,8 @@ public class DocumentStoreCheck {
                                boolean versionHistory,
                                boolean predecessors,
                                boolean successors,
-                               boolean uuid) {
+                               boolean uuid,
+                               boolean consistency) {
         this.ns = ns;
         this.store = store;
         this.closer = closer;
@@ -121,6 +124,7 @@ public class DocumentStoreCheck {
         this.predecessors = predecessors;
         this.successors = successors;
         this.uuid = uuid;
+        this.consistency = consistency;
     }
 
     public void run() throws Exception {
@@ -208,6 +212,9 @@ public class DocumentStoreCheck {
         if (uuid) {
             processors.add(new ReferenceCheck(JCR_UUID, ns, ns.getHeadRevision(), executorService));
         }
+        if (consistency) {
+            processors.add(new ConsistencyCheck(ns, executorService));
+        }
         return CompositeDocumentProcessor.compose(processors);
     }
 
@@ -248,6 +255,8 @@ public class DocumentStoreCheck {
         private boolean successors;
 
         private boolean uuid;
+
+        private boolean consistency;
 
         public Builder(DocumentNodeStore ns,
                        DocumentStore store,
@@ -312,10 +321,15 @@ public class DocumentStoreCheck {
             return this;
         }
 
+        public Builder withConsistency(boolean enable) {
+            this.consistency = enable;
+            return this;
+        }
+
         public DocumentStoreCheck build() {
             return new DocumentStoreCheck(ns, store, closer, progress, silent,
                     summary, numThreads, output, orphan, baseVersion,
-                    versionHistory, predecessors, successors, uuid);
+                    versionHistory, predecessors, successors, uuid, consistency);
         }
     }
 
