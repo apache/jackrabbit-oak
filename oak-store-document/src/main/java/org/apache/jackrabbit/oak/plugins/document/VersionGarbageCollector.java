@@ -615,6 +615,7 @@ public class VersionGarbageCollector {
                 throws IOException {
             int docsTraversed = 0;
             boolean foundDoc = true;
+            boolean includeFromId = true;
             long oldestModifiedDocTimeStamp = rec.scopeDetailedGC.fromMs;
             String oldestModifiedDocId = rec.detailedGCId;
             try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
@@ -624,7 +625,9 @@ public class VersionGarbageCollector {
                     while (foundDoc && oldestModifiedDocTimeStamp < toModified && docsTraversed <= PROGRESS_BATCH_SIZE) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(oldestModifiedDocTimeStamp, toModified, 1000, oldestModifiedDocId);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(oldestModifiedDocTimeStamp, toModified, 1000, oldestModifiedDocId, includeFromId);
+                        // set includeFromId to false for subsequent queries
+                        includeFromId = false;
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
