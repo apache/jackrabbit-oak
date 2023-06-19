@@ -115,6 +115,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -1299,7 +1300,7 @@ public class VersionGarbageCollectorIT {
 
     // OAK-10370 END
 
-    
+
     private void gcSplitDocsInternal(String subNodeName) throws Exception {
         long maxAge = 1; //hrs
         long delta = TimeUnit.MINUTES.toMillis(10);
