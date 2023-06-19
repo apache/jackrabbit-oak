@@ -23,7 +23,7 @@ import org.slf4j.Logger;
 import static com.amazonaws.util.StringUtils.hasValue;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEYID;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEY;
 import static org.slf4j.LoggerFactory.getLogger;
 
 /**
@@ -42,10 +42,10 @@ public class TestS3DSWithSSECustomerKey extends TestS3Ds {
         @Before
         public void setUp() throws Exception {
             super.setUp();
-            String keyId = props.getProperty(S3_SSE_C_KEYID);
+            String keyId = props.getProperty(S3_SSE_C_KEY);
             if (hasValue(keyId)) {
                 props.setProperty(S3_ENCRYPTION, S3_ENCRYPTION_SSE_C);
-                props.setProperty(S3_SSE_C_KEYID, keyId);
+                props.setProperty(S3_SSE_C_KEY, keyId);
             } else {
                 LOG.info("SSE Customer Key ID not configured so ignoring test");
                 throw new AssumptionViolatedException("SSE Customer key Id not configured");

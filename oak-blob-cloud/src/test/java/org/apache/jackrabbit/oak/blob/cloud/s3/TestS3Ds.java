@@ -71,7 +71,7 @@ import static com.amazonaws.util.Md5Utils.md5AsBase64;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEYID;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEY;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEYID;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
@@ -276,7 +276,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
                 }
                 break;
             case S3_ENCRYPTION_SSE_C:
-                keyId = props.getProperty(S3_SSE_C_KEYID);
+                keyId = props.getProperty(S3_SSE_C_KEY);
                 putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
                 putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
                 putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
@@ -298,7 +298,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
         final String encryptionType = props.getProperty(S3_ENCRYPTION);
 
         if (Objects.equals(S3_ENCRYPTION_SSE_C, encryptionType)) {
-            String keyId = props.getProperty(S3_SSE_C_KEYID);
+            String keyId = props.getProperty(S3_SSE_C_KEY);
             getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
             getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
             getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));

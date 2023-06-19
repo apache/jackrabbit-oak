@@ -37,7 +37,7 @@ import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
-import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEYID;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEY;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEYID;
 
 /**
@@ -65,7 +65,7 @@ public class S3RequestDecorator {
                     break;
                 }
                 case S3_ENCRYPTION_SSE_C: {
-                    final String keyId = props.getProperty(S3_SSE_C_KEYID);
+                    final String keyId = props.getProperty(S3_SSE_C_KEY);
                     if (hasValue(keyId)) {
                         sseCustomerKey = new SSECustomerKey(keyId);
                     }
