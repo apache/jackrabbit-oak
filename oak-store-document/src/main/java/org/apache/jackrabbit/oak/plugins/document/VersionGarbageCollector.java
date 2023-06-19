@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -1312,55 +1311,6 @@ public class VersionGarbageCollector {
                         + " with id : {}, oldNS : {}, newNS : {}, update: {}",
                         oldDoc.getId(), oldNS, newNS, update);
                 return false;
-            }
-        }
-    }
-    private void delayOnModifications(final long durationMs, final AtomicBoolean cancel) {
-        long delayMs = round(durationMs * options.delayFactor);
-        if (!cancel.get() && delayMs > 0) {
-            try {
-                Clock clock = nodeStore.getClock();
-                clock.waitUntil(clock.getTime() + delayMs);
-            }
-            catch (InterruptedException ex) {
-                /* ignore */
-            }
-        }
-
-        public void removeGarbage(final VersionGCStats stats) {
-
-            if (updateOpList.isEmpty()) {
-                if (log.isDebugEnabled()) {
-                    log.debug("Skipping removal of detailed garbage, cause no garbage detected");
-                }
-                return;
-            }
-
-            int updatedDocs;
-
-            monitor.info("Proceeding to update [{}] documents", updateOpList.size());
-
-            if (log.isDebugEnabled()) {
-                String collect = updateOpList.stream().map(UpdateOp::getId).collect(Collectors.joining(","));
-                log.trace("Performing batch update of documents with following id's. \n" + collect);
-            }
-
-            if (cancel.get()) {
-                log.info("Aborting the removal of detailed garbage since RGC had been cancelled");
-                return;
-            }
-
-            timer.reset().start();
-            try {
-                // TODO create an api to bulk update findAndUpdate Ops
-                updatedDocs = (int) updateOpList.stream().map(op -> ds.findAndUpdate(NODES, op)).filter(Objects::nonNull).count();
-                stats.updatedDetailedGCDocsCount += updatedDocs;
-                log.info("Updated [{}] documents", updatedDocs);
-                // now reset delete metadata
-                updateOpList.clear();
-                garbageDocsCount = 0;
-            } finally {
-                delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel);
             }
         }
     }
