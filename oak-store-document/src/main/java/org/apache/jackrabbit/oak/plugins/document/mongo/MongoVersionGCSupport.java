@@ -144,7 +144,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  final String fromId) {
+                                                  @NotNull final String fromId) {
         // _modified >= fromModified && _modified < toModified && _id > fromId
         final Bson query = and(gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
                 lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)), gt(ID, fromId));

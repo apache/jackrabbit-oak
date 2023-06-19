@@ -44,6 +44,8 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.ME
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MONGO;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDB_H2;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.stats.Clock.SIMPLE;
 import static org.junit.Assert.assertEquals;
@@ -106,7 +108,7 @@ public class VersionGCSupportTest {
             String id = getIdFromPath("/doc-" + i);
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
-            NodeDocument.setModified(op, r);
+            setModified(op, r);
             NodeDocument.setDeleted(op, r, true);
             store.create(NODES, of(op));
         }
@@ -140,7 +142,7 @@ public class VersionGCSupportTest {
             String id = getIdFromPath("/doc-modified" + i);
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
-            NodeDocument.setModified(op, r);
+            setModified(op, r);
             store.create(NODES, of(op));
         }
 
@@ -174,7 +176,7 @@ public class VersionGCSupportTest {
         String id = getIdFromPath("/doc-del");
         ids.add(id);
         UpdateOp op = new UpdateOp(id, true);
-        NodeDocument.setModified(op, r);
+        setModified(op, r);
         NodeDocument.setDeleted(op, r, true);
         store.create(NODES, of(op));
 
@@ -190,7 +192,7 @@ public class VersionGCSupportTest {
         String id = getIdFromPath("/doc-modified");
         ids.add(id);
         UpdateOp op = new UpdateOp(id, true);
-        NodeDocument.setModified(op, r);
+        setModified(op, r);
         store.create(NODES, of(op));
 
         NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
@@ -200,6 +202,110 @@ public class VersionGCSupportTest {
         assertEquals(id, oldestModifiedDocId);
     }
 
+    @Test
+    public void findModifiedDocsWhenModifiedIsDifferent() {
+        long secs = 42;
+        long offset = SECONDS.toMillis(secs);
+        List<UpdateOp> updateOps = new ArrayList<>(5_001);
+        for (int i = 0; i < 5_001; i++) {
+            Revision r = new Revision(offset + (i * 5), 0, 1);
+            String id = getIdFromPath("/x" + i);
+            ids.add(id);
+            UpdateOp op = new UpdateOp(id, true);
+            setModified(op, r);
+            updateOps.add(op);
+        }
+        // create 5_000 nodes
+        store.create(NODES, updateOps);
+
+        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
+        String oldestModifiedDocId = oldestModifiedDoc.getId();
+        long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+        assertEquals(40L, oldestModifiedDocTs);
+        assertEquals("1:/x0", oldestModifiedDocId);
+
+        for(int i = 0; i < 5; i++) {
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), Long.MAX_VALUE, 1000, oldestModifiedDocId);
+            assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+            long count = stream(modifiedDocs.spliterator(), false).count();
+            assertEquals(1000, count);
+            for (NodeDocument modifiedDoc : modifiedDocs) {
+                oldestModifiedDoc = modifiedDoc;
+            }
+            oldestModifiedDocId = oldestModifiedDoc.getId();
+            oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+        }
+    }
+
+    @Test
+    public void findModifiedDocsWhenOldestDocIsPresent() {
+        long offset = SECONDS.toMillis(42);
+        List<UpdateOp> updateOps = new ArrayList<>(5_001);
+        for (int i = 0; i < 5_001; i++) {
+            Revision r = new Revision(offset, 0, 1);
+            String id = getIdFromPath("/x" + i);
+            ids.add(id);
+            UpdateOp op = new UpdateOp(id, true);
+            setModified(op, r);
+            updateOps.add(op);
+        }
+        // create 5_000 nodes
+        store.create(NODES, updateOps);
+
+        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
+        String oldestModifiedDocId = oldestModifiedDoc.getId();
+        long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+        assertEquals(40L, oldestModifiedDocTs);
+        assertEquals("1:/x0", oldestModifiedDocId);
+
+        for(int i = 0; i < 5; i++) {
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), Long.MAX_VALUE, 1000, oldestModifiedDocId);
+            assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+            long count = stream(modifiedDocs.spliterator(), false).count();
+            assertEquals(1000, count);
+            for (NodeDocument modifiedDoc : modifiedDocs) {
+                oldestModifiedDoc = modifiedDoc;
+            }
+            oldestModifiedDocId = oldestModifiedDoc.getId();
+            oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+        }
+    }
+
+    @Test
+    public void findModifiedDocsWhenOldestDocIsAbsent() {
+
+        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
+        String oldestModifiedDocId = MIN_ID_VALUE;
+        long oldestModifiedDocTs = 0L;
+        assertEquals(NULL, oldestModifiedDoc);
+
+        long offset = SECONDS.toMillis(42);
+        List<UpdateOp> updateOps = new ArrayList<>(5_000);
+        for (int i = 0; i < 5_000; i++) {
+            Revision r = new Revision(offset, 0, 1);
+            String id = getIdFromPath("/x" + i);
+            ids.add(id);
+            UpdateOp op = new UpdateOp(id, true);
+            setModified(op, r);
+            updateOps.add(op);
+        }
+        // create 5_000 nodes
+        store.create(NODES, updateOps);
+
+
+        for(int i = 0; i < 5; i++) {
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), Long.MAX_VALUE, 1000, oldestModifiedDocId);
+            assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
+            long count = stream(modifiedDocs.spliterator(), false).count();
+            assertEquals(1000, count);
+            for (NodeDocument modifiedDoc : modifiedDocs) {
+                oldestModifiedDoc = modifiedDoc;
+            }
+            oldestModifiedDocId = oldestModifiedDoc.getId();
+            oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
+        }
+    }
+
     private void assertPossiblyDeleted(long fromSeconds, long toSeconds, long num) {
         Iterable<NodeDocument> docs = gcSupport.getPossiblyDeletedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds));
         assertEquals(num, stream(docs.spliterator(), false).count());
@@ -207,7 +313,6 @@ public class VersionGCSupportTest {
 
     private void assertModified(long fromSeconds, long toSeconds, long num) {
         Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE);
-        docs.forEach(d -> System.out.println(d.getModified() + " " + d.getId()));
         assertEquals(num, stream(docs.spliterator(), false).count());
         assertTrue(isInOrder(docs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
     }
