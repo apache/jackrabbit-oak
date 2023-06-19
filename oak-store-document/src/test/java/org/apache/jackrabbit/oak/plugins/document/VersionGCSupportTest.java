@@ -331,7 +331,7 @@ public class VersionGCSupportTest {
     }
 
     private void assertModified(long fromSeconds, long toSeconds, long num) {
-        Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE, false);
+        Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE);
         assertEquals(num, stream(docs.spliterator(), false).count());
         assertTrue(isInOrder(docs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
     }
