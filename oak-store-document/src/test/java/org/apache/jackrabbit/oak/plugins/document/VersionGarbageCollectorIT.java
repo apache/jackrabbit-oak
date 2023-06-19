@@ -342,7 +342,6 @@ public class VersionGarbageCollectorIT {
 
     // Test when we have more than 1000 deleted properties with different revisions
     @Test
-    @Ignore
     public void testGCDeletedProps_2() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = null;
@@ -356,7 +355,7 @@ public class VersionGarbageCollectorIT {
             }
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             // increase the clock to create new revision for next batch
-            clock.waitUntil(Revision.getCurrentTimestamp() + SECONDS.toMillis(k * 5));
+            clock.waitUntil(Revision.getCurrentTimestamp() + (k * 5));
         }
 
         // enable the detailed gc flag
