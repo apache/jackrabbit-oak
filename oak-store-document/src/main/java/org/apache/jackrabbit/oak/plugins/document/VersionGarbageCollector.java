@@ -32,7 +32,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -111,6 +110,11 @@ public class VersionGarbageCollector {
      * Property name to timestamp till when last detailed-GC run happened
      */
     static final String SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP = "detailedGCTimeStamp";
+
+    /**
+     * Property name to _id till when last detailed-GC run happened
+     */
+    static final String SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP = "detailedGCId";
 
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
@@ -272,7 +276,8 @@ public class VersionGarbageCollector {
         int splitDocGCCount;
         int intermediateSplitDocGCCount;
         int updateResurrectedGCCount;
-        long oldestModifiedGced;
+        long oldestModifiedDocTimeStamp;
+        String oldestModifiedDocId;
         int updatedDetailedGCDocsCount;
         int deletedPropsGCCount;
         final TimeDurationFormatter df = TimeDurationFormatter.forLogging();
@@ -343,7 +348,8 @@ public class VersionGarbageCollector {
                     ", updateResurrectedGCCount=" + updateResurrectedGCCount +
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
-                    ", oldestModifiedGced=" + oldestModifiedGced +
+                    ", oldestModifiedDocId=" + oldestModifiedDocId +
+                    ", oldestModifiedDocTimeStamp=" + oldestModifiedDocTimeStamp +
                     ", updatedDetailedGCDocsCount=" + updatedDetailedGCDocsCount +
                     ", deletedPropsGCCount=" + deletedPropsGCCount +
                     ", iterationCount=" + iterationCount +
@@ -363,7 +369,8 @@ public class VersionGarbageCollector {
             this.splitDocGCCount += run.splitDocGCCount;
             this.intermediateSplitDocGCCount += run.intermediateSplitDocGCCount;
             this.updateResurrectedGCCount += run.updateResurrectedGCCount;
-            this.oldestModifiedGced = run.oldestModifiedGced;
+            this.oldestModifiedDocTimeStamp = run.oldestModifiedDocTimeStamp;
+            this.oldestModifiedDocId = run.oldestModifiedDocId;
             this.updatedDetailedGCDocsCount += run.updatedDetailedGCDocsCount;
             this.deletedPropsGCCount += run.deletedPropsGCCount;
             if (run.iterationCount > 0) {
@@ -608,15 +615,16 @@ public class VersionGarbageCollector {
                 throws IOException {
             int docsTraversed = 0;
             boolean foundDoc = true;
-            long oldestModifiedGCed = rec.scopeFullGC.fromMs;
+            long oldestModifiedDocTimeStamp = rec.scopeDetailedGC.fromMs;
+            String oldestModifiedDocId = rec.detailedGCId;
             try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
-                final long fromModified = rec.scopeFullGC.fromMs;
-                final long toModified = rec.scopeFullGC.toMs;
+                final long fromModified = rec.scopeDetailedGC.fromMs;
+                final long toModified = rec.scopeDetailedGC.toMs;
                 if (phases.start(GCPhase.DETAILED_GC)) {
-                    while (foundDoc && oldestModifiedGCed < toModified && docsTraversed <= PROGRESS_BATCH_SIZE) {
+                    while (foundDoc && oldestModifiedDocTimeStamp < toModified && docsTraversed <= PROGRESS_BATCH_SIZE) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(oldestModifiedGCed, toModified, 1000);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(oldestModifiedDocTimeStamp, toModified, 1000, oldestModifiedDocId);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -640,12 +648,12 @@ public class VersionGarbageCollector {
                                 if (modified == null) {
                                     monitor.warn("collectDetailGarbage : document has no _modified property : {}",
                                             doc.getId());
-                                } else if (modified < oldestModifiedGCed) {
+                                } else if (modified < oldestModifiedDocTimeStamp) {
                                     monitor.warn(
                                             "collectDetailGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
                                             modified, fromModified, toModified);
                                 } else {
-                                    oldestModifiedGCed = modified;
+                                    oldestModifiedDocTimeStamp = modified;
                                 }
 
                                 if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
@@ -653,11 +661,13 @@ public class VersionGarbageCollector {
                                     phases.stop(GCPhase.DETAILED_GC_CLEANUP);
                                 }
 
-                                oldestModifiedGCed = modified == null ? fromModified : modified;
+                                oldestModifiedDocTimeStamp = modified == null ? fromModified : modified;
+                                oldestModifiedDocId = doc.getId();
                             }
                         } finally {
                             Utils.closeIfCloseable(itr);
-                            phases.stats.oldestModifiedGced = oldestModifiedGCed;
+                            phases.stats.oldestModifiedDocTimeStamp = oldestModifiedDocTimeStamp;
+                            phases.stats.oldestModifiedDocId = oldestModifiedDocId;
                         }
                     }
                     phases.stop(GCPhase.DETAILED_GC);
