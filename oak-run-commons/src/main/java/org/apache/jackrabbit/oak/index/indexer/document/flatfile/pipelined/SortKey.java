@@ -35,21 +35,6 @@ public final class SortKey {
     );
 
     public static String[] genSortKeyPathElements(String path) {
-//        arrayBuilder.clear();
-//        int i = 0;
-//        for (String part : elements(path)) {
-//            // This first levels of the path will very likely be similar for most of the entries (e.g. /content/dam/<company>)
-//            // Interning these strings should provide a big reduction in memory usage.
-//            // It is not worth to intern all levels because at lower levels the names are more likely to be less diverse,
-//            // often even unique, so interning them would fill up the interned string hashtable with useless entries.
-//            if (i < 3 || part.length() == 1 || commonWords.contains(part)) {
-//                arrayBuilder.add(part.intern());
-//            } else {
-//                arrayBuilder.add(part);
-//            }
-//            i++;
-//        }
-//        return arrayBuilder.toArray(new String[0]);
         String[] pathElements = new String[PathUtils.getDepth(path)];
         int i = 0;
         for (String part : elements(path)) {

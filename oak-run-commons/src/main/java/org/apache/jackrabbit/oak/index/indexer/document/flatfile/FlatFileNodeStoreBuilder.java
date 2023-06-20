@@ -325,7 +325,6 @@ public class FlatFileNodeStoreBuilder {
                 log.info("Using PipelinedStrategy");
                 return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate);
-
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

@@ -20,19 +20,18 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
+import com.mongodb.MongoIncompatibleDriverException;
+import com.mongodb.MongoInterruptedException;
 import com.mongodb.ReadPreference;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
-import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
-import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
-import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.bson.BsonDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +44,6 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Predicate;
 
 import static com.mongodb.client.model.Sorts.ascending;
 
@@ -64,54 +62,34 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
 
     public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = 300;
-    // Short retrial time, in most cases if the connection to a replica fails, trying again will establish a connection
-    // to another replica which is up
+    // Use a short initial retry interval. In most cases if the connection to a replica fails, there will be other
+    // replicas available so a reconnection attempt will succeed immediately.
     private final static long retryInitialIntervalMillis = 100;
     private final static long retryMaxIntervalMillis = 10_000;
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(2);
-    private static final String TRAVERSER_ID_PREFIX = "NSET";
+    private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
 
-    private final MongoDocumentStore mongoStore;
-    private final Collection<? extends Document> collection;
-    private final Predicate<String> filter;
     private final int batchSize;
     private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
     private final int retryDuringSeconds;
     private final Logger traversalLog = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class.getName() + ".traversal");
     private final MongoCollection<BasicDBObject> dbCollection;
     private final ReadPreference readPreference;
+    private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
 
+    private long totalEnqueueWaitTimeMillis = 0;
+    private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
     private long documentsRead = 0;
-    private long nextLastModified;
+    private long nextLastModified = 0;
     private String lastIdDownloaded = null;
 
     public <T extends Document> PipelinedMongoDownloadTask(MongoDocumentStore mongoStore,
                                                            Collection<T> collection,
-                                                           Predicate<String> filter,
                                                            int batchSize,
                                                            ArrayBlockingQueue<BasicDBObject[]> queue) {
-        this.mongoStore = mongoStore;
-        this.collection = collection;
         this.batchSize = batchSize;
-        // TODO
-//        this.filter = filter;
         this.mongoDocQueue = queue;
-
-        IndexingProgressReporter progressReporterPerTask =
-                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
-        progressReporterPerTask.setMessagePrefix("Dumping from " + TRAVERSER_ID_PREFIX);
-
-        this.filter = (id) -> {
-            try {
-                progressReporterPerTask.traversedNode(() -> id);
-            } catch (CommitFailedException e) {
-                throw new RuntimeException(e);
-            }
-            traversalLog.trace(id);
-            return true;
-        };
-
         // Default retries for 5 minutes.
         this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
                 OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS,
@@ -123,7 +101,6 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
 //        this.readPreference = MongoDocumentStoreHelper.getConfiguredReadPreference(mongoStore, collection);
         this.readPreference = ReadPreference.secondaryPreferred();
         LOG.info("Using read preference {}", readPreference.getName());
-
     }
 
     @Override
@@ -132,7 +109,6 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
         Thread.currentThread().setName("mongo-dump");
         try {
             LOG.info("Starting to download from MongoDB.");
-            MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(mongoStore, collection);
             //TODO This may lead to reads being routed to secondary depending on MongoURI
             //So caller must ensure that its safe to read from secondary
 
@@ -141,6 +117,7 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
             Instant failureTimestamp = null;
             long retryInterval = retryInitialIntervalMillis;
 
+            downloadStartWatch.start();
             Map<String, Integer> exceptions = new HashMap<>();
             while (true) {
                 try {
@@ -154,9 +131,16 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
                     } else {
                         downloadRange(new DownloadRange(nextLastModified, Long.MAX_VALUE, null));
                     }
-                    LOG.info("Terminating thread, processed {} documents", documentsRead);
+                    LOG.info("Terminating thread, downloaded {} Mongo documents in {}. Time waiting for transform threads: {} seconds ({}%)",
+                            documentsRead, downloadStartWatch,
+                            totalEnqueueWaitTimeMillis / 1000,
+                            String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS)));
                     return new Result(documentsRead);
                 } catch (MongoException e) {
+                    if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
+                        // Non-recoverable exceptions
+                        throw e;
+                    }
                     if (failureTimestamp == null) {
                         failureTimestamp = Instant.now();
                     }
@@ -193,6 +177,16 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
         }
     }
 
+    private void reportProgress(String id) {
+        if (this.documentsRead % 10000 == 0) {
+            double rate = ((double) this.documentsRead) / downloadStartWatch.elapsed(TimeUnit.SECONDS);
+            String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
+            LOG.info("Dumping from NSET Traversed #{} {} [{}] (Elapsed {})",
+                    this.documentsRead, id, formattedRate, downloadStartWatch);
+        }
+        traversalLog.trace(id);
+    }
+
     private void downloadRange(DownloadRange range) throws InterruptedException, TimeoutException {
         BasicDBObject[] block = new BasicDBObject[batchSize];
         int nextIndex = 0;
@@ -209,14 +203,13 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
                 this.nextLastModified = next.getLong(NodeDocument.MODIFIED_IN_SECS);
                 this.lastIdDownloaded = id;
                 this.documentsRead++;
-                if (filter.test(id)) {
-                    block[nextIndex] = next;
-                    nextIndex++;
-                    if (nextIndex == batchSize) {
-                        tryEnqueue(block);
-                        block = new BasicDBObject[batchSize];
-                        nextIndex = 0;
-                    }
+                reportProgress(id);
+                block[nextIndex] = next;
+                nextIndex++;
+                if (nextIndex == batchSize) {
+                    tryEnqueue(block);
+                    block = new BasicDBObject[batchSize];
+                    nextIndex = 0;
                 }
             }
         }
@@ -230,8 +223,27 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
     }
 
     private void tryEnqueue(BasicDBObject[] block) throws TimeoutException, InterruptedException {
+        Stopwatch stopwatch = Stopwatch.createStarted();
         if (!mongoDocQueue.offer(block, MONGO_QUEUE_OFFER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
             throw new TimeoutException("Timeout trying to enqueue batch of MongoDB documents. Waited " + MONGO_QUEUE_OFFER_TIMEOUT);
+        }
+        long enqueueDelay = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        totalEnqueueWaitTimeMillis += enqueueDelay;
+        if (enqueueDelay > 1) {
+            logWithRateLimit(() ->
+                    LOG.info("Enqueuing of Mongo document batch was delayed, took {} ms. mongoDocQueue size {}. " +
+                                    "Consider increasing the number of Transform threads. " +
+                                    "(This message is logged at most once every {} seconds)",
+                            enqueueDelay, mongoDocQueue.size(), MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES)
+            );
+        }
+    }
+
+    private void logWithRateLimit(Runnable f) {
+        Instant now = Instant.now();
+        if (Duration.between(lastDelayedEnqueueWarningMessageLoggedTimestamp, now).toSeconds() > MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES) {
+            f.run();
+            lastDelayedEnqueueWarningMessageLoggedTimestamp = now;
         }
     }
 

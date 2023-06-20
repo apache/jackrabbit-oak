@@ -24,7 +24,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -35,15 +34,11 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -54,13 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Predicate;
-
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:
@@ -130,32 +119,51 @@ public class PipelinedStrategy implements SortStrategy {
 
     static final BasicDBObject[] SENTINEL_MONGO_DOCUMENT = new BasicDBObject[0];
     static final NodeStateEntryBatch SENTINEL_NSE_BUFFER = new NodeStateEntryBatch(ByteBuffer.allocate(0), 0);
+    static final File SENTINEL_SORTED_FILES_QUEUE = new File("SENTINEL");
     static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 64;
 
-    private static class MonitorTask implements Runnable {
+    private class MonitorTask implements Runnable {
         private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
-        private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
-        private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
+        private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
+        private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
         private final ArrayBlockingQueue<File> sortedFilesQueue;
+        private final TransformStageStatistics transformStageStatistics;
 
         public MonitorTask(ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue,
-                           ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
-                           ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
-                           ArrayBlockingQueue<File> sortedFilesQueue) {
+                           ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
+                           ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
+                           ArrayBlockingQueue<File> sortedFilesQueue,
+                           TransformStageStatistics transformStageStatistics) {
             this.mongoDocQueue = mongoDocQueue;
-            this.emptyBuffersQueue = emptyBuffersQueue;
-            this.nonEmptyBuffersQueue = nonEmptyBuffersQueue;
+            this.emptyBatchesQueue = emptyBatchesQueue;
+            this.nonEmptyBatchesQueue = nonEmptyBatchesQueue;
             this.sortedFilesQueue = sortedFilesQueue;
+            this.transformStageStatistics = transformStageStatistics;
         }
 
         @Override
         public void run() {
-            LOG.info("Queue sizes: mongoDocQueue: {}, emptyBuffersQueue: {}, nonEmptyBuffersQueue: {}, sortedFilesQueue: {}",
-                    mongoDocQueue.size(), emptyBuffersQueue.size(), nonEmptyBuffersQueue.size(), sortedFilesQueue.size());
+            try {
+                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics);
+            } catch (Exception e) {
+                LOG.error("Error while logging queue sizes", e);
+            }
         }
+    }
+
+    private void printStatistics(ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue,
+                                 ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
+                                 ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
+                                 ArrayBlockingQueue<File> sortedFilesQueue,
+                                 TransformStageStatistics transformStageStatistics) {
+        LOG.info("Queue sizes: mongoDocQueue: {}, emptyBuffersQueue: {}, nonEmptyBuffersQueue: {}, sortedFilesQueue: {}, TransformPhase: [{}] ",
+                mongoDocQueue.size(), emptyBuffersQueue.size(), nonEmptyBuffersQueue.size(), sortedFilesQueue.size(), transformStageStatistics.formatStats());
+        LOG.info("Top hidden paths rejected: {}", transformStageStatistics.prettyPrintHiddenPathsHistogram());
+        LOG.info("Top paths filtered: {}", transformStageStatistics.prettyPrintPathFilteredHistogram());
+        LOG.info("Top empty node state documents: {}", transformStageStatistics.prettyPrintEmptyNodeStateHistogram());
     }
 
     private final MongoDocumentStore docStore;
@@ -164,11 +172,9 @@ public class PipelinedStrategy implements SortStrategy {
     private final BlobStore blobStore;
     private final File storeDir;
 
-    private final Comparator<NodeStateHolder> comparator;
     private final PathElementComparator pathComparator;
     private final Compression algorithm;
     private long entryCount;
-    private final List<File> sortedFiles = new ArrayList<>();
     private final Predicate<String> pathPredicate;
 
     public PipelinedStrategy(MongoDocumentStore documentStore,
@@ -185,7 +191,6 @@ public class PipelinedStrategy implements SortStrategy {
         this.blobStore = blobStore;
         this.storeDir = storeDir;
         this.pathComparator = new PathElementComparator(preferredPathElements);
-        this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.pathPredicate = pathPredicate;
         this.algorithm = algorithm;
 
@@ -210,7 +215,7 @@ public class PipelinedStrategy implements SortStrategy {
             workingMemoryMB = autodetectWorkingMemory();
         }
 
-        int numberOfThreads = 1 + transformThreads + 1; // dump, transform, sort threads.
+        int numberOfThreads = 1 + transformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
                 new ThreadFactoryBuilder().setNameFormat("mongo-dump").setDaemon(true).build()
         );
@@ -228,7 +233,7 @@ public class PipelinedStrategy implements SortStrategy {
             // entry batches.
             int memoryArenas = numberOfBuffers + 1;
             int memoryForEntriesMB = workingMemoryMB / memoryArenas;
-            int maxNumberOfEntries = memoryForEntriesMB * 1024 * 4; // Assuming that 1KB is enough for 4 entries.
+            int maxNumberOfEntries = memoryForEntriesMB * 1024 * 5; // Assuming that 1KB is enough for 5 entries.
             int maxNumberOfEntriesPerBuffer = maxNumberOfEntries / numberOfBuffers;
 
             // A ByteBuffer can be at most Integer.MAX_VALUE bytes
@@ -262,13 +267,14 @@ public class PipelinedStrategy implements SortStrategy {
             // Queue with buffers filled by the transform task, used by the sort and save task
             ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
 
-            // Queue between sort and save thread and the parent thread (the one executing this code).
-            ArrayBlockingQueue<File> sortedFilesQueue = new ArrayBlockingQueue<>(1000);
+            // Queue between sort-and-save thread and the merge-sorted-files thread
+            ArrayBlockingQueue<File> sortedFilesQueue = new ArrayBlockingQueue<>(64);
 
-            ScheduledFuture<?> monitorTask = monitorThreadPool.scheduleWithFixedDelay(
-                    new MonitorTask(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue),
-                    0, 1, TimeUnit.SECONDS
-            );
+            TransformStageStatistics transformStageStatistics = new TransformStageStatistics();
+
+            ScheduledFuture<?> monitorFuture = monitorThreadPool.scheduleWithFixedDelay(
+                    new MonitorTask(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics),
+                    10, 30, TimeUnit.SECONDS);
 
             // Create empty buffers
             for (int i = 0; i < numberOfBuffers; i++) {
@@ -277,9 +283,11 @@ public class PipelinedStrategy implements SortStrategy {
 
             Stopwatch start = Stopwatch.createStarted();
             PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(
-                    docStore, Collection.NODES, s -> true, mongoBatchSize, mongoDocQueue
+                    docStore, Collection.NODES, mongoBatchSize, mongoDocQueue
             );
             ecs.submit(downloadTask);
+
+            File flatFileStore = null;
 
             for (int i = 0; i < transformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
@@ -292,7 +300,8 @@ public class PipelinedStrategy implements SortStrategy {
                         entryWriter,
                         mongoDocQueue,
                         emptyBatchesQueue,
-                        nonEmptyBatchesQueue
+                        nonEmptyBatchesQueue,
+                        transformStageStatistics
                 );
                 ecs.submit(transformTask);
             }
@@ -301,6 +310,10 @@ public class PipelinedStrategy implements SortStrategy {
                     storeDir, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
             );
             ecs.submit(sortTask);
+
+            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(storeDir, pathComparator, algorithm, sortedFilesQueue);
+            ecs.submit(mergeSortTask);
+
 
             try {
                 LOG.info("Waiting for tasks to complete.");
@@ -325,6 +338,8 @@ public class PipelinedStrategy implements SortStrategy {
                             transformTasksFinished++;
                             if (transformTasksFinished == transformThreads) {
                                 LOG.info("All transform tasks finished. Node states retrieved: {}", entryCount);
+                                // No need to keep monitoring the queues, the download and transform threads are done.
+                                monitorFuture.cancel(false);
                                 // At this point, only the sort thread is listening to the exchanger.
                                 nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
                             }
@@ -332,7 +347,12 @@ public class PipelinedStrategy implements SortStrategy {
                         } else if (result instanceof PipelinedSortBatchTask.Result) {
                             PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
                             LOG.info("Sort task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
-                            sortedFilesQueue.stream().iterator().forEachRemaining(sortedFiles::add);
+                            sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
+
+                        } else if (result instanceof PipelinedMergeSortTask.Result) {
+                            PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
+                            LOG.info("Sort task finished. Entries processed: {}", mergeSortedFilesTask.getFlatFileStoreFile());
+                            flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
 
                         } else {
                             throw new RuntimeException("Unknown result type: " + result);
@@ -357,15 +377,14 @@ public class PipelinedStrategy implements SortStrategy {
                     }
                 }
                 LOG.info("Dumped {} nodestates in json format in {}", entryCount, start);
-                LOG.info("Created {} sorted files of size {} to merge",
-                        sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
+                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } finally {
                 // No longer need to monitor the size of the queues,
-                monitorTask.cancel(true);
+                monitorFuture.cancel(true);
             }
-            return sortStoreFile(sortedFiles);
+            return flatFileStore;
         } finally {
             threadPool.shutdown();
             monitorThreadPool.shutdown();
@@ -375,26 +394,5 @@ public class PipelinedStrategy implements SortStrategy {
     @Override
     public long getEntryCount() {
         return entryCount;
-    }
-
-    private File sortStoreFile(List<File> sortedFilesBatch) throws IOException {
-        LOG.info("Proceeding to perform merge of {} sorted files", sortedFilesBatch.size());
-        Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
-        try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
-            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new NodeStateHolder(line);
-            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
-            ExternalSort.mergeSortedFiles(sortedFilesBatch,
-                    writer,
-                    comparator,
-                    FLATFILESTORE_CHARSET,
-                    true, //distinct
-                    algorithm,
-                    func2,
-                    func1
-            );
-        }
-        LOG.info("Merging of sorted files completed in {}", w);
-        return sortedFile;
     }
 }

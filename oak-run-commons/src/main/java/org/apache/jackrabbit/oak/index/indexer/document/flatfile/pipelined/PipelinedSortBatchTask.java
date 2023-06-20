@@ -33,7 +33,6 @@ import java.util.Comparator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createOutputStream;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
 
@@ -75,15 +74,15 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         this.emptyBuffersQueue = emptyBuffersQueue;
         this.nonEmptyBuffersQueue = nonEmptyBuffersQueue;
         this.sortedFilesQueue = sortedFilesQueue;
-        sortWorkDir = createdSortWorkDir(storeDir);
+        this.sortWorkDir = createdSortWorkDir(storeDir);
     }
 
     @Override
     public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
-        Thread.currentThread().setName("mongo-sort");
+        Thread.currentThread().setName("mongo-sort-batch");
         try {
-            LOG.info("Starting sort and save task");
+            LOG.info("Starting sort-and-save task");
             while (true) {
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
@@ -106,18 +105,17 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
     }
 
-
-
     private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
         ArrayList<SortKey> sortBuffer = nseb.getSortBuffer();
         ByteBuffer buffer = nseb.getBuffer();
-        LOG.info("sortAndSaveBatch. Size of batch: {} {}", sortBuffer.size(), humanReadableByteCount(buffer.remaining()));
+        LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
+                sortBuffer.size(), FileUtils.byteCountToDisplaySize(buffer.remaining()));
         if (sortBuffer.size() == 0) {
             return;
         }
         Stopwatch sortClock = Stopwatch.createStarted();
         sortBuffer.sort(pathComparator);
-        LOG.info("sorted in {}", sortClock);
+        LOG.info("Sorted batch in {}. Saving to disk.", sortClock);
         Stopwatch saveClock = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
@@ -141,8 +139,10 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 textSize += entrySize + 1;
             }
         }
-        LOG.info("Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}",
-                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), sortBuffer.size(), saveClock);
+        LOG.info("Stored batch of size {} (uncompressed {}) with {} entries in {}",
+                FileUtils.byteCountToDisplaySize(newtmpfile.length()),
+                FileUtils.byteCountToDisplaySize(textSize),
+                sortBuffer.size(), saveClock);
         sortedFilesQueue.put(newtmpfile);
     }
 
