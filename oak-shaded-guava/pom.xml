@@ -57,13 +57,22 @@
                   <shadedPattern>${pref}</shadedPattern>
                 </relocation>
               </relocations>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <createDependencyReducedPom>true</createDependencyReducedPom>
               <createSourcesJar>true</createSourcesJar>
             </configuration>
           </execution>
         </executions>
       </plugin>
-      <plugin>
+       <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>dependency-reduced-pom.xml</exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+     <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <extensions>true</extensions>
