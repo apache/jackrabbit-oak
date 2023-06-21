@@ -82,17 +82,16 @@ public class VersionGCSupport {
      * then perform the comparison.
      * <p/>
      *
-     * @param fromModified  the lower bound modified timestamp (inclusive)
-     * @param toModified    the upper bound modified timestamp (exclusive)
-     * @param limit         the limit of documents to return
-     * @param fromId        the lower bound {@link NodeDocument#ID}
-     * @param includeFromId boolean indicating whether {@code fromId} is inclusive or not
+     * @param fromModified the lower bound modified timestamp (inclusive)
+     * @param toModified   the upper bound modified timestamp (exclusive)
+     * @param limit        the limit of documents to return
+     * @param fromId       the lower bound {@link NodeDocument#ID}
      * @return matching documents.
      */
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId, boolean includeFromId) {
+                                                  @NotNull final String fromId) {
         return StreamSupport
-                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, includeFromId ? "\0"+fromId : fromId).spliterator(), false)
+                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, fromId).spliterator(), false)
                 .filter(input -> modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
                 .sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2))
                 .limit(limit)
@@ -197,7 +196,7 @@ public class VersionGCSupport {
 
         LOG.info("find oldest modified document");
         try {
-            docs = getModifiedDocs(ts, now, 1, MIN_ID_VALUE, false);
+            docs = getModifiedDocs(ts, now, 1, MIN_ID_VALUE);
             if (docs.iterator().hasNext()) {
                 return docs.iterator().next();
             }

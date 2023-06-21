@@ -69,6 +69,7 @@ import static org.apache.jackrabbit.guava.common.util.concurrent.Atomics.newRefe
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
@@ -615,24 +616,26 @@ public class VersionGarbageCollector {
                 throws IOException {
             int docsTraversed = 0;
             boolean foundDoc = true;
-            boolean includeFromId = true;
-            long oldestModifiedDocTimeStamp = rec.scopeDetailedGC.fromMs;
-            String oldestModifiedDocId = rec.detailedGCId;
+            final long oldestModifiedDocTimeStamp = rec.scopeDetailedGC.fromMs;
+            final String oldestModifiedDocId = rec.detailedGCId;
             try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
-                final long fromModified = rec.scopeDetailedGC.fromMs;
+                long fromModified = oldestModifiedDocTimeStamp;
+                String fromId = oldestModifiedDocId;
+                NodeDocument lastDoc = null;
                 final long toModified = rec.scopeDetailedGC.toMs;
                 if (phases.start(GCPhase.DETAILED_GC)) {
-                    while (foundDoc && oldestModifiedDocTimeStamp < toModified && docsTraversed <= PROGRESS_BATCH_SIZE) {
+                    while (foundDoc && fromModified < toModified && docsTraversed <= PROGRESS_BATCH_SIZE) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(oldestModifiedDocTimeStamp, toModified, 1000, oldestModifiedDocId, includeFromId);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModified, toModified, 1000, fromId);
                         // set includeFromId to false for subsequent queries
-                        includeFromId = false;
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
                                 // continue with GC?
                                 if (cancel.get()) {
+                                    foundDoc = false; // to exit while loop as well
+                                    log.info("Received GC cancel call. Terminating the GC Operation.");
                                     break;
                                 }
                                 docsTraversed++;
@@ -641,13 +644,14 @@ public class VersionGarbageCollector {
                                             docsTraversed, gc.getGarbageDocsCount());
                                 }
 
+                                lastDoc = doc;
                                 // collect the data to delete in next step
                                 if (phases.start(GCPhase.COLLECTING)) {
                                     gc.collectGarbage(doc, phases);
                                     phases.stop(GCPhase.COLLECTING);
                                 }
 
-                                final Long modified = doc.getModified();
+                                final Long modified = lastDoc.getModified();
                                 if (modified == null) {
                                     monitor.warn("collectDetailGarbage : document has no _modified property : {}",
                                             doc.getId());
@@ -655,22 +659,28 @@ public class VersionGarbageCollector {
                                     monitor.warn(
                                             "collectDetailGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
                                             modified, fromModified, toModified);
-                                } else {
-                                    oldestModifiedDocTimeStamp = modified;
                                 }
-
-                                if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
-                                    gc.removeGarbage(phases.stats);
-                                    phases.stop(GCPhase.DETAILED_GC_CLEANUP);
-                                }
-
-                                oldestModifiedDocTimeStamp = modified == null ? fromModified : modified;
-                                oldestModifiedDocId = doc.getId();
+                            }
+                            // now remove the garbage in one go, if any
+                            if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
+                                gc.removeGarbage(phases.stats);
+                                phases.stop(GCPhase.DETAILED_GC_CLEANUP);
+                            }
+                            if (lastDoc != null) {
+                                fromModified = ofNullable(lastDoc.getModified()).orElse(oldestModifiedDocTimeStamp);
+                                fromId = lastDoc.getId();
                             }
                         } finally {
                             Utils.closeIfCloseable(itr);
-                            phases.stats.oldestModifiedDocTimeStamp = oldestModifiedDocTimeStamp;
-                            phases.stats.oldestModifiedDocId = oldestModifiedDocId;
+                            phases.stats.oldestModifiedDocTimeStamp = fromModified;
+                            if (fromModified > oldestModifiedDocTimeStamp) {
+                                // we have moved ahead, now we can reset oldestModifiedId to min value
+                                phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
+                            } else {
+                                // there are still documents pending at oldest Modified timestamp,
+                                // save the last _id traversed to avoid re-fetching of ids
+                                phases.stats.oldestModifiedDocId = fromId;
+                            }
                         }
                     }
                     phases.stop(GCPhase.DETAILED_GC);
