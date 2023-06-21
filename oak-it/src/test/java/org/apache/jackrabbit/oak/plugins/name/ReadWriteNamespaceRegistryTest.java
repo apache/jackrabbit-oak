@@ -35,8 +35,7 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
-
-import ch.qos.logback.classic.Level;
+import org.slf4j.event.Level;
 
 public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
 
@@ -107,7 +106,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         }
     }
 
-    private NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {
+    private static NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {
         return new ReadWriteNamespaceRegistry(root) {
             @Override
             protected Root getWriteRoot() {
