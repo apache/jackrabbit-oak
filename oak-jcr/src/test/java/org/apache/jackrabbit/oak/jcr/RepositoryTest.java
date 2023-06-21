@@ -91,7 +91,6 @@ import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.commons.jackrabbit.SimpleReferenceBinary;
 import org.apache.jackrabbit.core.data.RandomInputStream;
 import org.apache.jackrabbit.core.security.principal.AdminPrincipal;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.jcr.repository.RepositoryImpl;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
@@ -1995,24 +1994,6 @@ public class RepositoryTest extends AbstractRepositoryTest {
         nsReg.unregisterNamespace("foo");
         assertFalse(asList(nsReg.getPrefixes()).contains("foo"));
         assertFalse(asList(nsReg.getURIs()).contains("file:///foo"));
-    }
-
-    // see OAK-10304
-    @Test
-    public void testNamespaceNames() throws RepositoryException {
-        NamespaceRegistry nsReg = getAdminSession().getWorkspace().getNamespaceRegistry();
-
-        LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
-        try {
-            customLogs.starting();
-            nsReg.registerNamespace("foo", "example.com");
-            List<String> myLogs = customLogs.getLogs();
-            assertEquals("", myLogs.toString());
-            nsReg.unregisterNamespace("foo");
-        }
-        finally {
-            customLogs.finished();
-        }
     }
 
     @Test

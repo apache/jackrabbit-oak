@@ -21,6 +21,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.List;
+
 import javax.jcr.NamespaceException;
 import javax.jcr.NamespaceRegistry;
 
@@ -29,9 +31,12 @@ import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.OakBaseTest;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.Root;
+import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.junit.Test;
+
+import ch.qos.logback.classic.Level;
 
 public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
 
@@ -50,16 +55,7 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
     public void testMappings() throws Exception {
         final ContentSession session = createContentSession();
         final Root root = session.getLatestRoot();
-        NamespaceRegistry r = new ReadWriteNamespaceRegistry(root) {
-            @Override
-            protected Root getWriteRoot() {
-                return session.getLatestRoot();
-            }
-            @Override
-            protected void refresh() {
-                root.refresh();
-            }
-        };
+        NamespaceRegistry r = getNamespaceRegistry(session, root);
 
         assertEquals("", r.getURI(""));
         assertEquals("http://www.jcp.org/jcr/1.0", r.getURI("jcr"));
@@ -89,5 +85,37 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         } catch (NamespaceException ex) {
             // expected
         }
+    }
+
+    @Test
+    public void testInvalidNamespace() throws Exception {
+        final ContentSession session = createContentSession();
+        final Root root = session.getLatestRoot();
+        NamespaceRegistry r = getNamespaceRegistry(session, root);
+
+        LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
+        try {
+            customLogs.starting();
+            r.registerNamespace("xml", "example.com");
+            List<String> myLogs = customLogs.getLogs();
+            assertEquals("", myLogs.toString());
+            r.unregisterNamespace("foo");
+        }
+        finally {
+            customLogs.finished();
+        }
+    }
+
+    private NamespaceRegistry getNamespaceRegistry(ContentSession session, Root root) {
+        return new ReadWriteNamespaceRegistry(root) {
+            @Override
+            protected Root getWriteRoot() {
+                return session.getLatestRoot();
+            }
+            @Override
+            protected void refresh() {
+                root.refresh();
+            }
+        };
     }
 }
