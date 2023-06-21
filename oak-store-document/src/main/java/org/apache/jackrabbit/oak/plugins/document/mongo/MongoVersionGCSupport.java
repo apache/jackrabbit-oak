@@ -139,19 +139,18 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * then perform the comparison.
      * <p/>
      *
-     * @param fromModified  the lower bound modified timestamp (inclusive)
-     * @param toModified    the upper bound modified timestamp (exclusive)
-     * @param limit         the limit of documents to return
-     * @param fromId        the lower bound {@link NodeDocument#ID}
-     * @param includeFromId boolean indicating whether {@code fromId} is inclusive or not
+     * @param fromModified the lower bound modified timestamp (inclusive)
+     * @param toModified   the upper bound modified timestamp (exclusive)
+     * @param limit        the limit of documents to return
+     * @param fromId       the lower bound {@link NodeDocument#ID}
      * @return matching documents.
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId, boolean includeFromId) {
+                                                  @NotNull final String fromId) {
         // _modified >= fromModified && _modified < toModified && _id > fromId
         final Bson query = and(gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)), includeFromId ? gte(ID, fromId) :gt(ID, fromId));
+                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)), gt(ID, fromId));
         // first sort by _modified and then by _id
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
 
