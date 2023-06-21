@@ -317,6 +317,7 @@ public class VersionGarbageCollectorIT {
         return stats;
     }
 
+    // OAK-10199
     @Test
     public void testDetailedGCNeedRepeat() throws Exception {
         long expiryTime = 5001, maxAge = 20, batchSize = /*PROGRESS_BATCH_SIZE+1*/ 10001;
