@@ -224,10 +224,10 @@ public class VersionGCSupportTest {
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
         assertEquals(40L, oldestModifiedDocTs);
         assertEquals("1:/x0", oldestModifiedDocId);
-        boolean includeFromId = true;
+        oldestModifiedDocId = MIN_ID_VALUE;
 
         for(int i = 0; i < 5; i++) {
-            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, includeFromId);
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
@@ -236,7 +236,6 @@ public class VersionGCSupportTest {
             }
             oldestModifiedDocId = oldestModifiedDoc.getId();
             oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
-            includeFromId = false;
         }
     }
 
@@ -260,10 +259,10 @@ public class VersionGCSupportTest {
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
         assertEquals(40L, oldestModifiedDocTs);
         assertEquals("1:/x0", oldestModifiedDocId);
-        boolean includeFromId = true;
+        oldestModifiedDocId = MIN_ID_VALUE;
 
         for(int i = 0; i < 5; i++) {
-            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, includeFromId);
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
@@ -272,11 +271,10 @@ public class VersionGCSupportTest {
             }
             oldestModifiedDocId = oldestModifiedDoc.getId();
             oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
-            includeFromId = false;
         }
 
         // fetch last remaining document now
-        Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, false);
+        Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId);
         assertEquals(1, stream(modifiedDocs.spliterator(), false).count());
         assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
         oldestModifiedDoc = modifiedDocs.iterator().next();
@@ -284,7 +282,7 @@ public class VersionGCSupportTest {
         oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
 
         // all documents had been fetched, now we won't get any document
-        modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, false);
+        modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId);
         assertEquals(0, stream(modifiedDocs.spliterator(), false).count());
 
     }
@@ -309,10 +307,9 @@ public class VersionGCSupportTest {
         }
         // create 5_000 nodes
         store.create(NODES, updateOps);
-        boolean includeFromId = true;
 
         for(int i = 0; i < 5; i++) {
-            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, includeFromId);
+            Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId);
             assertTrue(isInOrder(modifiedDocs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
             long count = stream(modifiedDocs.spliterator(), false).count();
             assertEquals(1000, count);
@@ -321,11 +318,10 @@ public class VersionGCSupportTest {
             }
             oldestModifiedDocId = oldestModifiedDoc.getId();
             oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
-            includeFromId = false;
         }
 
         // all documents had been fetched, now we won't get any document
-        Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId, false);
+        Iterable<NodeDocument> modifiedDocs = gcSupport.getModifiedDocs(SECONDS.toMillis(oldestModifiedDocTs), MAX_VALUE, 1000, oldestModifiedDocId);
         assertEquals(0, stream(modifiedDocs.spliterator(), false).count());
     }
 
@@ -335,7 +331,7 @@ public class VersionGCSupportTest {
     }
 
     private void assertModified(long fromSeconds, long toSeconds, long num) {
-        Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE, false);
+        Iterable<NodeDocument> docs = gcSupport.getModifiedDocs(SECONDS.toMillis(fromSeconds), SECONDS.toMillis(toSeconds), 10, MIN_ID_VALUE);
         assertEquals(num, stream(docs.spliterator(), false).count());
         assertTrue(isInOrder(docs, (o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)));
     }
