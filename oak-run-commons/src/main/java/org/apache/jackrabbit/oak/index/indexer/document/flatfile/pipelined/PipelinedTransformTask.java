@@ -55,18 +55,21 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
  * buffer and when the buffer is full, passes the buffer to the sort-and-save task.
  */
 class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> {
-
-    private long totalEnqueueWaitTimeMillis = 0;
-
     public static class Result {
+        private final int transformThreadId;
         private final long entryCount;
 
-        public Result(long entryCount) {
+        public Result(int threadId, long entryCount) {
+            this.transformThreadId = threadId;
             this.entryCount = entryCount;
         }
 
         public long getEntryCount() {
             return entryCount;
+        }
+
+        public int getThreadId() {
+            return transformThreadId;
         }
     }
 
@@ -76,14 +79,18 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
-    private final Predicate<String> pathPredicate;
-    private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
-    private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
-    private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
-    private final TransformStageStatistics statistics;
     private final Collection<NodeDocument> collection;
     private final NodeStateEntryWriter entryWriter;
+    private final Predicate<String> pathPredicate;
+    // Input queue
+    private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
+    // Output queue
+    private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
+    // Queue with empty (recycled) buffers
+    private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
+    private final TransformStageStatistics statistics;
     private final int threadId = threadIdGenerator.getAndIncrement();
+    private long totalEnqueueWaitTimeMillis = 0;
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
@@ -134,7 +141,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);
-                    return new Result(totalEntryCount);
+                    return new Result(threadId, totalEntryCount);
                 } else {
                     for (BasicDBObject dbObject : dbObjectBatch) {
                         statistics.incrementMongoDocumentsProcessed();
@@ -147,7 +154,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             );
                         }
                         //TODO Review the cache update approach where tracker has to track *all* docs
-                        LOG.debug("Converting: {}", dbObject);
                         NodeDocument nodeDoc = MongoDocumentStoreHelper.convertFromDBObject(mongoStore, collection, dbObject);
                         // TODO: should we cache splitDocuments? Maybe this can be moved to after the check for split document
                         nodeCache.put(nodeDoc);
@@ -162,7 +168,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             for (NodeStateEntry nse : entries) {
                                 String path = nse.getPath();
                                 if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
-                                    statistics.incrementEntriesExtracted();
+                                    statistics.incrementEntriesAccepted();
                                     totalEntryCount++;
                                     // Serialize entry
                                     entryWriter.writeTo(writer, nse);

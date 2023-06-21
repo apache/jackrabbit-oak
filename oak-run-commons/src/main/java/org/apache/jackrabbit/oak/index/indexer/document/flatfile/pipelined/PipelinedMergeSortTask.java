@@ -90,14 +90,15 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
                 LOG.info("Waiting for next intermediate sorted file");
                 File sortedIntermediateFile = sortedFilesQueue.take();
                 if (sortedIntermediateFile == SENTINEL_SORTED_FILES_QUEUE) {
-                    LOG.info("Created {} sorted files of size {} to merge", sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
+                    LOG.info("Going to sort {} files of total size {}", sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
                     File flatFileStore = sortStoreFile(sortedFiles);
-                    LOG.info("Terminating thread, processed {} files", sortedFiles.size());
+                    LOG.info("Terminating thread, merged {} files", sortedFiles.size());
                     return new Result(flatFileStore);
                 }
-                LOG.info("Received new intermediate sorted file {}. Size: {}",
-                        sortedIntermediateFile, FileUtils.byteCountToDisplaySize(sortedIntermediateFile.length()));
                 sortedFiles.add(sortedIntermediateFile);
+                LOG.info("Received new intermediate sorted file {}. Size: {}. Total files: {} of size {}",
+                        sortedIntermediateFile, FileUtils.byteCountToDisplaySize(sortedIntermediateFile.length()),
+                        sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
             }
         } catch (InterruptedException t) {
             LOG.warn("Thread interrupted");

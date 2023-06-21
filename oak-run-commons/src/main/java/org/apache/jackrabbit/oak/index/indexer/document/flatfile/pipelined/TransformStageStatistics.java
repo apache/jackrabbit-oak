@@ -9,33 +9,33 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Collectors;
 
 public class TransformStageStatistics {
-    private final LongAdder mongoDocumentsProcessed = new LongAdder();
-    private final LongAdder entriesExtracted = new LongAdder();
-    private final LongAdder extractedEntriesTotalSize = new LongAdder();
-    private final LongAdder splitDocumentsRejected = new LongAdder();
-    private final LongAdder emptyNodeStateDocuments = new LongAdder();
+    private final LongAdder mongoDocumentsTraversed = new LongAdder();
+    private final LongAdder documentsRejectedSplit = new LongAdder();
+    private final LongAdder documentsRejectedEmptyNodeState = new LongAdder();
+    private final LongAdder entriesAccepted = new LongAdder();
     private final LongAdder entriesRejected = new LongAdder();
     private final LongAdder entriesRejectedHiddenPaths = new LongAdder();
     private final LongAdder entriesRejectedPathFiltered = new LongAdder();
+    private final LongAdder entriesAcceptedTotalSize = new LongAdder();
     private final ConcurrentHashMap<String, LongAdder> hiddenPathsRejectedHistogram = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, LongAdder> filteredPathsRejectedHistogram = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, LongAdder> splitDocumentsHistogram = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, LongAdder> emptyNodeStateHistogram = new ConcurrentHashMap<>();
 
-    public long getMongoDocumentsProcessed() {
-        return mongoDocumentsProcessed.sum();
+    public long getMongoDocumentsTraversed() {
+        return mongoDocumentsTraversed.sum();
     }
 
-    public long getEntriesExtracted() {
-        return entriesExtracted.sum();
+    public long getEntriesAccepted() {
+        return entriesAccepted.sum();
     }
 
     public long getEntriesRejected() {
         return entriesRejected.sum();
     }
 
-    public LongAdder getSplitDocumentsRejected() {
-        return splitDocumentsRejected;
+    public LongAdder getDocumentsRejectedSplit() {
+        return documentsRejectedSplit;
     }
 
     public ConcurrentHashMap<String, LongAdder> getHiddenPathsRejected() {
@@ -43,29 +43,29 @@ public class TransformStageStatistics {
     }
 
     public void incrementMongoDocumentsProcessed() {
-        mongoDocumentsProcessed.increment();
+        mongoDocumentsTraversed.increment();
     }
 
-    public void incrementEntriesExtracted() {
-        entriesExtracted.increment();
+    public void incrementEntriesAccepted() {
+        entriesAccepted.increment();
     }
 
     public void incrementSplitDocuments() {
-        this.splitDocumentsRejected.increment();
+        this.documentsRejectedSplit.increment();
     }
 
     public void addSplitDocument(String id) {
-        this.splitDocumentsRejected.increment();
+        this.documentsRejectedSplit.increment();
         this.splitDocumentsHistogram.computeIfAbsent(getPathPrefix(id, 5), k -> new LongAdder()).increment();
     }
 
     public void addEmptyNodeStateEntry(String nodeId) {
-        this.emptyNodeStateDocuments.increment();
+        this.documentsRejectedEmptyNodeState.increment();
         this.emptyNodeStateHistogram.computeIfAbsent(getPathPrefix(nodeId, 5), k -> new LongAdder()).increment();
     }
 
     public void incrementTotalExtractedEntriesSize(int entrySize) {
-        this.extractedEntriesTotalSize.add(entrySize);
+        this.entriesAcceptedTotalSize.add(entrySize);
     }
 
     public void incrementEntriesRejected() {
@@ -91,33 +91,48 @@ public class TransformStageStatistics {
     @Override
     public String toString() {
         return "TransformStageStatistics{" +
-                "mongoDocumentsProcessed=" + mongoDocumentsProcessed +
-                ", entriesExtracted=" + entriesExtracted +
-                ", extractedEntriesTotalSize=" + extractedEntriesTotalSize +
-                ", splitDocumentsRejected=" + splitDocumentsRejected +
-                ", emptyNodeStateDocuments=" + emptyNodeStateDocuments +
+                "mongoDocumentsProcessed=" + mongoDocumentsTraversed +
+                ", splitDocumentsRejected=" + documentsRejectedSplit +
+                ", emptyNodeStateDocuments=" + documentsRejectedEmptyNodeState +
+                ", entriesAccepted=" + entriesAccepted +
                 ", entriesRejected=" + entriesRejected +
                 ", entriesRejectedHiddenPaths=" + entriesRejectedHiddenPaths +
                 ", entriesRejectedPathFiltered=" + entriesRejectedPathFiltered +
+                ", extractedEntriesTotalSize=" + entriesAcceptedTotalSize +
                 '}';
     }
 
     public String formatStats() {
-        String avgEntrySize = entriesExtracted.sum() == 0 ? "N/A" : Long.toString(extractedEntriesTotalSize.sum() / entriesExtracted.sum());
-        String ratioExtractedEntries = mongoDocumentsProcessed.sum() == 0 ? "N/A" : String.format("%1.2f", (1.0 * entriesExtracted.sum()) / mongoDocumentsProcessed.sum());
-        long totalEntries = entriesExtracted.sum() + entriesRejected.sum();
-        String entriesRejectedFractionStr = totalEntries == 0 ? "N/A" : String.format("%1.2f", (1.0 * entriesRejected.sum()) / totalEntries);
-        return "mongoDocumentsProcessed=" + mongoDocumentsProcessed.sum() +
-                ", splitDocumentsRejected=" + splitDocumentsRejected +
-                ", emptyNodeStateDocuments=" + emptyNodeStateDocuments +
-                ", entriesExtracted=" + entriesExtracted.sum() +
-                ", entriesExtracted/mongoDocuments=" + ratioExtractedEntries +
-                ", entriesRejected=" + entriesRejected.sum() +
-                ", entriesRejectedHiddenPaths=" + entriesRejectedHiddenPaths +
-                ", entriesRejectedPathFiltered=" + entriesRejectedPathFiltered +
-                ", entriesRejectedFraction=" + entriesRejectedFractionStr +
-                ", extractedEntriesTotalSize=" + FileUtils.byteCountToDisplaySize(extractedEntriesTotalSize.sum()) +
-                ", avgEntrySize=" + avgEntrySize;
+        long mongoDocumentsTraversedSum = mongoDocumentsTraversed.sum();
+        long entriesAcceptedSum = entriesAccepted.sum();
+        long extractedEntriesTotalSizeSum = entriesAcceptedTotalSize.sum();
+        long entriesRejectedSum = entriesRejected.sum();
+        long documentsRejectedSplitSum = documentsRejectedSplit.sum();
+        long documentsRejectedEmptyNodeStateSum = documentsRejectedEmptyNodeState.sum();
+        long documentsRejectedTotal = documentsRejectedSplitSum + documentsRejectedEmptyNodeStateSum;
+        long documentsAcceptedTotal = mongoDocumentsTraversedSum - documentsRejectedTotal;
+        long totalEntries = entriesAcceptedSum + entriesRejectedSum;
+        String documentsAcceptedPercentage = mongoDocumentsTraversedSum == 0 ? "N/A" :
+                String.format("%2.1f%%", (100.0 * documentsAcceptedTotal) / mongoDocumentsTraversedSum);
+        String entriesAcceptedPercentage = totalEntries == 0 ? "N/A" :
+                String.format("%1.1f%%", (100.0 * entriesAcceptedSum) / totalEntries);
+        String avgEntrySize = entriesAcceptedSum == 0 ? "N/A" :
+                Long.toString(extractedEntriesTotalSizeSum / entriesAcceptedSum);
+        return "{documentsTraversed:" + mongoDocumentsTraversedSum +
+                ", documentsAccepted:" + documentsAcceptedTotal +
+                ", documentsRejected:" + documentsRejectedTotal +
+                ", documentsAcceptedPercentage:" + documentsAcceptedPercentage +
+                ", documentsRejectedSplit:" + documentsRejectedSplitSum +
+                ", documentsRejectedEmptyNodeState:" + documentsRejectedEmptyNodeStateSum +
+                ", entriesTraversed:" + totalEntries +
+                ", entriesAccepted:" + entriesAcceptedSum +
+                ", entriesRejected:" + entriesRejectedSum +
+                ", entriesAcceptedPercentage:" + entriesAcceptedPercentage +
+                ", entriesRejectedHiddenPaths:" + entriesRejectedHiddenPaths +
+                ", entriesRejectedPathFiltered:" + entriesRejectedPathFiltered +
+                ", extractedEntriesTotalSize:" + FileUtils.byteCountToDisplaySize(extractedEntriesTotalSizeSum) +
+                ", avgEntrySize:" + avgEntrySize +
+                "}";
     }
 
     public String prettyPrintHiddenPathsHistogram() {
@@ -142,7 +157,7 @@ public class TransformStageStatistics {
                 .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort by value descending
                 .limit(20)
                 .map(e -> "\"" + e.getKey() + "\":" + e.getValue())
-                .collect(Collectors.joining(", ", "[", "]"));
+                .collect(Collectors.joining(", ", "{", "}"));
     }
 
     private static String getPathPrefix(String path, int depth) {

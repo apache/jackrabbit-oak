@@ -108,9 +108,9 @@ import java.util.function.Predicate;
  */
 public class PipelinedStrategy implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = "oak.indexer.pipelined.mongoDocQueueSize";
-    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = 1000;
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = 100;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = "oak.indexer.pipelined.mongoDocBatchSize";
-    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = 50;
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = 500;
     public static final String OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = "oak.indexer.pipelined.transformThreads";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = 3;
     public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
@@ -147,7 +147,7 @@ public class PipelinedStrategy implements SortStrategy {
         @Override
         public void run() {
             try {
-                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics);
+                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, false);
             } catch (Exception e) {
                 LOG.error("Error while logging queue sizes", e);
             }
@@ -158,12 +158,24 @@ public class PipelinedStrategy implements SortStrategy {
                                  ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
                                  ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
                                  ArrayBlockingQueue<File> sortedFilesQueue,
-                                 TransformStageStatistics transformStageStatistics) {
-        LOG.info("Queue sizes: mongoDocQueue: {}, emptyBuffersQueue: {}, nonEmptyBuffersQueue: {}, sortedFilesQueue: {}, TransformPhase: [{}] ",
+                                 TransformStageStatistics transformStageStatistics,
+                                 boolean printHistogramsAtInfo) {
+        // Summary stats
+        LOG.info("Queue sizes: {mongoDocQueue:{}, emptyBuffersQueue:{}, nonEmptyBuffersQueue:{}, sortedFilesQueue:{}}; Transform Stats: {}",
                 mongoDocQueue.size(), emptyBuffersQueue.size(), nonEmptyBuffersQueue.size(), sortedFilesQueue.size(), transformStageStatistics.formatStats());
-        LOG.info("Top hidden paths rejected: {}", transformStageStatistics.prettyPrintHiddenPathsHistogram());
-        LOG.info("Top paths filtered: {}", transformStageStatistics.prettyPrintPathFilteredHistogram());
-        LOG.info("Top empty node state documents: {}", transformStageStatistics.prettyPrintEmptyNodeStateHistogram());
+        prettyPrintTransformStatisticsHistograms(transformStageStatistics, printHistogramsAtInfo);
+    }
+
+    private void prettyPrintTransformStatisticsHistograms(TransformStageStatistics transformStageStatistics, boolean printHistogramAtInfo) {
+        if (printHistogramAtInfo) {
+            LOG.info("Top hidden paths rejected: " + transformStageStatistics.prettyPrintHiddenPathsHistogram());
+            LOG.info("Top paths filtered: " + transformStageStatistics.prettyPrintPathFilteredHistogram());
+            LOG.info("Top empty node state documents: " + transformStageStatistics.prettyPrintEmptyNodeStateHistogram());
+        } else {
+            LOG.debug("Top hidden paths rejected: " + transformStageStatistics.prettyPrintHiddenPathsHistogram());
+            LOG.debug("Top paths filtered: " + transformStageStatistics.prettyPrintPathFilteredHistogram());
+            LOG.debug("Top empty node state documents: " + transformStageStatistics.prettyPrintEmptyNodeStateHistogram());
+        }
     }
 
     private final MongoDocumentStore docStore;
@@ -333,9 +345,10 @@ public class PipelinedStrategy implements SortStrategy {
 
                         } else if (result instanceof PipelinedTransformTask.Result) {
                             PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
-                            LOG.info("Transform task finished. Entries processed: {}", transformResult.getEntryCount());
-                            entryCount += transformResult.getEntryCount();
                             transformTasksFinished++;
+                            entryCount += transformResult.getEntryCount();
+                            LOG.info("Transform thread {} finished. Entries processed: {}",
+                                    transformResult.getThreadId(), transformResult.getEntryCount());
                             if (transformTasksFinished == transformThreads) {
                                 LOG.info("All transform tasks finished. Node states retrieved: {}", entryCount);
                                 // No need to keep monitoring the queues, the download and transform threads are done.
@@ -377,7 +390,7 @@ public class PipelinedStrategy implements SortStrategy {
                     }
                 }
                 LOG.info("Dumped {} nodestates in json format in {}", entryCount, start);
-                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics);
+                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } finally {
