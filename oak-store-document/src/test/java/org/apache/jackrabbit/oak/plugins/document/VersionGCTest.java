@@ -50,6 +50,11 @@ import org.junit.Test;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGC;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -186,6 +191,85 @@ public class VersionGCTest {
                     statusBefore.get(lastOldestTimeStampProp), statusAfter.get(lastOldestTimeStampProp));
         }
     }
+
+    // OAK-10199
+    @Test
+    public void cancelMustNotUpdateLastOldestModifiedTimeStamp() throws Exception {
+        // get previous entry from SETTINGS
+        String versionGCId = SETTINGS_COLLECTION_ID;
+        String detailedGCTimestamp = SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+        enableDetailGC(gc);
+        gc.gc(30, SECONDS);
+        Document statusBefore = store.find(SETTINGS, versionGCId);
+        // block gc call
+        store.semaphore.acquireUninterruptibly();
+        Future<VersionGCStats> stats = gc();
+        boolean gcBlocked = false;
+        for (int i = 0; i < 10; i ++) {
+            if (store.semaphore.hasQueuedThreads()) {
+                gcBlocked = true;
+                break;
+            }
+            Thread.sleep(100);
+        }
+        assertTrue(gcBlocked);
+        // now cancel the GC
+        gc.cancel();
+        store.semaphore.release();
+        assertTrue(stats.get().canceled);
+
+        // ensure a canceled GC doesn't update that versionGC SETTINGS entry
+        Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        if (statusBefore == null) {
+            assertNull(statusAfter);
+        } else {
+            assertNotNull(statusAfter);
+            assertEquals(
+                    "canceled GC shouldn't change the " + detailedGCTimestamp + " property on " + versionGCId
+                            + " settings entry",
+                    statusBefore.get(detailedGCTimestamp), statusAfter.get(detailedGCTimestamp));
+        }
+    }
+
+    @Test
+    public void cancelMustNotUpdateLastOldestModifiedDocId() throws Exception {
+        // get previous entry from SETTINGS
+        String versionGCId = SETTINGS_COLLECTION_ID;
+        String oldestModifiedDocId = SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+        enableDetailGC(gc);
+        gc.gc(30, SECONDS);
+        Document statusBefore = store.find(SETTINGS, versionGCId);
+        // block gc call
+        store.semaphore.acquireUninterruptibly();
+        Future<VersionGCStats> stats = gc();
+        boolean gcBlocked = false;
+        for (int i = 0; i < 10; i ++) {
+            if (store.semaphore.hasQueuedThreads()) {
+                gcBlocked = true;
+                break;
+            }
+            Thread.sleep(100);
+        }
+        assertTrue(gcBlocked);
+        // now cancel the GC
+        gc.cancel();
+        store.semaphore.release();
+        assertTrue(stats.get().canceled);
+
+        // ensure a canceled GC doesn't update that versionGC SETTINGS entry
+        Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        if (statusBefore == null) {
+            assertNull(statusAfter);
+        } else {
+            assertNotNull(statusAfter);
+            assertEquals(
+                    "canceled GC shouldn't change the " + oldestModifiedDocId + " property on " + versionGCId
+                            + " settings entry",
+                    statusBefore.get(oldestModifiedDocId), statusAfter.get(oldestModifiedDocId));
+        }
+    }
+
+    // END - OAK-10199
 
     @Test
     public void getInfo() throws Exception {
@@ -351,7 +435,7 @@ public class VersionGCTest {
 
     @Test
     public void testDetailGcDocumentRead_enabled() throws Exception {
-        DetailGCHelper.enableDetailGC(gc);
+        enableDetailGC(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertNotNull(stats);
         assertNotEquals(0, stats.detailedGCDocsElapsed);
@@ -417,7 +501,7 @@ public class VersionGCTest {
         @Override
         public <T extends Document> T find(Collection<T> collection,
                                            String key) {
-            if (collection == Collection.SETTINGS
+            if (collection == SETTINGS
                     && key.equals("versionGC")) {
                 findVersionGC.incrementAndGet();
             }

@@ -104,19 +104,18 @@ public class RDBVersionGCSupport extends VersionGCSupport {
      * then perform the comparison.
      * <p/>
      *
-     * @param fromModified  the lower bound modified timestamp (inclusive)
-     * @param toModified    the upper bound modified timestamp (exclusive)
-     * @param limit         the limit of documents to return
-     * @param fromId        the lower bound {@link NodeDocument#ID}
-     * @param includeFromId boolean indicating whether {@code fromId} is inclusive or not
+     * @param fromModified the lower bound modified timestamp (inclusive)
+     * @param toModified   the upper bound modified timestamp (exclusive)
+     * @param limit        the limit of documents to return
+     * @param fromId       the lower bound {@link NodeDocument#ID}
      * @return matching documents.
      */
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  @NotNull final String fromId, boolean includeFromId) {
+                                                  @NotNull final String fromId) {
         List<QueryCondition> conditions = of(new QueryCondition(MODIFIED_IN_SECS, "<", getModifiedInSecs(toModified)),
                 new QueryCondition(MODIFIED_IN_SECS, ">=", getModifiedInSecs(fromModified)),
-                new QueryCondition(ID, includeFromId ? ">=" : ">", of(fromId)));
+                new QueryCondition(ID, ">", of(fromId)));
         if (MODE == 1) {
             return getIterator(EMPTY_KEY_PATTERN, conditions);
         } else {
@@ -291,7 +290,7 @@ public class RDBVersionGCSupport extends VersionGCSupport {
         LOG.info("getOldestModifiedDoc() <- start");
         Iterable<NodeDocument> modifiedDocs = null;
         try {
-            modifiedDocs = getModifiedDocs(0L, clock.getTime(), 1, MIN_ID_VALUE, false);
+            modifiedDocs = getModifiedDocs(0L, clock.getTime(), 1, MIN_ID_VALUE);
             doc = modifiedDocs.iterator().hasNext() ? modifiedDocs.iterator().next() : NULL;
         } catch (DocumentStoreException ex) {
             LOG.error("getOldestModifiedDoc()", ex);
