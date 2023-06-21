@@ -60,7 +60,9 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +70,6 @@ import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
 
 /**
  * Tests for {@link FileIOUtils}
@@ -189,21 +190,21 @@ public class FileIOUtilsTest {
         for (int i = 0; i < numEntries; i++) {
             entries[i] = r.nextLong();
         }
-        
+
         Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
-        Iterator<String> hexEntries = com.google.common.collect.Iterators.transform(boxedEntries, new com.google.common.base.Function<Long, String>() {
+        Iterator<String> hexEntries = Iterators.transform(boxedEntries, new Function<Long, String>() {
                     @Nullable @Override public String apply(@Nullable Long input) {
                         return Long.toHexString(input);
                     }
                 });
         File f = assertWrite(hexEntries, false, numEntries);
-        
+
         Comparator<String> prefixComparator = new Comparator<String>() {
             @Override public int compare(String s1, String s2) {
                 return s1.substring(0, 3).compareTo(s2.substring(0, 3));
             }
         };
-        
+
         sort(f, prefixComparator);
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));

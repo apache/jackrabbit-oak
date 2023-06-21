@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.function.Function;
 
 import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,7 +94,7 @@ public class BurnOnCloseFileIterator<T> implements Closeable, Iterator<T> {
         });
     }
 
-    private static class Impl<T> extends com.google.common.collect.AbstractIterator<T> implements Closeable {
+    private static class Impl<T> extends AbstractIterator<T> implements Closeable {
         private final Iterator<String> iterator;
         private final Function<String, T> transformer;
         private final File backingFile;

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -70,15 +71,17 @@ public class MongoUtils {
         // fallback to docker based MongoDB if available
         MongoDockerRule dockerRule = new MongoDockerRule();
         if (MongoDockerRule.isDockerAvailable()) {
+            AtomicReference<String> host = new AtomicReference<>();
             AtomicInteger port = new AtomicInteger();
             try {
                 dockerRule.apply(new Statement() {
                     @Override
                     public void evaluate() {
+                        host.set(dockerRule.getHost());
                         port.set(dockerRule.getPort());
                     }
                 }, Description.EMPTY).evaluate();
-                mongoUrl = "mongodb://localhost:" + port.get() + "/" + DB + "?" + OPTIONS;
+                mongoUrl = "mongodb://" + host + ":" + port.get() + "/" + DB + "?" + OPTIONS;
             } catch (Throwable t) {
                 LOG.warn("Unable to get MongoDB port from Docker", t);
             }
