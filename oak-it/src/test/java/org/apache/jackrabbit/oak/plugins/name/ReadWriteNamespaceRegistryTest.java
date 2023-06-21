@@ -96,10 +96,11 @@ public class ReadWriteNamespaceRegistryTest extends OakBaseTest {
         LogCustomizer customLogs = LogCustomizer.forLogger("org.apache.jackrabbit.oak.plugins.name.ReadWriteNamespaceRegistry").enable(Level.ERROR).create();
         try {
             customLogs.starting();
-            r.registerNamespace("xml", "example.com");
-            List<String> myLogs = customLogs.getLogs();
-            assertEquals("", myLogs.toString());
+            r.registerNamespace("foo", "example.com");
             r.unregisterNamespace("foo");
+            List<String> myLogs = customLogs.getLogs();
+            assertEquals(1, myLogs.size());
+            assertTrue(myLogs.get(0).contains("Registering invalid namespace name 'example.com' for prefix 'foo', please see"));
         }
         finally {
             customLogs.finished();
