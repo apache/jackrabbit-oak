@@ -20,13 +20,13 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,16 +117,16 @@ public class VersionGCRecommendations {
 
         detailedGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP);
         oldestModifiedDocId = (String) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP);
-        if (detailedGCTimestamp == 0 || Objects.equals(oldestModifiedDocId, MIN_ID_VALUE)) {
+        if (detailedGCTimestamp == 0) {
+            // it will only happens for the very first time, we run this detailedGC
             log.info("No detailedGCTimestamp found, querying for the oldest modified candidate");
             final NodeDocument doc = vgc.getOldestModifiedDoc(clock);
             if (doc == NULL) {
                 oldestModifiedDocTimeStamp = 0L;
-                oldestModifiedDocId = MIN_ID_VALUE;
             } else {
-                oldestModifiedDocId = doc.getId();
                 oldestModifiedDocTimeStamp = doc.getModified() == null ? 0L : doc.getModified() - 1;
             }
+            oldestModifiedDocId = MIN_ID_VALUE;
             log.info("detailedGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp));
         } else {
             oldestModifiedDocTimeStamp = detailedGCTimestamp - 1;
@@ -179,7 +179,8 @@ public class VersionGCRecommendations {
                 ignoreDueToCheckPoint = true;
             } else {
                 scope = scope.notLaterThan(checkpoint.getTimestamp() - 1);
-                log.debug("checkpoint at [{}] found, scope now {}", timestampToString(checkpoint.getTimestamp()), scope);
+                detailedGCTimeInternal = detailedGCTimeInternal.notLaterThan(checkpoint.getTimestamp() - 1);
+                log.info("checkpoint at [{}] found, scope now {}, detailedGcScope now {}", timestampToString(checkpoint.getTimestamp()), scope, detailedGCTimeInternal);
             }
         }
 
