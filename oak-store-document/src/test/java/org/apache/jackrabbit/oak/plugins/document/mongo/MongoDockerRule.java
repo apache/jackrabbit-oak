@@ -103,6 +103,10 @@ public class MongoDockerRule implements TestRule {
         return wrappedRule.getContainer().getPortBinding("27017/tcp").getPort();
     }
 
+    public String getHost() {
+        return wrappedRule.getContainer().getPortBinding("27017/tcp").getHost();
+    }
+
     public static boolean isDockerAvailable() {
         return DOCKER_AVAILABLE;
     }
