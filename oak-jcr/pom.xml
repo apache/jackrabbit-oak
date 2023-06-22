@@ -373,6 +373,13 @@
       <artifactId>slf4j-api</artifactId>
     </dependency>
 
+    <!-- General utility libraries -->
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+
     <!-- Nullability annotations -->
     <dependency>
       <groupId>org.jetbrains</groupId>
