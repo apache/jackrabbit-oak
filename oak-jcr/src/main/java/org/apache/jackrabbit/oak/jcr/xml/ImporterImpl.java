@@ -147,11 +147,11 @@ public class ImporterImpl implements Importer {
         VersionManagerImpl vMgr = wsp.internalGetVersionManager();
         NodeDelegate nd = new NodeDelegate(sd, importTargetTree); 
         if (!vMgr.isCheckedOut(nd)) {
-            throw new VersionException("Target node is checked in.");
+            throw new VersionException("Target node is checked in: " + absPath);
         }
         boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean();
         if (importTargetTree.getStatus() != Tree.Status.NEW && hasLocking && nd.isLocked()) {
-            throw new LockException("Target node is locked.");
+            throw new LockException("Target node is locked:" + absPath);
         }
         effectiveNodeTypeProvider = wsp.getNodeTypeManager();
         definitionProvider = wsp.getNodeTypeManager();
