@@ -94,7 +94,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
 
-    private DocumentStoreFixture fixture;
+    private final DocumentStoreFixture fixture;
 
     private Clock clock;
 
@@ -144,6 +144,7 @@ public class VersionGarbageCollectorIT {
         if (store1 != null) {
             store1.dispose();
         }
+        ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
@@ -443,12 +444,12 @@ public class VersionGarbageCollectorIT {
     @Test
     public void testGCDeletedProps_3() throws Exception {
         //1. Create nodes with properties
-        NodeBuilder b1 = store.getRoot().builder();
+        NodeBuilder b1 = store1.getRoot().builder();
         // Add property to node & save
         for (int i = 0; i < 10; i++) {
             b1.child("z" + i).setProperty("prop" + i, "foo", STRING);
         }
-        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
@@ -460,12 +461,12 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, stats.deletedPropsGCCount);
 
         //Remove property
-        NodeBuilder b2 = store.getRoot().builder();
+        NodeBuilder b2 = store1.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             b2.getChildNode("z" + i).removeProperty("prop" + i);
         }
-        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
 
         //2. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -474,20 +475,20 @@ public class VersionGarbageCollectorIT {
         assertEquals(10, stats.deletedPropsGCCount);
 
         //3. now reCreate those properties again
-        NodeBuilder b3 = store.getRoot().builder();
+        NodeBuilder b3 = store1.getRoot().builder();
         // Add property to node & save
         for (int i = 0; i < 10; i++) {
             b3.child("z" + i).setProperty("prop" + i, "bar", STRING);
         }
-        store.merge(b3, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.merge(b3, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //Remove properties again
-        NodeBuilder b4 = store.getRoot().builder();
+        NodeBuilder b4 = store1.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             b4.getChildNode("z" + i).removeProperty("prop" + i);
         }
-        store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        store1.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
 
 
         //4. Check that deleted property does get collected again
@@ -499,30 +500,34 @@ public class VersionGarbageCollectorIT {
 
     // Test when properties are not collected in one GC cycle
     @Test
-    @Ignore
     public void testGCDeletedProps_4() throws Exception {
-        documentMKBuilder = new DocumentMK.Builder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(new FailingDocumentStore(fixture.createDocumentStore(), 42)).setAsyncDelay(0);
-        store = documentMKBuilder.getNodeStore();
-        assertTrue(store.getDocumentStore() instanceof FailingDocumentStore);
-        MongoTestUtils.setReadPreference(store, ReadPreference.primary());
-        gc = store.getVersionGarbageCollector();
+        final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
+            @Override
+            public void dispose() {}
+        };
+        store1 = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setDocumentStore(fds).setAsyncDelay(0).getNodeStore();
+
+        assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
+
+        MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
+        gc = store1.getVersionGarbageCollector();
+
         //1. Create nodes with properties
-        NodeBuilder b1 = store.getRoot().builder();
+        NodeBuilder b1 = store1.getRoot().builder();
         // Add property to node & save
         for (int i = 0; i < 10; i++) {
             b1.child("z" + i).setProperty("prop" + i, "foo", STRING);
         }
-        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         //2. Remove property
-        NodeBuilder b2 = store.getRoot().builder();
+        NodeBuilder b2 = store1.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             b2.getChildNode("z" + i).removeProperty("prop" + i);
         }
-        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
+        store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
 
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
@@ -532,25 +537,26 @@ public class VersionGarbageCollectorIT {
         //3. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-        gc.setOptions(gc.getOptions().withMaxIterations(1));
 
-        ((FailingDocumentStore) store.getDocumentStore()).fail().after(0).eternally();
+        fds.fail().after(0).eternally();
         try {
-            store.dispose();
+            store1.dispose();
             fail("dispose() must fail with an exception");
         } catch (DocumentStoreException e) {
             // expected
         }
-        ((FailingDocumentStore) store.getDocumentStore()).fail().never();
+        fds.fail().never();
 
         // create new store
-        store = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(new FailingDocumentStore(fixture.createDocumentStore(1), 42)).setAsyncDelay(0)
+        store1 = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setDocumentStore(fds).setAsyncDelay(0)
                 .getNodeStore();
-        assertTrue(store.getDocumentStore() instanceof FailingDocumentStore);
-        MongoTestUtils.setReadPreference(store, ReadPreference.primary());
-        gc = store.getVersionGarbageCollector();
-        store.runBackgroundOperations();
+        assertTrue(store1.getDocumentStore() instanceof FailingDocumentStore);
+        MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
+        gc = store1.getVersionGarbageCollector();
+        store1.runBackgroundOperations();
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
 
         //4. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
