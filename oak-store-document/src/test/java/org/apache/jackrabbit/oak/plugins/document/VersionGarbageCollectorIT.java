@@ -84,7 +84,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -92,7 +91,7 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
 
-    private DocumentStoreFixture fixture;
+    private final DocumentStoreFixture fixture;
 
     private Clock clock;
 
@@ -145,6 +144,7 @@ public class VersionGarbageCollectorIT {
         if (store != null) {
             store.dispose();
         }
+        ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
@@ -456,15 +456,19 @@ public class VersionGarbageCollectorIT {
 
     // Test when properties are not collected in one GC cycle
     @Test
-    @Ignore
     public void testGCDeletedProps_4() throws Exception {
-        documentMKBuilder = new DocumentMK.Builder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(new FailingDocumentStore(fixture.createDocumentStore(), 42)).setAsyncDelay(0);
-        store = documentMKBuilder.getNodeStore();
+        final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
+            @Override
+            public void dispose() {}
+        };
+        store = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setDocumentStore(fds).setAsyncDelay(0).getNodeStore();
+
         assertTrue(store.getDocumentStore() instanceof FailingDocumentStore);
+
         MongoTestUtils.setReadPreference(store, ReadPreference.primary());
         gc = store.getVersionGarbageCollector();
+
         //1. Create nodes with properties
         NodeBuilder b1 = store.getRoot().builder();
         // Add property to node & save
@@ -489,25 +493,26 @@ public class VersionGarbageCollectorIT {
         //3. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-        gc.setOptions(gc.getOptions().withMaxIterations(1));
 
-        ((FailingDocumentStore) store.getDocumentStore()).fail().after(0).eternally();
+        fds.fail().after(0).eternally();
         try {
             store.dispose();
             fail("dispose() must fail with an exception");
         } catch (DocumentStoreException e) {
             // expected
         }
-        ((FailingDocumentStore) store.getDocumentStore()).fail().never();
+        fds.fail().never();
 
         // create new store
         store = new DocumentMK.Builder().clock(clock).setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(new FailingDocumentStore(fixture.createDocumentStore(1), 42)).setAsyncDelay(0)
+                .setDocumentStore(fds).setAsyncDelay(0)
                 .getNodeStore();
         assertTrue(store.getDocumentStore() instanceof FailingDocumentStore);
         MongoTestUtils.setReadPreference(store, ReadPreference.primary());
         gc = store.getVersionGarbageCollector();
         store.runBackgroundOperations();
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
 
         //4. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
