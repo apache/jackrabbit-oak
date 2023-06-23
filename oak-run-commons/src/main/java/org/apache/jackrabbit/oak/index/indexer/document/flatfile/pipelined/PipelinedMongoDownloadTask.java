@@ -128,8 +128,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 downloadAll();
             } else {
                 boolean downloadCompleted = false;
+                Map<String, Integer> exceptions = new HashMap<>();
                 while (!downloadCompleted) {
-                    Map<String, Integer> exceptions = new HashMap<>();
                     try {
                         if (lastIdDownloaded != null) {
                             LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
