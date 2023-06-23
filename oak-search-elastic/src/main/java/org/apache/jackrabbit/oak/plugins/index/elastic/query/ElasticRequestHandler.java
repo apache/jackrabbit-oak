@@ -825,46 +825,40 @@ public class ElasticRequestHandler {
         int propType = FulltextIndex.determinePropertyType(defn, pr);
 
         if (pr.isNullRestriction()) {
-            return Query.of(q->q
-                    .bool(b->b
-                            .mustNot(m->m
-                                    .exists(e->e
-                                            .field(propertyName)))));
+            return Query.of(q -> q.bool(b -> b.mustNot(m -> m.exists(e -> e.field(propertyName)))));
         }
         if (pr.isNotNullRestriction()) {
-            return Query.of(q->q
-                    .exists(e->e
-                            .field(propertyName)));
+            return Query.of(q -> q.exists(e -> e.field(propertyName)));
         }
 
         final String field = elasticIndexDefinition.getElasticKeyword(propertyName);
 
         Query in;
         switch (propType) {
-        case PropertyType.DATE: {
-            in = newPropertyRestrictionQuery(field, pr, value -> parse(value.getValue(Type.DATE)).getTimeInMillis());
-            break;
-        }
-        case PropertyType.DOUBLE: {
-            in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.DOUBLE));
-            break;
-        }
-        case PropertyType.LONG: {
-            in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.LONG));
-            break;
-        }
-        case PropertyType.BOOLEAN: {
-            in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.BOOLEAN));
-            break;
-        }
-        default: {
-            if (pr.isLike) {
-                return like(propertyName, pr.first.getValue(Type.STRING));
+            case PropertyType.DATE: {
+                in = newPropertyRestrictionQuery(field, pr, value -> parse(value.getValue(Type.DATE)).getTimeInMillis());
+                break;
             }
+            case PropertyType.DOUBLE: {
+                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.DOUBLE));
+                break;
+            }
+            case PropertyType.LONG: {
+                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.LONG));
+                break;
+            }
+            case PropertyType.BOOLEAN: {
+                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.BOOLEAN));
+                break;
+            }
+            default: {
+                if (pr.isLike) {
+                    return like(propertyName, pr.first.getValue(Type.STRING));
+                }
 
-//TODO Confirm that all other types can be treated as string
-            in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.STRING));
-        }
+                //TODO Confirm that all other types can be treated as string
+                in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.STRING));
+            }
         }
 
         if (in != null) {
