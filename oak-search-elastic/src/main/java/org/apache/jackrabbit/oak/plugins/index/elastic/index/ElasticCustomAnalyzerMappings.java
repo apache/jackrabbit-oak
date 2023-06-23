@@ -122,7 +122,8 @@ public class ElasticCustomAnalyzerMappings {
                     "splitOnCaseChange", "split_on_case_change",
                     "preserveOriginal", "preserve_original",
                     "splitOnNumerics", "split_on_numerics",
-                    "stemEnglishPossessive", "stem_english_possessive"
+                    "stemEnglishPossessive", "stem_english_possessive",
+                    "protectedTokens", "protected_words"
             ));
             if (params.containsKey("generate_word_parts")) {
                 params.put("generate_word_parts", Integer.parseInt(params.get("generate_word_parts").toString()) == 1);
