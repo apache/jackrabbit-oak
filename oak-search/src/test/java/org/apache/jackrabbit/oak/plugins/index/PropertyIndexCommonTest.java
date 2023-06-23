@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static javax.jcr.PropertyType.TYPENAME_DATE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
@@ -437,6 +438,7 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'True')", singletonList("/test/a"));
             assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'InvalidBool')", singletonList("/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('foo', 'InvalidBool')", emptyList());
         });
     }
 
