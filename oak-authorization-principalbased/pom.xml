@@ -130,6 +130,13 @@
             <version>${jackrabbit.version}</version>
         </dependency>
 
+        <!-- General utility libraries -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Logging -->
         <dependency>
             <groupId>org.slf4j</groupId>

@@ -143,6 +143,7 @@ public class BroadcastTest {
     }
     
     @Test
+    @Ignore("OAK-5782")
     public void broadcastTCP() throws Exception {
         broadcast("tcp:sendTo localhost;key 123", 80);
     }
