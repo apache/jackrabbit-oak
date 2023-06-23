@@ -853,6 +853,10 @@ public class ElasticRequestHandler {
             in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.LONG));
             break;
         }
+        case PropertyType.BOOLEAN: {
+            in = newPropertyRestrictionQuery(field, pr, value -> value.getValue(Type.BOOLEAN));
+            break;
+        }
         default: {
             if (pr.isLike) {
                 return like(propertyName, pr.first.getValue(Type.STRING));

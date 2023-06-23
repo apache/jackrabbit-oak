@@ -419,6 +419,28 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [textField] = 'foo'", singletonList("/test/a")));
     }
 
+    @Test
+    public void inQueryWithUnparseableValue() throws Exception {
+        Tree idx = indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "booleanField")
+        );
+        Tree booleanField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("booleanField");
+        booleanField.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_BOOLEAN);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("booleanField", true);
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'True')", singletonList("/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'InvalidBool')", singletonList("/test/a"));
+        });
+    }
+
+
     protected String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
