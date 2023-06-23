@@ -30,7 +30,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createOutputStream;
@@ -56,9 +56,9 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
 
     private final Comparator<SortKey> pathComparator;
     private final Compression algorithm;
-    private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
-    private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
-    private final ArrayBlockingQueue<File> sortedFilesQueue;
+    private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
+    private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
+    private final BlockingQueue<File> sortedFilesQueue;
     private final File sortWorkDir;
     private final byte[] copyBuffer = new byte[4096];
     private long entriesProcessed = 0;
@@ -66,9 +66,9 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     public PipelinedSortBatchTask(File storeDir,
                                   PathElementComparator pathComparator,
                                   Compression algorithm,
-                                  ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
-                                  ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
-                                  ArrayBlockingQueue<File> sortedFilesQueue) throws IOException {
+                                  BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
+                                  BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
+                                  BlockingQueue<File> sortedFilesQueue) throws IOException {
         this.pathComparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.algorithm = algorithm;
         this.emptyBuffersQueue = emptyBuffersQueue;

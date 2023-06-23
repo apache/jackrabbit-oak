@@ -31,7 +31,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
@@ -67,13 +67,13 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
     private final File storeDir;
     private final Comparator<NodeStateHolder> comparator;
     private final Compression algorithm;
-    private final ArrayBlockingQueue<File> sortedFilesQueue;
+    private final BlockingQueue<File> sortedFilesQueue;
     private final ArrayList<File> sortedFiles = new ArrayList<>();
 
     public PipelinedMergeSortTask(File storeDir,
                                   PathElementComparator pathComparator,
                                   Compression algorithm,
-                                  ArrayBlockingQueue<File> sortedFilesQueue) {
+                                  BlockingQueue<File> sortedFilesQueue) {
         this.storeDir = storeDir;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.algorithm = algorithm;

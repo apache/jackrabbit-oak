@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -126,8 +125,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             long mongoObjectsProcessed = 0;
             LOG.info("Waiting for an empty buffer");
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
-            ArrayList<SortKey> sortArray = nseBatch.getSortBuffer();
-            ByteBuffer nseBuffer = nseBatch.getBuffer();
 
             // Used to serialize a node state entry before writing it to the buffer
             ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
@@ -148,9 +145,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                         mongoObjectsProcessed++;
                         if (mongoObjectsProcessed % 50000 == 0) {
                             LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
-                                    mongoObjectsProcessed, totalEntryCount, sortArray.size(),
-                                    nseBuffer.position() / FileUtils.ONE_MB,
-                                    nseBuffer.capacity() / FileUtils.ONE_MB
+                                    mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
+                                    nseBatch.sizeOfEntries() / FileUtils.ONE_MB,
+                                    nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
                         //TODO Review the cache update approach where tracker has to track *all* docs
@@ -177,22 +174,17 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                     baos.reset();
                                     statistics.incrementTotalExtractedEntriesSize(entryData.length);
 
-                                    if (nseBatch.isAtMaxEntries() || entryData.length + 4 > nseBuffer.remaining()) {
+//                                    if (nseBatch.isAtMaxEntries() || entryData.length + 4 > nseBuffer.remaining()) {
+                                    if (!nseBatch.hasSpaceForEntry(entryData)) {
                                         LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
-                                                totalEntryCount, sortArray.size(), nseBuffer.position());
-                                        nseBuffer.flip();
+                                                totalEntryCount, nseBatch.numberOfEntries(), nseBatch.sizeOfEntries());
+                                        nseBatch.flip();
                                         tryEnqueue(nseBatch);
                                         // Get an empty buffer
                                         nseBatch = emptyBatchesQueue.take();
-                                        sortArray = nseBatch.getSortBuffer();
-                                        nseBuffer = nseBatch.getBuffer();
                                     }
                                     // Write entry to buffer
-                                    int bufferPos = nseBuffer.position();
-                                    nseBuffer.putInt(entryData.length);
-                                    nseBuffer.put(entryData);
-                                    String[] key = SortKey.genSortKeyPathElements(nse.getPath());
-                                    sortArray.add(new SortKey(key, bufferPos));
+                                    nseBatch.addEntry(nse.getPath(), entryData);
                                 } else {
                                     statistics.incrementEntriesRejected();
                                     if (NodeStateUtils.isHiddenPath(path)) {

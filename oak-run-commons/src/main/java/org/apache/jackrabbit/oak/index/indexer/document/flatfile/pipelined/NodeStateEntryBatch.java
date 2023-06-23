@@ -22,6 +22,17 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class NodeStateEntryBatch {
+    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSize, int maxNumEntries) {
+        if (bufferSize < 128) {
+            throw new IllegalArgumentException("Buffer size must be at least 128 bytes");
+        }
+        if (maxNumEntries < 1) {
+            throw new IllegalArgumentException("Max number of entries must be at least 1");
+        }
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        return new NodeStateEntryBatch(buffer, maxNumEntries);
+    }
+
     private final ByteBuffer buffer;
     private final ArrayList<SortKey> sortBuffer;
     private final int maxEntries;
@@ -40,6 +51,17 @@ public class NodeStateEntryBatch {
         return buffer;
     }
 
+    public void addEntry(String path, byte[] entryData) {
+        if (numberOfEntries() == maxEntries) {
+            throw new IllegalStateException("Sort buffer size exceeded max entries: " + sortBuffer.size() + " > " + maxEntries);
+        }
+        int bufferPos = buffer.position();
+        buffer.putInt(entryData.length);
+        buffer.put(entryData);
+        String[] key = SortKey.genSortKeyPathElements(path);
+        sortBuffer.add(new SortKey(key, bufferPos));
+    }
+
     public boolean isAtMaxEntries() {
         if (sortBuffer.size() > maxEntries) {
             throw new AssertionError("Sort buffer size exceeded max entries: " + sortBuffer.size() + " > " + maxEntries);
@@ -47,13 +69,28 @@ public class NodeStateEntryBatch {
         return sortBuffer.size() == maxEntries;
     }
 
+    public boolean hasSpaceForEntry(byte[] entryData) {
+        return !isAtMaxEntries() && entryData.length + 4 <= buffer.remaining();
+    }
+
+    public void flip() {
+        buffer.flip();
+    }
+
     public void reset() {
         buffer.clear();
         sortBuffer.clear();
     }
 
-    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSize, int maxNumEntries) {
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
-        return new NodeStateEntryBatch(buffer, maxNumEntries);
+    public int sizeOfEntries() {
+        return buffer.position();
+    }
+
+    public int numberOfEntries() {
+        return sortBuffer.size();
+    }
+
+    public int capacity() {
+        return buffer.capacity();
     }
 }

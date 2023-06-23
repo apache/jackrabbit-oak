@@ -40,14 +40,14 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static com.mongodb.client.model.Sorts.ascending;
 
-class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
+public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
     public static class Result {
         private final long documentsDownloaded;
 
@@ -60,6 +60,8 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
         }
     }
 
+    public static final String OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = "oak.indexer.pipelined.retryOnConnectionErrors";
+    public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = true;
     public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = 300;
     // Use a short initial retry interval. In most cases if the connection to a replica fails, there will be other
@@ -71,8 +73,9 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
 
     private final int batchSize;
-    private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
+    private final BlockingQueue<BasicDBObject[]> mongoDocQueue;
     private final int retryDuringSeconds;
+    private final boolean retryOnConnectionErrors;
     private final Logger traversalLog = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class.getName() + ".traversal");
     private final MongoCollection<BasicDBObject> dbCollection;
     private final ReadPreference readPreference;
@@ -87,13 +90,16 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
     public <T extends Document> PipelinedMongoDownloadTask(MongoDocumentStore mongoStore,
                                                            Collection<T> collection,
                                                            int batchSize,
-                                                           ArrayBlockingQueue<BasicDBObject[]> queue) {
+                                                           BlockingQueue<BasicDBObject[]> queue) {
         this.batchSize = batchSize;
         this.mongoDocQueue = queue;
         // Default retries for 5 minutes.
         this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
                 OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS);
+        this.retryOnConnectionErrors = ConfigHelper.getSystemPropertyAsBoolean(
+                OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS,
+                DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS);
         this.dbCollection = MongoDocumentStoreHelper.getDBCollection(mongoStore, collection);
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
@@ -118,54 +124,60 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
             long retryInterval = retryInitialIntervalMillis;
 
             downloadStartWatch.start();
-            Map<String, Integer> exceptions = new HashMap<>();
-            while (true) {
-                try {
-                    if (lastIdDownloaded != null) {
-                        LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
-                        downloadRange(new DownloadRange(nextLastModified, nextLastModified + 1, lastIdDownloaded));
-                        // Reset the retries
-                        failureTimestamp = null;
-                        // Continue downloading everything starting from the next _lastmodified value
-                        downloadRange(new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null));
-                    } else {
-                        downloadRange(new DownloadRange(nextLastModified, Long.MAX_VALUE, null));
-                    }
-                    LOG.info("Terminating thread, downloaded {} Mongo documents in {}. Time waiting for transform threads: {} seconds ({}%)",
-                            documentsRead, downloadStartWatch,
-                            totalEnqueueWaitTimeMillis / 1000,
-                            String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS)));
-                    return new Result(documentsRead);
-                } catch (MongoException e) {
-                    if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
-                        // Non-recoverable exceptions
-                        throw e;
-                    }
-                    if (failureTimestamp == null) {
-                        failureTimestamp = Instant.now();
-                    }
-                    LOG.warn("Connection error downloading from MongoDB.", e);
-                    if (Duration.between(failureTimestamp, Instant.now()).toSeconds() > retryDuringSeconds) {
-                        // Give up. Get a string of all exceptions that were thrown
-                        StringBuilder summary = new StringBuilder();
-                        for (Map.Entry<String, Integer> entry : exceptions.entrySet()) {
-                            summary.append("\n\t").append(entry.getValue()).append("x: ").append(entry.getKey());
+            if (!retryOnConnectionErrors) {
+                downloadAll();
+            } else {
+                boolean downloadCompleted = false;
+                while (!downloadCompleted) {
+                    Map<String, Integer> exceptions = new HashMap<>();
+                    try {
+                        if (lastIdDownloaded != null) {
+                            LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
+                            downloadRange(new DownloadRange(nextLastModified, nextLastModified + 1, lastIdDownloaded));
+                            // Reset the retries
+                            failureTimestamp = null;
+                            // Continue downloading everything starting from the next _lastmodified value
+                            downloadRange(new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null));
+                        } else {
+                            downloadRange(new DownloadRange(nextLastModified, Long.MAX_VALUE, null));
                         }
-                        throw new RetryException(retryDuringSeconds, summary.toString(), e);
-                    } else {
-                        LOG.warn("Retrying download after {} ms; number of times failed: {}", retryInterval, failureTimestamp);
-                        exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
-                                (key, val) -> val == null ? 1 : val + 1
-                        );
-                        try {
-                            Thread.sleep(retryInterval);
-                        } catch (InterruptedException ignore) {
+                        downloadCompleted = true;
+                    } catch (MongoException e) {
+                        if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
+                            // Non-recoverable exceptions
+                            throw e;
                         }
-                        // simple exponential backoff mechanism
-                        retryInterval = Math.min(retryMaxIntervalMillis, retryInterval * 2);
+                        if (failureTimestamp == null) {
+                            failureTimestamp = Instant.now();
+                        }
+                        LOG.warn("Connection error downloading from MongoDB.", e);
+                        if (Duration.between(failureTimestamp, Instant.now()).toSeconds() > retryDuringSeconds) {
+                            // Give up. Get a string of all exceptions that were thrown
+                            StringBuilder summary = new StringBuilder();
+                            for (Map.Entry<String, Integer> entry : exceptions.entrySet()) {
+                                summary.append("\n\t").append(entry.getValue()).append("x: ").append(entry.getKey());
+                            }
+                            throw new RetryException(retryDuringSeconds, summary.toString(), e);
+                        } else {
+                            LOG.warn("Retrying download after {} ms; number of times failed: {}", retryInterval, failureTimestamp);
+                            exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
+                                    (key, val) -> val == null ? 1 : val + 1
+                            );
+                            try {
+                                Thread.sleep(retryInterval);
+                            } catch (InterruptedException ignore) {
+                            }
+                            // simple exponential backoff mechanism
+                            retryInterval = Math.min(retryMaxIntervalMillis, retryInterval * 2);
+                        }
                     }
                 }
             }
+            LOG.info("Terminating task. Downloaded {} Mongo documents in {}. Time waiting for transform threads: {} seconds ({}%)",
+                    documentsRead, downloadStartWatch,
+                    totalEnqueueWaitTimeMillis / 1000,
+                    String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS)));
+            return new Result(documentsRead);
         } catch (InterruptedException t) {
             LOG.warn("Thread interrupted");
             throw t;
@@ -188,14 +200,27 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
     }
 
     private void downloadRange(DownloadRange range) throws InterruptedException, TimeoutException {
-        BasicDBObject[] block = new BasicDBObject[batchSize];
-        int nextIndex = 0;
         BsonDocument findQuery = range.getFindQuery();
         LOG.info("Traversing: {}. Query: {}", range, findQuery);
         FindIterable<BasicDBObject> mongoIterable = dbCollection
                 .withReadPreference(readPreference)
                 .find(findQuery)
                 .sort(ascending(NodeDocument.MODIFIED_IN_SECS, NodeDocument.ID));
+        download(mongoIterable);
+    }
+
+    private void downloadAll() throws InterruptedException, TimeoutException {
+        LOG.info("Traversing all documents");
+        BsonDocument notNullQuery = BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":{$ne:null}}");
+        FindIterable<BasicDBObject> mongoIterable = dbCollection
+                .withReadPreference(readPreference)
+                .find(notNullQuery);
+        download(mongoIterable);
+    }
+
+    private void download(FindIterable<BasicDBObject> mongoIterable) throws InterruptedException, TimeoutException {
+        BasicDBObject[] block = new BasicDBObject[batchSize];
+        int nextIndex = 0;
         try (MongoCursor<BasicDBObject> cursor = mongoIterable.iterator()) {
             while (cursor.hasNext()) {
                 BasicDBObject next = cursor.next();
@@ -213,7 +238,7 @@ class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.
                 }
             }
         }
-        LOG.info("Finished downloading range: {}", range);
+        LOG.info("Finished downloading");
         if (nextIndex > 0) {
             LOG.info("Enqueueing last block of size: {}", nextIndex);
             BasicDBObject[] lastBlock = new BasicDBObject[nextIndex];

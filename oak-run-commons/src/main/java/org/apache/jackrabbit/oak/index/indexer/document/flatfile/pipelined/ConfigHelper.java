@@ -29,4 +29,17 @@ public class ConfigHelper {
         LOG.info("Config {}={}", name, result);
         return result;
     }
+
+    public static boolean getSystemPropertyAsBoolean(String name, boolean defaultValue) {
+        String sysPropValue = System.getProperty(name);
+        boolean value;
+        if (sysPropValue == null) {
+            value = defaultValue;
+        } else {
+            value = Boolean.parseBoolean(sysPropValue);
+        }
+
+        LOG.info("Config {}={}", name, value);
+        return value;
+    }
 }

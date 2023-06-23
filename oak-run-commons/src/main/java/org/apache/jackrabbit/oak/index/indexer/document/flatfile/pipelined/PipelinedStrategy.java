@@ -276,8 +276,8 @@ public class PipelinedStrategy implements SortStrategy {
             // transform <-> sort and save threads
             // Queue with empty buffers, used by the transform task
             ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
-            // Queue with buffers filled by the transform task, used by the sort and save task
-            ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
+            // Queue with buffers filled by the transform task, used by the sort and save task. +1 for the SENTINEL
+            ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers+1);
 
             // Queue between sort-and-save thread and the merge-sorted-files thread
             ArrayBlockingQueue<File> sortedFilesQueue = new ArrayBlockingQueue<>(64);
@@ -353,7 +353,7 @@ public class PipelinedStrategy implements SortStrategy {
                                 LOG.info("All transform tasks finished. Node states retrieved: {}", entryCount);
                                 // No need to keep monitoring the queues, the download and transform threads are done.
                                 monitorFuture.cancel(false);
-                                // At this point, only the sort thread is listening to the exchanger.
+                                // Terminate the sort thread.
                                 nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
                             }
 

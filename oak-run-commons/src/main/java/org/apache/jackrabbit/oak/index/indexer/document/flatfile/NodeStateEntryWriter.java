@@ -58,9 +58,13 @@ public class NodeStateEntryWriter {
     }
 
     public void writeTo(Writer writer, NodeStateEntry nse) throws IOException {
-        writer.write(nse.getPath());
+        writeTo(writer, nse.getPath(), asJson(nse.getNodeState()));
+    }
+
+    public void writeTo(Writer writer, String path, String value) throws IOException {
+        writer.write(path);
         writer.write(DELIMITER);
-        writer.write(asJson(nse.getNodeState()));
+        writer.write(value);
     }
 
     public String toString(List<String> pathElements, String nodeStateAsJson) {
