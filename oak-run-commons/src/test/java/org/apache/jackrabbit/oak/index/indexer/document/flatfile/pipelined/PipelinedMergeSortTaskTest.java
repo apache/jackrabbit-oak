@@ -56,7 +56,7 @@ public class PipelinedMergeSortTaskTest {
 
     @Test
     public void oneFileToMerge() throws Exception {
-        File singleFileToMerge = getTestFile("pipelined/merge-stage-1.sortedfile");
+        File singleFileToMerge = getTestFile("pipelined/merge-stage-1.json");
         PipelinedMergeSortTask.Result result = runTest(singleFileToMerge);
         Path resultFile = result.getFlatFileStoreFile().toPath();
         assertEquals(Files.readString(singleFileToMerge.toPath(), FLATFILESTORE_CHARSET), Files.readString(resultFile, FLATFILESTORE_CHARSET));
@@ -64,9 +64,9 @@ public class PipelinedMergeSortTaskTest {
 
     @Test
     public void twoFilesToMerge() throws Exception {
-        File merge1 = getTestFile("pipelined/merge-stage-1.sortedfile");
-        File merge2 = getTestFile("pipelined/merge-stage-2.sortedfile");
-        File expected = getTestFile("pipelined/merge-expected.sortedfile");
+        File merge1 = getTestFile("pipelined/merge-stage-1.json");
+        File merge2 = getTestFile("pipelined/merge-stage-2.json");
+        File expected = getTestFile("pipelined/merge-expected.json");
 
         PipelinedMergeSortTask.Result result = runTest(merge1, merge2);
         Path resultFile = result.getFlatFileStoreFile().toPath();
