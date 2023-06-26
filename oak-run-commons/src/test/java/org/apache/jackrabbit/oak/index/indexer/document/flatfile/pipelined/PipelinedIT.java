@@ -1,6 +1,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -34,6 +35,8 @@ import java.nio.file.Files;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import static org.junit.Assert.assertEquals;
+
 public class PipelinedIT {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedIT.class);
 
@@ -48,36 +51,20 @@ public class PipelinedIT {
 
     @Rule
     public TemporaryFolder sortFolder = new TemporaryFolder();
-    private final PathElementComparator pathComparator = new PathElementComparator(Set.of());
-    private final Compression compressionAlgorithm = Compression.NONE;
-
-    private final MemoryBlobStore memoryBlobStore = new MemoryBlobStore();
-
-    private final Set<String> preferredPathElements = Set.of();
 
     @BeforeClass
     public static void checkMongoDbAvailable() {
         Assume.assumeTrue(MongoUtils.isAvailable());
     }
 
-    DocumentNodeStore dns;
-
     @Before
     public void setup() throws IOException {
-        LOG.info("Running test: setup");
-//        try {
-//            System.setProperty("java.io.tmpdir", temporaryFolder.newFolder("systemp").getAbsolutePath());
-//        } catch (IOException e) {
-//            throw e;
-//        }
     }
 
     @After
     public void tear() {
-        LOG.info("Running test: tear");
-//        if (dns != null) {
-//            dns.dispose();
-//        }
+        MongoConnection c = connectionFactory.getConnection();
+        c.getDatabase().drop();
     }
 
     private ImmutablePair<MongoDocumentStore, DocumentNodeStore> createNodeStore(boolean readOnly) {
@@ -87,24 +74,20 @@ public class PipelinedIT {
         if (readOnly) {
             builder.setReadOnlyMode();
         }
-        return new ImmutablePair<>((MongoDocumentStore) builder.getDocumentStore(), builder.getNodeStore());
+        builder.setAsyncDelay(1);
+        DocumentNodeStore documentNodeStore = builder.getNodeStore();
+        return new ImmutablePair<>((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore);
     }
 
     @Test
-    public void createFlatFileStore() throws Exception {
-        LOG.info("Running test: createFlatFileStore. Mongo: {} {}", MongoUtils.URL, MongoUtils.isAvailable());
+    public void createFFSWithPipelinedStrategy() throws Exception {
+        createContent();
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> writeable = createNodeStore(false);
-        NodeStore rwNodeStore = writeable.right;
-        @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
-        @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
-        contentDamBuilder.child("a").setProperty("foo", "bar");
-        rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        DocumentNodeStore readOnlyNodeStore = roStore.right;
+        MongoDocumentStore readOnlyMongoDocStore = roStore.left;
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> readOnly = createNodeStore(true);
-        DocumentNodeStore readOnlyNodeStore = readOnly.right;
-        MongoDocumentStore readOnlyMongoDocStore = readOnly.left;
-
+        Set<String> preferredPathElements = Set.of();
         Predicate<String> pathPredicate = s -> s.startsWith("/content/dam");
         RevisionVector rootRevision = readOnlyNodeStore.getRoot().getRootRevision();
         PipelinedStrategy pipelinedStrategy = new PipelinedStrategy(
@@ -112,14 +95,37 @@ public class PipelinedIT {
                 readOnlyNodeStore,
                 rootRevision,
                 preferredPathElements,
-                memoryBlobStore,
+                new MemoryBlobStore(),
                 sortFolder.getRoot(),
-                compressionAlgorithm,
+                Compression.NONE,
                 pathPredicate
         );
 
         File file = pipelinedStrategy.createSortedStoreFile();
         LOG.info("Created file: {}", file.getAbsolutePath());
-        LOG.info("Contents:\n{}", Files.readString(file.toPath()));
+        assertEquals("/content/dam|{}\n" +
+                        "/content/dam/1000|{}\n" +
+                        "/content/dam/1000/12|{\"p1\":\"v100012\"}\n" +
+                        "/content/dam/2022|{}\n" +
+                        "/content/dam/2022/02|{\"p1\":\"v202202\"}\n" +
+                        "/content/dam/2023|{\"p2\":\"v2023\"}\n" +
+                        "/content/dam/2023/01|{\"p1\":\"v202301\"}\n" +
+                        "/content/dam/2023/02|{}\n" +
+                        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}\n",
+                Files.readString(file.toPath()));
+    }
+
+    private void createContent() throws CommitFailedException {
+        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
+        NodeStore rwNodeStore = rwStore.right;
+        @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+        @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
+        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
+        contentDamBuilder.child("2022").child("02").setProperty("p1", "v202202");
+        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
+        contentDamBuilder.child("1000").child("12").setProperty("p1", "v100012");
+        contentDamBuilder.child("2023").setProperty("p2", "v2023");
+        contentDamBuilder.child("2023").child("02").child("28").setProperty("p1", "v20230228");
+        rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 }
