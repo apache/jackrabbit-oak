@@ -62,6 +62,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.partition;
@@ -834,6 +835,7 @@ public class VersionGarbageCollector {
 
                 final Set<String> retainPropSet = ofNullable(doc.getNodeAtRevision(nodeStore, headRevision, null))
                         .map(DocumentNodeState::getPropertyNames)
+                        .map(p -> p.stream().map(Utils::escapePropertyName).collect(toSet()))
                         .orElse(emptySet());
                 final int deletedPropsGCCount = properties.stream()
                         .filter(p -> !retainPropSet.contains(p))
