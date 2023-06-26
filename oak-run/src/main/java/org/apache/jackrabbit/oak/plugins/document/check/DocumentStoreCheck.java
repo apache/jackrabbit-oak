@@ -69,6 +69,8 @@ public class DocumentStoreCheck {
 
     private final boolean summary;
 
+    private final boolean counter;
+
     private final int numThreads;
 
     private final ExecutorService executorService;
@@ -95,6 +97,7 @@ public class DocumentStoreCheck {
                                boolean progress,
                                boolean silent,
                                boolean summary,
+                               boolean counter,
                                int numThreads,
                                String output,
                                boolean orphan,
@@ -110,6 +113,7 @@ public class DocumentStoreCheck {
         this.progress = progress;
         this.silent = silent;
         this.summary = summary;
+        this.counter = counter;
         this.numThreads = numThreads;
         this.executorService = new ThreadPoolExecutor(
                 numThreads, numThreads, 1, TimeUnit.MINUTES,
@@ -180,6 +184,9 @@ public class DocumentStoreCheck {
 
     private DocumentProcessor createDocumentProcessor() {
         List<DocumentProcessor> processors = new ArrayList<>();
+        if (counter) {
+            processors.add(new NodeCounter(ns, ns.getHeadRevision(), executorService));
+        }
         if (summary) {
             processors.add(new Summary(numThreads));
         }
@@ -240,6 +247,8 @@ public class DocumentStoreCheck {
 
         private boolean summary;
 
+        private boolean counter;
+
         private int numThreads = Runtime.getRuntime().availableProcessors();
 
         private String output;
@@ -278,6 +287,11 @@ public class DocumentStoreCheck {
 
         public Builder withSummary(boolean enable) {
             this.summary = enable;
+            return this;
+        }
+
+        public Builder withCounter(boolean enable) {
+            this.counter = enable;
             return this;
         }
 
@@ -328,7 +342,7 @@ public class DocumentStoreCheck {
 
         public DocumentStoreCheck build() {
             return new DocumentStoreCheck(ns, store, closer, progress, silent,
-                    summary, numThreads, output, orphan, baseVersion,
+                    summary, counter, numThreads, output, orphan, baseVersion,
                     versionHistory, predecessors, successors, uuid, consistency);
         }
     }

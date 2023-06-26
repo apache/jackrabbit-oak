@@ -72,6 +72,7 @@ class DocumentStoreCheckCommand implements Command {
                     .withProgress(options.withProgress())
                     .isSilent(options.isSilent())
                     .withSummary(options.withSummary())
+                    .withCounter(options.withCounter())
                     .withNumThreads(options.getNumThreads())
                     .build().run();
 
@@ -91,6 +92,8 @@ class DocumentStoreCheckCommand implements Command {
         final OptionSpec<Void> silent;
 
         final OptionSpec<Boolean> summary;
+
+        final OptionSpec<Boolean> counter;
 
         final OptionSpec<Boolean> orphan;
 
@@ -117,6 +120,8 @@ class DocumentStoreCheckCommand implements Command {
             progress = parser.accepts("progress", "Write periodic progress messages")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             summary = parser.accepts("summary", "Write a summary message at the end")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            counter = parser.accepts("counter", "Count documents and nodes that exist")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             orphan = parser.accepts("orphan", "Check for orphaned nodes")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
@@ -156,6 +161,10 @@ class DocumentStoreCheckCommand implements Command {
 
         public boolean withSummary() {
             return summary.value(options);
+        }
+
+        public boolean withCounter() {
+            return counter.value(options);
         }
 
         public boolean withOrphan() {
