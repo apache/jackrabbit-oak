@@ -37,6 +37,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static java.util.Collections.emptySet;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
@@ -252,7 +253,10 @@ public class WriteAfterRecoveryTest {
 
         // revive clusterId 1
         ns1 = createNodeStore(1);
+        assertEquals(lateWriteRevisions, checkConsistency(ns1, "/a/b"));
         merge(ns1, createChild("/d"), true);
+        // ns2 needs a background read to see the inconsistency
+        assertEquals(emptySet(), checkConsistency(ns2, "/a/b"));
 
         ns2.runBackgroundOperations();
         assertTrue(getNode(ns2.getRoot(), "/d").exists());
@@ -263,9 +267,23 @@ public class WriteAfterRecoveryTest {
         } catch (CommitFailedException e) {
             assertThat(e.getMessage(), containsString("already deleted"));
         }
+        try {
+            // trying to set a property on such a node also fails
+            merge(ns2, setProperty("/a/b", "p", "v"), true);
+            fail("merge must fail");
+        } catch (CommitFailedException e) {
+            assertThat(e.getMessage(), containsString("already deleted"));
+        }
 
         Set<Revision> inconsistent = checkConsistency(ns2, "/a/b");
         assertEquals(lateWriteRevisions, inconsistent);
+
+        // writing a property on the parent node of an inconsistency makes the
+        // late-write change visible and the inconsistency becomes unnoticeable
+        merge(ns1, setProperty("/a", "p", "v"), true);
+        ns2.runBackgroundOperations();
+        assertFalse(getNode(ns2.getRoot(), "/a/b").exists());
+        assertEquals(emptySet(), checkConsistency(ns2, "/a/b"));
     }
 
     @Test
@@ -418,6 +436,12 @@ public class WriteAfterRecoveryTest {
         // is overwritten, but consistency check can still detect it
         Set<Revision> inconsistent = checkConsistency(ns2, "/a/b", "/a/b/c");
         assertEquals(lateWriteRevisions, inconsistent);
+
+        // by making another change on a property with an inconsistency,
+        // that inconsistency then becomes unnoticeable going forward
+        assertEquals(lateWriteRevisions, checkConsistency(ns2, "/a/b"));
+        merge(ns2, setProperty("/a/b", "p", "v2"), true);
+        assertEquals(emptySet(), checkConsistency(ns2, "/a/b"));
     }
 
     @Test
@@ -469,6 +493,16 @@ public class WriteAfterRecoveryTest {
         // is overwritten, but consistency check can still detect it
         Set<Revision> inconsistent = checkConsistency(ns2, "/a/b", "/a/b/c");
         assertEquals(lateWriteRevisions, inconsistent);
+
+        // by setting a new property on a node with an inconsistency with the
+        // clusterId that created the inconsistency, that inconsistency then
+        // becomes unnoticeable going forward
+        assertEquals(lateWriteRevisions, checkConsistency(ns2, "/a/b"));
+        merge(ns1, setProperty("/a/b", "q", "v"), true);
+        ns2.runBackgroundOperations();
+        assertEquals(emptySet(), checkConsistency(ns2, "/a/b"));
+        // and property 'p' now appears removed
+        assertNull(getNode(ns2.getRoot(), "/a/b").getProperty("p"));
     }
 
     @Test
