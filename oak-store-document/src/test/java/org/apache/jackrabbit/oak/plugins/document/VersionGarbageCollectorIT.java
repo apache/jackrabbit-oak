@@ -454,7 +454,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(10, stats.deletedPropsGCCount);
     }
 
-    // Test when properties are not collected in one GC cycle
+    // Test properties are collected after system crash had happened
     @Test
     public void testGCDeletedProps_4() throws Exception {
         final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
@@ -519,6 +519,61 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         VersionGCStats stats = gc.gc(maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsGCCount);
+
+    }
+
+    // Test when escaped properties are collected
+    @Test
+    public void testGCDeletedProps_5() throws Exception {
+        //1. Create nodes with properties
+        NodeBuilder b1 = store.getRoot().builder();
+
+        // Add property to node & save
+        for (int i = 0; i < 10; i++) {
+            b1.child("x").setProperty("test."+i, "t", STRING);
+        }
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+
+        //Remove property
+        NodeBuilder b2 = store.getRoot().builder();
+        for (int i = 0; i < 10; i++) {
+            b2.getChildNode("x").removeProperty("test."+i);
+        }
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //2. Check that a deleted property is not collected before maxAge
+        //Clock cannot move back (it moved forward in #1) so double the maxAge
+        clock.waitUntil(clock.getTime() + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(10, stats.deletedPropsGCCount);
+
+        //4. Check that a revived property (deleted and created again) does not get gc
+        NodeBuilder b4 = store.getRoot().builder();
+        for (int i = 0; i < 10; i++) {
+            b4.child("x").setProperty("test."+i, "t", STRING);
+        }
+        store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
 
     }
 
