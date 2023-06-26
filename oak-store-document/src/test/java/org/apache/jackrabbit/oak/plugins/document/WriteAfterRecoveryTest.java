@@ -437,11 +437,23 @@ public class WriteAfterRecoveryTest {
         Set<Revision> inconsistent = checkConsistency(ns2, "/a/b", "/a/b/c");
         assertEquals(lateWriteRevisions, inconsistent);
 
+        String checkpoint = ns2.checkpoint(Integer.MAX_VALUE);
+        assertEquals(stringProperty("p", "u"), getNode(ns1.retrieve(checkpoint), "/a/b").getProperty("p"));
+
         // by making another change on a property with an inconsistency,
         // that inconsistency then becomes unnoticeable going forward
         assertEquals(lateWriteRevisions, checkConsistency(ns2, "/a/b"));
         merge(ns2, setProperty("/a/b", "p", "v2"), true);
         assertEquals(emptySet(), checkConsistency(ns2, "/a/b"));
+
+        // after a change that updates _lastRev on a document with an
+        // inconsistency, the late-write becomes visible to reads from
+        // the checkpoint
+        merge(ns1, createChild("/a/b/e"), true);
+        // invalidation is required here as otherwise it reads a cached node
+        // state that still returns p=u
+        ns1.getNodeCache().invalidateAll();
+        assertEquals(stringProperty("p", "v"), getNode(ns1.retrieve(checkpoint), "/a/b").getProperty("p"));
     }
 
     @Test
