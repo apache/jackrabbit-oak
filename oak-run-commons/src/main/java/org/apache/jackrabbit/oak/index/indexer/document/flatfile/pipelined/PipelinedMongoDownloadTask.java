@@ -60,6 +60,15 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
+
+    /**
+     * Whether to retry on connection errors to MongoDB.
+     * This property affects the query that is used to download the documents from MongoDB. If set to true, the query
+     * will traverse the results by order of the _modfied property (does an index scan), which allows it to resume after
+     * a failed connection from where it left off. If set to false, it uses a potentially more efficient query that does
+     * not impose any order on the results (does a simple column scan).
+     */
     public static final String OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = "oak.indexer.pipelined.retryOnConnectionErrors";
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = true;
     public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
@@ -68,7 +77,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     // replicas available so a reconnection attempt will succeed immediately.
     private final static long retryInitialIntervalMillis = 100;
     private final static long retryMaxIntervalMillis = 10_000;
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
+
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(2);
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
 
@@ -211,10 +220,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private void downloadAll() throws InterruptedException, TimeoutException {
         LOG.info("Traversing all documents");
-        BsonDocument notNullQuery = BsonDocument.parse("{" + NodeDocument.MODIFIED_IN_SECS + ":{$ne:null}}");
         FindIterable<BasicDBObject> mongoIterable = dbCollection
                 .withReadPreference(readPreference)
-                .find(notNullQuery);
+                .find();
         download(mongoIterable);
     }
 
@@ -225,7 +233,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             while (cursor.hasNext()) {
                 BasicDBObject next = cursor.next();
                 String id = next.getString(Document.ID);
-                this.nextLastModified = next.getLong(NodeDocument.MODIFIED_IN_SECS);
+                // If we are retrying on connection errors, we need to keep track of the last _modified value
+                if (retryOnConnectionErrors) {
+                    this.nextLastModified = next.getLong(NodeDocument.MODIFIED_IN_SECS);
+                }
                 this.lastIdDownloaded = id;
                 this.documentsRead++;
                 reportProgress(id);
