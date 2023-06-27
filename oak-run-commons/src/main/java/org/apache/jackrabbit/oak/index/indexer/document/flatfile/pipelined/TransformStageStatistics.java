@@ -21,12 +21,11 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.stream.Collectors;
 
 public class TransformStageStatistics {
+    static final int MAX_HISTOGRAM_SIZE = 1000;
+
     private final LongAdder mongoDocumentsTraversed = new LongAdder();
     private final LongAdder documentsRejectedSplit = new LongAdder();
     private final LongAdder documentsRejectedEmptyNodeState = new LongAdder();
@@ -35,10 +34,28 @@ public class TransformStageStatistics {
     private final LongAdder entriesRejectedHiddenPaths = new LongAdder();
     private final LongAdder entriesRejectedPathFiltered = new LongAdder();
     private final LongAdder entriesAcceptedTotalSize = new LongAdder();
-    private final ConcurrentHashMap<String, LongAdder> hiddenPathsRejectedHistogram = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, LongAdder> filteredPathsRejectedHistogram = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, LongAdder> splitDocumentsHistogram = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, LongAdder> emptyNodeStateHistogram = new ConcurrentHashMap<>();
+
+    public BoundedHistogram getHiddenPathsRejectedHistogram() {
+        return hiddenPathsRejectedHistogram;
+    }
+
+    public BoundedHistogram getFilteredPathsRejectedHistogram() {
+        return filteredPathsRejectedHistogram;
+    }
+
+    public BoundedHistogram getSplitDocumentsHistogram() {
+        return splitDocumentsHistogram;
+    }
+
+    public BoundedHistogram getEmptyNodeStateHistogram() {
+        return emptyNodeStateHistogram;
+    }
+
+    private final BoundedHistogram hiddenPathsRejectedHistogram = new BoundedHistogram("Hidden paths", MAX_HISTOGRAM_SIZE);
+    private final BoundedHistogram filteredPathsRejectedHistogram = new BoundedHistogram("Filtered paths", MAX_HISTOGRAM_SIZE);
+    private final BoundedHistogram splitDocumentsHistogram = new BoundedHistogram("Split documents", MAX_HISTOGRAM_SIZE);
+    private final BoundedHistogram emptyNodeStateHistogram = new BoundedHistogram("Empty node state", MAX_HISTOGRAM_SIZE);
+
 
     public long getMongoDocumentsTraversed() {
         return mongoDocumentsTraversed.sum();
@@ -56,7 +73,7 @@ public class TransformStageStatistics {
         return documentsRejectedSplit;
     }
 
-    public ConcurrentHashMap<String, LongAdder> getHiddenPathsRejected() {
+    public BoundedHistogram getHiddenPathsRejected() {
         return hiddenPathsRejectedHistogram;
     }
 
@@ -72,17 +89,6 @@ public class TransformStageStatistics {
         this.documentsRejectedSplit.increment();
     }
 
-    public void addSplitDocument(String id) {
-        this.documentsRejectedSplit.increment();
-        this.splitDocumentsHistogram.computeIfAbsent(getPathPrefix(id, 5), k -> new LongAdder()).increment();
-    }
-
-    public void addEmptyNodeStateEntry(String nodeId) {
-        this.documentsRejectedEmptyNodeState.increment();
-        // TODO: bound the number of entries in the histogram
-        this.emptyNodeStateHistogram.computeIfAbsent(getPathPrefix(nodeId, 5), k -> new LongAdder()).increment();
-    }
-
     public void incrementTotalExtractedEntriesSize(int entrySize) {
         this.entriesAcceptedTotalSize.add(entrySize);
     }
@@ -91,14 +97,28 @@ public class TransformStageStatistics {
         this.entriesRejected.increment();
     }
 
+    public void addSplitDocument(String id) {
+        this.documentsRejectedSplit.increment();
+        String key = getPathPrefix(id, 5);
+        this.splitDocumentsHistogram.addEntry(key);
+    }
+
+    public void addEmptyNodeStateEntry(String nodeId) {
+        this.documentsRejectedEmptyNodeState.increment();
+        String key = getPathPrefix(nodeId, 5);
+        this.emptyNodeStateHistogram.addEntry(key);
+    }
+
     public void addRejectedHiddenPath(String path) {
         this.entriesRejectedHiddenPaths.increment();
-        this.hiddenPathsRejectedHistogram.computeIfAbsent(getPathPrefix(path, 3), k -> new LongAdder()).increment();
+        String key = getPathPrefix(path, 3);
+        this.hiddenPathsRejectedHistogram.addEntry(key);
     }
 
     public void addRejectedFilteredPath(String path) {
         this.entriesRejectedPathFiltered.increment();
-        this.filteredPathsRejectedHistogram.computeIfAbsent(getPathPrefix(path, 3), k -> new LongAdder()).increment();
+        String key = getPathPrefix(path, 3);
+        this.filteredPathsRejectedHistogram.addEntry(key);
     }
 
     @Override
@@ -149,28 +169,19 @@ public class TransformStageStatistics {
     }
 
     public String prettyPrintHiddenPathsHistogram() {
-        return prettyPrintMap(hiddenPathsRejectedHistogram);
+        return hiddenPathsRejectedHistogram.prettyPrint();
     }
 
     public String prettyPrintPathFilteredHistogram() {
-        return prettyPrintMap(filteredPathsRejectedHistogram);
+        return filteredPathsRejectedHistogram.prettyPrint();
     }
 
     public String prettyPrintSplitDocumentsHistogram() {
-        return prettyPrintMap(splitDocumentsHistogram);
+        return splitDocumentsHistogram.prettyPrint();
     }
 
     public String prettyPrintEmptyNodeStateHistogram() {
-        return prettyPrintMap(emptyNodeStateHistogram);
-    }
-
-    private static String prettyPrintMap(ConcurrentHashMap<String, LongAdder> map) {
-        return map.entrySet().stream()
-                .map(e -> Map.entry(e.getKey(), e.getValue().sum()))
-                .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort by value descending
-                .limit(20)
-                .map(e -> "\"" + e.getKey() + "\":" + e.getValue())
-                .collect(Collectors.joining(", ", "{", "}"));
+        return emptyNodeStateHistogram.prettyPrint();
     }
 
     private static String getPathPrefix(String path, int depth) {
