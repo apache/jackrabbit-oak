@@ -112,7 +112,34 @@ public class ElasticCustomAnalyzerMappings {
         LUCENE_ELASTIC_TRANSFORMERS = new LinkedHashMap<>();
 
         LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterFilterFactory.class, luceneParams -> {
-            Map<String, Object> params = reKey.apply(luceneParams, Map.of(
+            if (luceneParams.containsKey("generateWordParts")) {
+                luceneParams.put("generateWordParts", Integer.parseInt(luceneParams.get("generateWordParts").toString()) == 1);
+            }
+            if (luceneParams.containsKey("generateNumberParts")) {
+                luceneParams.put("generateNumberParts", Integer.parseInt(luceneParams.get("generateNumberParts").toString()) == 1);
+            }
+            if (luceneParams.containsKey("catenateWords")) {
+                luceneParams.put("catenateWords", Integer.parseInt(luceneParams.get("catenateWords").toString()) == 1);
+            }
+            if (luceneParams.containsKey("catenateNumbers")) {
+                luceneParams.put("catenateNumbers", Integer.parseInt(luceneParams.get("catenateNumbers").toString()) == 1);
+            }
+            if (luceneParams.containsKey("catenateAll")) {
+                luceneParams.put("catenateAll", Integer.parseInt(luceneParams.get("catenateAll").toString()) == 1);
+            }
+            if (luceneParams.containsKey("splitOnCaseChange")) {
+                luceneParams.put("splitOnCaseChange", Integer.parseInt(luceneParams.get("splitOnCaseChange").toString()) == 1);
+            }
+            if (luceneParams.containsKey("preserveOriginal")) {
+                luceneParams.put("preserveOriginal", Integer.parseInt(luceneParams.get("preserveOriginal").toString()) == 1);
+            }
+            if (luceneParams.containsKey("splitOnNumerics")) {
+                luceneParams.put("splitOnNumerics", Integer.parseInt(luceneParams.get("splitOnNumerics").toString()) == 1);
+            }
+            if (luceneParams.containsKey("stemEnglishPossessive")) {
+                luceneParams.put("stemEnglishPossessive", Integer.parseInt(luceneParams.get("stemEnglishPossessive").toString()) == 1);
+            }
+            return reKey.apply(luceneParams, Map.of(
                     "generateWordParts", "generate_word_parts",
                     "generateNumberParts", "generate_number_parts",
                     "catenateWords", "catenate_words",
@@ -124,34 +151,6 @@ public class ElasticCustomAnalyzerMappings {
                     "stemEnglishPossessive", "stem_english_possessive",
                     "protectedTokens", "protected_words"
             ));
-            if (params.containsKey("generate_word_parts")) {
-                params.put("generate_word_parts", Integer.parseInt(params.get("generate_word_parts").toString()) == 1);
-            }
-            if (params.containsKey("generate_number_parts")) {
-                params.put("generate_number_parts", Integer.parseInt(params.get("generate_number_parts").toString()) == 1);
-            }
-            if (params.containsKey("catenate_words")) {
-                params.put("catenate_words", Integer.parseInt(params.get("catenate_words").toString()) == 1);
-            }
-            if (params.containsKey("catenate_numbers")) {
-                params.put("catenate_numbers", Integer.parseInt(params.get("catenate_numbers").toString()) == 1);
-            }
-            if (params.containsKey("catenate_all")) {
-                params.put("catenate_all", Integer.parseInt(params.get("catenate_all").toString()) == 1);
-            }
-            if (params.containsKey("split_on_case_change")) {
-                params.put("split_on_case_change", Integer.parseInt(params.get("split_on_case_change").toString()) == 1);
-            }
-            if (params.containsKey("preserve_original")) {
-                params.put("preserve_original", Integer.parseInt(params.get("preserve_original").toString()) == 1);
-            }
-            if (params.containsKey("split_on_numerics")) {
-                params.put("split_on_numerics", Integer.parseInt(params.get("split_on_numerics").toString()) == 1);
-            }
-            if (params.containsKey("stem_english_possessive")) {
-                params.put("stem_english_possessive", Integer.parseInt(params.get("stem_english_possessive").toString()) == 1);
-            }
-            return params;
         });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(ShingleFilterFactory.class, luceneParams ->
