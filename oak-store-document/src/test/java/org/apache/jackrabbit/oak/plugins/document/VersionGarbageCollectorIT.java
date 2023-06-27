@@ -44,6 +44,7 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -51,6 +52,9 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.newRevision;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -288,7 +292,7 @@ public class VersionGarbageCollectorIT {
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(1, stats.deletedPropsGCCount);
         assertEquals(1, stats.updatedDetailedGCDocsCount);
-        assertEquals("1:/z", stats.oldestModifiedDocId);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b3 = store.getRoot().builder();
@@ -341,7 +345,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc.gc(maxAge*2, HOURS);
         assertEquals(50_000, stats.deletedPropsGCCount);
         assertEquals(5_000, stats.updatedDetailedGCDocsCount);
-        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
@@ -388,6 +392,46 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
+    public void testGC_WithNoDeletedProps_And_MoreThan_10_000_DocWithDifferentRevision() throws Exception {
+        //1. Create nodes with properties
+        NodeBuilder b1 = store.getRoot().builder();
+        for (int k = 0; k < 50; k ++) {
+            b1 = store.getRoot().builder();
+            // Add property to node & save
+            for (int i = 0; i < 500; i++) {
+                for (int j = 0; j < 10; j++) {
+                    b1.child(k + "z" + i).setProperty("prop" + j, "foo", STRING);
+                }
+            }
+            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            // increase the clock to create new revision for next batch
+            clock.waitUntil(Revision.getCurrentTimestamp() + (k * 5));
+        }
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(20);
+
+
+        store.runBackgroundOperations();
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        for (int i = 0; i < 3 ; i++) {
+
+            VersionGCStats stats = gc.gc(maxAge, HOURS);
+            String oldestModifiedDocId = stats.oldestModifiedDocId;
+            long oldestModifiedDocTimeStamp = stats.oldestModifiedDocTimeStamp;
+
+            Document document = store.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
+            assertEquals(document.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+            assertEquals(document.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+        }
+    }
+
+    @Test
     public void testGCDeletedPropsAlreadyGCed() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store.getRoot().builder();
@@ -420,7 +464,7 @@ public class VersionGarbageCollectorIT {
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsGCCount);
         assertEquals(10, stats.updatedDetailedGCDocsCount);
-        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         //3. now reCreate those properties again
         NodeBuilder b3 = store.getRoot().builder();
@@ -635,7 +679,7 @@ public class VersionGarbageCollectorIT {
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedPropsGCCount);
-        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
