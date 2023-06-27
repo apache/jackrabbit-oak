@@ -26,12 +26,12 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Long.MAX_VALUE;
 import static java.util.Map.of;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
@@ -124,7 +124,7 @@ public class VersionGCRecommendations {
             if (doc == NULL) {
                 oldestModifiedDocTimeStamp = 0L;
             } else {
-                oldestModifiedDocTimeStamp = doc.getModified() == null ? 0L : doc.getModified() - 1;
+                oldestModifiedDocTimeStamp = doc.getModified() == null ? 0L : SECONDS.toMillis(doc.getModified()) - 1L;
             }
             oldestModifiedDocId = MIN_ID_VALUE;
             log.info("detailedGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp));
