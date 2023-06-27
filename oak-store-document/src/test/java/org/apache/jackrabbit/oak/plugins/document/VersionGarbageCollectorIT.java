@@ -35,13 +35,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-<<<<<<< HEAD
 import static java.util.List.of;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-=======
-import static java.util.Objects.requireNonNull;
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
@@ -54,7 +50,6 @@ import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-<<<<<<< HEAD
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
@@ -62,17 +57,13 @@ import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDe
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGCDryRun;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.mergedBranchCommit;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.unmergedBranchCommit;
-=======
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
+import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
-<<<<<<< HEAD
 import static org.apache.jackrabbit.oak.plugins.document.Revision.getCurrentTimestamp;
-=======
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
 import static org.apache.jackrabbit.oak.plugins.document.Revision.newRevision;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
@@ -451,15 +442,9 @@ public class VersionGarbageCollectorIT {
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
-<<<<<<< HEAD
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -472,29 +457,17 @@ public class VersionGarbageCollectorIT {
         //2. Check that a deleted property is not collected before maxAge
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(1, stats.deletedPropsCount);
         assertEquals(1, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(1, stats.deletedPropsGCCount);
-        assertEquals(1, stats.updatedDetailedGCDocsCount);
-        assertEquals("1:/z", stats.oldestModifiedDocId);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b3 = store1.getRoot().builder();
@@ -506,13 +479,8 @@ public class VersionGarbageCollectorIT {
         store1.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
@@ -549,17 +517,10 @@ public class VersionGarbageCollectorIT {
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
-<<<<<<< HEAD
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertEquals(50_000, stats.deletedPropsCount);
         assertEquals(5_000, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
-=======
-        VersionGCStats stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(50_000, stats.deletedPropsGCCount);
-        assertEquals(5_000, stats.updatedDetailedGCDocsCount);
-        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
     }
 
     @Test
@@ -579,11 +540,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-<<<<<<< HEAD
         long delta = MINUTES.toMillis(20);
-=======
-        long delta = TimeUnit.MINUTES.toMillis(20);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -596,40 +553,20 @@ public class VersionGarbageCollectorIT {
             }
             store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             // increase the clock to create new revision for next batch
-<<<<<<< HEAD
             clock.waitUntil(getCurrentTimestamp() + (k * 5));
-=======
-            clock.waitUntil(Revision.getCurrentTimestamp() + (k * 5));
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         }
 
         store1.runBackgroundOperations();
-<<<<<<< HEAD
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(50_000, stats.deletedPropsCount);
-=======
-
-        //2. Check that a deleted property is not collected before maxAge
-        //Clock cannot move back (it moved forward in #1) so double the maxAge
-        clock.waitUntil(clock.getTime() + delta);
-        VersionGCStats stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
-
-        //3. Check that deleted property does get collected post maxAge
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-
-        stats = gc.gc(maxAge, HOURS);
-        assertEquals(50_000, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(5_000, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
-<<<<<<< HEAD
     public void testGC_WithNoDeletedProps_And_MoreThan_10_000_DocWithDifferentRevision() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
@@ -671,8 +608,6 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
-=======
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
     public void testGCDeletedPropsAlreadyGCed() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
@@ -702,17 +637,10 @@ public class VersionGarbageCollectorIT {
         //2. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
         assertEquals(10, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(10, stats.deletedPropsGCCount);
-        assertEquals(10, stats.updatedDetailedGCDocsCount);
-        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
 
         //3. now reCreate those properties again
         NodeBuilder b3 = store1.getRoot().builder();
@@ -734,25 +662,17 @@ public class VersionGarbageCollectorIT {
         //4. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(10, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(10, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
     public void testGCDeletedPropsAfterSystemCrash() throws Exception {
-<<<<<<< HEAD
         if (store1 != null) {
             store1.dispose();
         }
-=======
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
             @Override
             public void dispose() {}
@@ -813,13 +733,8 @@ public class VersionGarbageCollectorIT {
         //4. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-<<<<<<< HEAD
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
-=======
-        VersionGCStats stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(10, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(10, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
@@ -840,15 +755,9 @@ public class VersionGarbageCollectorIT {
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
-<<<<<<< HEAD
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -863,13 +772,8 @@ public class VersionGarbageCollectorIT {
         //2. Check that a deleted property is not collected before maxAge
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
@@ -886,18 +790,12 @@ public class VersionGarbageCollectorIT {
         store1.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
     }
 
     @Test
-<<<<<<< HEAD
     public void testGCDeletedLongPathProps() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
@@ -1066,8 +964,6 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
-=======
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
     public void testGCDeletedPropsWhenModifiedConcurrently() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
@@ -1081,19 +977,11 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-<<<<<<< HEAD
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        long delta = TimeUnit.MINUTES.toMillis(10);
-        //1. Go past GC age and check no GC done as nothing deleted
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -1107,17 +995,10 @@ public class VersionGarbageCollectorIT {
         //2. Check that a deleted property is not collected before maxAge
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
-<<<<<<< HEAD
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId); // as GC hadn't run
-=======
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertNull(stats.oldestModifiedDocId); // as GC hadn't run
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -1141,19 +1022,11 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-<<<<<<< HEAD
         VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, true, false);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedPropsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
-=======
-        VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, true);
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedPropsGCCount);
-        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
     }
 
     @Test
@@ -1173,19 +1046,11 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-<<<<<<< HEAD
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-=======
-        long delta = TimeUnit.MINUTES.toMillis(10);
-        //1. Go past GC age and check no GC done as nothing deleted
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -1223,22 +1088,14 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-<<<<<<< HEAD
         gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false));
-=======
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true));
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gcRef.get().gc(maxAge*2, HOURS);
         assertTrue(stats.canceled);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
-<<<<<<< HEAD
         assertEquals(0, stats.deletedPropsCount);
-=======
-        assertEquals(0, stats.deletedPropsGCCount);
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
