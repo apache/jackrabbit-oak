@@ -34,6 +34,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
@@ -41,9 +44,12 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
+import static org.apache.jackrabbit.oak.plugins.document.Revision.newRevision;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertEquals;
@@ -260,6 +266,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
         NodeBuilder b2 = store.getRoot().builder();
@@ -273,12 +280,15 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(1, stats.deletedPropsGCCount);
+        assertEquals(1, stats.updatedDetailedGCDocsCount);
+        assertEquals("1:/z", stats.oldestModifiedDocId);
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b3 = store.getRoot().builder();
@@ -292,11 +302,12 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
-    // Test when we have more than 1000 deleted properties
     @Test
-    public void testGCDeletedProps_1() throws Exception {
+    public void testGCDeletedProps_MoreThan_1000_WithSameRevision() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store.getRoot().builder();
 
@@ -312,10 +323,6 @@ public class VersionGarbageCollectorIT {
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = TimeUnit.MINUTES.toMillis(10);
-        //1. Go past GC age and check no GC done as nothing deleted
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
 
         //Remove property
         NodeBuilder b2 = store.getRoot().builder();
@@ -328,77 +335,60 @@ public class VersionGarbageCollectorIT {
 
         store.runBackgroundOperations();
 
-        //2. Check that a deleted property is not collected before maxAge
-        //Clock cannot move back (it moved forward in #1) so double the maxAge
-        clock.waitUntil(clock.getTime() + delta);
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
-
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
-        stats = gc.gc(maxAge*2, HOURS);
+        VersionGCStats stats = gc.gc(maxAge*2, HOURS);
         assertEquals(50_000, stats.deletedPropsGCCount);
-
+        assertEquals(5_000, stats.updatedDetailedGCDocsCount);
+        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
-    // Test when we have more than 1000 deleted properties with different revisions
     @Test
-    public void testGCDeletedProps_2() throws Exception {
+    public void testGCDeletedProps_MoreThan_1000_WithDifferentRevision() throws Exception {
         //1. Create nodes with properties
-        NodeBuilder b1 = null;
+        NodeBuilder b1 = store.getRoot().builder();
         for (int k = 0; k < 50; k ++) {
-            b1 = store.getRoot().builder();
             // Add property to node & save
             for (int i = 0; i < 100; i++) {
                 for (int j = 0; j < 10; j++) {
                     b1.child(k + "z" + i).setProperty("prop" + j, "foo", STRING);
                 }
             }
-            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-            // increase the clock to create new revision for next batch
-            clock.waitUntil(Revision.getCurrentTimestamp() + (k * 5));
         }
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(10);
-        //1. Go past GC age and check no GC done as nothing deleted
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
-        VersionGCStats stats = gc.gc(maxAge, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
+        long delta = TimeUnit.MINUTES.toMillis(20);
 
         //Remove property
         NodeBuilder b2 = store.getRoot().builder();
         for (int k = 0; k < 50; k ++) {
+            b2 = store.getRoot().builder();
             for (int i = 0; i < 100; i++) {
                 for (int j = 0; j < 10; j++) {
                     b2.getChildNode(k + "z" + i).removeProperty("prop" + j);
                 }
             }
+            store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            // increase the clock to create new revision for next batch
+            clock.waitUntil(Revision.getCurrentTimestamp() + (k * 5));
         }
-        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         store.runBackgroundOperations();
-
-        //2. Check that a deleted property is not collected before maxAge
-        //Clock cannot move back (it moved forward in #1) so double the maxAge
-        clock.waitUntil(clock.getTime() + delta);
-        stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.deletedPropsGCCount);
-
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
-        stats = gc.gc(maxAge*2, HOURS);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(50_000, stats.deletedPropsGCCount);
-
+        assertEquals(5_000, stats.updatedDetailedGCDocsCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
-    // Test where we modify the already GCed nodes
     @Test
-    public void testGCDeletedProps_3() throws Exception {
+    public void testGCDeletedPropsAlreadyGCed() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store.getRoot().builder();
         // Add property to node & save
@@ -429,6 +419,8 @@ public class VersionGarbageCollectorIT {
 
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsGCCount);
+        assertEquals(10, stats.updatedDetailedGCDocsCount);
+        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         //3. now reCreate those properties again
         NodeBuilder b3 = store.getRoot().builder();
@@ -452,11 +444,12 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsGCCount);
+        assertEquals(10, stats.updatedDetailedGCDocsCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
-    // Test properties are collected after system crash had happened
     @Test
-    public void testGCDeletedProps_4() throws Exception {
+    public void testGCDeletedPropsAfterSystemCrash() throws Exception {
         final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
             @Override
             public void dispose() {}
@@ -519,12 +512,12 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         VersionGCStats stats = gc.gc(maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsGCCount);
-
+        assertEquals(10, stats.updatedDetailedGCDocsCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
-    // Test when escaped properties are collected
     @Test
-    public void testGCDeletedProps_5() throws Exception {
+    public void testGCDeletedEscapeProps() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store.getRoot().builder();
 
@@ -542,6 +535,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
         assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
         NodeBuilder b2 = store.getRoot().builder();
@@ -557,6 +551,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -574,7 +569,143 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+    }
 
+    @Test
+    public void testGCDeletedPropsWhenModifiedConcurrently() throws Exception {
+        //1. Create nodes with properties
+        NodeBuilder b1 = store.getRoot().builder();
+
+        // Add property to node & save
+        for (int i = 0; i < 10; i++) {
+            b1.child("x"+i).setProperty("test"+i, "t", STRING);
+        }
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+
+        //Remove property
+        NodeBuilder b2 = store.getRoot().builder();
+        for (int i = 0; i < 10; i++) {
+            b2.getChildNode("x"+i).removeProperty("test"+i);
+        }
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        //2. Check that a deleted property is not collected before maxAge
+        //Clock cannot move back (it moved forward in #1) so double the maxAge
+        clock.waitUntil(clock.getTime() + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertNull(stats.oldestModifiedDocId); // as GC hadn't run
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
+
+            @Override
+            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId) {
+                Iterable<NodeDocument> modifiedDocs = super.getModifiedDocs(fromModified, toModified, limit, fromId);
+                List<NodeDocument> result = stream(modifiedDocs.spliterator(), false).collect(toList());
+                final Revision updateRev = newRevision(1);
+                store.getDocumentStore().findAndUpdate(NODES, stream(modifiedDocs.spliterator(), false)
+                        .map(doc -> {
+                            UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
+                            setModified(op, updateRev);
+                            return op;
+                        }).
+                        collect(toList())
+                );
+                return result;
+            }
+        };
+
+        VersionGarbageCollector gc = new VersionGarbageCollector(store, gcSupport, true);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertNotEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+    }
+
+    @Test
+    public void cancelDetailedGCAfterFirstBatch() throws Exception {
+        //1. Create nodes with properties
+        NodeBuilder b1 = store.getRoot().builder();
+
+        // Add property to node & save
+        for (int i = 0; i < 5_000; i++) {
+            for (int j = 0; j < 10; j++) {
+                b1.child("z"+i).setProperty("prop"+j, "foo", STRING);
+            }
+        }
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = TimeUnit.MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+
+        //Remove property
+        NodeBuilder b2 = store.getRoot().builder();
+        for (int i = 0; i < 5_000; i++) {
+            for (int j = 0; j < 10; j++) {
+                b2.getChildNode("z"+i).removeProperty("prop"+j);
+            }
+        }
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        final AtomicReference<VersionGarbageCollector> gcRef = Atomics.newReference();
+        final VersionGCSupport gcSupport = new VersionGCSupport(store.getDocumentStore()) {
+
+            @Override
+            public Iterable<NodeDocument> getModifiedDocs(long fromModified, long toModified, int limit, @NotNull String fromId) {
+                return () -> new AbstractIterator<>() {
+                    private final Iterator<NodeDocument> it = candidates(fromModified, toModified, limit, fromId);
+
+                    @Override
+                    protected NodeDocument computeNext() {
+                        if (it.hasNext()) {
+                            return it.next();
+                        }
+                        // cancel when we reach the end
+                        gcRef.get().cancel();
+                        return endOfData();
+                    }
+                };
+            }
+
+            private Iterator<NodeDocument> candidates(long fromModified, long toModified, int limit, @NotNull String fromId) {
+                return super.getModifiedDocs(fromModified, toModified, limit, fromId).iterator();
+            }
+        };
+
+        gcRef.set(new VersionGarbageCollector(store, gcSupport, true));
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        stats = gcRef.get().gc(maxAge*2, HOURS);
+        assertTrue(stats.canceled);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     // OAK-10199 END
