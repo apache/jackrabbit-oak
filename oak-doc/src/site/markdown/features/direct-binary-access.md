@@ -42,6 +42,8 @@ Currently these Blob/DataStores are supported:
 * [S3DataStore](../osgi_config.html#Jackrabbit_2_-_S3DataStore)
 * AzureDataStore
 
+Please note that `Direct Binary Access` doesn't work with Customer provided keys. For more info, please refer to AWS documentation on [SSE-C keys](https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html#ssec-and-presignedurl)
+
 ## Configuration
 
 The feature has to be explicitly enabled by setting properties on the DataStore. In the table, "S3" refers to `S3DataStore`, "Azure" to `AzureDataStore`.
