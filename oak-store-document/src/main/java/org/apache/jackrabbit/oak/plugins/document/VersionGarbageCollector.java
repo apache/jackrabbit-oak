@@ -788,9 +788,10 @@ public class VersionGarbageCollector {
                         }
 
                         // if we are already at last document of current timeStamp,
-                        // we need to reset fromId and check again
+                        // we need to reset fromId & increment fromModified and check again
                         if (!foundDoc && !Objects.equals(fromId, MIN_ID_VALUE)) {
                             fromId = MIN_ID_VALUE;
+                            fromModified = fromModified + SECONDS.toMillis(5);
                             foundDoc = true; // to run while loop again
                         }
                     }
@@ -940,7 +941,7 @@ public class VersionGarbageCollector {
             this.ownHeadRevision = headRevision.getRevision(nodeStore.getClusterId());
         }
 
-        public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
+        public void collectGarbage(final NodeDocument doc, final GCPhases phases, final Revision revision) {
 
             detailedGCStats.documentRead();
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
@@ -987,6 +988,8 @@ public class VersionGarbageCollector {
                         .filter(p -> !retainPropSet.contains(p))
                         .mapToInt(x -> {
                             updateOp.remove(x);
+                            setModified(updateOp,revision);
+                            setDeleted(updateOp, revision, false);
                             return 1;})
                         .sum();
 
