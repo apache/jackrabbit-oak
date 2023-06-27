@@ -101,7 +101,7 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
                         sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
             }
         } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted");
+            LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
             LOG.warn("Thread terminating with exception.", t);

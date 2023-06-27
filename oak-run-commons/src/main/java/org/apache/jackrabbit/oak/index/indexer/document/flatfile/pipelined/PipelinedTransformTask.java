@@ -155,7 +155,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                         // TODO: should we cache splitDocuments? Maybe this can be moved to after the check for split document
                         nodeCache.put(nodeDoc);
                         if (nodeDoc.isSplitDocument()) {
-//                            statistics.incrementSplitDocuments();
                             statistics.addSplitDocument(dbObject.getString(Document.ID));
                         } else {
                             List<NodeStateEntry> entries = getEntries(nodeDoc);
@@ -174,7 +173,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                     baos.reset();
                                     statistics.incrementTotalExtractedEntriesSize(entryData.length);
 
-//                                    if (nseBatch.isAtMaxEntries() || entryData.length + 4 > nseBuffer.remaining()) {
                                     if (!nseBatch.hasSpaceForEntry(entryData)) {
                                         LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
                                                 totalEntryCount, nseBatch.numberOfEntries(), nseBatch.sizeOfEntries());
@@ -200,7 +198,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                 }
             }
         } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted");
+            LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
             LOG.warn("Thread terminating with exception.", t);

@@ -124,6 +124,7 @@ public class PipelinedStrategy implements SortStrategy {
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 64;
+    private static final int MIN_WORKING_MEMORY_MB = 512;
 
     private class MonitorTask implements Runnable {
         private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
@@ -210,21 +211,29 @@ public class PipelinedStrategy implements SortStrategy {
     }
 
 
-    private int autodetectWorkingMemory() {
+    private int autodetectWorkingMemoryMB() {
         int maxHeapSizeMB = (int) (Runtime.getRuntime().maxMemory() / FileUtils.ONE_MB);
         int workingMemoryMB = maxHeapSizeMB - 2048;
         LOG.info("Auto detecting working memory. Maximum heap size: {} MB, selected working memory: {} MB", maxHeapSizeMB, workingMemoryMB);
+        if (workingMemoryMB < MIN_WORKING_MEMORY_MB) {
+            LOG.warn("Working memory too low. Setting to minimum: {} MB", MIN_WORKING_MEMORY_MB);
+            workingMemoryMB = MIN_WORKING_MEMORY_MB;
+        }
         return workingMemoryMB;
     }
 
     @Override
     public File createSortedStoreFile() throws IOException {
         int mongoDocBlockQueueSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE);
+        Preconditions.checkArgument(mongoDocBlockQueueSize > 0, "Property " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE + " must be > 0. Was: " + mongoDocBlockQueueSize);
         int mongoBatchSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE);
+        Preconditions.checkArgument(mongoBatchSize > 0, "Property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE + " must be > 0. Was: " + mongoBatchSize);
         int transformThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS);
+        Preconditions.checkArgument(transformThreads > 0, "Property " + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + " must be > 0. Was: " + transformThreads);
         int workingMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB);
+        Preconditions.checkArgument(workingMemoryMB >= 0, "Property " + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + " must be >= 0. Was: " + workingMemoryMB);
         if (workingMemoryMB == 0) {
-            workingMemoryMB = autodetectWorkingMemory();
+            workingMemoryMB = autodetectWorkingMemoryMB();
         }
 
         int numberOfThreads = 1 + transformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
@@ -245,7 +254,7 @@ public class PipelinedStrategy implements SortStrategy {
             // entry batches.
             int memoryArenas = numberOfBuffers + 1;
             int memoryForEntriesMB = workingMemoryMB / memoryArenas;
-            int maxNumberOfEntries = memoryForEntriesMB * 1024 * 5; // Assuming that 1KB is enough for 5 entries.
+            int maxNumberOfEntries = memoryForEntriesMB * 1024 * 4; // Assuming that 1KB is enough for 4 entries.
             int maxNumberOfEntriesPerBuffer = maxNumberOfEntries / numberOfBuffers;
 
             // A ByteBuffer can be at most Integer.MAX_VALUE bytes
@@ -262,7 +271,7 @@ public class PipelinedStrategy implements SortStrategy {
             }
             if (bufferSizeBytes < MIN_ENTRY_BATCH_BUFFER_SIZE_MB * FileUtils.ONE_MB) {
                 throw new IllegalArgumentException("Entry batch buffer size too small: " + bufferSizeBytes +
-                        "bytes. Must be at least " + MIN_ENTRY_BATCH_BUFFER_SIZE_MB + " MB. " +
+                        " bytes. Must be at least " + MIN_ENTRY_BATCH_BUFFER_SIZE_MB + " MB. " +
                         "To increase the size of the buffers, either increase the size of the working memory region " +
                         "(system property" + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ") or decrease the number of transform " +
                         "threads (" + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ")");
@@ -277,7 +286,7 @@ public class PipelinedStrategy implements SortStrategy {
             // Queue with empty buffers, used by the transform task
             ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
             // Queue with buffers filled by the transform task, used by the sort and save task. +1 for the SENTINEL
-            ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers+1);
+            ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers + 1);
 
             // Queue between sort-and-save thread and the merge-sorted-files thread
             ArrayBlockingQueue<File> sortedFilesQueue = new ArrayBlockingQueue<>(64);

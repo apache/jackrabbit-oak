@@ -79,6 +79,7 @@ public class TransformStageStatistics {
 
     public void addEmptyNodeStateEntry(String nodeId) {
         this.documentsRejectedEmptyNodeState.increment();
+        // TODO: bound the number of entries in the histogram
         this.emptyNodeStateHistogram.computeIfAbsent(getPathPrefix(nodeId, 5), k -> new LongAdder()).increment();
     }
 
@@ -99,12 +100,6 @@ public class TransformStageStatistics {
         this.entriesRejectedPathFiltered.increment();
         this.filteredPathsRejectedHistogram.computeIfAbsent(getPathPrefix(path, 3), k -> new LongAdder()).increment();
     }
-
-
-//    public void incrementPathsFiltered() {
-//        this.entriesRejectedPathFiltered.increment();
-//    }
-
 
     @Override
     public String toString() {

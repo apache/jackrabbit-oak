@@ -26,6 +26,7 @@ import com.mongodb.ReadPreference;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -78,7 +79,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final static long retryInitialIntervalMillis = 100;
     private final static long retryMaxIntervalMillis = 10_000;
 
-    private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(2);
+    // TODO: Revise this timeout. It is used to prevent the indexer from blocking forever if the queue is full.
+    private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(30);
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
 
     private final int batchSize;
@@ -106,6 +108,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
                 OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS);
+        Preconditions.checkArgument(retryDuringSeconds > 0,
+                "Property " + OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS + " must be > 0. Was: " + retryDuringSeconds);
         this.retryOnConnectionErrors = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS,
                 DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS);
@@ -188,7 +192,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS)));
             return new Result(documentsRead);
         } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted");
+            LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
             LOG.warn("Thread terminating with exception.", t);

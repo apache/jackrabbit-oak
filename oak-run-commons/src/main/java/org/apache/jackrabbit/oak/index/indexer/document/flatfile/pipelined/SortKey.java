@@ -25,13 +25,30 @@ import java.util.Set;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 public final class SortKey {
-    private static final Set<String> commonWords = Set.of("content", "dam", "product-assets",
-            "jcr:content", "jcr:title", "jcr:lastModified", "jcr:created", "jcr:primaryType", "jcr:uuid"
-//            "cq:tags", "cq:lastModified", "cq:lastModifiedBy", "cq:template", "cq:templatePath",
-//            "dc:format", "dc:title", "dc:description", "dc:creator", "dc:modified", "dc:created",
-//            "dam:sha1", "dam:size", "dam:score", "dam:status", "dam:assetState", "dam:imported",
-//            "usages", "predictedTags", "imageFeatures", "contentFragment", "pageTitle", "renditions",
-//            "videoCodec", "audioCodec", "metadata", "original", "profile"
+    private static final Set<String> commonWords = Set.of(
+            ":index",
+            "assets",
+            "audit",
+            "components",
+            "content",
+            "dam",
+            "data",
+            "items",
+            "jcr:content",
+            "jcr:created",
+            "jcr:primaryType",
+            "jcr:system",
+            "jcr:uuid",
+            "jcr:versionStorage",
+            "libs",
+            "master",
+            "metadata",
+            "oak:index",
+            "product-assets",
+            "related",
+            "renditions",
+            "uuid",
+            "var"
     );
 
     public static String[] genSortKeyPathElements(String path) {

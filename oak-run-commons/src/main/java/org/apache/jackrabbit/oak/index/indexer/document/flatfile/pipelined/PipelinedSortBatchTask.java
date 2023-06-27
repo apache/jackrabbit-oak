@@ -95,7 +95,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 emptyBuffersQueue.put(nseBuffer);
             }
         } catch (InterruptedException t) {
-            LOG.warn("Thread interrupted");
+            LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
             LOG.warn("Thread terminating with exception.", t);
