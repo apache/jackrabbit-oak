@@ -563,7 +563,6 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
         store1.runBackgroundOperations();
-
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
@@ -677,6 +676,9 @@ public class VersionGarbageCollectorIT {
 
     @Test
     public void testGCDeletedPropsAfterSystemCrash() throws Exception {
+        if (store1 != null) {
+            store1.dispose();
+        }
         final FailingDocumentStore fds = new FailingDocumentStore(fixture.createDocumentStore(), 42) {
             @Override
             public void dispose() {}
