@@ -566,12 +566,15 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         Tree test = root.getTree("/");
         test.addChild("bar").setProperty("foo", "quick");
         test.addChild("baz").setProperty("foo", "quick brown foxes");
+        // diacritic form
+        test.addChild("bat").setProperty("foo", "maße");
         root.commit();
 
         assertEventually(() -> {
             assertQuery("select * from [nt:base] where CONTAINS(*, 'quick')", List.of("/bar", "/baz"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'foxes')", List.of("/baz"));
             assertQuery("select * from [nt:base] where CONTAINS(*, 'fox')", List.of("/baz"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'masse')", List.of("/bat"));
         });
     }
 
