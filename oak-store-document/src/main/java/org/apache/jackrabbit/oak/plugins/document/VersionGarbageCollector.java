@@ -77,6 +77,8 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setDeleted;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 public class VersionGarbageCollector {
@@ -614,15 +616,17 @@ public class VersionGarbageCollector {
          *
          * @param phases {@link GCPhases}
          * @param headRevision the current head revision of node store
+         * @param rec {@link VersionGCRecommendations} to recommend GC operation
          */
         private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec)
                 throws IOException {
             int docsTraversed = 0;
             boolean foundDoc = true;
-            final long oldestModifiedDocTimeStamp = rec.scopeDetailedGC.fromMs;
+            final long oldestModifiedMs = rec.scopeDetailedGC.fromMs;
+            long oldModifiedMs = oldestModifiedMs;
             final String oldestModifiedDocId = rec.detailedGCId;
             try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
-                long fromModified = oldestModifiedDocTimeStamp;
+                long fromModified = oldestModifiedMs;
                 String fromId = oldestModifiedDocId;
                 NodeDocument lastDoc = null;
                 final long toModified = rec.scopeDetailedGC.toMs;
@@ -630,7 +634,9 @@ public class VersionGarbageCollector {
                     while (foundDoc && fromModified < toModified && docsTraversed <= PROGRESS_BATCH_SIZE) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
+                        lastDoc = null;
                         Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModified, toModified, 1000, fromId);
+                        final Revision revision = nodeStore.newRevision();
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -649,7 +655,7 @@ public class VersionGarbageCollector {
                                 lastDoc = doc;
                                 // collect the data to delete in next step
                                 if (phases.start(GCPhase.COLLECTING)) {
-                                    gc.collectGarbage(doc, phases);
+                                    gc.collectGarbage(doc, phases, revision);
                                     phases.stop(GCPhase.COLLECTING);
                                 }
 
@@ -657,7 +663,7 @@ public class VersionGarbageCollector {
                                 if (modified == null) {
                                     monitor.warn("collectDetailGarbage : document has no _modified property : {}",
                                             doc.getId());
-                                } else if (SECONDS.toMillis(modified) < oldestModifiedDocTimeStamp) {
+                                } else if (SECONDS.toMillis(modified) < oldestModifiedMs) {
                                     monitor.warn(
                                             "collectDetailGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
                                             modified, fromModified, toModified);
@@ -669,26 +675,29 @@ public class VersionGarbageCollector {
                                 phases.stop(GCPhase.DETAILED_GC_CLEANUP);
                             }
                             if (lastDoc != null) {
-                                fromModified = lastDoc.getModified() == null ? oldestModifiedDocTimeStamp : SECONDS.toMillis(lastDoc.getModified());
+                                fromModified = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
                                 fromId = lastDoc.getId();
                             }
                         } finally {
                             Utils.closeIfCloseable(itr);
                             phases.stats.oldestModifiedDocTimeStamp = fromModified;
-                            if (fromModified > (oldestModifiedDocTimeStamp + 1)) {
+                            if (fromModified > (oldModifiedMs + 1)) {
                                 // we have moved ahead, now we can reset oldestModifiedId to min value
+                                fromId = MIN_ID_VALUE;
                                 phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
                             } else {
                                 // there are still documents pending at oldest Modified timestamp,
                                 // save the last _id traversed to avoid re-fetching of ids
                                 phases.stats.oldestModifiedDocId = fromId;
                             }
+                            oldModifiedMs = fromModified - 1;
                         }
 
                         // if we are already at last document of current timeStamp,
-                        // we need to reset fromId and check again
+                        // we need to reset fromId & increment fromModified and check again
                         if (!foundDoc && !Objects.equals(fromId, MIN_ID_VALUE)) {
                             fromId = MIN_ID_VALUE;
+                            fromModified = fromModified + SECONDS.toMillis(5);
                             foundDoc = true; // to run while loop again
                         }
                     }
@@ -806,14 +815,14 @@ public class VersionGarbageCollector {
             this.timer = Stopwatch.createUnstarted();
         }
 
-        public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
+        public void collectGarbage(final NodeDocument doc, final GCPhases phases, final Revision revision) {
 
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
 
             final UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
             op.equals(MODIFIED_IN_SECS, doc.getModified());
 
-            collectDeletedProperties(doc, phases, op);
+            collectDeletedProperties(doc, phases, op, revision);
             collectUnmergedBranchCommitDocument(doc, phases, op);
             collectOldRevisions(doc, phases, op);
             // only add if there are changes for this doc
@@ -836,7 +845,7 @@ public class VersionGarbageCollector {
 
         }
 
-        private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
+        private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp, final Revision revision) {
 
             // get Map of all properties along with their values
             if (phases.start(GCPhase.COLLECT_PROPS)) {
@@ -855,6 +864,8 @@ public class VersionGarbageCollector {
                         .filter(p -> !retainPropSet.contains(p))
                         .mapToInt(x -> {
                             updateOp.remove(x);
+                            setModified(updateOp,revision);
+                            setDeleted(updateOp, revision, false);
                             return 1;})
                         .sum();
 

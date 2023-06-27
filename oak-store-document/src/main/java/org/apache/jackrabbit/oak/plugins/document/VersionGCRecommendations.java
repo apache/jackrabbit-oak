@@ -118,7 +118,7 @@ public class VersionGCRecommendations {
         detailedGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP);
         oldestModifiedDocId = (String) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP);
         if (detailedGCTimestamp == 0) {
-            // it will only happens for the very first time, we run this detailedGC
+            // it will only happen for the very first time, we run this detailedGC
             log.info("No detailedGCTimestamp found, querying for the oldest modified candidate");
             final NodeDocument doc = vgc.getOldestModifiedDoc(clock);
             if (doc == NULL) {
@@ -129,7 +129,7 @@ public class VersionGCRecommendations {
             oldestModifiedDocId = MIN_ID_VALUE;
             log.info("detailedGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp));
         } else {
-            oldestModifiedDocTimeStamp = detailedGCTimestamp - 1;
+            oldestModifiedDocTimeStamp = detailedGCTimestamp - 1L;
         }
 
         TimeInterval detailedGCTimeInternal = new TimeInterval(oldestModifiedDocTimeStamp, MAX_VALUE);
