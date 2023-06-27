@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +62,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
@@ -629,7 +631,6 @@ public class VersionGarbageCollector {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
                         Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModified, toModified, 1000, fromId);
-                        // set includeFromId to false for subsequent queries
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -656,7 +657,7 @@ public class VersionGarbageCollector {
                                 if (modified == null) {
                                     monitor.warn("collectDetailGarbage : document has no _modified property : {}",
                                             doc.getId());
-                                } else if (modified < oldestModifiedDocTimeStamp) {
+                                } else if (SECONDS.toMillis(modified) < oldestModifiedDocTimeStamp) {
                                     monitor.warn(
                                             "collectDetailGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
                                             modified, fromModified, toModified);
@@ -668,13 +669,13 @@ public class VersionGarbageCollector {
                                 phases.stop(GCPhase.DETAILED_GC_CLEANUP);
                             }
                             if (lastDoc != null) {
-                                fromModified = ofNullable(lastDoc.getModified()).orElse(oldestModifiedDocTimeStamp);
+                                fromModified = lastDoc.getModified() == null ? oldestModifiedDocTimeStamp : SECONDS.toMillis(lastDoc.getModified());
                                 fromId = lastDoc.getId();
                             }
                         } finally {
                             Utils.closeIfCloseable(itr);
                             phases.stats.oldestModifiedDocTimeStamp = fromModified;
-                            if (fromModified > oldestModifiedDocTimeStamp) {
+                            if (fromModified > (oldestModifiedDocTimeStamp + 1)) {
                                 // we have moved ahead, now we can reset oldestModifiedId to min value
                                 phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
                             } else {
@@ -682,6 +683,13 @@ public class VersionGarbageCollector {
                                 // save the last _id traversed to avoid re-fetching of ids
                                 phases.stats.oldestModifiedDocId = fromId;
                             }
+                        }
+
+                        // if we are already at last document of current timeStamp,
+                        // we need to reset fromId and check again
+                        if (!foundDoc && !Objects.equals(fromId, MIN_ID_VALUE)) {
+                            fromId = MIN_ID_VALUE;
+                            foundDoc = true; // to run while loop again
                         }
                     }
                     phases.stop(GCPhase.DETAILED_GC);
@@ -785,6 +793,8 @@ public class VersionGarbageCollector {
         private final AtomicBoolean cancel;
         private final Stopwatch timer;
         private final List<UpdateOp> updateOpList;
+
+        private final Map<String, Integer> deletedPropsCountMap;
         private int garbageDocsCount;
 
         public DetailedGC(@NotNull RevisionVector headRevision, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
@@ -792,6 +802,7 @@ public class VersionGarbageCollector {
             this.monitor = monitor;
             this.cancel = cancel;
             this.updateOpList = new ArrayList<>();
+            this.deletedPropsCountMap = new HashMap<>();
             this.timer = Stopwatch.createUnstarted();
         }
 
@@ -800,6 +811,8 @@ public class VersionGarbageCollector {
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
 
             final UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
+            op.equals(MODIFIED_IN_SECS, doc.getModified());
+
             collectDeletedProperties(doc, phases, op);
             collectUnmergedBranchCommitDocument(doc, phases, op);
             collectOldRevisions(doc, phases, op);
@@ -837,6 +850,7 @@ public class VersionGarbageCollector {
                         .map(DocumentNodeState::getPropertyNames)
                         .map(p -> p.stream().map(Utils::escapePropertyName).collect(toSet()))
                         .orElse(emptySet());
+
                 final int deletedPropsGCCount = properties.stream()
                         .filter(p -> !retainPropSet.contains(p))
                         .mapToInt(x -> {
@@ -844,8 +858,8 @@ public class VersionGarbageCollector {
                             return 1;})
                         .sum();
 
+                deletedPropsCountMap.put(doc.getId(), deletedPropsGCCount);
 
-                phases.stats.deletedPropsGCCount += deletedPropsGCCount;
                 if (log.isDebugEnabled()) {
                     log.debug("Collected {} deleted properties for document {}", deletedPropsGCCount, doc.getId());
                 }
@@ -896,9 +910,12 @@ public class VersionGarbageCollector {
 
             timer.reset().start();
             try {
-                updatedDocs = (int) ds.findAndUpdate(NODES, updateOpList).stream().filter(Objects::nonNull).count();
+                List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
+                int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();
+                updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
                 stats.updatedDetailedGCDocsCount += updatedDocs;
-                log.info("Updated [{}] documents", updatedDocs);
+                stats.deletedPropsGCCount += deletedProps;
+                log.info("Updated [{}] documents, deleted [{}] properties", updatedDocs, deletedProps);
                 // now reset delete metadata
                 updateOpList.clear();
                 garbageDocsCount = 0;
