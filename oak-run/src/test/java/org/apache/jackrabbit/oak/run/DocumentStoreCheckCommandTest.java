@@ -88,6 +88,7 @@ public class DocumentStoreCheckCommandTest {
     public void check() throws Exception {
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
+                "--counter", "false",
                 "--out",
                 output.getAbsolutePath(),
                 MongoUtils.URL
@@ -103,6 +104,7 @@ public class DocumentStoreCheckCommandTest {
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
                 "--summary", "false",
+                "--counter", "false",
                 "--out", output.getAbsolutePath(),
                 MongoUtils.URL
         );
@@ -117,6 +119,7 @@ public class DocumentStoreCheckCommandTest {
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
                 "--summary", "false",
+                "--counter", "false",
                 "--out", output.getAbsolutePath(),
                 MongoUtils.URL
         );
@@ -131,6 +134,7 @@ public class DocumentStoreCheckCommandTest {
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
                 "--summary", "false",
+                "--counter", "false",
                 "--out", output.getAbsolutePath(),
                 MongoUtils.URL
         );
@@ -144,6 +148,7 @@ public class DocumentStoreCheckCommandTest {
         DocumentStoreCheckCommand cmd = new DocumentStoreCheckCommand();
         cmd.execute(
                 "--summary", "false",
+                "--counter", "false",
                 "--out", output.getAbsolutePath(),
                 MongoUtils.URL
         );
