@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -257,5 +258,28 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results));
+    }
+
+    @Test
+    public void deduplicateFields() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        Tree index = setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("indexed1").setProperty("a", List.of("foo", "foo"), Type.STRINGS);
+        content.addChild("indexed2").setProperty("a", List.of("foo", "bar", "foo"), Type.STRINGS);
+        root.commit();
+
+        assertEventually(() -> {
+            ObjectNode indexed1 = getDocument(index, "/content/indexed1");
+            assertThat(indexed1.get("a").asText(), equalTo("foo"));
+
+            ObjectNode indexed2 = getDocument(index, "/content/indexed2");
+            assertThat(indexed2.get("a").size(), equalTo(2));
+            assertThat(indexed2.get("a").get(0).asText(), equalTo("foo"));
+            assertThat(indexed2.get("a").get(1).asText(), equalTo("bar"));
+        });
     }
 }
