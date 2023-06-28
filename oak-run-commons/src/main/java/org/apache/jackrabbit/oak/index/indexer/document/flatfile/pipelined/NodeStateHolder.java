@@ -19,11 +19,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 
 import java.util.Iterator;
-
-import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter.getPath;
 
 final class NodeStateHolder {
 
@@ -32,10 +30,10 @@ final class NodeStateHolder {
 
     public NodeStateHolder(String line) {
         this.line = line;
-        String path = getPath(line);
+        String path = NodeStateEntryWriter.getPath(line);
         int depth = PathUtils.getDepth(path);
         this.pathElements = new String[depth];
-        Iterator<String> iter = elements(path).iterator();
+        Iterator<String> iter = PathUtils.elements(path).iterator();
         for (int i = 0; i < pathElements.length; i++) {
             pathElements[i] = iter.next();
         }

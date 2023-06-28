@@ -44,8 +44,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,10 +53,9 @@ import java.util.function.Predicate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 public class PipelinedIT {
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedIT.class);
-
     @Rule
     public final MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
     @Rule
@@ -89,10 +86,11 @@ public class PipelinedIT {
         createContent(rwStore.right);
 
         ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore);
+        Predicate<String> pathPredicate = s -> s.startsWith("/content/dam");
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate);
 
         File file = pipelinedStrategy.createSortedStoreFile();
-        LOG.info("Created file: {}", file.getAbsolutePath());
+        assertTrue(file.exists());
         assertEquals("/content/dam|{}\n" +
                         "/content/dam/1000|{}\n" +
                         "/content/dam/1000/12|{\"p1\":\"v100012\"}\n" +
@@ -103,6 +101,21 @@ public class PipelinedIT {
                         "/content/dam/2023/02|{}\n" +
                         "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}\n",
                 Files.readString(file.toPath()));
+    }
+
+    @Test
+    public void createFFSWithPipelinedStrategy_pathPredicateDoesNotMatch() throws Exception {
+        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
+        createContent(rwStore.right);
+
+        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Predicate<String> pathPredicate = s -> s.startsWith("/content/dam/does-not-exist");
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate);
+
+        File file = pipelinedStrategy.createSortedStoreFile();
+
+        assertTrue(file.exists());
+        assertEquals("", Files.readString(file.toPath()));
     }
 
     @Test
@@ -146,17 +159,21 @@ public class PipelinedIT {
         createContent(rwStore.right);
 
         ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore);
+        Predicate<String> pathPredicate = s -> s.startsWith("/content/dam");
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate);
 
         pipelinedStrategy.createSortedStoreFile();
     }
 
     private PipelinedStrategy createStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore) {
+        return createStrategy(roStore, s -> true);
+    }
+
+    private PipelinedStrategy createStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore, Predicate<String> pathPredicate) {
         DocumentNodeStore readOnlyNodeStore = roStore.right;
         MongoDocumentStore readOnlyMongoDocStore = roStore.left;
 
         Set<String> preferredPathElements = Set.of();
-        Predicate<String> pathPredicate = s -> s.startsWith("/content/dam");
         RevisionVector rootRevision = readOnlyNodeStore.getRoot().getRootRevision();
         return new PipelinedStrategy(
                 readOnlyMongoDocStore,

@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class NodeStateEntryBatchTest {
@@ -39,12 +40,7 @@ public class NodeStateEntryBatchTest {
         batch.addEntry("b", new byte[1]);
         assertEquals(2, batch.numberOfEntries());
         assertTrue(batch.isAtMaxEntries());
-        try {
-            batch.addEntry("c", new byte[1]);
-            throw new AssertionError("Expected exception");
-        } catch (IllegalStateException e) {
-            // expected
-        }
+        assertThrows(IllegalStateException.class, () -> batch.addEntry("c", new byte[1]));
     }
 
     @Test
@@ -57,12 +53,7 @@ public class NodeStateEntryBatchTest {
         assertEquals(124 + 4, batch.sizeOfEntries());
         assertEquals(1, batch.numberOfEntries());
         assertFalse(batch.hasSpaceForEntry(new byte[1]));
-        try {
-            batch.addEntry("b", new byte[1]);
-            throw new AssertionError("Expected exception");
-        } catch (BufferOverflowException e) {
-            // expected
-        }
+        assertThrows(BufferOverflowException.class, () -> batch.addEntry("b", new byte[1]));
     }
 
     @Test
@@ -75,17 +66,17 @@ public class NodeStateEntryBatchTest {
             testArray[i] = (byte) (i % 127);
         }
         batch.addEntry("a", testArray);
-        assertEquals(batch.getBuffer().position(), sizeOfEntry+4);
+        assertEquals(batch.getBuffer().position(), sizeOfEntry + 4);
 
         batch.flip();
 
         ByteBuffer buffer = batch.getBuffer();
         assertEquals(buffer.position(), 0);
-        assertEquals(buffer.remaining(), sizeOfEntry+4);
+        assertEquals(buffer.remaining(), sizeOfEntry + 4);
         assertEquals(sizeOfEntry, buffer.getInt());
         byte[] entryData = new byte[sizeOfEntry];
         buffer.get(entryData);
-        assertEquals(buffer.position(), sizeOfEntry+4);
+        assertEquals(buffer.position(), sizeOfEntry + 4);
         assertArrayEquals(testArray, entryData);
 
         batch.reset();

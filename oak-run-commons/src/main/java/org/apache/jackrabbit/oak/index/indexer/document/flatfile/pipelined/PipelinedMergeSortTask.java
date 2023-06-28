@@ -122,16 +122,16 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
         Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
         try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
-            Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new NodeStateHolder(line);
-            Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
+            Function<String, NodeStateHolder> stringToType = (line) -> line == null ? null : new NodeStateHolder(line);
+            Function<NodeStateHolder, String> typeToString = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFilesBatch,
                     writer,
                     comparator,
                     FLATFILESTORE_CHARSET,
                     true, //distinct
                     algorithm,
-                    func2,
-                    func1
+                    typeToString,
+                    stringToType
             );
         }
         LOG.info("Merging of sorted files completed in {}", w);
