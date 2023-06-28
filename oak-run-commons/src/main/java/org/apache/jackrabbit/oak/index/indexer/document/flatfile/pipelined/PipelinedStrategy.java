@@ -51,6 +51,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
+
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:
  * <ul>
@@ -375,11 +377,13 @@ public class PipelinedStrategy implements SortStrategy {
                         } else if (result instanceof PipelinedSortBatchTask.Result) {
                             PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
                             LOG.info("Sort task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
+                            printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
                             sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
 
                         } else if (result instanceof PipelinedMergeSortTask.Result) {
                             PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
-                            LOG.info("Sort task finished. Entries processed: {}", mergeSortedFilesTask.getFlatFileStoreFile());
+                            File ffs = mergeSortedFilesTask.getFlatFileStoreFile();
+                            LOG.info("Sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(ffs.length()));
                             flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
 
                         } else {

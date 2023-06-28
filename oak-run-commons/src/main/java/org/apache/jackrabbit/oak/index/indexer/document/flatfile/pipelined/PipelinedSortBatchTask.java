@@ -33,6 +33,7 @@ import java.util.Comparator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createOutputStream;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
 
@@ -109,7 +110,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         ArrayList<SortKey> sortBuffer = nseb.getSortBuffer();
         ByteBuffer buffer = nseb.getBuffer();
         LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
-                sortBuffer.size(), FileUtils.byteCountToDisplaySize(buffer.remaining()));
+                sortBuffer.size(), humanReadableByteCountBin(buffer.remaining()));
         if (sortBuffer.size() == 0) {
             return;
         }
@@ -140,8 +141,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             }
         }
         LOG.info("Stored batch of size {} (uncompressed {}) with {} entries in {}",
-                FileUtils.byteCountToDisplaySize(newtmpfile.length()),
-                FileUtils.byteCountToDisplaySize(textSize),
+                humanReadableByteCountBin(newtmpfile.length()),
+                humanReadableByteCountBin(textSize),
                 sortBuffer.size(), saveClock);
         sortedFilesQueue.put(newtmpfile);
     }

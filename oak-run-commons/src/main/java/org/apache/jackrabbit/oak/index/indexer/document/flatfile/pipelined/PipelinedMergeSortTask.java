@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
@@ -35,6 +34,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.function.Function;
 
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
@@ -52,13 +52,19 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
     //  intermediate file.
     public static class Result {
         private final File flatFileStoreFile;
+        private final int filesMerged;
 
-        public Result(File flatFileStoreFile) {
+        public Result(File flatFileStoreFile, int filesMerged) {
             this.flatFileStoreFile = flatFileStoreFile;
+            this.filesMerged = filesMerged;
         }
 
         public File getFlatFileStoreFile() {
             return flatFileStoreFile;
+        }
+
+        public int getFilesMerged() {
+            return filesMerged;
         }
     }
 
@@ -90,15 +96,16 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
                 LOG.info("Waiting for next intermediate sorted file");
                 File sortedIntermediateFile = sortedFilesQueue.take();
                 if (sortedIntermediateFile == SENTINEL_SORTED_FILES_QUEUE) {
-                    LOG.info("Going to sort {} files of total size {}", sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
+                    LOG.info("Going to sort {} files, total size {}", sortedFiles.size(), humanReadableByteCountBin(sizeOf(sortedFiles)));
                     File flatFileStore = sortStoreFile(sortedFiles);
-                    LOG.info("Terminating thread, merged {} files", sortedFiles.size());
-                    return new Result(flatFileStore);
+                    LOG.info("Terminating sort task. Merged {} files to create the FFS: {} of size {}",
+                            sortedFiles.size(), flatFileStore.getAbsolutePath(), humanReadableByteCountBin(flatFileStore.length()));
+                    return new Result(flatFileStore, sortedFiles.size());
                 }
                 sortedFiles.add(sortedIntermediateFile);
                 LOG.info("Received new intermediate sorted file {}. Size: {}. Total files: {} of size {}",
-                        sortedIntermediateFile, FileUtils.byteCountToDisplaySize(sortedIntermediateFile.length()),
-                        sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
+                        sortedIntermediateFile, humanReadableByteCountBin(sortedIntermediateFile.length()),
+                        sortedFiles.size(), humanReadableByteCountBin(sizeOf(sortedFiles)));
             }
         } catch (InterruptedException t) {
             LOG.warn("Thread interrupted", t);
@@ -112,7 +119,6 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
     }
 
     private File sortStoreFile(List<File> sortedFilesBatch) throws IOException {
-        LOG.info("Proceeding to perform merge of {} sorted files", sortedFilesBatch.size());
         Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
         try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {

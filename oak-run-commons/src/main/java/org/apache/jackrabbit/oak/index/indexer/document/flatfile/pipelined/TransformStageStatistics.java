@@ -18,10 +18,11 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.concurrent.atomic.LongAdder;
+
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 
 public class TransformStageStatistics {
     private static final int MAX_HISTOGRAM_SIZE = 1000;
@@ -92,13 +93,13 @@ public class TransformStageStatistics {
 
     public void addSplitDocument(String id) {
         this.documentsRejectedSplit.increment();
-        String key = getPathPrefix(id, 5);
+        String key = getPathPrefix(id, 4);
         this.splitDocumentsHistogram.addEntry(key);
     }
 
     public void addEmptyNodeStateEntry(String nodeId) {
         this.documentsRejectedEmptyNodeState.increment();
-        String key = getPathPrefix(nodeId, 5);
+        String key = getPathPrefix(nodeId, 4);
         this.emptyNodeStateHistogram.addEntry(key);
     }
 
@@ -156,7 +157,7 @@ public class TransformStageStatistics {
                 ", entriesAcceptedPercentage:" + entriesAcceptedPercentage +
                 ", entriesRejectedHiddenPaths:" + entriesRejectedHiddenPaths +
                 ", entriesRejectedPathFiltered:" + entriesRejectedPathFiltered +
-                ", extractedEntriesTotalSize:" + FileUtils.byteCountToDisplaySize(extractedEntriesTotalSizeSum) +
+                ", extractedEntriesTotalSize:" + humanReadableByteCountBin(extractedEntriesTotalSizeSum) +
                 ", avgEntrySize:" + avgEntrySize +
                 "}";
     }

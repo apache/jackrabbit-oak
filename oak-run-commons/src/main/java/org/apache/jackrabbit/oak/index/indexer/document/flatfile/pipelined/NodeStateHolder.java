@@ -41,11 +41,6 @@ final class NodeStateHolder {
         }
     }
 
-    public NodeStateHolder(String line, String[] pathElements) {
-        this.pathElements = pathElements;
-        this.line = line;
-    }
-
     public String[] getPathElements() {
         return pathElements;
     }
