@@ -186,9 +186,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     }
                 }
             }
-            LOG.info("Terminating task. Downloaded {} Mongo documents in {}. Time waiting for transform threads: {} seconds ({}%)",
+            LOG.info("Terminating task. Downloaded {} Mongo documents in {}. Total enqueuing delay: {} ms ({}%)",
                     documentsRead, downloadStartWatch,
-                    totalEnqueueWaitTimeMillis / 1000,
+                    totalEnqueueWaitTimeMillis,
                     String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS)));
             return new Result(documentsRead);
         } catch (InterruptedException t) {

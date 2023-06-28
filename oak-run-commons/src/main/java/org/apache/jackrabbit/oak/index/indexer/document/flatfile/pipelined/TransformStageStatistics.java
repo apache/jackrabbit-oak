@@ -22,8 +22,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.concurrent.atomic.LongAdder;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
-
 public class TransformStageStatistics {
     private static final int MAX_HISTOGRAM_SIZE = 1000;
     private final LongAdder mongoDocumentsTraversed = new LongAdder();
@@ -91,15 +89,15 @@ public class TransformStageStatistics {
         this.entriesRejected.increment();
     }
 
-    public void addSplitDocument(String id) {
+    public void addSplitDocument(String mongoDocId) {
         this.documentsRejectedSplit.increment();
-        String key = getPathPrefix(id, 4);
+        String key = getPathPrefix(mongoDocId, 4);
         this.splitDocumentsHistogram.addEntry(key);
     }
 
-    public void addEmptyNodeStateEntry(String nodeId) {
+    public void addEmptyNodeStateEntry(String mongoDocId) {
         this.documentsRejectedEmptyNodeState.increment();
-        String key = getPathPrefix(nodeId, 4);
+        String key = getPathPrefix(mongoDocId, 4);
         this.emptyNodeStateHistogram.addEntry(key);
     }
 
@@ -157,7 +155,7 @@ public class TransformStageStatistics {
                 ", entriesAcceptedPercentage:" + entriesAcceptedPercentage +
                 ", entriesRejectedHiddenPaths:" + entriesRejectedHiddenPaths +
                 ", entriesRejectedPathFiltered:" + entriesRejectedPathFiltered +
-                ", extractedEntriesTotalSize:" + humanReadableByteCountBin(extractedEntriesTotalSizeSum) +
+                ", extractedEntriesTotalSize:" + extractedEntriesTotalSizeSum +
                 ", avgEntrySize:" + avgEntrySize +
                 "}";
     }

@@ -120,7 +120,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         try {
             LOG.info("Starting transform task");
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
-            Stopwatch w = Stopwatch.createStarted();
+            Stopwatch taskStartWatch = Stopwatch.createStarted();
             long totalEntryCount = 0;
             long mongoObjectsProcessed = 0;
             LOG.info("Waiting for an empty buffer");
@@ -133,8 +133,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             while (true) {
                 BasicDBObject[] dbObjectBatch = mongoDocQueue.take();
                 if (dbObjectBatch == SENTINEL_MONGO_DOCUMENT) {
-                    LOG.info("Thread terminating. Dumped {} nodestates in json format in {}. Total enqueue delay: {}",
-                            totalEntryCount, w, totalEnqueueWaitTimeMillis);
+                    LOG.info("Task terminating. Dumped {} nodestates in json format in {}. Total enqueue delay: {} ms ({}%)",
+                            totalEntryCount, taskStartWatch, totalEnqueueWaitTimeMillis,
+                            String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS)));
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);

@@ -25,7 +25,7 @@ import java.util.Set;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 public final class SortKey {
-    private static final Set<String> commonWords = Set.of(
+    private static final Set<String> COMMON_PATH_WORDS = Set.of(
             ":index",
             "assets",
             "audit",
@@ -44,6 +44,7 @@ public final class SortKey {
             "master",
             "metadata",
             "oak:index",
+            "predictedTags",
             "product-assets",
             "related",
             "renditions",
@@ -59,7 +60,7 @@ public final class SortKey {
             // Interning these strings should provide a big reduction in memory usage.
             // It is not worth to intern all levels because at lower levels the names are more likely to be less diverse,
             // often even unique, so interning them would fill up the interned string hashtable with useless entries.
-            if (i < 3 || part.length() == 1 || commonWords.contains(part)) {
+            if (i < 3 || part.length() == 1 || COMMON_PATH_WORDS.contains(part)) {
                 pathElements[i] = part.intern();
             } else {
                 pathElements[i] = part;
