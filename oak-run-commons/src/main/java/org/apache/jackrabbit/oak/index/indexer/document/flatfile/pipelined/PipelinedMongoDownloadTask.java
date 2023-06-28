@@ -66,7 +66,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     /**
      * Whether to retry on connection errors to MongoDB.
      * This property affects the query that is used to download the documents from MongoDB. If set to true, the query
-     * will traverse the results by order of the _modfied property (does an index scan), which allows it to resume after
+     * will traverse the results by order of the _modified property (does an index scan), which allows it to resume after
      * a failed connection from where it left off. If set to false, it uses a potentially more efficient query that does
      * not impose any order on the results (does a simple column scan).
      */
