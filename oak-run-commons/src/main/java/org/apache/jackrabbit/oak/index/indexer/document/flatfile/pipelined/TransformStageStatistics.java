@@ -24,8 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.concurrent.atomic.LongAdder;
 
 public class TransformStageStatistics {
-    static final int MAX_HISTOGRAM_SIZE = 1000;
-
+    private static final int MAX_HISTOGRAM_SIZE = 1000;
     private final LongAdder mongoDocumentsTraversed = new LongAdder();
     private final LongAdder documentsRejectedSplit = new LongAdder();
     private final LongAdder documentsRejectedEmptyNodeState = new LongAdder();
@@ -34,28 +33,10 @@ public class TransformStageStatistics {
     private final LongAdder entriesRejectedHiddenPaths = new LongAdder();
     private final LongAdder entriesRejectedPathFiltered = new LongAdder();
     private final LongAdder entriesAcceptedTotalSize = new LongAdder();
-
-    public BoundedHistogram getHiddenPathsRejectedHistogram() {
-        return hiddenPathsRejectedHistogram;
-    }
-
-    public BoundedHistogram getFilteredPathsRejectedHistogram() {
-        return filteredPathsRejectedHistogram;
-    }
-
-    public BoundedHistogram getSplitDocumentsHistogram() {
-        return splitDocumentsHistogram;
-    }
-
-    public BoundedHistogram getEmptyNodeStateHistogram() {
-        return emptyNodeStateHistogram;
-    }
-
     private final BoundedHistogram hiddenPathsRejectedHistogram = new BoundedHistogram("Hidden paths", MAX_HISTOGRAM_SIZE);
     private final BoundedHistogram filteredPathsRejectedHistogram = new BoundedHistogram("Filtered paths", MAX_HISTOGRAM_SIZE);
     private final BoundedHistogram splitDocumentsHistogram = new BoundedHistogram("Split documents", MAX_HISTOGRAM_SIZE);
     private final BoundedHistogram emptyNodeStateHistogram = new BoundedHistogram("Empty node state", MAX_HISTOGRAM_SIZE);
-
 
     public long getMongoDocumentsTraversed() {
         return mongoDocumentsTraversed.sum();
@@ -73,8 +54,20 @@ public class TransformStageStatistics {
         return documentsRejectedSplit;
     }
 
-    public BoundedHistogram getHiddenPathsRejected() {
+    public BoundedHistogram getHiddenPathsRejectedHistogram() {
         return hiddenPathsRejectedHistogram;
+    }
+
+    public BoundedHistogram getFilteredPathsRejectedHistogram() {
+        return filteredPathsRejectedHistogram;
+    }
+
+    public BoundedHistogram getSplitDocumentsHistogram() {
+        return splitDocumentsHistogram;
+    }
+
+    public BoundedHistogram getEmptyNodeStateHistogram() {
+        return emptyNodeStateHistogram;
     }
 
     public void incrementMongoDocumentsProcessed() {
@@ -166,22 +159,6 @@ public class TransformStageStatistics {
                 ", extractedEntriesTotalSize:" + FileUtils.byteCountToDisplaySize(extractedEntriesTotalSizeSum) +
                 ", avgEntrySize:" + avgEntrySize +
                 "}";
-    }
-
-    public String prettyPrintHiddenPathsHistogram() {
-        return hiddenPathsRejectedHistogram.prettyPrint();
-    }
-
-    public String prettyPrintPathFilteredHistogram() {
-        return filteredPathsRejectedHistogram.prettyPrint();
-    }
-
-    public String prettyPrintSplitDocumentsHistogram() {
-        return splitDocumentsHistogram.prettyPrint();
-    }
-
-    public String prettyPrintEmptyNodeStateHistogram() {
-        return emptyNodeStateHistogram.prettyPrint();
     }
 
     private static String getPathPrefix(String path, int depth) {

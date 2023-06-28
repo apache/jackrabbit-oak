@@ -31,15 +31,24 @@ public class BoundedHistogramTest {
     public void testOverflow() {
         int maxSize = 100;
         BoundedHistogram histogram = new BoundedHistogram("test", maxSize);
+
+        assertFalse(histogram.isOverflowed());
+
         // Add enough entries to overflow the histogram
-        for (int i = 0; i < maxSize * 2; i++) {
+        for (int i = 0; i < maxSize; i++) {
             histogram.addEntry("/a/b/c/path" + i);
         }
+        assertFalse(histogram.isOverflowed());
+        for (int i = maxSize; i < maxSize*2; i++) {
+            histogram.addEntry("/a/b/c/path" + i);
+        }
+        assertTrue(histogram.isOverflowed());
+
         // Another pass. The entries that are already in the histogram should be incremented
         for (int i = 0; i < maxSize * 2; i++) {
             histogram.addEntry("/a/b/c/path" + i);
         }
-        // Check that the size was capped at MAX_HISTOGRAM_SIZE
+        // Check that the size was capped at maxSize
         ConcurrentHashMap<String, LongAdder> map = histogram.getMap();
         assertEquals(maxSize, map.size());
         map.values().forEach((v) -> assertEquals(2, v.intValue()));
