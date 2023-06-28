@@ -542,6 +542,43 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
     }
 
     @Test
+    public void fulltextSearchWithStemmingAndAsciiFilter() throws Exception {
+        setup(List.of("foo"), idx -> {
+            Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
+            anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
+
+            Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
+            filters.addChild("LowerCase");
+            filters.addChild("ASCIIFolding");
+            Tree wordDelimiter = filters.addChild("WordDelimiter");
+            wordDelimiter.setProperty("generateWordParts", "1");
+            wordDelimiter.setProperty("stemEnglishPossessive", "1");
+            wordDelimiter.setProperty("generateNumberParts", "1");
+            wordDelimiter.setProperty("preserveOriginal", "0");
+            wordDelimiter.setProperty("splitOnCaseChange", "0");
+            wordDelimiter.setProperty("splitOnNumerics", "0");
+            wordDelimiter.setProperty("catenateWords", "0");
+            wordDelimiter.setProperty("catenateNumbers", "0");
+            wordDelimiter.setProperty("catenateAll", "0");
+            filters.addChild("PorterStem");
+        });
+
+        Tree test = root.getTree("/");
+        test.addChild("bar").setProperty("foo", "quick");
+        test.addChild("baz").setProperty("foo", "quick brown foxes");
+        // diacritic form
+        test.addChild("bat").setProperty("foo", "maße");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'quick')", List.of("/bar", "/baz"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'foxes')", List.of("/baz"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'fox')", List.of("/baz"));
+            assertQuery("select * from [nt:base] where CONTAINS(*, 'masse')", List.of("/bat"));
+        });
+    }
+
+    @Test
     public void fulltextSearchWithNGram() throws Exception {
         setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
