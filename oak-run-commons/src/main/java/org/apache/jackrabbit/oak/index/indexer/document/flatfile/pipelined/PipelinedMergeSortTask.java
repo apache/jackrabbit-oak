@@ -42,7 +42,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
 
 /**
- * Accumulates the intermediate sorted files and, when all files are genereted, merges them into a single sorted file,
+ * Accumulates the intermediate sorted files and, when all files are generated, merges them into a single sorted file,
  * the flat file store
  */
 class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> {
