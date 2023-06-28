@@ -26,6 +26,7 @@ import org.apache.lucene.analysis.miscellaneous.KeepWordFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.KeywordMarkerFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.LengthFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.LimitTokenCountFilterFactory;
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilterFactory;
 import org.apache.lucene.analysis.ngram.EdgeNGramFilterFactory;
 import org.apache.lucene.analysis.ngram.NGramFilterFactory;
 import org.apache.lucene.analysis.pattern.PatternCaptureGroupFilterFactory;
@@ -109,6 +110,48 @@ public class ElasticCustomAnalyzerMappings {
         };
 
         LUCENE_ELASTIC_TRANSFORMERS = new LinkedHashMap<>();
+
+        LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterFilterFactory.class, luceneParams -> {
+            if (luceneParams.containsKey("generateWordParts")) {
+                luceneParams.put("generateWordParts", Integer.parseInt(luceneParams.get("generateWordParts").toString()) == 1);
+            }
+            if (luceneParams.containsKey("generateNumberParts")) {
+                luceneParams.put("generateNumberParts", Integer.parseInt(luceneParams.get("generateNumberParts").toString()) == 1);
+            }
+            if (luceneParams.containsKey("catenateWords")) {
+                luceneParams.put("catenateWords", Integer.parseInt(luceneParams.get("catenateWords").toString()) == 1);
+            }
+            if (luceneParams.containsKey("catenateNumbers")) {
+                luceneParams.put("catenateNumbers", Integer.parseInt(luceneParams.get("catenateNumbers").toString()) == 1);
+            }
+            if (luceneParams.containsKey("catenateAll")) {
+                luceneParams.put("catenateAll", Integer.parseInt(luceneParams.get("catenateAll").toString()) == 1);
+            }
+            if (luceneParams.containsKey("splitOnCaseChange")) {
+                luceneParams.put("splitOnCaseChange", Integer.parseInt(luceneParams.get("splitOnCaseChange").toString()) == 1);
+            }
+            if (luceneParams.containsKey("preserveOriginal")) {
+                luceneParams.put("preserveOriginal", Integer.parseInt(luceneParams.get("preserveOriginal").toString()) == 1);
+            }
+            if (luceneParams.containsKey("splitOnNumerics")) {
+                luceneParams.put("splitOnNumerics", Integer.parseInt(luceneParams.get("splitOnNumerics").toString()) == 1);
+            }
+            if (luceneParams.containsKey("stemEnglishPossessive")) {
+                luceneParams.put("stemEnglishPossessive", Integer.parseInt(luceneParams.get("stemEnglishPossessive").toString()) == 1);
+            }
+            return reKey.apply(luceneParams, Map.of(
+                    "generateWordParts", "generate_word_parts",
+                    "generateNumberParts", "generate_number_parts",
+                    "catenateWords", "catenate_words",
+                    "catenateNumbers", "catenate_numbers",
+                    "catenateAll", "catenate_all",
+                    "splitOnCaseChange", "split_on_case_change",
+                    "preserveOriginal", "preserve_original",
+                    "splitOnNumerics", "split_on_numerics",
+                    "stemEnglishPossessive", "stem_english_possessive",
+                    "protectedTokens", "protected_words"
+            ));
+        });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(ShingleFilterFactory.class, luceneParams ->
                 reKey.apply(luceneParams, Map.of(
