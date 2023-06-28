@@ -91,7 +91,7 @@ public class DocumentStoreSplitter {
             steps.add(end);
             splitPoints.append(" ").append(end);
         }
-        log.info("Split points of _modified values {}", splitPoints);
+        log.info("Split points of _modified values {}", splitPoints.toString());
         return steps;
     }
 }

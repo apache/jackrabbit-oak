@@ -219,8 +219,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         for (IndexDefinition indexDf : indexDefinitions) {
             preferredPathElements.addAll(indexDf.getRelativeNodeNames());
         }
-        log.info("indexDef: {}", indexDefinitions);
-        log.info("indexDef path filter: {}", indexDefinitions.iterator().next().getPathFilter());
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
             preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);

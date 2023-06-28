@@ -71,14 +71,14 @@ public final class IOUtils {
      * into the buffer. This method reads until the maximum number of bytes have
      * been read or until the end of the channel.
      *
-     * @param channel  the input channel
-     * @param position the position to start reading from the channel
-     * @param buffer   the output buffer
+     * @param channel     the input channel
+     * @param position    the position to start reading from the channel
+     * @param buffer      the output buffer
      * @return the number of bytes read, 0 meaning EOF or no space in buffer
      * @throws java.io.IOException If an error occurs.
      */
     public static int readFully(FileChannel channel, int position, ByteBuffer buffer)
-            throws IOException {
+    throws IOException {
         int result = 0;
         while (buffer.remaining() > 0) {
             int count = channel.read(buffer, position);
@@ -158,7 +158,7 @@ public final class IOUtils {
     public static byte[] readBytes(InputStream in) throws IOException {
         int len = readVarInt(in);
         byte[] data = new byte[len];
-        for (int pos = 0; pos < len; ) {
+        for (int pos = 0; pos < len;) {
             int l = in.read(data, pos, data.length - pos);
             if (l < 0) {
                 throw new EOFException();
@@ -196,7 +196,7 @@ public final class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7; ; s += 7) {
+        for (int s = 7;; s += 7) {
             int b = in.read();
             if (b < 0) {
                 throw new EOFException();
@@ -289,7 +289,7 @@ public final class IOUtils {
             return x;
         }
         x &= 0x7f;
-        for (int s = 7; ; s += 7) {
+        for (int s = 7;; s += 7) {
             long b = in.read();
             if (b < 0) {
                 throw new EOFException();
@@ -396,7 +396,6 @@ public final class IOUtils {
         char pre = "kMGTPE".charAt(exp - 1);
         return String.format(Locale.ENGLISH, "%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
-
 
     /**
      * Returns a human-readable version of this byte count. The result uses the binary system, that is, 1K = 1024.
