@@ -171,19 +171,13 @@ public class PipelinedStrategy implements SortStrategy {
 
     private void prettyPrintTransformStatisticsHistograms(TransformStageStatistics transformStageStatistics, boolean printHistogramAtInfo) {
         if (printHistogramAtInfo) {
-            BoundedHistogram hiddenPathsHist = transformStageStatistics.getHiddenPathsRejectedHistogram();
-            LOG.info("Top hidden paths rejected: {}. Overflowed: {}", hiddenPathsHist.prettyPrint(), hiddenPathsHist.isOverflowed());
-            BoundedHistogram rejectedPathsHist = transformStageStatistics.getFilteredPathsRejectedHistogram();
-            LOG.info("Top paths filtered: {}. Overflowed: {}", rejectedPathsHist.prettyPrint(), rejectedPathsHist.isOverflowed());
-            BoundedHistogram emptyNodeStateHistogram = transformStageStatistics.getEmptyNodeStateHistogram();
-            LOG.info("Top empty node state documents: {}. Overflowed: {}", emptyNodeStateHistogram.prettyPrint(), emptyNodeStateHistogram.isOverflowed());
+            LOG.info("Top hidden paths rejected: {}.", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
+            LOG.info("Top paths filtered: {}.", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
+            LOG.info("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         } else {
-            BoundedHistogram hiddenPathsHist = transformStageStatistics.getHiddenPathsRejectedHistogram();
-            LOG.debug("Top hidden paths rejected: {}. Overflowed: {}", hiddenPathsHist.prettyPrint(), hiddenPathsHist.isOverflowed());
-            BoundedHistogram rejectedPathsHist = transformStageStatistics.getFilteredPathsRejectedHistogram();
-            LOG.debug("Top paths filtered: {}. Overflowed: {}", rejectedPathsHist.prettyPrint(), rejectedPathsHist.isOverflowed());
-            BoundedHistogram emptyNodeStateHistogram = transformStageStatistics.getEmptyNodeStateHistogram();
-            LOG.debug("Top empty node state documents: {}. Overflowed: {}", emptyNodeStateHistogram.prettyPrint(), emptyNodeStateHistogram.isOverflowed());
+            LOG.debug("Top hidden paths rejected: {}.", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
+            LOG.debug("Top paths filtered: {}.", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
+            LOG.debug("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         }
     }
 

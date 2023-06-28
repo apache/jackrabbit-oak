@@ -74,11 +74,16 @@ public class BoundedHistogram {
     }
 
     public String prettyPrintTopEntries(int numEntries) {
-        return histogram.entrySet().stream()
+        String str = histogram.entrySet().stream()
                 .map(e -> Map.entry(e.getKey(), e.getValue().sum()))
                 .sorted((e1, e2) -> Long.compare(e2.getValue(), e1.getValue())) // sort by value descending
                 .limit(numEntries)
                 .map(e -> "\"" + e.getKey() + "\":" + e.getValue())
                 .collect(Collectors.joining(", ", "{", "}"));
+        if (overflowed) {
+            return str + ". Histogram overflowed (max buckets " + maxHistogramSize + ") some buckets may be missing";
+        } else {
+            return str;
+        }
     }
 }
