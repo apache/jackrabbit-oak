@@ -227,13 +227,20 @@ public class PipelinedStrategy implements SortStrategy {
     @Override
     public File createSortedStoreFile() throws IOException {
         int mongoDocBlockQueueSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE);
-        Preconditions.checkArgument(mongoDocBlockQueueSize > 0, "Property " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE + " must be > 0. Was: " + mongoDocBlockQueueSize);
+        Preconditions.checkArgument(mongoDocBlockQueueSize > 0,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE + ": " + mongoDocBlockQueueSize + ". Must be > 0");
+
         int mongoBatchSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE);
-        Preconditions.checkArgument(mongoBatchSize > 0, "Property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE + " must be > 0. Was: " + mongoBatchSize);
+        Preconditions.checkArgument(mongoBatchSize > 0,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE + ": " + mongoBatchSize + ". Must be > 0");
+
         int transformThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS);
-        Preconditions.checkArgument(transformThreads > 0, "Property " + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + " must be > 0. Was: " + transformThreads);
+        Preconditions.checkArgument(transformThreads > 0,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": " + transformThreads + ". Must be > 0");
+
         int workingMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB);
-        Preconditions.checkArgument(workingMemoryMB >= 0, "Property " + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + " must be >= 0. Was: " + workingMemoryMB);
+        Preconditions.checkArgument(workingMemoryMB >= 0,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": " + workingMemoryMB + ". Must be >= 0");
         if (workingMemoryMB == 0) {
             workingMemoryMB = autodetectWorkingMemoryMB();
         }
@@ -260,17 +267,7 @@ public class PipelinedStrategy implements SortStrategy {
             int maxNumberOfEntriesPerBuffer = maxNumberOfEntries / numberOfBuffers;
 
             // A ByteBuffer can be at most Integer.MAX_VALUE bytes
-            int bufferSizeBytes;
-            {
-                long bufferSizeAsLong = (workingMemoryMB * FileUtils.ONE_MB) / memoryArenas;
-                if (bufferSizeAsLong > Integer.MAX_VALUE) {
-                    // Probably not necessary to subtract 16, just a safeguard to avoid boundary conditions.
-                    bufferSizeBytes = Integer.MAX_VALUE - 16;
-                    LOG.warn("Computed buffer size too big, exceeds Integer.MAX_VALUE. Truncating");
-                } else {
-                    bufferSizeBytes = (int) bufferSizeAsLong;
-                }
-            }
+            int bufferSizeBytes = limitToIntegerRange((workingMemoryMB * FileUtils.ONE_MB) / memoryArenas);
             if (bufferSizeBytes < MIN_ENTRY_BATCH_BUFFER_SIZE_MB * FileUtils.ONE_MB) {
                 throw new IllegalArgumentException("Entry batch buffer size too small: " + bufferSizeBytes +
                         " bytes. Must be at least " + MIN_ENTRY_BATCH_BUFFER_SIZE_MB + " MB. " +
@@ -414,6 +411,17 @@ public class PipelinedStrategy implements SortStrategy {
         } finally {
             threadPool.shutdown();
             monitorThreadPool.shutdown();
+        }
+    }
+
+    private int limitToIntegerRange(long bufferSizeBytes) {
+        if (bufferSizeBytes > Integer.MAX_VALUE) {
+            // Probably not necessary to subtract 16, just a safeguard to avoid boundary conditions.
+            int truncatedBufferSize = Integer.MAX_VALUE - 16;
+            LOG.warn("Computed buffer size too big: {}, exceeds Integer.MAX_VALUE. Truncating to: {}", bufferSizeBytes, truncatedBufferSize);
+            return truncatedBufferSize;
+        } else {
+            return (int) bufferSizeBytes;
         }
     }
 
