@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
@@ -160,7 +161,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             throw e;
                         }
                         if (failuresStartTimestamp == null) {
-                            failuresStartTimestamp = Instant.now();
+                            failuresStartTimestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS);
                         }
                         LOG.warn("Connection error downloading from MongoDB.", e);
                         long secondsSinceStartOfFailures = Duration.between(failuresStartTimestamp, Instant.now()).toSeconds();
