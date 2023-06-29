@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -111,7 +111,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
     private final long dumpThreshold;
     private Predicate<String> pathPredicate = path -> true;
 
-    TraverseAndSortTask(MongoDocumentTraverser.TraversingRange range, Comparator<NodeStateHolder> comparator,
+    TraverseAndSortTask(TraversingRange range, Comparator<NodeStateHolder> comparator,
                         BlobStore blobStore, File storeDir, Compression algorithm,
                         Queue<String> completedTasks, Queue<Callable<List<File>>> newTasksQueue,
                         Phaser phaser, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
@@ -228,7 +228,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         sortAndSaveBatch();
         reset();
 
-        log.info("{} Dumped {} nodestates in json format in {}",taskID, entryCount, w);
+        log.info("{} Dumped {} nodestates in json format in {}", taskID, entryCount, w);
         log.info("{} Created {} sorted files of size {} to merge", taskID,
                 sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
     }
@@ -264,9 +264,9 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
               the new upper bound to the original upper bound to a new task.
              */
             if (completedTasks.poll() != null) {
-                long splitPoint = e.getLastModified() + (long)Math.ceil((lastModifiedUpperBound - e.getLastModified())/2.0);
+                long splitPoint = e.getLastModified() + (long) Math.ceil((lastModifiedUpperBound - e.getLastModified()) / 2.0);
                 log.info("Splitting task {}. New Upper limit for this task {}. New task range - {} to {}", taskID, splitPoint, splitPoint, this.lastModifiedUpperBound);
-                newTasksQueue.add(new TraverseAndSortTask(new MongoDocumentTraverser.TraversingRange(
+                newTasksQueue.add(new TraverseAndSortTask(new TraversingRange(
                         new LastModifiedRange(splitPoint, this.lastModifiedUpperBound), null),
                         comparator, blobStore, storeDir, algorithm, completedTasks,
                         newTasksQueue, phaser, nodeStateEntryTraverserFactory, memoryManager,

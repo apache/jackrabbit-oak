@@ -62,7 +62,7 @@ public class DocumentTraverserTest extends AbstractDocumentStoreTest {
         MongoDocumentTraverser traverser = new MongoDocumentTraverser((MongoDocumentStore) ds);
         traverser.disableReadOnlyCheck();
         CloseableIterable<NodeDocument> itr = traverser.getAllDocuments(Collection.NODES,
-                new MongoDocumentTraverser.TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null),
+                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null),
                 id -> getPathFromId(id).startsWith("/a"));
         Set<String> paths = StreamSupport.stream(itr.spliterator(), false)
                 .map(NodeDocument::getPath)

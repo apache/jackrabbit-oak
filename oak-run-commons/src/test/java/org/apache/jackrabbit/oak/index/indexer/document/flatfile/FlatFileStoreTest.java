@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.jetbrains.annotations.NotNull;
@@ -88,7 +88,7 @@ public class FlatFileStoreTest {
                 .withPathPredicate(pathPredicate)
                 .withNodeStateEntryTraverserFactory(new NodeStateEntryTraverserFactory() {
                     @Override
-                    public NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange range) {
+                    public NodeStateEntryTraverser create(TraversingRange range) {
                         return new NodeStateEntryTraverser("NS-1", null, null,
                                 null, range) {
                             @Override
@@ -469,7 +469,7 @@ public class FlatFileStoreTest {
         }
 
         @Override
-        public NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange range) {
+        public NodeStateEntryTraverser create(TraversingRange range) {
             return new NodeStateEntryTraverser("NS-" + range.getLastModifiedRange().getLastModifiedFrom(),
                     null, null, null, range) {
                 @Override

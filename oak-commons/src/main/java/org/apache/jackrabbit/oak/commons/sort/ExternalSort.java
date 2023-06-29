@@ -670,7 +670,7 @@ public class ExternalSort {
         try {
             for (File f : files) {
                 InputStream in = algorithm.getInputStream(new FileInputStream(f));
-                BufferedReader br = new BufferedReader(new InputStreamReader(in));
+                BufferedReader br = new BufferedReader(new InputStreamReader(in, cs));
                 BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(br, stringToType);
                 bfbs.add(bfb);
             }
@@ -700,7 +700,7 @@ public class ExternalSort {
      * @param buffers
      *            Where the data should be read.
      * @param typeToString
-     *            function to map string to custom type. User for coverting line to custom type for the
+     *            function to map string to custom type. User for converting line to custom type for the
      *            purpose of sorting
      *
      */
