@@ -68,6 +68,7 @@ class DocumentStoreCheckCommand implements Command {
                     .withPredecessors(options.withPredecessors())
                     .withSuccessors(options.withSuccessors())
                     .withUuid(options.withUuid())
+                    .withConsistency(options.withConsistency())
                     .withProgress(options.withProgress())
                     .isSilent(options.isSilent())
                     .withSummary(options.withSummary())
@@ -106,6 +107,8 @@ class DocumentStoreCheckCommand implements Command {
 
         final OptionSpec<Boolean> uuid;
 
+        final OptionSpec<Boolean> consistency;
+
         final OptionSpec<Integer> numThreads;
 
         public CheckOptions(String usage) {
@@ -131,6 +134,8 @@ class DocumentStoreCheckCommand implements Command {
             successors = parser.accepts("successors", "Check jcr:successors references")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             uuid = parser.accepts("uuid", "Check UUID index entry")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            consistency = parser.accepts("consistency", "Check node state consistency")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             numThreads = parser.accepts("numThreads", "Use this number of threads to check consistency")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
@@ -184,6 +189,10 @@ class DocumentStoreCheckCommand implements Command {
 
         public boolean withUuid() {
             return uuid.value(options);
+        }
+
+        public boolean withConsistency() {
+            return consistency.value(options);
         }
 
         public int getNumThreads() {
