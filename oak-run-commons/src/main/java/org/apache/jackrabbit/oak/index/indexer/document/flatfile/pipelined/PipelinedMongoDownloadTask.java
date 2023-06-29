@@ -28,11 +28,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.bson.BsonDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,10 +95,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
 
-    public <T extends Document> PipelinedMongoDownloadTask(MongoDocumentStore mongoStore,
-                                                           Collection<T> collection,
-                                                           int batchSize,
-                                                           BlockingQueue<BasicDBObject[]> queue) {
+    public PipelinedMongoDownloadTask(MongoCollection<BasicDBObject> dbCollection,
+                                      int batchSize,
+                                      BlockingQueue<BasicDBObject[]> queue) {
+        this.dbCollection = dbCollection;
         this.batchSize = batchSize;
         this.mongoDocQueue = queue;
         // Default retries for 5 minutes.
@@ -113,7 +110,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.retryOnConnectionErrors = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS,
                 DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS);
-        this.dbCollection = MongoDocumentStoreHelper.getDBCollection(mongoStore, collection);
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
@@ -133,13 +129,15 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
             this.nextLastModified = 0;
             this.lastIdDownloaded = null;
-            Instant failureTimestamp = null;
-            long retryInterval = retryInitialIntervalMillis;
+
 
             downloadStartWatch.start();
             if (!retryOnConnectionErrors) {
                 downloadAll();
             } else {
+                Instant failuresStartTimestamp = null; // When the last series of failures started
+                long retryIntervalMs = retryInitialIntervalMillis;
+                int numberOfFailures = 0;
                 boolean downloadCompleted = false;
                 Map<String, Integer> exceptions = new HashMap<>();
                 while (!downloadCompleted) {
@@ -147,8 +145,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         if (lastIdDownloaded != null) {
                             LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
                             downloadRange(new DownloadRange(nextLastModified, nextLastModified + 1, lastIdDownloaded));
-                            // Reset the retries
-                            failureTimestamp = null;
+                            // We have managed to reconnect, reset the failure timestamp
+                            failuresStartTimestamp = null;
+                            numberOfFailures = 0;
                             // Continue downloading everything starting from the next _lastmodified value
                             downloadRange(new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null));
                         } else {
@@ -160,11 +159,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             // Non-recoverable exceptions
                             throw e;
                         }
-                        if (failureTimestamp == null) {
-                            failureTimestamp = Instant.now();
+                        if (failuresStartTimestamp == null) {
+                            failuresStartTimestamp = Instant.now();
                         }
                         LOG.warn("Connection error downloading from MongoDB.", e);
-                        if (Duration.between(failureTimestamp, Instant.now()).toSeconds() > retryDuringSeconds) {
+                        long secondsSinceStartOfFailures = Duration.between(failuresStartTimestamp, Instant.now()).toSeconds();
+                        if (secondsSinceStartOfFailures > retryDuringSeconds) {
                             // Give up. Get a string of all exceptions that were thrown
                             StringBuilder summary = new StringBuilder();
                             for (Map.Entry<String, Integer> entry : exceptions.entrySet()) {
@@ -172,16 +172,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             }
                             throw new RetryException(retryDuringSeconds, summary.toString(), e);
                         } else {
-                            LOG.warn("Retrying download after {} ms; number of times failed: {}", retryInterval, failureTimestamp);
+                            numberOfFailures++;
+                            LOG.warn("Retrying download in {} ms; number of times failed: {}; current series of failures started at: {} ({} seconds ago)",
+                                    retryIntervalMs, numberOfFailures, failuresStartTimestamp, secondsSinceStartOfFailures);
                             exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
                                     (key, val) -> val == null ? 1 : val + 1
                             );
                             try {
-                                Thread.sleep(retryInterval);
+                                Thread.sleep(retryIntervalMs);
                             } catch (InterruptedException ignore) {
                             }
                             // simple exponential backoff mechanism
-                            retryInterval = Math.min(retryMaxIntervalMillis, retryInterval * 2);
+                            retryIntervalMs = Math.min(retryMaxIntervalMillis, retryIntervalMs * 2);
                         }
                     }
                 }
@@ -231,34 +233,54 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     private void download(FindIterable<BasicDBObject> mongoIterable) throws InterruptedException, TimeoutException {
-        BasicDBObject[] block = new BasicDBObject[batchSize];
-        int nextIndex = 0;
         try (MongoCursor<BasicDBObject> cursor = mongoIterable.iterator()) {
-            while (cursor.hasNext()) {
-                BasicDBObject next = cursor.next();
-                String id = next.getString(Document.ID);
-                // If we are retrying on connection errors, we need to keep track of the last _modified value
-                if (retryOnConnectionErrors) {
-                    this.nextLastModified = next.getLong(NodeDocument.MODIFIED_IN_SECS);
+            BasicDBObject[] block = new BasicDBObject[batchSize];
+            int nextIndex = 0;
+            try {
+                while (cursor.hasNext()) {
+                    BasicDBObject next = cursor.next();
+                    String id = next.getString(Document.ID);
+                    // If we are retrying on connection errors, we need to keep track of the last _modified value
+                    if (retryOnConnectionErrors) {
+                        this.nextLastModified = next.getLong(NodeDocument.MODIFIED_IN_SECS);
+                    }
+                    this.lastIdDownloaded = id;
+                    this.documentsRead++;
+                    reportProgress(id);
+                    block[nextIndex] = next;
+                    nextIndex++;
+                    if (nextIndex == batchSize) {
+                        tryEnqueue(block);
+                        block = new BasicDBObject[batchSize];
+                        nextIndex = 0;
+                    }
                 }
-                this.lastIdDownloaded = id;
-                this.documentsRead++;
-                reportProgress(id);
-                block[nextIndex] = next;
-                nextIndex++;
-                if (nextIndex == batchSize) {
-                    tryEnqueue(block);
-                    block = new BasicDBObject[batchSize];
-                    nextIndex = 0;
+                if (nextIndex > 0) {
+                    LOG.info("Enqueueing last block of size: {}", nextIndex);
+                    enqueuePartialBlock(block, nextIndex);
                 }
+            } catch (MongoException e) {
+                if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
+                    // Non-recoverable exceptions
+                    throw e;
+                }
+                // There may be some documents in the current batch, enqueue them and rethrow the exception
+                if (nextIndex > 0) {
+                    LOG.info("Connection interrupted with recoverable failure. Enqueueing partial block of size: {}", nextIndex);
+                    enqueuePartialBlock(block, nextIndex);
+                }
+                throw e;
             }
         }
-        LOG.info("Finished downloading");
-        if (nextIndex > 0) {
-            LOG.info("Enqueueing last block of size: {}", nextIndex);
-            BasicDBObject[] lastBlock = new BasicDBObject[nextIndex];
-            System.arraycopy(block, 0, lastBlock, 0, nextIndex);
-            tryEnqueue(lastBlock);
+    }
+
+    private void enqueuePartialBlock(BasicDBObject[] block, int nextIndex) throws InterruptedException, TimeoutException {
+        if (block.length == nextIndex) {
+            tryEnqueue(block);
+        } else {
+            BasicDBObject[] partialBlock = new BasicDBObject[nextIndex];
+            System.arraycopy(block, 0, partialBlock, 0, nextIndex);
+            tryEnqueue(partialBlock);
         }
     }
 

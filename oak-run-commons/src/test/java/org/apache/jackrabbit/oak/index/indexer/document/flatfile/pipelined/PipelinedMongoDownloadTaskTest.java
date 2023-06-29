@@ -1,0 +1,83 @@
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.MongoSocketException;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.bson.BsonDocument;
+import org.bson.conversions.Bson;
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.stream.Collectors;
+
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+public class PipelinedMongoDownloadTaskTest {
+
+    private BasicDBObject newBasicDBObject(String id, long modified) {
+        BasicDBObject obj = new BasicDBObject();
+        obj.put(NodeDocument.ID, "3:/content/dam/asset" + id);
+        obj.put(NodeDocument.MODIFIED_IN_SECS, modified);
+        return obj;
+    }
+
+    @Test
+    public void connectionToMongoFailure() throws Exception {
+        MongoCollection<BasicDBObject> dbCollection = mock(MongoCollection.class);
+
+        List<BasicDBObject> documents = List.of(
+                newBasicDBObject("1", 123_000),
+                newBasicDBObject("2", 123_000),
+                newBasicDBObject("3", 123_001),
+                newBasicDBObject("4", 123_002));
+
+        MongoCursor<BasicDBObject> cursor = mock(MongoCursor.class);
+        when(cursor.hasNext())
+                .thenReturn(true)
+                .thenThrow(new MongoSocketException("test", new ServerAddress()))
+                .thenReturn(true, false) // response to the query that will finish downloading the documents with _modified = 123_000
+                .thenReturn(true, true, false); // response to the query that downloads everything again starting from _modified >= 123_001
+        when(cursor.next()).thenReturn(
+                documents.get(0),
+                documents.subList(1, documents.size()).toArray(new BasicDBObject[0])
+        );
+
+        FindIterable<BasicDBObject> findIterable = mock(FindIterable.class);
+        when(findIterable.sort(any())).thenReturn(findIterable);
+        when(findIterable.iterator()).thenReturn(cursor);
+
+        when(dbCollection.withReadPreference(any())).thenReturn(dbCollection);
+        when(dbCollection.find()).thenReturn(findIterable);
+        when(dbCollection.find(any(Bson.class))).thenReturn(findIterable);
+
+        int batchSize = 100;
+        BlockingQueue<BasicDBObject[]> queue = new ArrayBlockingQueue<>(100);
+        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(dbCollection, batchSize, queue);
+
+        // Execute
+        PipelinedMongoDownloadTask.Result result = task.call();
+
+        // Verify results
+        assertEquals(documents.size(), result.getDocumentsDownloaded());
+        ArrayList<BasicDBObject[]> c = new ArrayList<>();
+        queue.drainTo(c);
+        List<BasicDBObject> actualDocuments = c.stream().flatMap(Arrays::stream).collect(Collectors.toList());
+        assertEquals(documents, actualDocuments);
+
+        verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 0}}"));
+        verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 123000, \"$lt\": 123001}, \"_id\": {\"$gt\": \"3:/content/dam/asset1\"}}"));
+        verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 123001}}"));
+    }
+}

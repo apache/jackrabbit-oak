@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
@@ -30,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -302,9 +304,8 @@ public class PipelinedStrategy implements SortStrategy {
             }
 
             Stopwatch start = Stopwatch.createStarted();
-            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(
-                    docStore, Collection.NODES, mongoBatchSize, mongoDocQueue
-            );
+            MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
+            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue);
             ecs.submit(downloadTask);
 
             File flatFileStore = null;
