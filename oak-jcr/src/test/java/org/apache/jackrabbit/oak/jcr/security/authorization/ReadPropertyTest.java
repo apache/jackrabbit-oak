@@ -205,12 +205,17 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
 
         Node node = testSession.getNode(path);
         assertFalse(node.hasProperty(JcrConstants.JCR_MIXINTYPES));
-        node.addMixin("mix:title");
+        try {
+            node.addMixin("mix:title");
+        } catch (AccessDeniedException e) {
+            // permitted to fail because reading jcr:mixinTypes was denied
+            return;
+        }
+        // if we get here, then node.addMixin() was successful
         testSession.save();
-
+        // then we should be able to see all three mixin types
         superuser.refresh(false);
-        // OAK-10334 - FIXME: fails, because it only returns mix:title
-        // assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE, "mix:title");
+        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE, "mix:title");
     }
 
     private void assertMixinTypes(Node node, String... mixins)

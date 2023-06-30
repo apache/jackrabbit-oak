@@ -1015,6 +1015,9 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
                     throw new VersionException(format(
                             "Cannot add mixin type. Node [%s] is checked in.", getNodePath()));
                 }
+                // OAK-10334: adding mixin requires permission to read existing mixin types
+                PropertyState prop = PropertyStates.createProperty(JCR_MIXINTYPES, singleton(oakTypeName), NAMES);
+                sessionContext.getAccessManager().checkPermissions(dlg.getTree(), prop, Permissions.READ_PROPERTY);
             }
             @Override
             public void performVoid() throws RepositoryException {
