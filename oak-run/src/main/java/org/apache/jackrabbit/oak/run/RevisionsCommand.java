@@ -23,6 +23,11 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -42,10 +47,15 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocumentRevisionCleaner;
+import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
 import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -57,7 +67,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Boolean.TRUE;
+import static java.lang.Integer.getInteger;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
@@ -74,6 +87,8 @@ public class RevisionsCommand implements Command {
 
     private static final Logger LOG = LoggerFactory.getLogger(RevisionsCommand.class);
 
+    private static final int REVISION_CAP = getInteger("oak.revision.cap", 250);
+
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
             "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
             "where sub-command is one of",
@@ -82,6 +97,7 @@ public class RevisionsCommand implements Command {
             "  collect      perform garbage collection",
             "  reset        clear all persisted metadata",
             "  sweep        clean up uncommitted changes",
+            "  cleanup  clean up old/unused revisions",
             "  detailedGC   perform detailed garbage collection i.e. remove unmerged branch commits, old revisions, deleted properties etc"
     );
 
@@ -96,6 +112,7 @@ public class RevisionsCommand implements Command {
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
         static final String CMD_SWEEP = "sweep";
+        static final String CMD_CLEANUP = "cleanup";
         static final String CMD_DETAILED_GC = "detailedGC";
 
         final OptionSpec<?> once;
@@ -107,6 +124,8 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> detailedGC;
         final OptionSpec<?> detailedGCOnly;
         final OptionSpec<?> verbose;
+        final OptionSpec<String> path;
+        final OptionSpec<Integer> number;
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
 
@@ -139,6 +158,11 @@ public class RevisionsCommand implements Command {
                     .accepts("detailedGCOnly", "apply only to detailedGC (reset only)");
             verbose = parser
                     .accepts("verbose", "print INFO messages to the console");
+            path = parser
+                    .accepts("path", "path to the document to be cleaned up").withRequiredArg();
+            number = parser
+                    .accepts("number", "number of revisions to clean").withRequiredArg()
+                    .ofType(Integer.class).defaultsTo(0);
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -186,6 +210,14 @@ public class RevisionsCommand implements Command {
             return options.has(continuous);
         }
 
+        String getPath() {
+            return path.value(options);
+        }
+
+        int getNumber() {
+            return number.value(options);
+        }
+
         boolean isDetailedGCEnabled() {
             return options.has(detailedGC);
         }
@@ -215,6 +247,8 @@ public class RevisionsCommand implements Command {
                 reset(options, closer);
             } else if (RevisionsOptions.CMD_SWEEP.equals(subCmd)) {
                 sweep(options, closer);
+            } else if (RevisionsOptions.CMD_CLEANUP.equals(subCmd)) {
+                cleanup(options, closer);
             } else if (RevisionsOptions.CMD_DETAILED_GC.equals(subCmd)) {
                 collect(options, closer, true);
             } else {
@@ -458,6 +492,97 @@ public class RevisionsCommand implements Command {
         closer.register(asCloseable(ns));
         MissingLastRevSeeker seeker = builder.createMissingLastRevSeeker();
         SweepHelper.sweep(store, new RevisionContextWrapper(ns, clusterId), seeker);
+    }
+
+    private void cleanup(RevisionsOptions options, Closer closer) throws IOException {
+        String path = options.getPath();
+        if (path == null || path.isEmpty()) {
+            System.err.println("path option is required for " + RevisionsOptions.CMD_CLEANUP + " command");
+            return;
+        }
+
+        DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
+        if (builder == null) {
+            System.err.println("revisions mode only available for DocumentNodeStore");
+            return;
+        }
+
+        DocumentStore documentStore = builder.getDocumentStore();
+        builder.setReadOnlyMode();
+        useMemoryBlobStore(builder);
+        DocumentNodeStore documentNodeStore = builder.build();
+        String id = org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath(path);
+        NodeDocument workingDocument = documentStore.find(NODES, id);
+        NodeDocumentRevisionCleaner revisionCleaner = new NodeDocumentRevisionCleaner(documentStore, documentNodeStore, workingDocument);
+
+        final UpdateOp op = new UpdateOp(requireNonNull(id), false);
+        revisionCleaner.initializeCleanupProcess(op);
+
+        SortedMap<Revision, String> allRevisions = revisionCleaner.getAllRevisions();
+        SortedMap<Integer, Integer> revisionsByClusterId = new TreeMap<>();
+        for (Revision revision : allRevisions.keySet()) {
+            Integer cid = revision.getClusterId();
+            Integer count = revisionsByClusterId.get(cid);
+            if (count == null) {
+                count = 0;
+            }
+            revisionsByClusterId.put(cid, count + 1);
+        }
+
+        System.out.println();
+
+        int count = 0;
+        System.out.println("=== Total Revisions by clusterId ===");
+        for (Map.Entry<Integer, Integer> entry : revisionsByClusterId.entrySet()) {
+            System.out.printf("  [%d] -> %d revisions%n", entry.getKey(), entry.getValue());
+            count++;
+            if (count >= REVISION_CAP) {
+                System.out.printf("  ...%n");
+                break;
+            }
+        }
+
+        for (Map.Entry<Integer, TreeSet<Revision>> entry : revisionCleaner.getCandidateRevisionsToClean().entrySet()) {
+            Integer cid = entry.getKey();
+            TreeSet<Revision> revisions = entry.getValue();
+            int blocked = revisionCleaner.getBlockedRevisionsToKeep().get(cid) != null ? revisionCleaner.getBlockedRevisionsToKeep().get(cid).size() : 0;
+            System.out.printf("ClusterId [%d] has %d Candidates and %d Blocked%n", cid, revisions.size(), blocked);
+        }
+
+        System.out.println("=== Operations to be executed ===");
+        System.out.println("Total of operations: " + op.getChanges().size());
+        System.out.println(op.getChanges());
+
+        /*TreeSet<Revision> revisionsToClean = revisionCleaner.getCandidateRevisionsToClean().get(clusterToCleanup)
+                .stream().limit(numberToCleanup).collect(Collectors.toCollection(TreeSet::new));
+        if (revisionsToClean.isEmpty()) {
+            System.out.println("No revisions to clean");
+            return;
+        } else {
+            count = 0;
+            for (Revision revision : revisionsToClean) {
+                System.out.printf("  %s%n", revision.toReadableString());
+                count++;
+                if (count >= REVISION_CAP) {
+                    System.out.print("  ...%n");
+                    System.out.printf("  %s%n", revisionsToClean.last().toReadableString());
+                    break;
+                }
+            }
+        }*/
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.println("The revisions will be deleted permanently. Are you sure to proceed? [y/N]");
+        String confirmation = scanner.nextLine().trim().toLowerCase();
+        if (confirmation.equals("y") || confirmation.equals("yes")) {
+            try {
+                count++;
+                documentStore.findAndUpdate(NODES, op);
+            } catch (DocumentStoreException ex) {
+                System.out.println("Operation failed: " + ex);
+            }
+            System.out.println("-- Executed " + count + " operations --");
+        }
     }
 
     private String fmtTimestamp(long ts) {
