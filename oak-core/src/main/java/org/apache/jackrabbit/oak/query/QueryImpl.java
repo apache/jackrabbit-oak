@@ -588,8 +588,9 @@ public class QueryImpl implements Query {
         prepare();
         String warn = getWarningForPathFilterMismatch();
         if (warn != null) {
+            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
             LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
-             "those restricted paths; query={}, plan={}", statement, warn);
+             "those restricted paths; query={}, called by={}, plan={}", statement, caller, warn);
         }
         logAdditionalMessages();
         if (explain) {
