@@ -124,6 +124,7 @@ class GroovyConsole {
                 new CheckpointCommand(shell),
                 new LsCommand(shell),
                 new PnCommand(shell),
+                new RevisionCommand(shell),
                 new RefreshCommand(shell),
                 new RetrieveCommand(shell),
                 new LuceneCommand(shell),
