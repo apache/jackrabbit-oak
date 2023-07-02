@@ -30,8 +30,10 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Collections;
+import java.util.Optional;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
@@ -324,4 +326,34 @@ public class TypeEditorTest {
             assertTrue(e.isConstraintViolation());
         }
     }
+
+    @Test
+    public void addChildNodeNotStrictDefaultPrimaryTypeIfUnspecified() throws CommitFailedException {
+        // set strict to 'false' to allow unset jcr:primaryType on new node
+        EditorHook hook = new EditorHook(new TypeEditorProvider(false));
+
+        NodeState root = INITIAL_CONTENT;
+        NodeBuilder builder = root.builder();
+
+        NodeBuilder policyBuilder = builder.child("conf")
+                .setProperty(JCR_PRIMARYTYPE, "nt:folder", Type.NAME)
+                .setProperty(JCR_MIXINTYPES, ImmutableList.of(AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES)
+                .child("rep:policy")
+                // create the policy node with the correct primary type in the before state
+                .setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_ACL, Type.NAME);
+
+        NodeState before = builder.getNodeState();
+        policyBuilder.child("allow")
+                .setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME, Type.STRING)
+                .setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of("jcr:read"), Type.NAMES);
+        NodeState commit = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+        NodeState policyState = commit.getChildNode("conf").getChildNode("rep:policy");
+
+        assertEquals("expect primary types: rep:policy(rep:ACL) => allow(rep:GrantACE)",
+                ImmutableMap.of(AccessControlConstants.NT_REP_ACL, AccessControlConstants.NT_REP_GRANT_ACE),
+                ImmutableMap.of(
+                        Optional.ofNullable(policyState.getProperty(JCR_PRIMARYTYPE)).map(state -> state.getValue(Type.NAME)).orElse(""),
+                        Optional.ofNullable(policyState.getChildNode("allow").getProperty(JCR_PRIMARYTYPE)).map(state -> state.getValue(Type.NAME)).orElse("")));
+    }
+
 }
