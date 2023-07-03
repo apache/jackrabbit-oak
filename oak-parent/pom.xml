@@ -486,34 +486,50 @@
     <dependencies>
       <dependency>
         <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.core</artifactId>
-        <version>4.2.0</version>
+        <artifactId>osgi.core</artifactId>
+        <version>7.0.0</version>
+      </dependency>
+      <!-- OSGi R7 Compendium Specs -->
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.component</artifactId>
+        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.compendium</artifactId>
-        <version>4.2.0</version>
+        <artifactId>org.osgi.service.metatype</artifactId>
+        <version>1.4.1</version>
       </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.cm</artifactId>
+        <version>1.6.1</version>
+      </dependency>
+      <!-- OSGi R7 annotations -->
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.component.annotations</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.metatype.annotations</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.0</version>
       </dependency>
-
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.annotation.bundle</artifactId>
+        <version>1.0.0</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/bundle/package-summary.html -->
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.annotation.versioning</artifactId>
+        <version>1.1.2</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/versioning/package-summary.html -->
+      </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr.annotations</artifactId>
         <version>1.9.6</version>
-      </dependency>
-      <dependency>
-        <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.annotation</artifactId>
-        <version>6.0.0</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains</groupId>

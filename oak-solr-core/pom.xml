@@ -216,17 +216,16 @@
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
+            <artifactId>osgi.core</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
+            <artifactId>org.osgi.service.component</artifactId>
             <scope>provided</scope>
             <optional>true</optional>
         </dependency>
-
         <dependency>
             <groupId>javax.jcr</groupId>
             <artifactId>jcr</artifactId>

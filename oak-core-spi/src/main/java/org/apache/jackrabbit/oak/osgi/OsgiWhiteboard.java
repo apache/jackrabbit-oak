@@ -69,13 +69,13 @@ public class OsgiWhiteboard implements Whiteboard {
         Objects.requireNonNull(properties);
         checkArgument(type.isInstance(service));
 
-        Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
+        Dictionary<String, Object> dictionary = new Hashtable<>();
         for (Map.Entry<?, ?> entry : properties.entrySet()) {
-            dictionary.put(entry.getKey(), entry.getValue());
+            dictionary.put((String)entry.getKey(), entry.getValue());
         }
 
         final ServiceRegistration registration =
-                context.registerService(type.getName(), service, dictionary);
+                context.registerService(type, service, dictionary);
         return new Registration() {
             private volatile boolean unregistered;
             @Override

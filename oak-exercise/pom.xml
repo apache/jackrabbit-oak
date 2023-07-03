@@ -143,7 +143,12 @@
     <!-- OSGi -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.annotation</artifactId>
+      <artifactId>org.osgi.service.component</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.annotation.versioning</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -157,11 +162,6 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.jaas</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
       <scope>provided</scope>
     </dependency>
 
