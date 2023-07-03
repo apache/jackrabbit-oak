@@ -289,14 +289,15 @@ public class TypeEditor extends DefaultEditor {
     public TypeEditor childNodeChanged(
             String name, NodeState before, NodeState after)
             throws CommitFailedException {
-        String primary = after.getName(JCR_PRIMARYTYPE);
-        Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
+        String childPrimary = after.getName(JCR_PRIMARYTYPE);
+        Iterable<String> childMixins = after.getNames(JCR_MIXINTYPES);
 
-        if (primary == null && effective != null) {
+        final NodeBuilder childBuilder = builder.getChildNode(name);
+        if (childPrimary == null && effective != null) {
             // no primary type defined, find and apply a default type
-            primary = effective.getDefaultType(name);
-            if (primary != null) {
-                builder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
+            childPrimary = effective.getDefaultType(name);
+            if (childPrimary != null) {
+                childBuilder.setProperty(JCR_PRIMARYTYPE, childPrimary, NAME);
             } else {
                 constraintViolation(
                         4, "No default primary type available "
@@ -305,9 +306,8 @@ public class TypeEditor extends DefaultEditor {
         }
 
         // if node type didn't change no need to validate child node
-        boolean validate = primaryChanged(before, primary) || mixinsChanged(before, mixins);
-        NodeBuilder childBuilder = builder.getChildNode(name);
-        TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder, validate);
+        boolean validate = primaryChanged(before, childPrimary) || mixinsChanged(before, childMixins);
+        TypeEditor editor = new TypeEditor(this, name, childPrimary, childMixins, childBuilder, validate);
         if (checkThisNode && validate && !effective.isValidChildNode(name, editor.getEffective())) {
             constraintViolation(
                     1, "No matching definition found for child node " + name
