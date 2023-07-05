@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -558,7 +557,6 @@ public class MoveTest {
         assertEquals("/x/xx", xx.getPath());
     }
 
-    @Ignore("OAK-10340")
     @Test
     public void moveOrderable() throws Exception {
         Root root = session.getLatestRoot();
