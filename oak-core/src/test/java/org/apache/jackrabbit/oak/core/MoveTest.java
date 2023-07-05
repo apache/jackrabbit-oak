@@ -33,11 +33,13 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import static org.apache.jackrabbit.oak.api.Tree.Status.NEW;
+import static org.apache.jackrabbit.oak.plugins.tree.TreeConstants.OAK_CHILD_ORDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -554,6 +556,38 @@ public class MoveTest {
         assertEquals("/x/xx", xx.getPath());
         root.commit();
         assertEquals("/x/xx", xx.getPath());
+    }
+
+    @Ignore("OAK-10340")
+    @Test
+    public void moveOrderable() throws Exception {
+        Root root = session.getLatestRoot();
+        root.getTree("/x").setOrderableChildren(true);
+        root.getTree("/y").setOrderableChildren(true);
+        root.commit();
+        assertChildOrder(root.getTree("/x"), "xx");
+        assertChildOrder(root.getTree("/y"));
+
+        root.move("/x/xx", "/y/xx");
+        assertChildOrder(root.getTree("/x"));
+        assertChildOrder(root.getTree("/y"), "xx");
+        root.commit();
+        assertChildOrder(root.getTree("/x"));
+        assertChildOrder(root.getTree("/y"), "xx");
+    }
+
+    private void assertChildOrder(Tree tree, String... names) {
+        MutableTree t = (MutableTree) tree;
+        PropertyState childOrder = t.getNodeBuilder().getProperty(OAK_CHILD_ORDER);
+        List<String> children = new ArrayList<>();
+        if (childOrder != null) {
+            childOrder.getValue(Type.NAMES).forEach(children::add);
+        }
+        List<String> expected = new ArrayList<>();
+        if (names != null) {
+            expected.addAll(Arrays.asList(names));
+        }
+        assertEquals(expected, children);
     }
 
     private static void checkEqual(Tree tree1, Tree tree2) {
