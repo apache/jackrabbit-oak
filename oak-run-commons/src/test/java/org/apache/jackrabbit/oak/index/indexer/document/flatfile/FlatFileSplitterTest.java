@@ -546,7 +546,7 @@ public class FlatFileSplitterTest {
             String line;
             while ((line = r.readLine()) != null) {
                 w.write(line);
-                w.newLine();
+                w.write('\n');
             }
         }
     }
@@ -557,7 +557,7 @@ public class FlatFileSplitterTest {
             String line;
             while ((line = r.readLine()) != null) {
                 w.write(line);
-                w.newLine();
+                w.write('\n');
             }
         }
     }

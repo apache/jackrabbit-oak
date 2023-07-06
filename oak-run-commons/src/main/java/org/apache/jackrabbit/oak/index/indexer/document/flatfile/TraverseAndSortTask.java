@@ -325,7 +325,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
                 writer.write(text);
-                writer.newLine();
+                writer.write('\n');
                 textSize += text.length() + 1;
             }
         }

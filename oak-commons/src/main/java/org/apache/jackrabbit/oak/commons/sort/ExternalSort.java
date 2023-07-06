@@ -476,7 +476,7 @@ public class ExternalSort {
                 // Skip duplicate lines
                 if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     fbw.write(typeToString.apply(r));
-                    fbw.newLine();
+                    fbw.write('\n');
                     lastLine = r;
                 }
             }
@@ -729,7 +729,7 @@ public class ExternalSort {
                 // Skip duplicate lines
                 if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     fbw.write(typeToString.apply(r));
-                    fbw.newLine();
+                    fbw.write('\n');
                     lastLine = r;
                 }
                 ++rowcounter;

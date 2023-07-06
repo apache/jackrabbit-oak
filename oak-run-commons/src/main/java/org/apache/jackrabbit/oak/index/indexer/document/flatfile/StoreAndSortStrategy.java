@@ -111,7 +111,7 @@ class StoreAndSortStrategy implements SortStrategy {
                 if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
                     String line = entryWriter.toString(e);
                     w.append(line);
-                    w.newLine();
+                    w.write('\n');
                     textSize += line.length() + LINE_SEP_LENGTH;
                     entryCount++;
                 }

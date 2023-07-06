@@ -154,7 +154,7 @@ public class FlatFileSplitter {
                     LOG.info("split position found at line {}, creating new split file {}", lineCount, currentFile.getAbsolutePath());
                 }
                 writer.append(line);
-                writer.newLine();
+                writer.write('\n');
                 readPos += line.length() + 1;
                 lineCount++;
             }
