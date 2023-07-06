@@ -729,7 +729,7 @@ public class ExternalSort {
                 // Skip duplicate lines
                 if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     fbw.write(typeToString.apply(r));
-                    fbw.write('\n');
+                    fbw.newLine();
                     lastLine = r;
                 }
                 ++rowcounter;
