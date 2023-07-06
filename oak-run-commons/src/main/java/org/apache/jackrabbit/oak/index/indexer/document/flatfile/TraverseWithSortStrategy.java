@@ -199,7 +199,7 @@ class TraverseWithSortStrategy implements SortStrategy {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
                 writer.write(text);
-                writer.write('\n');
+                writer.newLine();
                 textSize += text.length() + 1;
             }
         }
