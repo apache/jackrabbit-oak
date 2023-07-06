@@ -45,6 +45,7 @@
                         </Export-Package>
                         <Embed-Dependency>*;scope=compile,artifactId=!oak-lucene</Embed-Dependency>
                         <Import-Package>
+                            <!-- OAK-7182 -->${guava.osgi.import},
                             com.ibm.uvm.tools.*;resolution:=optional,
                             com.sun.jdmk.comm.*;resolution:=optional,
                             com.sun.net.httpserver.*;resolution:=optional,
