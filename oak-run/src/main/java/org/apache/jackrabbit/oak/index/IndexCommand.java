@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -243,12 +244,16 @@ public class IndexCommand implements Command {
         if (opts.getCommonOpts().isMongo() && idxOpts.isDocTraversalMode()) {
             log.info("Using Document order traversal to perform reindexing");
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
-                if (idxOpts.buildFlatFileStoreSeparately()) {
-                    FlatFileStore ffs = indexer.buildFlatFileStore();
-                    String pathToFFS = ffs.getFlatFileStorePath();
-                    System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
+                if (idxOpts.useTreeStore()) {
+                    indexer.reindexUsingTreeStore();
+                } else {
+                    if (idxOpts.buildFlatFileStoreSeparately()) {
+                        FlatFileStore ffs = indexer.buildFlatFileStore();
+                        String pathToFFS = ffs.getFlatFileStorePath();
+                        System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, pathToFFS);
+                    }
+                    indexer.reindex();
                 }
-                indexer.reindex();
             }
         } else {
             try (OutOfBandIndexer indexer = new OutOfBandIndexer(extendedIndexHelper, indexerSupport)) {
