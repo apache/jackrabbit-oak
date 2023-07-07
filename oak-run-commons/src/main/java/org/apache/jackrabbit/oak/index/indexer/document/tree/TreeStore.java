@@ -105,7 +105,7 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
     private final Store store;
     private final Session session;
     private final NodeStateEntryReader entryReader;
-    private final Cache<String, NodeState> nodeStateCache = new Cache<>(100);
+    private final Cache<String, NodeState> nodeStateCache = new Cache<>(10000);
 
     public TreeStore(File directory, NodeStateEntryReader entryReader) {
         this.entryReader = entryReader;
@@ -177,7 +177,7 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
         }
         String value = session.get(path);
         if (value == null || value.isEmpty()) {
-            result = EmptyNodeState.EMPTY_NODE;
+            result = EmptyNodeState.MISSING_NODE;
         } else {
             result = getNodeState(path, value);
         }

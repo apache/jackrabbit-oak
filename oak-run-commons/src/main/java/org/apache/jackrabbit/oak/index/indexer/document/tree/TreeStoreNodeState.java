@@ -122,9 +122,7 @@ public class TreeStoreNodeState implements NodeState {
 
     @Override
     public boolean hasChildNode(@NotNull String name) {
-        String entry = TreeStore.toChildNodeEntry(path, name);
-        String result = treeStore.getSession().get(entry);
-        return "".equals(result);
+        return treeStore.getNodeState(PathUtils.concat(path, name)).exists();
     }
 
     @NotNull
