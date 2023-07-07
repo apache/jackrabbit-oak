@@ -130,9 +130,7 @@ public class TreeStoreNodeState implements NodeState {
     @NotNull
     @Override
     public NodeState getChildNode(@NotNull String name) throws IllegalArgumentException {
-        // TODO
-        return null;
-//        String path = PathUtils.concat(path, name);
+        return treeStore.getNodeState(PathUtils.concat(path, name));
     }
 
     @Override
