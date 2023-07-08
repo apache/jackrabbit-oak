@@ -183,8 +183,6 @@
               </goals>
               <phase>pre-integration-test</phase>
               <configuration>
-                <!-- see https://issues.apache.org/jira/browse/OAK-10326 -->
-                <comparisonVersion>1.52.0</comparisonVersion>
                 <logResults>false</logResults>
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
