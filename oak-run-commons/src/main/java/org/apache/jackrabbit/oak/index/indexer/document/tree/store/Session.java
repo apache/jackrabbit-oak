@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.tree.store;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -55,7 +56,7 @@ public class Session {
             if (result) {
                 String key = eldest.getKey();
                 PageFile value = eldest.getValue();
-                if(value.getModified()) {
+                if(value.isModified()) {
                     store.put(key, value);
                     // not strictly needed as it's no longer referenced
                     value.setModified(false);
@@ -127,25 +128,36 @@ public class Session {
         return fileReadCount;
     }
 
-    private void mergeRootsIfNeeded() {
-        int count = 0;
+    private List<String> getRootFileNames() {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
         String nextRoot = ROOT_NAME;
         do {
+            boolean isNew = result.add(nextRoot);
+            if (!isNew) {
+                throw new IllegalStateException("Linked list contains a loop");
+            }
             PageFile root = getFile(nextRoot);
             nextRoot = root.getNextRoot();
-            count++;
         } while (nextRoot != null);
-        if (count > maxRoots) {
+        return new ArrayList<>(result);
+    }
+
+    private void mergeRootsIfNeeded() {
+        List<String> roots = getRootFileNames();
+        if (roots.size() > maxRoots) {
             mergeRoots();
         }
     }
 
     /**
-     * Initialize the storage, creating a root.
+     * Initialize the storage, creating a new root if needed.
      */
     public void init() {
-        PageFile root = newPageFile(false);
-        putFile(ROOT_NAME, root);
+        PageFile root = store.getIfExists(ROOT_NAME);
+        if (root == null) {
+            root = newPageFile(false);
+            putFile(ROOT_NAME, root);
+        }
     }
 
     private PageFile copyPageFile(PageFile old) {
@@ -407,6 +419,10 @@ public class Session {
     }
 
     private void putFile(String fileName, PageFile file) {
+        if (!file.isModified()) {
+            throw new AssertionError();
+        }
+        file.setFileName(fileName);
         cache.put(fileName, file);
     }
 
@@ -415,6 +431,7 @@ public class Session {
         PageFile result = cache.get(key);
         if (result == null) {
             result = store.get(key);
+            result.setFileName(key);
             cache.put(key, result);
         }
         return result;
@@ -427,6 +444,7 @@ public class Session {
         PageFile root = getFile(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
         root = copyPageFile(root);
+        root.setModified(true);
         putFile(rootFileCopy, root);
         Iterator<Entry<String, String>> it = iterator();
         PageFile newRoot = newPageFile(false);
@@ -447,9 +465,24 @@ public class Session {
      * All changes are flushed to storage.
      */
     public void checkpoint() {
+        flush();
         mergeRootsIfNeeded();
+        List<String> roots = getRootFileNames();
+        if (roots.size() > 1) {
+            // get the last root
+            for (String s : roots) {
+                int index = s.lastIndexOf('_');
+                if (index >= 0) {
+                    updateId = Math.max(updateId, Long.parseLong(s.substring(index + 1)));
+                }
+            }
+            updateId++;
+        }
         PageFile root = getFile(ROOT_NAME);
+        cache.remove(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
+        root = copyPageFile(root);
+        root.setFileName(rootFileCopy);
         putFile(rootFileCopy, root);
         updateId++;
         if (MULTI_ROOT) {
@@ -473,11 +506,16 @@ public class Session {
      * Flush all changes to storage.
      */
     public void flush() {
+        // we store all the pages except for the root, and the root at the very end
+        // this is to get a smaller chance that the root is stored,
+        // and points to a page that doesn't exist yet -
+        // but we don't try to ensure this completely;
+        // stored inner nodes might point to pages that are not stored yet
         Entry<String, PageFile> changedRoot = null;
         for(Entry<String, PageFile> e : cache.entrySet()) {
             String k = e.getKey();
             PageFile v = e.getValue();
-            if (!v.getModified()) {
+            if (!v.isModified()) {
                 continue;
             }
             if (k.equals(ROOT_NAME)) {
@@ -493,8 +531,9 @@ public class Session {
         if (changedRoot != null) {
             String k = changedRoot.getKey();
             PageFile v = changedRoot.getValue();
-            cache.put(k, v);
             store.put(k, v);
+            // here we have to reset the flag
+            v.setModified(false);
         }
     }
 
