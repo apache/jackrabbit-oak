@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -44,6 +45,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeFalse;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test methods (mostly) copied from oak-it RootTest and parameterized to run
@@ -572,6 +576,23 @@ public class MoveTest {
         root.commit();
         assertChildOrder(root.getTree("/x"));
         assertChildOrder(root.getTree("/y"), "xx");
+    }
+
+    @Test
+    public void moveToFailsOnNodeBuilder() {
+        MutableRoot root = (MutableRoot) session.getLatestRoot();
+        MutableTree x = root.getTree("/x");
+        NodeBuilder xxBuilder = mock(NodeBuilder.class);
+        // fails the move on the NodeBuilder
+        when(xxBuilder.moveTo(any(), any())).thenReturn(false);
+        MutableRoot.Move move = mock(MutableRoot.Move.class);
+        MutableTree xx = new MutableTree(root, xxBuilder, move);
+        xx.setParentAndName(x, "xx");
+        MutableTree y = root.getTree("/y");
+
+        assertFalse(xx.moveTo(y, "xx"));
+        // must still have same parent
+        assertEquals("/x", xx.getParent().getPath());
     }
 
     private void assertChildOrder(Tree tree, String... names) {
