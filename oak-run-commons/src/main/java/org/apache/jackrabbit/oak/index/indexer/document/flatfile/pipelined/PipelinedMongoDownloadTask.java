@@ -131,7 +131,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             this.nextLastModified = 0;
             this.lastIdDownloaded = null;
 
-
             downloadStartWatch.start();
             if (!retryOnConnectionErrors) {
                 downloadAll();

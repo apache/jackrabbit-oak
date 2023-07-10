@@ -210,6 +210,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     }
 
     private void tryEnqueue(NodeStateEntryBatch nseBatch) throws InterruptedException {
+        LOG.info("Enqueuing batch of {} entries", nseBatch.numberOfEntries());
         Stopwatch stopwatch = Stopwatch.createStarted();
         nonEmptyBatchesQueue.put(nseBatch);
         long enqueueDelay = stopwatch.elapsed(TimeUnit.MILLISECONDS);

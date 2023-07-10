@@ -37,7 +37,7 @@ public class Session {
     private static final int DEFAULT_CACHE_SIZE = 128;
     private static final int DEFAULT_MAX_FILE_SIZE = 16 * 1024;
     private static final int DEFAULT_CACHE_SIZE_MB = 16;
-    private static final int DEFAULT_MAX_ROOTS = 10;
+    private static final int DEFAULT_MAX_ROOTS = Integer.MAX_VALUE;
 
     static final String ROOT_NAME = "root";
     static final String INNER_NODE_PREFIX = "node_";

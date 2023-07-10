@@ -247,7 +247,8 @@ public class PipelinedStrategy implements SortStrategy {
             workingMemoryMB = autodetectWorkingMemoryMB();
         }
 
-        int numberOfThreads = 1 + transformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
+//        int numberOfThreads = 1 + transformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
+        int numberOfThreads = 1 + transformThreads + 1; // dump, transform, sort threads, sorted files merge
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
                 new ThreadFactoryBuilder().setNameFormat("mongo-dump").setDaemon(true).build()
         );
@@ -327,13 +328,16 @@ public class PipelinedStrategy implements SortStrategy {
                 ecs.submit(transformTask);
             }
 
-            PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                    storeDir, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+//            PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
+//                    storeDir, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+//            );
+            PipelinedSortBatchTreeSortTask sortTask = new PipelinedSortBatchTreeSortTask(
+                    storeDir, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue
             );
             ecs.submit(sortTask);
 
-            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(storeDir, pathComparator, algorithm, sortedFilesQueue);
-            ecs.submit(mergeSortTask);
+//            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(storeDir, pathComparator, algorithm, sortedFilesQueue);
+//            ecs.submit(mergeSortTask);
 
 
             try {
@@ -366,17 +370,24 @@ public class PipelinedStrategy implements SortStrategy {
                                 nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
                             }
 
-                        } else if (result instanceof PipelinedSortBatchTask.Result) {
-                            PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
+//                        } else if (result instanceof PipelinedSortBatchTask.Result) {
+//                            PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
+//                            LOG.info("Sort task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
+//                            printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
+//                            sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
+
+                        } else if (result instanceof PipelinedSortBatchTreeSortTask.Result) {
+                            PipelinedSortBatchTreeSortTask.Result sortTaskResult = (PipelinedSortBatchTreeSortTask.Result) result;
                             LOG.info("Sort task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
                             printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
-                            sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
+                            flatFileStore = storeDir;
+//                            sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
 
-                        } else if (result instanceof PipelinedMergeSortTask.Result) {
-                            PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
-                            File ffs = mergeSortedFilesTask.getFlatFileStoreFile();
-                            LOG.info("Sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(ffs.length()));
-                            flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
+//                        } else if (result instanceof PipelinedMergeSortTask.Result) {
+//                            PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
+//                            File ffs = mergeSortedFilesTask.getFlatFileStoreFile();
+//                            LOG.info("Sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(ffs.length()));
+//                            flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
 
                         } else {
                             throw new RuntimeException("Unknown result type: " + result);
