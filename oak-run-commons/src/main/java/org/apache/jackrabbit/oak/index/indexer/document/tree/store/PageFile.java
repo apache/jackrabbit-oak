@@ -34,6 +34,8 @@ public class PageFile {
     private static final boolean VERIFY_SIZE = false;
     private static final int INITIAL_SIZE_IN_BYTES = 24;
 
+    private String fileName;
+
     private final boolean innerNode;
 
     private static ByteBuffer REUSED_BUFFER = ByteBuffer.allocate(1024 * 1024);
@@ -52,6 +54,14 @@ public class PageFile {
 
     public PageFile(boolean innerNode) {
         this.innerNode = innerNode;
+    }
+
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
+    public String getFileName() {
+        return fileName;
     }
 
     public void setUpdate(long update) {
@@ -369,7 +379,7 @@ public class PageFile {
         this.modified = modified;
     }
 
-    public boolean getModified() {
+    public boolean isModified() {
         return modified;
     }
 
