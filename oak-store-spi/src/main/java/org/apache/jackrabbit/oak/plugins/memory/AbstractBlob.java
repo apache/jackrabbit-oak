@@ -28,6 +28,8 @@ import com.google.common.io.ByteSource;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract base class for {@link Blob} implementations.
@@ -35,6 +37,10 @@ import org.jetbrains.annotations.Nullable;
  * {@code hashCode} and {@code equals}.
  */
 public abstract class AbstractBlob implements Blob {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractBlob.class);
+
+    private static final long DEBUG_BLOB_EQUAL_LOG_LIMIT = Long.getLong("oak.abstractblob.equal.log.limit", 100_000_000L);
 
     private static ByteSource supplier(final Blob blob) {
         return new ByteSource() {
@@ -60,6 +66,10 @@ public abstract class AbstractBlob implements Blob {
         //definitely same blob. If not we need to check further.
         if (ai != null && bi != null && ai.equals(bi)){
             return true;
+        }
+
+        if (al > DEBUG_BLOB_EQUAL_LOG_LIMIT) {
+            LOG.debug("Blobs have the same length of {} and we're falling back to byte-wise comparison.", al);
         }
 
         try {
