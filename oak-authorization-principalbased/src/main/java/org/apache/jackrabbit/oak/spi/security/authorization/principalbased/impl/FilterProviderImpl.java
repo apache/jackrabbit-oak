@@ -81,7 +81,7 @@ public class FilterProviderImpl implements FilterProvider {
      * @param oakPath the repository path where the principals are located
      * @since 1.54
      */
-    public FilterProviderImpl(String oakPath) {
+    public FilterProviderImpl(@NotNull String oakPath) {
         setPath(oakPath);
     }
 
@@ -112,16 +112,16 @@ public class FilterProviderImpl implements FilterProvider {
     }
 
     @Activate
-    protected void activate(Configuration configuration) {
+    protected void activate(Configuration configuration, Map<String, Object> properties) {
         setPath(configuration.path());
     }
 
     @Modified
-    protected void modified(Configuration configuration) {
+    protected void modified(Configuration configuration, Map<String, Object> properties) {
         setPath(configuration.path());
     }
 
-    private void setPath(String path) {
+    private void setPath(@NotNull String path) {
         checkState(isValidPath(path), "Configured path must be a valid absolute path.");
         oakPath = path;
     }
