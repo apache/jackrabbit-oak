@@ -196,7 +196,7 @@ public class VersionGCSupportTest {
         setModified(op, r);
         store.create(NODES, of(op));
 
-        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
+        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE).orElse(NULL);
         String oldestModifiedDocId = oldestModifiedDoc.getId();
         long reportedSecs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
         assertTrue("diff (s) should be < 5: " + Math.abs(secs - reportedSecs), Math.abs(secs - reportedSecs) < 5);
@@ -219,7 +219,7 @@ public class VersionGCSupportTest {
         // create 5_000 nodes
         store.create(NODES, updateOps);
 
-        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
+        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE).orElse(NULL);
         String oldestModifiedDocId = oldestModifiedDoc.getId();
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
         assertEquals(40L, oldestModifiedDocTs);
@@ -254,7 +254,7 @@ public class VersionGCSupportTest {
         // create 5_001 nodes
         store.create(NODES, updateOps);
 
-        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
+        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE).orElse(NULL);
         String oldestModifiedDocId = oldestModifiedDoc.getId();
         long oldestModifiedDocTs = ofNullable(oldestModifiedDoc.getModified()).orElse(0L);
         assertEquals(40L, oldestModifiedDocTs);
@@ -290,7 +290,7 @@ public class VersionGCSupportTest {
     @Test
     public void findModifiedDocsWhenOldestDocIsAbsent() {
 
-        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE);
+        NodeDocument oldestModifiedDoc = gcSupport.getOldestModifiedDoc(SIMPLE).orElse(NULL);
         String oldestModifiedDocId = MIN_ID_VALUE;
         long oldestModifiedDocTs = 0L;
         assertEquals(NULL, oldestModifiedDoc);

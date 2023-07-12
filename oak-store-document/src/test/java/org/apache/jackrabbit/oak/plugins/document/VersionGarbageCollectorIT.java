@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
@@ -171,11 +172,15 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
         assertTrue(stats.ignoredGCDueToCheckPoint);
+        assertFalse(stats.ignoredDetailGCDueToCheckPoint);
+        assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
         assertFalse("GC should be performed", stats.ignoredGCDueToCheckPoint);
+        assertFalse("Detailed GC shouldn't be performed", stats.ignoredDetailGCDueToCheckPoint);
+        assertFalse(stats.canceled);
     }
 
     @Test
@@ -243,6 +248,78 @@ public class VersionGarbageCollectorIT {
 
     // OAK-10199
     @Test
+    public void detailedGCIgnoredForCheckpoint() throws Exception {
+        long expiryTime = 100, maxAge = 20;
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+
+        Revision cp = Revision.fromString(store.checkpoint(expiryTime));
+
+        //Fast forward time to future but before expiry of checkpoint
+        clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
+        VersionGCStats stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
+        assertTrue(stats.ignoredDetailGCDueToCheckPoint);
+        assertTrue(stats.canceled);
+
+        //Fast forward time to future such that checkpoint get expired
+        clock.waitUntil(clock.getTime() + expiryTime + 1);
+        stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
+        assertFalse("Detailed GC should be performed", stats.ignoredDetailGCDueToCheckPoint);
+        assertFalse(stats.canceled);
+    }
+
+    @Test
+    public void testDetailedGCNotIgnoredForRGCCheckpoint() throws Exception {
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+
+        //1. Create nodes with properties
+        NodeBuilder b1 = store.getRoot().builder();
+
+        // Add property to node & save
+        b1.child("x").setProperty("test", "t", STRING);
+        b1.child("z").setProperty("test", "t", STRING);
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        //Remove property
+        NodeBuilder b2 = store.getRoot().builder();
+        b2.getChildNode("x").removeProperty("test");
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        //2. move clock forward with 2 hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+
+        //3. Create a checkpoint now with expiry of 1 hour
+        long expiryTime = 1, delta = MINUTES.toMillis(10);
+        NodeBuilder b3 = store.getRoot().builder();
+        b3.getChildNode("z").removeProperty("test");
+        store.merge(b3, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        Revision.fromString(store.checkpoint(HOURS.toMillis(expiryTime)));
+
+        //4. move clock forward by 10 mins
+        clock.waitUntil(clock.getTime() + delta);
+
+        // 5. Remove a node
+        NodeBuilder b4 = store.getRoot().builder();
+        b4.getChildNode("z").remove();
+        store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        // 6. Now run gc after checkpoint and see removed properties gets collected
+        clock.waitUntil(clock.getTime() + delta*2);
+        VersionGCStats stats = gc.gc(delta, MILLISECONDS);
+        assertEquals(1, stats.deletedPropsGCCount);
+        assertEquals(1, stats.updatedDetailedGCDocsCount);
+        assertTrue(stats.ignoredGCDueToCheckPoint);
+        assertFalse(stats.ignoredDetailGCDueToCheckPoint);
+        assertFalse(stats.canceled);
+    }
+
+    @Test
     public void testGCDeletedProps() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store.getRoot().builder();
@@ -265,7 +342,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(10);
+        long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
@@ -365,7 +442,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(20);
+        long delta = MINUTES.toMillis(20);
 
         //Remove property
         NodeBuilder b2 = store.getRoot().builder();
@@ -412,7 +489,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(20);
+        long delta = MINUTES.toMillis(20);
 
 
         store.runBackgroundOperations();
@@ -426,6 +503,7 @@ public class VersionGarbageCollectorIT {
             long oldestModifiedDocTimeStamp = stats.oldestModifiedDocTimeStamp;
 
             Document document = store.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
+            assert document != null;
             assertEquals(document.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
             assertEquals(document.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
         }
@@ -444,7 +522,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(10);
+        long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
@@ -525,7 +603,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(10);
+        long delta = MINUTES.toMillis(10);
 
         //3. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
@@ -574,7 +652,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(10);
+        long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
@@ -630,7 +708,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(10);
+        long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
@@ -651,7 +729,7 @@ public class VersionGarbageCollectorIT {
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsGCCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertNull(stats.oldestModifiedDocId); // as GC hadn't run
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId); // as GC hadn't run
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -699,7 +777,7 @@ public class VersionGarbageCollectorIT {
         // enable the detailed gc flag
         writeField(gc, "detailedGCEnabled", true, true);
         long maxAge = 1; //hours
-        long delta = TimeUnit.MINUTES.toMillis(10);
+        long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc.gc(maxAge, HOURS);
