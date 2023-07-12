@@ -329,31 +329,48 @@ public class TypeEditorTest {
 
     @Test
     public void addChildNodeNotStrictDefaultPrimaryTypeIfUnspecified() throws CommitFailedException {
-        // set strict to 'false' to allow unset jcr:primaryType on new node
+        // set strict to 'false' to allow a new node to omit the jcr:primaryType property, so that the TypeEditor will
+        // set the default primary type based on the effective node type of its parent
         EditorHook hook = new EditorHook(new TypeEditorProvider(false));
 
         NodeState root = INITIAL_CONTENT;
         NodeBuilder builder = root.builder();
 
+        // first build a policy node at path /conf/rep:policy with the explicit primary type of rep:ACL
+        // the rep:ACL node type defines a default primary type of rep:GrantACE for any child node
         NodeBuilder policyBuilder = builder.child("conf")
                 .setProperty(JCR_PRIMARYTYPE, "nt:folder", Type.NAME)
                 .setProperty(JCR_MIXINTYPES, ImmutableList.of(AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE), Type.NAMES)
                 .child("rep:policy")
-                // create the policy node with the correct primary type in the before state
                 .setProperty(JCR_PRIMARYTYPE, AccessControlConstants.NT_REP_ACL, Type.NAME);
 
+        // capture the before state from the root builder
         NodeState before = builder.getNodeState();
+
+        // now add a child node named "allow" to the policy node. However, omit the jcr:primaryType property.
+        // we expect the type editor to set the default primary type of rep:GrantACE for this new node
         policyBuilder.child("allow")
                 .setProperty(AccessControlConstants.REP_PRINCIPAL_NAME, EveryonePrincipal.NAME, Type.STRING)
                 .setProperty(AccessControlConstants.REP_PRIVILEGES, ImmutableList.of("jcr:read"), Type.NAMES);
-        NodeState commit = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
-        NodeState policyState = commit.getChildNode("conf").getChildNode("rep:policy");
 
-        assertEquals("expect primary types: rep:policy(rep:ACL) => allow(rep:GrantACE)",
-                ImmutableMap.of(AccessControlConstants.NT_REP_ACL, AccessControlConstants.NT_REP_GRANT_ACE),
+        // capture the after state from the root builder
+        NodeState after = hook.processCommit(before, builder.getNodeState(), CommitInfo.EMPTY);
+
+        // verify that the after state has the expected primary types for the policy node and its child node
+        NodeState policyState = after.getChildNode("conf").getChildNode("rep:policy");
+        assertEquals("expect primary types: rep:policy(rep:ACL)/allow(rep:GrantACE)",
                 ImmutableMap.of(
-                        Optional.ofNullable(policyState.getProperty(JCR_PRIMARYTYPE)).map(state -> state.getValue(Type.NAME)).orElse(""),
-                        Optional.ofNullable(policyState.getChildNode("allow").getProperty(JCR_PRIMARYTYPE)).map(state -> state.getValue(Type.NAME)).orElse("")));
+                        // rep:policy parent node
+                        AccessControlConstants.NT_REP_ACL,
+                        // allow child node
+                        AccessControlConstants.NT_REP_GRANT_ACE),
+                ImmutableMap.of(
+                        // rep:policy parent node
+                        Optional.ofNullable(policyState.getProperty(JCR_PRIMARYTYPE))
+                                .map(state -> state.getValue(Type.NAME)).orElse(""),
+                        // allow child node
+                        Optional.ofNullable(policyState.getChildNode("allow").getProperty(JCR_PRIMARYTYPE))
+                                .map(state -> state.getValue(Type.NAME)).orElse("")));
     }
 
 }
