@@ -83,14 +83,9 @@ public class VersionGCInitTest {
 
         vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(vgc);
-<<<<<<< HEAD
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
         assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
         assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
-=======
-        assertEquals(40_000L, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
-        assertEquals("1:/node", vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
->>>>>>> d3b73cd921 (OAK-10199 : added unit cases to handle concurrent prop update and escaped properties update)
     }
 
     @Test
