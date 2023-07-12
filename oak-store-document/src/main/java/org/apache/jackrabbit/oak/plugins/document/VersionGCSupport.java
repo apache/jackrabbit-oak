@@ -20,17 +20,21 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Comparator.comparing;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.StreamSupport.stream;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.stream.Collectors.toList;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
+import java.util.Optional;
 import java.util.Set;
-import java.util.stream.StreamSupport;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -66,8 +70,7 @@ public class VersionGCSupport {
      * @return matching documents.
      */
     public Iterable<NodeDocument> getPossiblyDeletedDocs(final long fromModified, final long toModified) {
-        return StreamSupport
-                .stream(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1).spliterator(), false)
+        return stream(getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1).spliterator(), false)
                 .filter(input -> input.wasDeletedOnce() && modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
                 .collect(toList());
     }
@@ -90,9 +93,14 @@ public class VersionGCSupport {
      */
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
                                                   @NotNull final String fromId) {
-        return StreamSupport
-                .stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, fromId).spliterator(), false)
-                .filter(input -> modifiedGreaterThanEquals(input, fromModified) && modifiedLessThan(input, toModified))
+        // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
+        final Stream<NodeDocument> s1 = stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1, fromId).spliterator(), false)
+                .filter(input -> modifiedEqualsTo(input, fromModified));
+
+        final Stream<NodeDocument> s2 = stream(getSelectedDocuments(store, MODIFIED_IN_SECS, 1).spliterator(), false)
+                .filter(input -> modifiedGreaterThan(input, fromModified) && modifiedLessThan(input, toModified));
+
+        return concat(s1, s2)
                 .sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2))
                 .limit(limit)
                 .collect(toList());
@@ -102,6 +110,17 @@ public class VersionGCSupport {
         Long modified = doc.getModified();
         return modified != null && modified.compareTo(getModifiedInSecs(time)) >= 0;
     }
+
+    private boolean modifiedGreaterThan(final NodeDocument doc, final long time) {
+        Long modified = doc.getModified();
+        return modified != null && modified.compareTo(getModifiedInSecs(time)) > 0;
+    }
+
+    private boolean modifiedEqualsTo(final NodeDocument doc, final long time) {
+        Long modified = doc.getModified();
+        return modified != null && modified.compareTo(getModifiedInSecs(time)) == 0;
+    }
+
     private boolean modifiedLessThan(final NodeDocument doc, final long time) {
         Long modified = doc.getModified();
         return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
@@ -189,7 +208,7 @@ public class VersionGCSupport {
      *
      * @return the oldest modified document.
      */
-    public NodeDocument getOldestModifiedDoc(final Clock clock) {
+    public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
         long ts = 0;
         long now = clock.getTime();
         Iterable<NodeDocument> docs = null;
@@ -198,13 +217,13 @@ public class VersionGCSupport {
         try {
             docs = getModifiedDocs(ts, now, 1, MIN_ID_VALUE);
             if (docs.iterator().hasNext()) {
-                return docs.iterator().next();
+                return ofNullable(docs.iterator().next());
             }
         } finally {
             Utils.closeIfCloseable(docs);
         }
         LOG.info("find oldest modified document to be {}", Utils.timestampToString(ts));
-        return NULL;
+        return empty();
     }
 
     public long getDeletedOnceCount() throws UnsupportedOperationException {

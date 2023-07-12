@@ -324,7 +324,7 @@ public class VersionGCTest {
         VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
 
         VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport,
-                options, new TestGCMonitor());
+                options, new TestGCMonitor(), false);
 
         // should select a duration of roughly one month
         long duration= rec.scope.getDurationMs();
@@ -338,7 +338,7 @@ public class VersionGCTest {
         assertTrue(stats.needRepeat);
 
         rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                new TestGCMonitor());
+                new TestGCMonitor(), false);
 
         // new duration should be half
         long nduration = rec.scope.getDurationMs();
@@ -367,7 +367,7 @@ public class VersionGCTest {
         // loop until the recommended interval is at 60s (precisionMS)
         do {
             rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor);
+                    testmonitor, false);
             stats = new VersionGCStats();
             stats.limitExceeded = true;
             rec.evaluate(stats);
@@ -384,7 +384,7 @@ public class VersionGCTest {
             deletedCount -= deleted;
             localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted, deletedCount);
             rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor);
+                    testmonitor, false);
             stats = new VersionGCStats();
             stats.limitExceeded = false;
             stats.deletedDocGCCount = deleted;
