@@ -27,7 +27,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -41,7 +40,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
  */
-class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeSortTask.Result> {
+class TreeSortPipelinedSortBatchTaskObsolete implements Callable<TreeSortPipelinedSortBatchTaskObsolete.Result> {
 
     private final Store store;
     private final Session session;
@@ -64,16 +63,16 @@ class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeS
         }
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedSortBatchTreeSortTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TreeSortPipelinedSortBatchTaskObsolete.class);
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
     private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
     private final File storeDir;
     private long entriesProcessed = 0;
 
-    public PipelinedSortBatchTreeSortTask(File storeDir,
-                                          Compression algorithm,
-                                          BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
-                                          BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue) {
+    public TreeSortPipelinedSortBatchTaskObsolete(File storeDir,
+                                                  Compression algorithm,
+                                                  BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
+                                                  BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue) {
         this.emptyBuffersQueue = emptyBuffersQueue;
         this.nonEmptyBuffersQueue = nonEmptyBuffersQueue;
         this.storeDir = storeDir;

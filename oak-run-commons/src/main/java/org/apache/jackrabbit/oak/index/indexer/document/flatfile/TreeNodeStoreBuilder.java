@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedSortedTreeStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.TreeSortPipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -85,7 +85,7 @@ public class TreeNodeStoreBuilder {
 
     public File createSortedStoreFile() throws IOException {
         File treeStoreDirectory = Files.createTempDirectory(workDir.toPath(), TREE_STORE_DIRECTORY).toFile();
-        PipelinedSortedTreeStrategy strategy = new PipelinedSortedTreeStrategy(
+        TreeSortPipelinedStrategy strategy = new TreeSortPipelinedStrategy(
                 mongoDocumentStore, nodeStore, rootRevision,
                 blobStore, treeStoreDirectory, algorithm, pathPredicate
         );

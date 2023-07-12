@@ -108,7 +108,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
  *
  * <h2>Retrials on broken MongoDB connections</h2>
  */
-public class PipelinedSortedTreeStrategy implements SortStrategy {
+public class TreeSortPipelinedStrategyObsolete implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = "oak.indexer.pipelined.mongoDocQueueSize";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = 100;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = "oak.indexer.pipelined.mongoDocBatchSize";
@@ -118,7 +118,7 @@ public class PipelinedSortedTreeStrategy implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
     // 0 means autodetect
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = 0;
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedSortedTreeStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TreeSortPipelinedStrategyObsolete.class);
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 64;
     private static final int MIN_WORKING_MEMORY_MB = 512;
 
@@ -184,13 +184,13 @@ public class PipelinedSortedTreeStrategy implements SortStrategy {
     private long entryCount;
     private final Predicate<String> pathPredicate;
 
-    public PipelinedSortedTreeStrategy(MongoDocumentStore documentStore,
-                                       DocumentNodeStore documentNodeStore,
-                                       RevisionVector rootRevision,
-                                       BlobStore blobStore,
-                                       File storeDir,
-                                       Compression algorithm,
-                                       Predicate<String> pathPredicate) {
+    public TreeSortPipelinedStrategyObsolete(MongoDocumentStore documentStore,
+                                             DocumentNodeStore documentNodeStore,
+                                             RevisionVector rootRevision,
+                                             BlobStore blobStore,
+                                             File storeDir,
+                                             Compression algorithm,
+                                             Predicate<String> pathPredicate) {
         this.docStore = documentStore;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
@@ -315,7 +315,7 @@ public class PipelinedSortedTreeStrategy implements SortStrategy {
                 ecs.submit(transformTask);
             }
 
-            PipelinedSortBatchTreeSortTask sortTask = new PipelinedSortBatchTreeSortTask(
+            TreeSortPipelinedSortBatchTaskObsolete sortTask = new TreeSortPipelinedSortBatchTaskObsolete(
                     storeDir, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue
             );
             ecs.submit(sortTask);
@@ -361,8 +361,8 @@ public class PipelinedSortedTreeStrategy implements SortStrategy {
                                 LOG.info("Released all node state entry buffers.");
                             }
 
-                        } else if (result instanceof PipelinedSortBatchTreeSortTask.Result) {
-                            PipelinedSortBatchTreeSortTask.Result sortTaskResult = (PipelinedSortBatchTreeSortTask.Result) result;
+                        } else if (result instanceof TreeSortPipelinedSortBatchTaskObsolete.Result) {
+                            TreeSortPipelinedSortBatchTaskObsolete.Result sortTaskResult = (TreeSortPipelinedSortBatchTaskObsolete.Result) result;
                             LOG.info("Sort task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
                             printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
                             flatFileStore = sortTaskResult.getSortedTreeDirectory();
