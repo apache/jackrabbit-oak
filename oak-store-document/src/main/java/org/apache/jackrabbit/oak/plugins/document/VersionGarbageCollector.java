@@ -77,8 +77,6 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setDeleted;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 public class VersionGarbageCollector {
@@ -233,7 +231,7 @@ public class VersionGarbageCollector {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         long now = nodeStore.getClock().getTime();
         VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                nodeStore.getClock(), versionStore, options, gcMonitor);
+                nodeStore.getClock(), versionStore, options, gcMonitor, detailedGCEnabled);
         int estimatedIterations = -1;
         if (rec.suggestedIntervalMs > 0) {
             estimatedIterations = (int)Math.ceil(
@@ -272,6 +270,7 @@ public class VersionGarbageCollector {
 
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
+        boolean ignoredDetailGCDueToCheckPoint;
         boolean canceled;
         boolean success = true;
         boolean limitExceeded;
@@ -349,6 +348,7 @@ public class VersionGarbageCollector {
 
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
+                    "ignoredDetailGCDueToCheckPoint=" + ignoredDetailGCDueToCheckPoint +
                     ", canceled=" + canceled +
                     ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
                     ", updateResurrectedGCCount=" + updateResurrectedGCCount +
@@ -366,6 +366,7 @@ public class VersionGarbageCollector {
         void addRun(VersionGCStats run) {
             ++iterationCount;
             this.ignoredGCDueToCheckPoint = run.ignoredGCDueToCheckPoint;
+            this.ignoredDetailGCDueToCheckPoint = run.ignoredDetailGCDueToCheckPoint;
             this.canceled = run.canceled;
             this.success = run.success;
             this.limitExceeded = run.limitExceeded;
@@ -566,13 +567,12 @@ public class VersionGarbageCollector {
             VersionGCStats stats = new VersionGCStats();
             stats.active.start();
             VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                    nodeStore.getClock(), versionStore, options, gcMonitor);
+                    nodeStore.getClock(), versionStore, options, gcMonitor, detailedGCEnabled);
             GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
                 if (rec.ignoreDueToCheckPoint) {
                     phases.stats.ignoredGCDueToCheckPoint = true;
                     monitor.skipped("Checkpoint prevented revision garbage collection");
-                    cancel.set(true);
                 } else {
                     final RevisionVector headRevision = nodeStore.getHeadRevision();
                     final RevisionVector sweepRevisions = nodeStore.getSweepRevisions();
@@ -580,11 +580,26 @@ public class VersionGarbageCollector {
 
                     collectDeletedDocuments(phases, headRevision, rec);
                     collectSplitDocuments(phases, sweepRevisions, rec);
-                    if (detailedGCEnabled) {
-                        // run only if detailed GC enabled
+                }
+
+                // now run detailed GC if enabled
+                if (detailedGCEnabled) {
+                    if (rec.ignoreDetailGCDueToCheckPoint) {
+                        phases.stats.ignoredDetailGCDueToCheckPoint = true;
+                        monitor.skipped("Checkpoint prevented detailed revision garbage collection");
+                    } else {
+                        final RevisionVector headRevision = nodeStore.getHeadRevision();
+                        monitor.info("Looking at revisions in {} for detailed GC", rec.scopeDetailedGC);
                         collectDetailedGarbage(phases, headRevision, rec);
                     }
                 }
+
+                if (detailedGCEnabled && rec.ignoreDueToCheckPoint && rec.ignoreDetailGCDueToCheckPoint) {
+                    cancel.set(true);
+                } else if (!detailedGCEnabled && rec.ignoreDueToCheckPoint) {
+                    cancel.set(true);
+                }
+
             } catch (LimitExceededException ex) {
                 stats.limitExceeded = true;
             } finally {
@@ -623,20 +638,19 @@ public class VersionGarbageCollector {
             int docsTraversed = 0;
             boolean foundDoc = true;
             final long oldestModifiedMs = rec.scopeDetailedGC.fromMs;
+            final long toModified = rec.scopeDetailedGC.toMs;
             long oldModifiedMs = oldestModifiedMs;
             final String oldestModifiedDocId = rec.detailedGCId;
             try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
                 long fromModified = oldestModifiedMs;
-                String fromId = oldestModifiedDocId;
-                NodeDocument lastDoc = null;
-                final long toModified = rec.scopeDetailedGC.toMs;
+                String fromId = ofNullable(oldestModifiedDocId).orElse(MIN_ID_VALUE);
+                NodeDocument lastDoc;
                 if (phases.start(GCPhase.DETAILED_GC)) {
-                    while (foundDoc && fromModified < toModified && docsTraversed <= PROGRESS_BATCH_SIZE) {
+                    while (foundDoc && fromModified < toModified && docsTraversed < PROGRESS_BATCH_SIZE) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
                         lastDoc = null;
                         Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModified, toModified, 1000, fromId);
-                        final Revision revision = nodeStore.newRevision();
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -647,7 +661,7 @@ public class VersionGarbageCollector {
                                     break;
                                 }
                                 docsTraversed++;
-                                if (docsTraversed % PROGRESS_BATCH_SIZE == 0) {
+                                if (docsTraversed % 100 == 0) {
                                     monitor.info("Iterated through {} documents so far. {} had detail garbage",
                                             docsTraversed, gc.getGarbageDocsCount());
                                 }
@@ -655,7 +669,7 @@ public class VersionGarbageCollector {
                                 lastDoc = doc;
                                 // collect the data to delete in next step
                                 if (phases.start(GCPhase.COLLECTING)) {
-                                    gc.collectGarbage(doc, phases, revision);
+                                    gc.collectGarbage(doc, phases);
                                     phases.stop(GCPhase.COLLECTING);
                                 }
 
@@ -681,7 +695,7 @@ public class VersionGarbageCollector {
                         } finally {
                             Utils.closeIfCloseable(itr);
                             phases.stats.oldestModifiedDocTimeStamp = fromModified;
-                            if (fromModified > (oldModifiedMs + 1)) {
+                            if (fromModified > oldModifiedMs) {
                                 // we have moved ahead, now we can reset oldestModifiedId to min value
                                 fromId = MIN_ID_VALUE;
                                 phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
@@ -690,10 +704,10 @@ public class VersionGarbageCollector {
                                 // save the last _id traversed to avoid re-fetching of ids
                                 phases.stats.oldestModifiedDocId = fromId;
                             }
-                            oldModifiedMs = fromModified - 1;
+                            oldModifiedMs = fromModified;
                         }
-
-                        // if we are already at last document of current timeStamp,
+                        // if we didn't find any document i.e. either we are already at last document
+                        // of current timeStamp or there is no document for this timeStamp
                         // we need to reset fromId & increment fromModified and check again
                         if (!foundDoc && !Objects.equals(fromId, MIN_ID_VALUE)) {
                             fromId = MIN_ID_VALUE;
@@ -702,6 +716,13 @@ public class VersionGarbageCollector {
                         }
                     }
                     phases.stop(GCPhase.DETAILED_GC);
+                }
+            } finally {
+                if (docsTraversed < PROGRESS_BATCH_SIZE) {
+                    // we have traversed all the docs within given time range and nothing is left
+                    // lets set oldModifiedDocTimeStamp to upper limit of this cycle
+                    phases.stats.oldestModifiedDocTimeStamp = toModified;
+                    phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
                 }
             }
         }
@@ -815,14 +836,14 @@ public class VersionGarbageCollector {
             this.timer = Stopwatch.createUnstarted();
         }
 
-        public void collectGarbage(final NodeDocument doc, final GCPhases phases, final Revision revision) {
+        public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
 
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
 
             final UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
             op.equals(MODIFIED_IN_SECS, doc.getModified());
 
-            collectDeletedProperties(doc, phases, op, revision);
+            collectDeletedProperties(doc, phases, op);
             collectUnmergedBranchCommitDocument(doc, phases, op);
             collectOldRevisions(doc, phases, op);
             // only add if there are changes for this doc
@@ -845,7 +866,7 @@ public class VersionGarbageCollector {
 
         }
 
-        private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp, final Revision revision) {
+        private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
 
             // get Map of all properties along with their values
             if (phases.start(GCPhase.COLLECT_PROPS)) {
@@ -864,8 +885,6 @@ public class VersionGarbageCollector {
                         .filter(p -> !retainPropSet.contains(p))
                         .mapToInt(x -> {
                             updateOp.remove(x);
-                            setModified(updateOp,revision);
-                            setDeleted(updateOp, revision, false);
                             return 1;})
                         .sum();
 
