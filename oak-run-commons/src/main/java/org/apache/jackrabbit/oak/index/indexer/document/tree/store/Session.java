@@ -29,11 +29,14 @@ import java.util.Properties;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Cache;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Position;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SortedStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Read and write keys and values.
  */
 public class Session {
+    private static final Logger LOG = LoggerFactory.getLogger(Session.class);
 
     private static final int DEFAULT_CACHE_SIZE = 128;
     private static final int DEFAULT_MAX_FILE_SIZE = 16 * 1024;
@@ -180,7 +183,7 @@ public class Session {
      */
     public String get(String key) {
         if (key == null) {
-            throw new NullPointerException();
+            throw new IllegalArgumentException("key must not be null");
         }
         String fileName = ROOT_NAME;
         do {
@@ -481,6 +484,7 @@ public class Session {
         PageFile root = getFile(ROOT_NAME);
         cache.remove(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
+        LOG.info("Checkpoint, new file: " + rootFileCopy);
         root = copyPageFile(root);
         root.setFileName(rootFileCopy);
         putFile(rootFileCopy, root);

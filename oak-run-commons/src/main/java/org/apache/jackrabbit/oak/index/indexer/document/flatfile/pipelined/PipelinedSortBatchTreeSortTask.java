@@ -18,9 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
@@ -32,11 +31,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
@@ -45,6 +42,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
  */
 class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeSortTask.Result> {
+
     private final Store store;
     private final Session session;
 
@@ -60,32 +58,32 @@ class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeS
         public long getTotalEntries() {
             return totalEntries;
         }
+
+        public File getSortedTreeDirectory() {
+            return sortedTreeDirectory;
+        }
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedSortBatchTreeSortTask.class);
-
-    private final Comparator<SortKey> pathComparator = new PathElementTreeSortComparator();
-    private final Compression algorithm;
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
     private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
-    private final File sortWorkDir;
+    private final File storeDir;
     private long entriesProcessed = 0;
 
     public PipelinedSortBatchTreeSortTask(File storeDir,
                                           Compression algorithm,
                                           BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
-                                          BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue) throws IOException {
-        this.algorithm = algorithm;
+                                          BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue) {
         this.emptyBuffersQueue = emptyBuffersQueue;
         this.nonEmptyBuffersQueue = nonEmptyBuffersQueue;
-        this.sortWorkDir = createdSortWorkDir(storeDir);
+        this.storeDir = storeDir;
 
         String storeConfig = "type=file\n" +
                 "cacheSizeMB=2048\n" +
                 "maxFileSize=48000000\n" +
-                "dir=" + storeDir;
+                "dir=" + this.storeDir.getAbsolutePath();
         this.store = StoreBuilder.build(storeConfig);
-        store.setWriteCompression(org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression.LZ4);
+        store.setWriteCompression(algorithm);
         session = new Session(store);
         session.init();
     }
@@ -102,10 +100,11 @@ class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeS
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
                     LOG.info("Received sentinel. Merging roots.");
                     session.mergeRoots();
+                    session.flush();
                     LOG.info("Merged roots. Closing store.");
                     store.close();
                     LOG.info("Terminating thread, processed {} entries", entriesProcessed);
-                    return new Result(sortWorkDir, entriesProcessed);
+                    return new Result(storeDir, entriesProcessed);
                 }
                 sortAndSaveBatch(nseBuffer);
                 nseBuffer.reset();
@@ -124,7 +123,7 @@ class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeS
         }
     }
 
-    private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
+    private void sortAndSaveBatch(NodeStateEntryBatch nseb) {
         ArrayList<SortKey> sortBuffer = nseb.getSortBuffer();
         ByteBuffer buffer = nseb.getBuffer();
         LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
@@ -133,7 +132,7 @@ class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeS
             return;
         }
         Stopwatch sortClock = Stopwatch.createStarted();
-        sortBuffer.sort(pathComparator);
+        Collections.sort(sortBuffer);
         LOG.info("Sorted batch in {}. Saving to disk.", sortClock);
         Stopwatch saveClock = Stopwatch.createStarted();
         long textSize = 0;
@@ -155,39 +154,8 @@ class PipelinedSortBatchTreeSortTask implements Callable<PipelinedSortBatchTreeS
             String value = line.substring(index + 1);
             session.put(path, value);
         }
+        LOG.info("Stored batch with: {} entries in time: {}", nseb.numberOfEntries(), saveClock);
         nseb.reset();
         session.checkpoint();
-        LOG.info("Stored batch with: {} entries in time: {}", nseb.numberOfEntries(), saveClock);
-//        try (BufferedOutputStream writer = createOutputStream(newtmpfile, algorithm)) {
-//            for (SortKey entry : sortBuffer) {
-//                entriesProcessed++;
-//                // Retrieve the entry from the buffer
-//                int posInBuffer = entry.getBufferPos();
-//                buffer.position(posInBuffer);
-//                int entrySize = buffer.getInt();
-//
-//                // Write the entry to the file without creating intermediate byte[]
-//                int bytesRemaining = entrySize;
-//                while (bytesRemaining > 0) {
-//                    int bytesRead = Math.min(copyBuffer.length, bytesRemaining);
-//                    buffer.get(copyBuffer, 0, bytesRead);
-//                    writer.write(copyBuffer, 0, bytesRead);
-//                    bytesRemaining -= bytesRead;
-//                }
-//                writer.write('\n');
-//                textSize += entrySize + 1;
-//            }
-//        }
-//        LOG.info("Stored batch of size {} (uncompressed {}) with {} entries in {}",
-//                humanReadableByteCountBin(newtmpfile.length()),
-//                humanReadableByteCountBin(textSize),
-//                sortBuffer.size(), saveClock);
-
-    }
-
-    private static File createdSortWorkDir(File storeDir) throws IOException {
-        File sortedFileDir = new File(storeDir, "sort-work-dir");
-        FileUtils.forceMkdir(sortedFileDir);
-        return sortedFileDir;
     }
 }

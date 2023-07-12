@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeSto
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.TreeNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -143,7 +144,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements,
-            boolean splitFlatFile, Set<IndexDefinition> indexDefinitions) throws IOException {
+                                                       boolean splitFlatFile, Set<IndexDefinition> indexDefinitions) throws IOException {
         List<FlatFileStore> storeList = new ArrayList<>();
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
@@ -209,7 +210,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     /**
-     *
      * @return an Instance of FlatFileStore, whose getFlatFileStorePath() method can be used to get the absolute path to this store.
      * @throws IOException
      * @throws CommitFailedException
@@ -223,12 +223,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
-            preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
+                preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
                 flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
         return flatFileStore;
     }
 
+    // TODO: Testing code, remove
     public void reindexUsingTreeStore() throws CommitFailedException, IOException {
         NodeStateEntryReader reader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
         TreeStore treeStore = new TreeStore(new File("target/treeStore"), reader);
@@ -291,7 +292,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         closer.register(indexer);
 
         List<FlatFileStore> flatFileStores = buildFlatFileStoreList(checkpointedState, indexer,
-            indexer::shouldInclude, null, IndexerConfiguration.parallelIndexEnabled(), getIndexDefinitions());
+                indexer::shouldInclude, null, IndexerConfiguration.parallelIndexEnabled(), getIndexDefinitions());
 
         progressReporter.reset();
 
@@ -320,8 +321,66 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
+    public void reindexTreeStore() throws CommitFailedException, IOException {
+        IndexingProgressReporter progressReporter =
+                new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
+        configureEstimators(progressReporter);
+
+        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
+
+        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+        try (CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter)) {
+            if (indexer.isEmpty()) {
+                return;
+            }
+
+            closer.register(indexer);
+
+            File treeStoreDirectory = buildTreeStore(checkpointedState, indexer::shouldInclude);
+
+            progressReporter.reset();
+
+            progressReporter.reindexingTraversalStart("/");
+
+            preIndexOpertaions(indexer.getIndexers());
+
+            Stopwatch indexerWatch = Stopwatch.createStarted();
+
+            NodeStateEntryReader reader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
+            try (TreeStore treeStore = new TreeStore(treeStoreDirectory, reader)) {
+                for (NodeStateEntry entry : treeStore) {
+                    reportDocumentRead(entry.getPath(), progressReporter);
+                    indexer.index(entry);
+                }
+            }
+            progressReporter.reindexingTraversalEnd();
+            progressReporter.logReport();
+            log.info("Completed the indexing in {}", indexerWatch);
+        }
+
+        copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        indexerSupport.postIndexWork(copyOnWriteStore);
+    }
+
+    public File buildTreeStore(NodeState checkpointedState, Predicate<String> pathPredicate) throws IOException {
+        DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
+        DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
+
+        TreeNodeStoreBuilder builder = new TreeNodeStoreBuilder(indexHelper.getWorkDir())
+                .withBlobStore(indexHelper.getGCBlobStore())
+                .withPathPredicate(pathPredicate)
+                .withRootRevision(rootDocumentState.getRootRevision())
+                .withNodeStore(nodeStore)
+                .withMongoDocumentStore(getMongoDocumentStore());
+
+        return builder.createSortedStoreFile();
+    }
+
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
-        throws IOException {
+            throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(IndexerConfiguration.indexThreadPoolSize());
         List<Future> futureList = new ArrayList<>();
 

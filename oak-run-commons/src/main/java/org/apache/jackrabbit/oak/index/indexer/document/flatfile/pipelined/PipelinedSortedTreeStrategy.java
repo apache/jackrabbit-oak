@@ -24,9 +24,9 @@ import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
@@ -39,9 +39,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -53,7 +50,8 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
 
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:
@@ -71,7 +69,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  * configurable size, at which point it sorts the data and writes it to a file. The data is accumulated in instances of
  * {@link NodeStateEntryBatch}. This class contains two data structures:
  * <ul>
- * <li>A {@link java.nio.ByteBuffer} for the binary representation of the entry, that is, the byte array that will be written to the file.
+ * <li>A {@link ByteBuffer} for the binary representation of the entry, that is, the byte array that will be written to the file.
  * This buffer contains length-prefixed byte arrays, that is, each entry is {@code <size><data>}, where size is a 4 byte int.
  * <li>An array of {@link SortKey} instances, which contain the paths of each entry and are used to sort the entries. Each element
  * in this array also contains the position in the ByteBuffer of the serialized representation of the entry.
@@ -79,7 +77,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  * This representation has several advantages:
  * <ul>
  * <li>It is compact, as a String object in the heap requires more memory than a length-prefixed byte array in the ByteBuffer.
- * <li>Predictable memory usage - the memory used by the {@link java.nio.ByteBuffer} is fixed and allocated at startup
+ * <li>Predictable memory usage - the memory used by the {@link ByteBuffer} is fixed and allocated at startup
  * (more on this later). The memory used by the array of {@link SortKey} is not bounded, but these objects are small,
  * as they contain little more than the path of the entry, and we can easily put limits on the maximum number of entries
  * kept in a buffer.
@@ -110,7 +108,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  *
  * <h2>Retrials on broken MongoDB connections</h2>
  */
-public class PipelinedStrategy implements SortStrategy {
+public class PipelinedSortedTreeStrategy implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = "oak.indexer.pipelined.mongoDocQueueSize";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = 100;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = "oak.indexer.pipelined.mongoDocBatchSize";
@@ -120,13 +118,7 @@ public class PipelinedStrategy implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
     // 0 means autodetect
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = 0;
-
-    static final BasicDBObject[] SENTINEL_MONGO_DOCUMENT = new BasicDBObject[0];
-    static final NodeStateEntryBatch SENTINEL_NSE_BUFFER = new NodeStateEntryBatch(ByteBuffer.allocate(0), 0);
-    static final File SENTINEL_SORTED_FILES_QUEUE = new File("SENTINEL");
-    static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
-
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedSortedTreeStrategy.class);
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 64;
     private static final int MIN_WORKING_MEMORY_MB = 512;
 
@@ -188,26 +180,22 @@ public class PipelinedStrategy implements SortStrategy {
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
     private final File storeDir;
-
-    private final PathElementComparator pathComparator;
     private final Compression algorithm;
     private long entryCount;
     private final Predicate<String> pathPredicate;
 
-    public PipelinedStrategy(MongoDocumentStore documentStore,
-                             DocumentNodeStore documentNodeStore,
-                             RevisionVector rootRevision,
-                             Set<String> preferredPathElements,
-                             BlobStore blobStore,
-                             File storeDir,
-                             Compression algorithm,
-                             Predicate<String> pathPredicate) {
+    public PipelinedSortedTreeStrategy(MongoDocumentStore documentStore,
+                                       DocumentNodeStore documentNodeStore,
+                                       RevisionVector rootRevision,
+                                       BlobStore blobStore,
+                                       File storeDir,
+                                       Compression algorithm,
+                                       Predicate<String> pathPredicate) {
         this.docStore = documentStore;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
         this.blobStore = blobStore;
         this.storeDir = storeDir;
-        this.pathComparator = new PathElementComparator(preferredPathElements);
         this.pathPredicate = pathPredicate;
         this.algorithm = algorithm;
 
@@ -247,7 +235,7 @@ public class PipelinedStrategy implements SortStrategy {
             workingMemoryMB = autodetectWorkingMemoryMB();
         }
 
-        int numberOfThreads = 1 + transformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
+        int numberOfThreads = 1 + transformThreads + 1; // dump, transform, sort threads, sorted files merge
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
                 new ThreadFactoryBuilder().setNameFormat("mongo-dump").setDaemon(true).build()
         );
@@ -327,14 +315,10 @@ public class PipelinedStrategy implements SortStrategy {
                 ecs.submit(transformTask);
             }
 
-            PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                    storeDir, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+            PipelinedSortBatchTreeSortTask sortTask = new PipelinedSortBatchTreeSortTask(
+                    storeDir, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue
             );
             ecs.submit(sortTask);
-
-            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(storeDir, pathComparator, algorithm, sortedFilesQueue);
-            ecs.submit(mergeSortTask);
-
 
             try {
                 LOG.info("Waiting for tasks to complete.");
@@ -377,17 +361,11 @@ public class PipelinedStrategy implements SortStrategy {
                                 LOG.info("Released all node state entry buffers.");
                             }
 
-                        } else if (result instanceof PipelinedSortBatchTask.Result) {
-                            PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
+                        } else if (result instanceof PipelinedSortBatchTreeSortTask.Result) {
+                            PipelinedSortBatchTreeSortTask.Result sortTaskResult = (PipelinedSortBatchTreeSortTask.Result) result;
                             LOG.info("Sort task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
                             printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
-                            sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
-
-                        } else if (result instanceof PipelinedMergeSortTask.Result) {
-                            PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
-                            File ffs = mergeSortedFilesTask.getFlatFileStoreFile();
-                            LOG.info("Sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(ffs.length()));
-                            flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
+                            flatFileStore = sortTaskResult.getSortedTreeDirectory();
 
                         } else {
                             throw new RuntimeException("Unknown result type: " + result);

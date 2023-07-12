@@ -232,7 +232,24 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         download(mongoIterable);
     }
 
+    private int downloadLimit = getDownloadLimit();
+
+    private static int getDownloadLimit() {
+        String tmp = System.getenv("DOWNLOAD_LIMIT");
+        if (tmp == null) {
+            return Integer.MAX_VALUE;
+        } else {
+            try {
+                return Integer.parseInt(tmp);
+            } catch (NumberFormatException e) {
+                LOG.warn("Invalid DOWNLOAD_LIMIT value: {}", tmp);
+                return Integer.MAX_VALUE;
+            }
+        }
+    }
+
     private void download(FindIterable<BasicDBObject> mongoIterable) throws InterruptedException, TimeoutException {
+        LOG.info("Downloading up to {} documents", downloadLimit);
         try (MongoCursor<BasicDBObject> cursor = mongoIterable.iterator()) {
             BasicDBObject[] block = new BasicDBObject[batchSize];
             int nextIndex = 0;
@@ -253,7 +270,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         tryEnqueue(block);
                         block = new BasicDBObject[batchSize];
                         nextIndex = 0;
+                        if (downloadLimit < 0) {
+                            LOG.info("Download limit reached. Stopping download.");
+                            break;
+                        }
                     }
+                    downloadLimit--;
                 }
                 if (nextIndex > 0) {
                     LOG.info("Enqueueing last block of size: {}", nextIndex);
