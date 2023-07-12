@@ -77,7 +77,7 @@ public class SimpleFlatFileUtil {
             bw.append(line);
             bw.append(LINE_SEPARATOR);
         }
-        log.info("flush : wroter another {} nodes, total so far: {} lines.",
+        log.info("flush : wrote another {} nodes, total so far: {} lines.",
                 entryBatch.size(), totalLines);
         totalLines += entryBatch.size();
         entryBatch.clear();
