@@ -22,34 +22,36 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.or;
+import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static com.mongodb.client.model.Filters.and;
-import static com.mongodb.client.model.Filters.gte;
 import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.DELETED_ONCE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PATH;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_MAX_REV_TIME_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
+import static org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable.wrap;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
+import com.mongodb.client.MongoCursor;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -148,9 +150,11 @@ public class MongoVersionGCSupport extends VersionGCSupport {
     @Override
     public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
                                                   @NotNull final String fromId) {
-        // _modified >= fromModified && _modified < toModified && _id > fromId
-        final Bson query = and(gte(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)),
-                lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified)), gt(ID, fromId));
+        // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
+        final Bson query = or(
+                and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId)),
+                and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))));
+
         // first sort by _modified and then by _id
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
 
@@ -158,7 +162,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .find(query)
                 .sort(sort)
                 .limit(limit);
-        return CloseableIterable.wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
+        return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
     }
 
     @Override
@@ -241,28 +245,22 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * @return the timestamp of the oldest modified document.
      */
     @Override
-    public NodeDocument getOldestModifiedDoc(final Clock clock) {
+    public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
         LOG.info("getOldestModifiedDoc() <- start");
 
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
-        final List<NodeDocument> result = new ArrayList<>(1);
 
         // we need to add query condition to ignore `previous` documents which doesn't have this field
         final Bson query = exists(MODIFIED_IN_SECS);
 
-        getNodeCollection().find(query).sort(sort).limit(1).forEach(
-                (Consumer<BasicDBObject>) document ->
-                        ofNullable(store.convertFromDBObject(NODES, document))
-                                .ifPresent(doc -> {
-                    LOG.info("getOldestModifiedDoc() -> {}", doc);
-                    result.add(doc);
-                }));
+        FindIterable<BasicDBObject> limit = getNodeCollection().find(query).sort(sort).limit(1);
 
-        if (result.isEmpty()) {
-            LOG.info("getOldestModifiedDoc() -> none found, return NULL document");
-            result.add(NULL);
+        try(MongoCursor<BasicDBObject> cur = limit.iterator()) {
+            return cur.hasNext() ? ofNullable(store.convertFromDBObject(NODES, cur.next())) : empty();
+        } catch (Exception ex) {
+            LOG.error("getOldestModifiedDoc() <- error while fetching data from Mongo", ex);
         }
-        return result.get(0);
+        return empty();
     }
 
     private List<Bson> createQueries(Set<SplitDocType> gcTypes,

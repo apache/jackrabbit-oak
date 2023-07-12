@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,12 +75,13 @@ public class VersionGCInitTest {
         UpdateOp op = new UpdateOp(id, true);
         NodeDocument.setModified(op, r);
         store.createOrUpdate(NODES, op);
-        ns.getVersionGarbageCollector().gc(1, DAYS);
+        VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
 
         vgc = store.find(SETTINGS, "versionGC");
         assertNotNull(vgc);
-        assertEquals(40_000L, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
-        assertEquals("1:/node", vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+        assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+        assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
     }
 
     @Test
@@ -89,11 +91,12 @@ public class VersionGCInitTest {
         assertNull(vgc);
 
         enableDetailGC(ns.getVersionGarbageCollector());
-        ns.getVersionGarbageCollector().gc(1, DAYS);
+        VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
 
         vgc = store.find(SETTINGS, "versionGC");
         assertNotNull(vgc);
-        assertEquals(0L, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
         assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
     }
 }
