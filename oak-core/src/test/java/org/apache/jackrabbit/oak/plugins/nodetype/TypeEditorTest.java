@@ -327,6 +327,13 @@ public class TypeEditorTest {
         }
     }
 
+    /**
+     * Test that a new node can omit the jcr:primaryType property, and the TypeEditor will set the default primary type
+     * if the parent node type defines one
+     *
+     * @throws CommitFailedException ignored
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-10335">OAK-10335</a>
+     */
     @Test
     public void addChildNodeNotStrictDefaultPrimaryTypeIfUnspecified() throws CommitFailedException {
         // set strict to 'false' to allow a new node to omit the jcr:primaryType property, so that the TypeEditor will
