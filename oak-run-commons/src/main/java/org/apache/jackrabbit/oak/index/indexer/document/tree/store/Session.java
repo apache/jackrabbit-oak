@@ -446,9 +446,6 @@ public class Session {
      */
     public void mergeRoots(int max) {
         List<String> list = getRootFileNames();
-        if (list.size() < max) {
-            return;
-        }
         PageFile root = getFile(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
         root = copyPageFile(root);
