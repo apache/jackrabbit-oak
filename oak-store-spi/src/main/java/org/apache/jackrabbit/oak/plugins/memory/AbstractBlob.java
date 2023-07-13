@@ -26,6 +26,7 @@ import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -40,8 +41,17 @@ public abstract class AbstractBlob implements Blob {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBlob.class);
 
-    private static final boolean DEBUG_BLOB_EQUAL_LOG = Boolean.getBoolean("oak.abstractblob.equal.log");
-    private static final long DEBUG_BLOB_EQUAL_LOG_LIMIT = Long.getLong("oak.abstractblob.equal.log.limit", 100_000_000L);
+    private static final boolean DEBUG_BLOB_EQUAL_LOG = SystemPropertySupplier
+            .create("oak.abstractblob.equal.log", false)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
+            .get();
+
+    private static final long DEBUG_BLOB_EQUAL_LOG_LIMIT = SystemPropertySupplier
+            .create("oak.abstractblob.equal.log.limit", 100_000_000L)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
+            .get();
 
     private static ByteSource supplier(final Blob blob) {
         return new ByteSource() {
