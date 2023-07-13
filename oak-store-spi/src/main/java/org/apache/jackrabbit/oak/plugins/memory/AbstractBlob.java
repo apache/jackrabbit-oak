@@ -40,6 +40,7 @@ public abstract class AbstractBlob implements Blob {
 
     private static final Logger LOG = LoggerFactory.getLogger(AbstractBlob.class);
 
+    private static final boolean DEBUG_BLOB_EQUAL_LOG = Boolean.getBoolean("oak.abstractblob.equal.log");
     private static final long DEBUG_BLOB_EQUAL_LOG_LIMIT = Long.getLong("oak.abstractblob.equal.log.limit", 100_000_000L);
 
     private static ByteSource supplier(final Blob blob) {
@@ -68,7 +69,7 @@ public abstract class AbstractBlob implements Blob {
             return true;
         }
 
-        if (al > DEBUG_BLOB_EQUAL_LOG_LIMIT) {
+        if (DEBUG_BLOB_EQUAL_LOG && al > DEBUG_BLOB_EQUAL_LOG_LIMIT) {
             LOG.debug("Blobs have the same length of {} and we're falling back to byte-wise comparison.", al);
         }
 
