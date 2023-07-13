@@ -28,6 +28,7 @@ Bug
 
 New Feature
 
+    [OAK-10093] - Oak Blob Store support for SSE-C for AWS
     [OAK-10184] - oak-commons: Support multiple Compression methods
 
 Task
