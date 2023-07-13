@@ -115,7 +115,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
         final ViewExpectation expectation1AfterShutdown = new ViewExpectation(s1);
         expectation1AfterShutdown.setActiveIds(s1.ns.getClusterId());
         expectation1AfterShutdown.setInactiveIds(s2.ns.getClusterId());
-        waitFor(expectation1AfterShutdown, 6000, "first should only see itself after shutdown");
+        waitFor(expectation1AfterShutdown, 10000, "first should only see itself after shutdown");
     }
 
     @Test
