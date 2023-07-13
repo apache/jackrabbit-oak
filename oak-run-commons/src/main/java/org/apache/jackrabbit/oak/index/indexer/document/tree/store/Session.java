@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.tree.store;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -41,11 +42,11 @@ public class Session {
     private static final int DEFAULT_CACHE_SIZE = 128;
     private static final int DEFAULT_MAX_FILE_SIZE = 16 * 1024;
     private static final int DEFAULT_CACHE_SIZE_MB = 16;
-    private static final int DEFAULT_MAX_ROOTS = Integer.MAX_VALUE;
+    private static final int DEFAULT_MAX_ROOTS = 10;
 
-    static final String ROOT_NAME = "root";
+    public static final String ROOT_NAME = "root";
+    public static final String LEAF_PREFIX = "data_";
     static final String INNER_NODE_PREFIX = "node_";
-    static final String LEAF_PREFIX = "data_";
     static final String DELETED = new String("DELETED");
 
     static final boolean MULTI_ROOT = true;
@@ -148,7 +149,7 @@ public class Session {
     private void mergeRootsIfNeeded() {
         List<String> roots = getRootFileNames();
         if (roots.size() > maxRoots) {
-            mergeRoots();
+            mergeRoots(Integer.MAX_VALUE);
         }
     }
 
@@ -441,25 +442,46 @@ public class Session {
     }
 
     /**
-     * Merge all roots.
+     * Merge a number of roots. Merging will create a new root, which contains the
+     * data of the previous roots. If there are less roots, this method returns without merging.
+     *
+     * @param max the number of roots to merge (Integer.MAX_VALUE for all)
      */
-    public void mergeRoots() {
+    public void mergeRoots(int max) {
+        List<String> list = getRootFileNames();
+        if (list.size() < max) {
+            return;
+        }
         PageFile root = getFile(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
         root = copyPageFile(root);
         root.setModified(true);
         putFile(rootFileCopy, root);
-        Iterator<Entry<String, String>> it = iterator();
+        Iterator<Entry<String, String>> it = iterator(null, max);
         PageFile newRoot = newPageFile(false);
         newRoot.setNextRoot(rootFileCopy);
         putFile(ROOT_NAME, newRoot);
         while(it.hasNext()) {
             Entry<String, String> e = it.next();
             put(e.getKey(), e.getValue());
+            // TODO we can remove files that are processed
         }
         newRoot = getFile(ROOT_NAME);
-        newRoot.setNextRoot(null);
+        if (max < list.size()) {
+            newRoot.setNextRoot(list.get(max));
+        } else {
+            newRoot.setNextRoot(null);
+        }
         flush();
+    }
+
+    /**
+     * Get the number of roots.
+     *
+     * @return the number of roots
+     */
+    public int getRootCount() {
+        return getRootFileNames().size();
     }
 
     /**
@@ -562,11 +584,14 @@ public class Session {
      *                   the beginning
      * @return the result
      */
-
     public Iterator<Entry<String, String>> iterator(String largerThan) {
+        return iterator(largerThan, Integer.MAX_VALUE);
+    }
+
+    private Iterator<Entry<String, String>> iterator(String largerThan, int maxRootCount) {
         ArrayList<SortedStream> streams = new ArrayList<>();
         String next = ROOT_NAME;
-        while (true) {
+        for (int i = 0; i < maxRootCount; i++) {
             streams.add(new SortedStream(next, immutableRootIterator(next, largerThan)));
             next = getFile(next).getNextRoot();
             if (next == null) {
@@ -820,6 +845,28 @@ public class Session {
             }
         }
         return null;
+    }
+
+    // ===============================================================
+    // garbage collection
+
+    public void runGC() {
+        new GarbageCollection(store).run(getRootFileNames());
+    }
+
+    // ===============================================================
+    // info
+
+    public String getInfo() {
+        StringBuilder buff = new StringBuilder();
+        GarbageCollection gc = new GarbageCollection(store);
+        int rootId = 0;
+        for (String r : getRootFileNames()) {
+            buff.append(String.format("root #%d contains %d files (file name %s)\n",
+                    rootId, gc.mark(Collections.singletonList(r)).size(), r));
+            rootId++;
+        }
+        return buff.toString();
     }
 
     // ===============================================================
