@@ -98,7 +98,7 @@ class TreeSortPipelinedSortBatchTaskObsolete implements Callable<TreeSortPipelin
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
                     LOG.info("Received sentinel. Merging roots.");
-                    session.mergeRoots();
+                    session.mergeRoots(10);
                     session.flush();
                     LOG.info("Merged roots. Closing store.");
                     store.close();

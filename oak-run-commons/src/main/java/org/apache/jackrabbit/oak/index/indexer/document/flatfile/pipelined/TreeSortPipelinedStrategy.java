@@ -172,7 +172,7 @@ public class TreeSortPipelinedStrategy implements SortStrategy {
             ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocBlockQueueSize);
 
             // transform <->  save threads
-            ArrayBlockingQueue<List<NodeStateEntryJson>> nseQueue = new ArrayBlockingQueue<>(50);
+            ArrayBlockingQueue<List<NodeStateEntryJson>> nseQueue = new ArrayBlockingQueue<>(transformThreads+1);
 
             // Queue between sort-and-save thread and the merge-sorted-files thread
             ArrayBlockingQueue<File> sortedFilesQueue = new ArrayBlockingQueue<>(64);

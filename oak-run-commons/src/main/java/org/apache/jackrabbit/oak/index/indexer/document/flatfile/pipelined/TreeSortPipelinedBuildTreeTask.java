@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
@@ -63,8 +64,6 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
     private final BlockingQueue<List<NodeStateEntryJson>> nonEmptyBuffersQueue;
     private final File storeDir;
     private long totalEntriesProcessed = 0;
-    private int entriesInCurrentTree = 0;
-    private long textSizeInCurrentTree = 0;
 
     public TreeSortPipelinedBuildTreeTask(File storeDir,
                                           Compression algorithm,
@@ -96,7 +95,7 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
                     session.checkpoint();
                     LOG.info("Merging roots.");
                     Stopwatch stopwatch = Stopwatch.createStarted();
-                    session.mergeRoots();
+                    session.mergeRoots(Integer.MAX_VALUE);
                     session.flush();
                     LOG.info("Merged roots in {}", stopwatch);
                     store.close();
@@ -120,18 +119,15 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
     }
 
     private void addBatchToTree(List<NodeStateEntryJson> nseb) {
+        long textSizeInCurrentTree = 0;
         for (NodeStateEntryJson entry : nseb) {
             totalEntriesProcessed++;
             // Retrieve the entry from the buffer
             session.put(entry.path, entry.json);
             textSizeInCurrentTree += entry.path.length() + entry.json.length();
-            entriesInCurrentTree++;
         }
-        if (entriesInCurrentTree > 1000000) {
-            LOG.info("Checkpointing tree with: {} entries of size {}", entriesInCurrentTree, textSizeInCurrentTree);
-            session.checkpoint();
-            entriesInCurrentTree = 0;
-            textSizeInCurrentTree = 0;
-        }
+        LOG.info("Checkpointing tree with: {} entries of size {}", nseb.size(), FileUtils.byteCountToDisplaySize(textSizeInCurrentTree));
+        session.checkpoint();
+        session.mergeRoots(10);
     }
 }

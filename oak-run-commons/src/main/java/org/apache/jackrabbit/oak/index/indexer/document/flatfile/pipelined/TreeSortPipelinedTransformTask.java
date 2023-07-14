@@ -19,7 +19,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.BasicDBObject;
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -73,7 +75,10 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
     private static final Logger LOG = LoggerFactory.getLogger(TreeSortPipelinedTransformTask.class);
     private static final AtomicInteger threadIdGenerator = new AtomicInteger();
 
-    private static final int MAX_NSE_BATCH_SIZE = 20000;
+    // TODO: Reuse the nse entries buffer or find other way of reducing object creation
+    // TODO: Make these configurable
+    private static final int MAX_NSE_BATCH_SIZE_ENTRIES = 1048 * 1024; // ~ 1 million entries
+    private static final long MAX_NSE_BATCH_SIZE_MB = FileUtils.ONE_MB * 512;
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
@@ -110,7 +115,6 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
     }
 
 
-
     @Override
     public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
@@ -122,7 +126,8 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
             long totalEntryCount = 0;
             long mongoObjectsProcessed = 0;
 
-            ArrayList<NodeStateEntryJson> nseBatch = new ArrayList<>(MAX_NSE_BATCH_SIZE);
+            int sizeEstimateOfBatch = 0;
+            ArrayList<NodeStateEntryJson> nseBatch = new ArrayList<>(MAX_NSE_BATCH_SIZE_ENTRIES);
 
             LOG.info("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
             while (true) {
@@ -132,16 +137,15 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
                             totalEntryCount, taskStartWatch, totalEnqueueWaitTimeMillis,
                             String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS)));
                     //Save the last batch
-                    tryEnqueue(nseBatch);
+                    tryEnqueue(nseBatch, sizeEstimateOfBatch);
                     return new Result(threadId, totalEntryCount);
                 } else {
                     for (BasicDBObject dbObject : dbObjectBatch) {
                         statistics.incrementMongoDocumentsProcessed();
                         mongoObjectsProcessed++;
                         if (mongoObjectsProcessed % 50000 == 0) {
-                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}",
-                                    mongoObjectsProcessed, totalEntryCount, nseBatch.size()
-                            );
+                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, estimated size: {}",
+                                    mongoObjectsProcessed, totalEntryCount, nseBatch.size(), FileUtils.byteCountToDisplaySize(sizeEstimateOfBatch));
                         }
                         //TODO Review the cache update approach where tracker has to track *all* docs
                         NodeDocument nodeDoc = MongoDocumentStoreHelper.convertFromDBObject(mongoStore, collection, dbObject);
@@ -160,14 +164,25 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
                                     statistics.incrementEntriesAccepted();
                                     totalEntryCount++;
 
-                                    if (nseBatch.size() == MAX_NSE_BATCH_SIZE) {
-//                                        LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}",
-//                                                totalEntryCount, nseBatch.size());
-                                        tryEnqueue(nseBatch);
-                                        nseBatch = new ArrayList<>(MAX_NSE_BATCH_SIZE);
+                                    // Must have space for 2 entries
+                                    if (nseBatch.size() >= MAX_NSE_BATCH_SIZE_ENTRIES - 1 || sizeEstimateOfBatch >= MAX_NSE_BATCH_SIZE_MB) {
+                                        LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, Size of buffer: {}",
+                                                totalEntryCount, nseBatch.size(), FileUtils.byteCountToDisplaySize(sizeEstimateOfBatch));
+                                        tryEnqueue(nseBatch, sizeEstimateOfBatch);
+                                        sizeEstimateOfBatch = 0;
+                                        nseBatch = new ArrayList<>(MAX_NSE_BATCH_SIZE_ENTRIES);
                                     }
                                     // Write entry to buffer
-                                    nseBatch.add(new NodeStateEntryJson(nse.getPath(), entryWriter.asJson(nse.getNodeState())));
+                                    String json = entryWriter.asJson(nse.getNodeState());
+                                    sizeEstimateOfBatch += 2 * (json.length() + path.length());
+                                    nseBatch.add(new NodeStateEntryJson(path, json));
+                                    if (!path.equals("/")) {
+                                        String nodeName = PathUtils.getName(path);
+                                        String parentPath = PathUtils.getParentPath(path);
+                                        sizeEstimateOfBatch += 2 * (nodeName.length() + parentPath.length() + 1);
+                                        nseBatch.add(new NodeStateEntryJson(parentPath + "\t" + nodeName, ""));
+                                    }
+
                                 } else {
                                     statistics.incrementEntriesRejected();
                                     if (NodeStateUtils.isHiddenPath(path)) {
@@ -193,8 +208,8 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
         }
     }
 
-    private void tryEnqueue(ArrayList<NodeStateEntryJson> nseBatch) throws InterruptedException {
-//        LOG.info("Enqueuing batch of {} entries", nseBatch.size());
+    private void tryEnqueue(ArrayList<NodeStateEntryJson> nseBatch, int sizeEstimateOfBatch) throws InterruptedException {
+        LOG.info("Enqueuing batch of {} entries, size: {}", nseBatch.size(), FileUtils.byteCountToDisplaySize(sizeEstimateOfBatch));
         Collections.sort(nseBatch);
         Stopwatch stopwatch = Stopwatch.createStarted();
         nseBatchQueue.put(nseBatch);
