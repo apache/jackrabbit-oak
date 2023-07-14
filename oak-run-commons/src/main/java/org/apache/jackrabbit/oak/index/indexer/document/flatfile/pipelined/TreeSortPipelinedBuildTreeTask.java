@@ -64,6 +64,7 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
     private final BlockingQueue<List<NodeStateEntryJson>> nonEmptyBuffersQueue;
     private final File storeDir;
     private long totalEntriesProcessed = 0;
+    private int mergeRootsEveryXBatches = 20;
 
     public TreeSortPipelinedBuildTreeTask(File storeDir,
                                           Compression algorithm,
@@ -78,6 +79,7 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
         this.store = StoreBuilder.build(storeConfig);
         store.setWriteCompression(algorithm);
         session = new Session(store);
+        session.setMaxRoots(Integer.MAX_VALUE);
         session.init();
     }
 
@@ -87,6 +89,7 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
         Thread.currentThread().setName("mongo-sort-batch");
         try {
             LOG.info("Starting sort-and-save task");
+            int batchNumber = 1;
             while (true) {
                 LOG.info("Waiting for next batch");
                 List<NodeStateEntryJson> nseBuffer = nonEmptyBuffersQueue.take();
@@ -95,15 +98,18 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
                     session.checkpoint();
                     LOG.info("Merging roots.");
                     Stopwatch stopwatch = Stopwatch.createStarted();
+                    // do a full merge
                     session.mergeRoots(Integer.MAX_VALUE);
                     session.flush();
+                    session.runGC();
                     LOG.info("Merged roots in {}", stopwatch);
                     store.close();
                     LOG.info("Terminating thread, processed {} entries", totalEntriesProcessed);
                     return new Result(storeDir, totalEntriesProcessed);
                 }
-                addBatchToTree(nseBuffer);
+                addBatchToTree(nseBuffer, batchNumber);
                 nseBuffer.clear();
+                batchNumber++;
             }
         } catch (InterruptedException t) {
             LOG.warn("Thread interrupted", t);
@@ -118,7 +124,7 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
         }
     }
 
-    private void addBatchToTree(List<NodeStateEntryJson> nseb) {
+    private void addBatchToTree(List<NodeStateEntryJson> nseb, int batch) {
         long textSizeInCurrentTree = 0;
         for (NodeStateEntryJson entry : nseb) {
             totalEntriesProcessed++;
@@ -128,6 +134,10 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
         }
         LOG.info("Checkpointing tree with: {} entries of size {}", nseb.size(), FileUtils.byteCountToDisplaySize(textSizeInCurrentTree));
         session.checkpoint();
-        session.mergeRoots(10);
+        if (batch % mergeRootsEveryXBatches == 0) {
+            session.mergeRoots(mergeRootsEveryXBatches);
+            session.flush();
+            session.runGC();
+        }
     }
 }
