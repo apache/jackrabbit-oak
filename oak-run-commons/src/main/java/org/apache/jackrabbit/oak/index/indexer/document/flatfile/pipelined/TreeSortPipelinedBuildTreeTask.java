@@ -102,7 +102,7 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
                     session.mergeRoots(Integer.MAX_VALUE);
                     session.flush();
                     session.runGC();
-                    LOG.info("Merged roots in {}", stopwatch);
+                    LOG.info("Merged all roots in {}", stopwatch);
                     store.close();
                     LOG.info("Terminating thread, processed {} entries", totalEntriesProcessed);
                     return new Result(storeDir, totalEntriesProcessed);
@@ -135,9 +135,11 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
         LOG.info("Checkpointing tree with: {} entries of size {}", nseb.size(), FileUtils.byteCountToDisplaySize(textSizeInCurrentTree));
         session.checkpoint();
         if (batch % mergeRootsEveryXBatches == 0) {
+            Stopwatch stopwatch = Stopwatch.createStarted();
             session.mergeRoots(mergeRootsEveryXBatches);
             session.flush();
             session.runGC();
+            LOG.info("Merged {} roots in {}", mergeRootsEveryXBatches, stopwatch);
         }
     }
 }
