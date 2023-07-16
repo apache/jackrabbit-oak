@@ -16,11 +16,13 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
+import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -28,10 +30,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import javax.jcr.RepositoryException;
+import javax.jcr.ValueFactory;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.stream.StreamSupport;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -51,11 +55,16 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
     
     private final boolean hasDynamicGroups;
     
-    private Group group1;
-    private Group group2;
-    private Group group3;
+    private Group groupAutomembership;
+    private Group userAutomembership;
+    private Group userAutomembership2;
     private Group groupInherited;
 
+    // users/groups for additional tests that are only executed if dynamic groups are enabled.
+    private Group externalGroup;
+    private User externalUser;
+    private Group testGroup;
+    
     public DynamicAutomembershipTest(boolean hasDynamicGroups, @NotNull String name) {
         this.hasDynamicGroups = hasDynamicGroups;
     }
@@ -64,22 +73,64 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
     public void before() throws Exception {
         super.before();
         
-        group1 = userManager.getAuthorizable("group1", Group.class);
-        group2 = userManager.getAuthorizable("group2", Group.class);
-        group3 = userManager.getAuthorizable("group3", Group.class);
+        groupAutomembership = userManager.getAuthorizable("groupAutomembership", Group.class);
+        userAutomembership = userManager.getAuthorizable("userAutomembership1", Group.class);
+        userAutomembership2 = userManager.getAuthorizable("userAutomembership2", Group.class);
 
         groupInherited = userManager.createGroup("groupInherited");
-        groupInherited.addMembers("group1", "group2");
+        groupInherited.addMembers("groupAutomembership", "userAutomembership");
+        
+        // setup for additional tests
+        if (hasDynamicGroups) {
+            assertNotNull(userAutomembership);
+            assertNotNull(groupAutomembership);
+        }
+
+        ValueFactory vf = getValueFactory(r);
+        externalUser = userManager.createUser("externalUser", null);
+        externalUser.setProperty(REP_EXTERNAL_ID, vf.createValue(new ExternalIdentityRef("externalUser", idp.getName()).getString()));
+
+        externalGroup = userManager.createGroup("externalGroup");
+        externalGroup.setProperty(REP_EXTERNAL_ID, vf.createValue(new ExternalIdentityRef("externalGroup", idp.getName()).getString()));
         r.commit();
+    }
+    
+    @Override
+    public void after() throws Exception {
+        try {
+            if (externalUser != null) {
+                externalUser.remove();
+            }
+            if (externalGroup != null) {
+                externalGroup.remove();
+            }
+            if (testGroup != null) {
+                testGroup.remove();
+            }
+            root.commit();
+        } finally {
+            super.after();
+        }
     }
 
     @Override
     protected @NotNull DefaultSyncConfig createSyncConfig() {
         DefaultSyncConfig config = super.createSyncConfig();
         config.group().setDynamicGroups(hasDynamicGroups);
-        config.group().setAutoMembership("group1");
-        config.user().setAutoMembership("group2", "group3");
+        config.group().setAutoMembership("groupAutomembership", "groupAutomembership");
+        config.user().setAutoMembership("userAutomembership1", "userAutomembership2");
         return config;
+    }
+
+    private Group getTestGroup(@NotNull Authorizable... members) throws Exception {
+        if (testGroup == null) {
+            testGroup = userManager.createGroup("testGroup");
+        }
+        for (Authorizable member : members) {
+            testGroup.addMember(member);
+        }
+        r.commit();
+        return testGroup;
     }
 
     private static boolean containsGroup(@NotNull Iterator<Group> membership, @NotNull Group groupToTest) throws RepositoryException {
@@ -107,15 +158,15 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
             assertNotNull(gr);
             assertTrue(r.hasPendingChanges());
 
-            // verify group1-externalGroup relationship
-            assertTrue(containsGroup(gr.declaredMemberOf(), group1));
-            assertTrue(containsGroup(gr.memberOf(), group1));
-            assertTrue(group1.isDeclaredMember(gr));
-            assertTrue(group1.isMember(gr));
-            assertFalse(hasStoredMembershipInformation(r.getTree(group1.getPath()), r.getTree(gr.getPath())));
+            // verify groupAutomembership-externalGroup relationship
+            assertTrue(containsGroup(gr.declaredMemberOf(), groupAutomembership));
+            assertTrue(containsGroup(gr.memberOf(), groupAutomembership));
+            assertTrue(groupAutomembership.isDeclaredMember(gr));
+            assertTrue(groupAutomembership.isMember(gr));
+            assertFalse(hasStoredMembershipInformation(r.getTree(groupAutomembership.getPath()), r.getTree(gr.getPath())));
 
             // user-specific automembership must not be reflected.
-            for (Group g : new Group[] {group2, group3}) {
+            for (Group g : new Group[] {userAutomembership, userAutomembership2}) {
                 assertFalse(g.isDeclaredMember(gr));
                 assertFalse(g.isMember(gr));
             }
@@ -149,7 +200,7 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
         assertSyncedMembership(userManager, user, previouslySyncedUser);
         
         // verify automembership of the external user
-        for (Group gr : new Group[] {group1, group2, group3}) {
+        for (Group gr : new Group[] {groupAutomembership, userAutomembership, userAutomembership2}) {
             assertTrue(gr.isDeclaredMember(user));
             assertTrue(gr.isMember(user));
             containsGroup(user.declaredMemberOf(), gr);
@@ -172,5 +223,128 @@ public class DynamicAutomembershipTest extends DynamicSyncContextTest {
 
         Group previousGroup = userManager.getAuthorizable(previouslySyncedUser.getDeclaredGroups().iterator().next().getId(), Group.class);
         assertNotNull(previousGroup);
+    }
+
+    // the following additional tests are only run if dynamic groups are enabled.
+    @Test
+    public void testIsDeclaredMemberConfiguredUserAutoMembership() throws Exception {
+        if (!hasDynamicGroups) {
+            return;
+        }
+        assertFalse(userAutomembership.isDeclaredMember(getTestUser()));
+        assertFalse(userAutomembership.isDeclaredMember(getTestGroup()));
+        assertFalse(userAutomembership.isDeclaredMember(externalGroup));
+
+        assertTrue(userAutomembership.isDeclaredMember(externalUser));
+    }
+
+    @Test
+    public void testIsDeclaredMemberConfiguredGroupAutoMembership() throws Exception {
+        if (!hasDynamicGroups) {
+            return;
+        }
+        
+        assertFalse(groupAutomembership.isDeclaredMember(getTestUser()));
+        assertFalse(groupAutomembership.isDeclaredMember(getTestGroup()));
+
+        assertTrue(groupAutomembership.isDeclaredMember(externalGroup));
+        // dynamic automembership for users also includes the configured group-automembership (to account for cases where dynamic-group option is false)
+        assertTrue(groupAutomembership.isDeclaredMember(externalUser));
+    }
+
+    @Test
+    public void testIsMemberConfiguredUserAutoMembership() throws Exception {
+        if (!hasDynamicGroups) {
+            return;
+        }
+        
+        assertFalse(userAutomembership.isMember(getTestUser()));
+        assertFalse(userAutomembership.isMember(getTestGroup()));
+        assertFalse(userAutomembership.isMember(externalGroup));
+
+        assertTrue(userAutomembership.isMember(externalUser));
+    }
+
+    @Test
+    public void testIsMemberConfiguredGroupAutoMembership() throws Exception {
+        if (!hasDynamicGroups) {
+            return;
+        }
+        
+        assertFalse(groupAutomembership.isMember(getTestUser()));
+        assertFalse(groupAutomembership.isMember(getTestGroup()));
+
+        assertTrue(groupAutomembership.isMember(externalGroup));
+        // dynamic automembership for users also includes the configured group-automembership (to account for cases where dynamic-group option is false)
+        assertTrue(groupAutomembership.isMember(externalUser));
+    }
+
+    @Test
+    public void testIsMemberNestedGroup() throws Exception {
+        if (!hasDynamicGroups) {
+            return;
+        }
+        
+        // automembership groups are members of other groups
+        User testuser = getTestUser();
+        Group nested = getTestGroup(userAutomembership, groupAutomembership, testuser);
+        root.commit();
+
+        // test nested group
+        assertTrue(nested.isMember(testuser));
+        assertTrue(nested.isMember(userAutomembership));
+        assertTrue(nested.isMember(groupAutomembership));
+        assertTrue(nested.isMember(externalUser));
+        assertTrue(nested.isMember(externalGroup));
+
+        // user-automembership-group
+        assertFalse(userAutomembership.isMember(nested));
+        assertFalse(userAutomembership.isMember(testuser));
+        assertFalse(userAutomembership.isMember(groupAutomembership));
+        assertFalse(userAutomembership.isMember(externalGroup));
+        assertTrue(userAutomembership.isMember(externalUser));
+
+        // group-automembership-group
+        assertFalse(groupAutomembership.isMember(nested));
+        assertFalse(groupAutomembership.isMember(testuser));
+        assertFalse(groupAutomembership.isMember(userAutomembership));
+        assertTrue(groupAutomembership.isMember(externalGroup));
+        // dynamic automembership for users also includes the configured group-automembership (to account for cases where dynamic-group option is false)
+        assertTrue(groupAutomembership.isMember(externalUser));
+    }
+
+    @Test
+    public void testIsMemberNestedGroupInverse() throws Exception {
+        if (!hasDynamicGroups) {
+            return;
+        }
+        
+        User testuser = getTestUser();
+        Group nested = getTestGroup(testuser);
+        userAutomembership.addMember(nested);
+        groupAutomembership.addMember(nested);
+        root.commit();
+
+        // test nested group
+        assertTrue(nested.isMember(testuser));
+        assertFalse(nested.isMember(userAutomembership));
+        assertFalse(nested.isMember(groupAutomembership));
+        assertFalse(nested.isMember(externalUser));
+        assertFalse(nested.isMember(externalGroup));
+
+        // user-automembership-group
+        assertTrue(userAutomembership.isMember(nested));
+        assertTrue(userAutomembership.isMember(testuser));
+        assertFalse(userAutomembership.isMember(groupAutomembership));
+        assertFalse(userAutomembership.isMember(externalGroup));
+        assertTrue(userAutomembership.isMember(externalUser));
+
+        // group-automembership-group
+        assertTrue(groupAutomembership.isMember(nested));
+        assertTrue(groupAutomembership.isMember(testuser));
+        assertFalse(groupAutomembership.isMember(userAutomembership));
+        assertTrue(groupAutomembership.isMember(externalGroup));
+        // dynamic automembership for users also includes the configured group-automembership (to account for cases where dynamic-group option is false)
+        assertTrue(groupAutomembership.isMember(externalUser));
     }
 }

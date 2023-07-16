@@ -27,6 +27,10 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -130,6 +134,9 @@ public class FlatFileNodeStoreBuilder {
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
             (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.STORE_AND_SORT);
+    private RevisionVector rootRevision = null;
+    private DocumentNodeStore nodeStore = null;
+    private MongoDocumentStore mongoDocumentStore = null;
 
     public enum SortStrategyType {
         /**
@@ -143,7 +150,11 @@ public class FlatFileNodeStoreBuilder {
         /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
          */
-        MULTITHREADED_TRAVERSE_WITH_SORT
+        MULTITHREADED_TRAVERSE_WITH_SORT,
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
+         */
+        PIPELINED
     }
 
     public FlatFileNodeStoreBuilder(File workDir, MemoryManager memoryManager) {
@@ -192,6 +203,22 @@ public class FlatFileNodeStoreBuilder {
         this.pathPredicate = pathPredicate;
         return this;
     }
+
+    public FlatFileNodeStoreBuilder withRootRevision(RevisionVector rootRevision) {
+        this.rootRevision = rootRevision;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withNodeStore(DocumentNodeStore nodeStore) {
+        this.nodeStore = nodeStore;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMongoDocumentStore(MongoDocumentStore mongoDocumentStore) {
+        this.mongoDocumentStore = mongoDocumentStore;
+        return this;
+    }
+
 
     public FlatFileStore build() throws IOException, CompositeException {
         logFlags();
@@ -256,10 +283,10 @@ public class FlatFileNodeStoreBuilder {
             if (files != null) {
                 return files;
             }
-        } 
-        
+        }
+
         // Initialize the flat file store again
-        
+
         createStoreDir();
         SortStrategy strategy = createSortStrategy(flatFileStoreDir);
         File result = strategy.createSortedStoreFile();
@@ -294,6 +321,10 @@ public class FlatFileNodeStoreBuilder {
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
                         blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate);
+            case PIPELINED:
+                log.info("Using PipelinedStrategy");
+                return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

@@ -36,6 +36,7 @@ import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.JcrPathParser;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
+import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.counter.jmx.NodeCounter;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.query.QueryOptions.Traversal;
@@ -587,8 +588,9 @@ public class QueryImpl implements Query {
         prepare();
         String warn = getWarningForPathFilterMismatch();
         if (warn != null) {
+            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
             LOG.warn("Index definition of index used have path restrictions and query won't return nodes from " +
-             "those restricted paths; query={}, plan={}", statement, warn);
+             "those restricted paths; query={}, called by={}, plan={}", statement, caller, warn);
         }
         logAdditionalMessages();
         if (explain) {
@@ -1276,7 +1278,8 @@ public class QueryImpl implements Query {
                 // explicitly set in the query
                 traversal = queryOptions.traversal;
             }
-            String message = "Traversal query (query without index): " + statement + "; consider creating an index";
+            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
+            String message = "Traversal query (query without index): " + statement + "; called by " + caller + "; consider creating an index";
             switch (traversal) {
             case DEFAULT:
                 // not possible (changed to either FAIL or WARN above)

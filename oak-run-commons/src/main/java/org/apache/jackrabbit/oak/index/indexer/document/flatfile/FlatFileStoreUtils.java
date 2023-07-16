@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.commons.Compression;
 
+import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -36,7 +37,7 @@ import java.util.List;
 /**
  * This class provides common utility functions for building FlatFileStore.
  */
-class FlatFileStoreUtils {
+public class FlatFileStoreUtils {
 
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.
@@ -64,6 +65,11 @@ class FlatFileStoreUtils {
     public static BufferedWriter createWriter(File file, Compression algorithm) throws IOException {
         OutputStream out = new FileOutputStream(file);
         return new BufferedWriter(new OutputStreamWriter(algorithm.getOutputStream(out)));
+    }
+
+    public static BufferedOutputStream createOutputStream(File file, Compression algorithm) throws IOException {
+        OutputStream out = new FileOutputStream(file);
+        return new BufferedOutputStream(algorithm.getOutputStream(out));
     }
 
     public static long sizeOf(List<File> sortedFiles) {

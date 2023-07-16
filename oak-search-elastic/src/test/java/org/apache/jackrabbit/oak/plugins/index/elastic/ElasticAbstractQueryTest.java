@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch.core.GetRequest;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -238,6 +240,19 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 		} catch (ElasticsearchException | IOException e) {
 			throw new IllegalStateException(e);
 		}
+    }
+
+    protected ObjectNode getDocument(Tree index, String id) {
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
+
+        GetRequest get = GetRequest.of(r -> r
+                .index(esIdxDef.getIndexAlias())
+                .id(id));
+        try {
+            return esConnection.getClient().get(get, ObjectNode.class).source();
+        } catch (ElasticsearchException | IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private ElasticIndexDefinition getElasticIndexDefinition(Tree index) {

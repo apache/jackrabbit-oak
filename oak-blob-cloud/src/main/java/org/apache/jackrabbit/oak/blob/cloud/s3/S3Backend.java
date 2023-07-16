@@ -39,6 +39,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
@@ -328,7 +330,7 @@ public class S3Backend extends AbstractSharedBackend {
                 getClass().getClassLoader());
             // check if the same record already exists
             try {
-                objectMetaData = s3service.getObjectMetadata(bucket, key);
+                objectMetaData = s3service.getObjectMetadata(s3ReqDecorator.decorate(new GetObjectMetadataRequest(bucket, key)));
             } catch (AmazonServiceException ase) {
                 if (!(ase.getStatusCode() == 404 || ase.getStatusCode() == 403)) {
                     throw ase;
@@ -389,8 +391,7 @@ public class S3Backend extends AbstractSharedBackend {
         ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
-            ObjectMetadata objectMetaData = s3service.getObjectMetadata(bucket,
-                key);
+            ObjectMetadata objectMetaData = s3service.getObjectMetadata(s3ReqDecorator.decorate(new GetObjectMetadataRequest(bucket, key)));
             if (objectMetaData != null) {
                 LOG.trace("exists [{}]: [true] took [{}] ms.",
                     identifier, (System.currentTimeMillis() - start) );
@@ -555,7 +556,7 @@ public class S3Backend extends AbstractSharedBackend {
                 getClass().getClassLoader());
             ObjectMetadata meta = s3service.getObjectMetadata(bucket, addMetaKeyPrefix(name));
             return new S3DataRecord(this, s3service, bucket, new DataIdentifier(name),
-                meta.getLastModified().getTime(), meta.getContentLength(), true);
+                meta.getLastModified().getTime(), meta.getContentLength(), true, s3ReqDecorator);
         } catch(Exception e) {
             LOG.error("Error getting metadata record for {}", name, e);
         }
@@ -582,7 +583,7 @@ public class S3Backend extends AbstractSharedBackend {
             for (final S3ObjectSummary s3ObjSumm : prevObjectListing.getObjectSummaries()) {
                 metadataList.add(new S3DataRecord(this, s3service, bucket,
                     new DataIdentifier(stripMetaKeyPrefix(s3ObjSumm.getKey())),
-                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize(), true));
+                    s3ObjSumm.getLastModified().getTime(), s3ObjSumm.getSize(), true, s3ReqDecorator));
             }
         } finally {
             if (contextClassLoader != null) {
@@ -646,7 +647,7 @@ public class S3Backend extends AbstractSharedBackend {
                 public DataRecord apply(S3ObjectSummary input) {
                     return new S3DataRecord(backend, s3service, bucket,
                         new DataIdentifier(getIdentifierName(input.getKey())),
-                        input.getLastModified().getTime(), input.getSize());
+                        input.getLastModified().getTime(), input.getSize(), s3ReqDecorator);
                 }
             });
     }
@@ -659,9 +660,9 @@ public class S3Backend extends AbstractSharedBackend {
         try {
             Thread.currentThread().setContextClassLoader(getClass().getClassLoader());
 
-            ObjectMetadata object = s3service.getObjectMetadata(bucket, key);
+            ObjectMetadata object = s3service.getObjectMetadata(s3ReqDecorator.decorate(new GetObjectMetadataRequest(bucket, key)));
             S3DataRecord record = new S3DataRecord(this, s3service, bucket, identifier,
-                object.getLastModified().getTime(), object.getContentLength());
+                object.getLastModified().getTime(), object.getContentLength(), s3ReqDecorator);
             LOG.debug("Identifier [{}]'s getRecord = [{}] took [{}]ms.",
                 identifier, record, (System.currentTimeMillis() - start));
 
@@ -994,7 +995,8 @@ public class S3Backend extends AbstractSharedBackend {
                         bucket,
                         blobId,
                         lastModified.getTime(),
-                        size
+                        size,
+                        s3ReqDecorator
                 );
             }
             else {
@@ -1026,13 +1028,9 @@ public class S3Backend extends AbstractSharedBackend {
             final Date expiration = new Date();
             expiration.setTime(expiration.getTime() + expirySeconds * 1000);
 
-            GeneratePresignedUrlRequest request = new GeneratePresignedUrlRequest(bucket, key)
+            GeneratePresignedUrlRequest request = s3ReqDecorator.decorate(new GeneratePresignedUrlRequest(bucket, key)
                     .withMethod(method)
-                    .withExpiration(expiration);
-
-            if (method != HttpMethod.GET) {
-               request = s3ReqDecorator.decorate(request);
-            }
+                    .withExpiration(expiration));
 
             for (Map.Entry<String, String> e : reqParams.entrySet()) {
                 request.addRequestParameter(e.getKey(), e.getValue());
@@ -1169,22 +1167,22 @@ public class S3Backend extends AbstractSharedBackend {
         private long lastModified;
         private String bucket;
         private boolean isMeta;
+        private final S3RequestDecorator s3ReqDecorator;
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified,
-            long length) {
-            this(backend, s3service, bucket, key, lastModified, length, false);
+            DataIdentifier key, long lastModified, long length, final S3RequestDecorator s3ReqDecorator) {
+            this(backend, s3service, bucket, key, lastModified, length, false, s3ReqDecorator);
         }
 
         public S3DataRecord(AbstractSharedBackend backend, AmazonS3Client s3service, String bucket,
-            DataIdentifier key, long lastModified,
-            long length, boolean isMeta) {
+            DataIdentifier key, long lastModified, long length, boolean isMeta, final S3RequestDecorator s3ReqDecorator) {
             super(backend, key);
             this.s3service = s3service;
             this.lastModified = lastModified;
             this.length = length;
             this.bucket = bucket;
             this.isMeta = isMeta;
+            this.s3ReqDecorator = s3ReqDecorator;
         }
 
         @Override
@@ -1197,6 +1195,7 @@ public class S3Backend extends AbstractSharedBackend {
             String id = getKeyName(getIdentifier());
             if (isMeta) {
                 id = addMetaKeyPrefix(getIdentifier().toString());
+                return s3service.getObject(bucket, id).getObjectContent();
             }
             else {
                 // Don't worry about stream logging for metadata records
@@ -1205,7 +1204,7 @@ public class S3Backend extends AbstractSharedBackend {
                     LOG_STREAMS_DOWNLOAD.debug("Binary downloaded from S3 - identifier={}", id, new Exception());
                 }
             }
-            return s3service.getObject(bucket, id).getObjectContent();
+            return s3service.getObject(s3ReqDecorator.decorate(new GetObjectRequest(bucket, id))).getObjectContent();
         }
 
         @Override

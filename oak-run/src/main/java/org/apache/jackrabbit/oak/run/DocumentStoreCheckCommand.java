@@ -68,9 +68,11 @@ class DocumentStoreCheckCommand implements Command {
                     .withPredecessors(options.withPredecessors())
                     .withSuccessors(options.withSuccessors())
                     .withUuid(options.withUuid())
+                    .withConsistency(options.withConsistency())
                     .withProgress(options.withProgress())
                     .isSilent(options.isSilent())
                     .withSummary(options.withSummary())
+                    .withCounter(options.withCounter())
                     .withNumThreads(options.getNumThreads())
                     .build().run();
 
@@ -91,6 +93,8 @@ class DocumentStoreCheckCommand implements Command {
 
         final OptionSpec<Boolean> summary;
 
+        final OptionSpec<Boolean> counter;
+
         final OptionSpec<Boolean> orphan;
 
         final OptionSpec<Boolean> baseVersion;
@@ -102,6 +106,8 @@ class DocumentStoreCheckCommand implements Command {
         final OptionSpec<Boolean> successors;
 
         final OptionSpec<Boolean> uuid;
+
+        final OptionSpec<Boolean> consistency;
 
         final OptionSpec<Integer> numThreads;
 
@@ -115,6 +121,8 @@ class DocumentStoreCheckCommand implements Command {
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             summary = parser.accepts("summary", "Write a summary message at the end")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            counter = parser.accepts("counter", "Count documents and nodes that exist")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             orphan = parser.accepts("orphan", "Check for orphaned nodes")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             baseVersion = parser.accepts("baseVersion", "Check jcr:baseVersion reference")
@@ -126,6 +134,8 @@ class DocumentStoreCheckCommand implements Command {
             successors = parser.accepts("successors", "Check jcr:successors references")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             uuid = parser.accepts("uuid", "Check UUID index entry")
+                    .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
+            consistency = parser.accepts("consistency", "Check node state consistency")
                     .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.TRUE);
             numThreads = parser.accepts("numThreads", "Use this number of threads to check consistency")
                     .withRequiredArg().ofType(Integer.class).defaultsTo(Runtime.getRuntime().availableProcessors());
@@ -153,6 +163,10 @@ class DocumentStoreCheckCommand implements Command {
             return summary.value(options);
         }
 
+        public boolean withCounter() {
+            return counter.value(options);
+        }
+
         public boolean withOrphan() {
             return orphan.value(options);
         }
@@ -175,6 +189,10 @@ class DocumentStoreCheckCommand implements Command {
 
         public boolean withUuid() {
             return uuid.value(options);
+        }
+
+        public boolean withConsistency() {
+            return consistency.value(options);
         }
 
         public int getNumThreads() {

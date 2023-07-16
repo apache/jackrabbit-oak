@@ -69,6 +69,8 @@ public class DocumentStoreCheck {
 
     private final boolean summary;
 
+    private final boolean counter;
+
     private final int numThreads;
 
     private final ExecutorService executorService;
@@ -87,12 +89,15 @@ public class DocumentStoreCheck {
 
     private final boolean uuid;
 
+    private final boolean consistency;
+
     private DocumentStoreCheck(DocumentNodeStore ns,
                                DocumentStore store,
                                Closer closer,
                                boolean progress,
                                boolean silent,
                                boolean summary,
+                               boolean counter,
                                int numThreads,
                                String output,
                                boolean orphan,
@@ -100,13 +105,15 @@ public class DocumentStoreCheck {
                                boolean versionHistory,
                                boolean predecessors,
                                boolean successors,
-                               boolean uuid) {
+                               boolean uuid,
+                               boolean consistency) {
         this.ns = ns;
         this.store = store;
         this.closer = closer;
         this.progress = progress;
         this.silent = silent;
         this.summary = summary;
+        this.counter = counter;
         this.numThreads = numThreads;
         this.executorService = new ThreadPoolExecutor(
                 numThreads, numThreads, 1, TimeUnit.MINUTES,
@@ -121,6 +128,7 @@ public class DocumentStoreCheck {
         this.predecessors = predecessors;
         this.successors = successors;
         this.uuid = uuid;
+        this.consistency = consistency;
     }
 
     public void run() throws Exception {
@@ -176,6 +184,9 @@ public class DocumentStoreCheck {
 
     private DocumentProcessor createDocumentProcessor() {
         List<DocumentProcessor> processors = new ArrayList<>();
+        if (counter) {
+            processors.add(new NodeCounter(ns, ns.getHeadRevision(), executorService));
+        }
         if (summary) {
             processors.add(new Summary(numThreads));
         }
@@ -208,6 +219,9 @@ public class DocumentStoreCheck {
         if (uuid) {
             processors.add(new ReferenceCheck(JCR_UUID, ns, ns.getHeadRevision(), executorService));
         }
+        if (consistency) {
+            processors.add(new ConsistencyCheck(ns, executorService));
+        }
         return CompositeDocumentProcessor.compose(processors);
     }
 
@@ -233,6 +247,8 @@ public class DocumentStoreCheck {
 
         private boolean summary;
 
+        private boolean counter;
+
         private int numThreads = Runtime.getRuntime().availableProcessors();
 
         private String output;
@@ -248,6 +264,8 @@ public class DocumentStoreCheck {
         private boolean successors;
 
         private boolean uuid;
+
+        private boolean consistency;
 
         public Builder(DocumentNodeStore ns,
                        DocumentStore store,
@@ -269,6 +287,11 @@ public class DocumentStoreCheck {
 
         public Builder withSummary(boolean enable) {
             this.summary = enable;
+            return this;
+        }
+
+        public Builder withCounter(boolean enable) {
+            this.counter = enable;
             return this;
         }
 
@@ -312,10 +335,15 @@ public class DocumentStoreCheck {
             return this;
         }
 
+        public Builder withConsistency(boolean enable) {
+            this.consistency = enable;
+            return this;
+        }
+
         public DocumentStoreCheck build() {
             return new DocumentStoreCheck(ns, store, closer, progress, silent,
-                    summary, numThreads, output, orphan, baseVersion,
-                    versionHistory, predecessors, successors, uuid);
+                    summary, counter, numThreads, output, orphan, baseVersion,
+                    versionHistory, predecessors, successors, uuid, consistency);
         }
     }
 

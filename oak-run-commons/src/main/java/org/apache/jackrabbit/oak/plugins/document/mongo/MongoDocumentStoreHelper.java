@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 
+import com.mongodb.ReadPreference;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import com.mongodb.BasicDBObject;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocumentHelper;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
+import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.bson.conversions.Bson;
 
@@ -108,4 +110,11 @@ public class MongoDocumentStoreHelper {
         return store.convertFromDBObject(col, obj);
     }
 
+    public static NodeDocumentCache getNodeDocumentCache(MongoDocumentStore mongoStore) {
+        return mongoStore.getNodeDocumentCache();
+    }
+
+    public static ReadPreference getConfiguredReadPreference(MongoDocumentStore mongoStore, Collection<? extends Document> collection) {
+        return mongoStore.getConfiguredReadPreference(collection);
+    }
 }
