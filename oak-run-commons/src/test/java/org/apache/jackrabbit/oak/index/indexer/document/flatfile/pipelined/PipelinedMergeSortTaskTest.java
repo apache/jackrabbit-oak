@@ -59,7 +59,7 @@ public class PipelinedMergeSortTaskTest {
         File singleFileToMerge = getTestFile("pipelined/merge-stage-1.json");
         PipelinedMergeSortTask.Result result = runTest(singleFileToMerge);
         Path resultFile = result.getFlatFileStoreFile().toPath();
-        assertEquals(Files.readString(singleFileToMerge.toPath(), FLATFILESTORE_CHARSET), Files.readString(resultFile, FLATFILESTORE_CHARSET));
+        assertEquals(Files.readAllLines(singleFileToMerge.toPath(), FLATFILESTORE_CHARSET), Files.readAllLines(resultFile, FLATFILESTORE_CHARSET));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class PipelinedMergeSortTaskTest {
         PipelinedMergeSortTask.Result result = runTest(merge1, merge2);
         Path resultFile = result.getFlatFileStoreFile().toPath();
         LOG.info("Result: {}\n{}", resultFile, Files.readString(resultFile, FLATFILESTORE_CHARSET));
-        assertEquals(Files.readString(expected.toPath(), FLATFILESTORE_CHARSET), Files.readString(resultFile, FLATFILESTORE_CHARSET));
+        assertEquals(Files.readAllLines(expected.toPath(), FLATFILESTORE_CHARSET), Files.readAllLines(resultFile, FLATFILESTORE_CHARSET));
     }
 
     private File getTestFile(String name) {
@@ -96,7 +96,8 @@ public class PipelinedMergeSortTaskTest {
         // Run the merge task
         PipelinedMergeSortTask.Result result = mergeSortTask.call();
         File[] filesInWorkDir = sortRoot.listFiles();
-        if (filesInWorkDir == null) throw new IllegalStateException("The sort work directory is not a directory: " + sortRoot);
+        if (filesInWorkDir == null)
+            throw new IllegalStateException("The sort work directory is not a directory: " + sortRoot);
         assertEquals("The sort work directory should contain only the flat file store, the intermediate files should have been deleted after merged. Instead it contains: " + Arrays.toString(filesInWorkDir),
                 1, filesInWorkDir.length);
         assertTrue(result.getFlatFileStoreFile().exists());

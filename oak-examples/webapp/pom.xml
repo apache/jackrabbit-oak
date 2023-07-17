@@ -35,7 +35,7 @@
   <description>Web application that hosts and serves a Jackrabbit Oak content repository</description>
 
   <properties>
-    <tomcat.version>8.5.87</tomcat.version>
+    <tomcat.version>9.0.78</tomcat.version>
     <skip.deployment>true</skip.deployment>
   </properties>
 
@@ -207,28 +207,21 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-core</artifactId>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
-        <artifactId>maven-war-plugin</artifactId>
-        <version>3.2.3</version>
-      </plugin>
-      <plugin>
          <groupId>org.eclipse.jetty</groupId>
          <artifactId>jetty-maven-plugin</artifactId>
-         <version>9.4.11.v20180605</version>
+         <version>10.0.15</version>
          <configuration>
-           <scanIntervalSeconds>0</scanIntervalSeconds>
-           <connectors>
-             <connector implementation="org.mortbay.jetty.nio.SelectChannelConnector">
-               <port>8080</port>
-               <maxIdleTime>60000</maxIdleTime>
-             </connector>
-           </connectors>
+           <scan>-1</scan>
+           <httpConnector>
+             <port>8080</port>
+             <idleTimeout>60000</idleTimeout>
+           </httpConnector>
            <webApp>
              <!-- no need to scan anything as we're using servlet 2.5 and moreover, we're not using ServletContainerInitializer(s) -->
              <!-- for more relevant information regarding scanning of classes refer to https://java.net/jira/browse/SERVLET_SPEC-36 -->

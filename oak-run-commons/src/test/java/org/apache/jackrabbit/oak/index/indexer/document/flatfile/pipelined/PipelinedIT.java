@@ -48,6 +48,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -91,16 +92,16 @@ public class PipelinedIT {
 
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
-        assertEquals("/content/dam|{}\n" +
-                        "/content/dam/1000|{}\n" +
-                        "/content/dam/1000/12|{\"p1\":\"v100012\"}\n" +
-                        "/content/dam/2022|{}\n" +
-                        "/content/dam/2022/02|{\"p1\":\"v202202\"}\n" +
-                        "/content/dam/2023|{\"p2\":\"v2023\"}\n" +
-                        "/content/dam/2023/01|{\"p1\":\"v202301\"}\n" +
-                        "/content/dam/2023/02|{}\n" +
-                        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}\n",
-                Files.readString(file.toPath()));
+        assertEquals(Arrays.asList(new String[] {"/content/dam|{}",
+                        "/content/dam/1000|{}",
+                        "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+                        "/content/dam/2022|{}",
+                        "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+                        "/content/dam/2023|{\"p2\":\"v2023\"}",
+                        "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+                        "/content/dam/2023/02|{}",
+                        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"}),
+                Files.readAllLines(file.toPath()));
     }
 
     @Test
