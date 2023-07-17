@@ -104,8 +104,8 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            filters.addChild("LowerCase");
-            Tree stemmer = filters.addChild("stemmer");
+            addFilter(filters, "Lowercase");
+            Tree stemmer = addFilter(filters, "stemmer");
             stemmer.setProperty("language", "dutch_kp");
         });
 
@@ -126,7 +126,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            filters.addChild("Apostrophe");
+            addFilter(filters, "Apostrophe");
         });
 
         Tree test = root.getTree("/");
@@ -144,7 +144,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree dd = filters.addChild("dictionary_decompounder");
+            Tree dd = addFilter(filters, "dictionary_decompounder");
             dd.setProperty("word_list", "words.txt");
             dd.addChild("words.txt").addChild(JcrConstants.JCR_CONTENT)
                     .setProperty(JcrConstants.JCR_DATA, "Donau\ndampf\nmeer\nschiff");
@@ -168,7 +168,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree dd = filters.addChild("fingerprint");
+            Tree dd = addFilter(filters, "fingerprint");
             dd.setProperty("max_output_size", "10");
         });
 
@@ -190,7 +190,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree kt = filters.addChild("keep_types");
+            Tree kt = addFilter(filters, "keep_types");
             kt.setProperty("types", "<NUM>");
         });
 
@@ -212,12 +212,12 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree mh = filters.addChild("min_hash");
+            Tree mh = addFilter(filters, "min_hash");
             mh.setProperty("hash_count", "1");
             mh.setProperty("bucket_count", "512");
             mh.setProperty("hash_set_size", "1");
             mh.setProperty("with_rotation", "true");
-            Tree shingle = filters.addChild("shingle");
+            Tree shingle = addFilter(filters, "shingle");
             shingle.setProperty("min_shingle_size", "5");
             shingle.setProperty("max_shingle_size", "5");
             shingle.setProperty("output_unigrams", "false");
@@ -241,7 +241,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            Tree snowball = filters.addChild("SnowballPorter");
+            Tree snowball = addFilter(filters, "SnowballPorter");
             snowball.setProperty("language", "Italian");
         });
 
