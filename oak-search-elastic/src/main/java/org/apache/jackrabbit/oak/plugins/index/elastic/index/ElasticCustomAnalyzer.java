@@ -289,6 +289,9 @@ public class ElasticCustomAnalyzer {
         });
     }
 
+    /*
+     * See org.apache.jackrabbit.oak.plugins.index.lucene.NodeStateAnalyzerFactory#convertNodeState
+     */
     private static boolean isPropertySupported(PropertyState ps) {
         return ps.getType() != Type.BINARY &&
                 !ps.isArray() &&
