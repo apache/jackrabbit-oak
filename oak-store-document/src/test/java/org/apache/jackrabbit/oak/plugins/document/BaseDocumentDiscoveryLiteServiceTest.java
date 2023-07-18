@@ -322,6 +322,10 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             ns.getDocumentStore().findAndUpdate(Collection.CLUSTER_NODES, op);
 
             boolean renewed = ns.renewClusterIdLease();
+
+            ClusterNodeInfoDocument currentDoc = ns.getDocumentStore().find(Collection.CLUSTER_NODES, String.valueOf(ns.getClusterId()));
+            logger.info("setLeaseTime : renewed : {} - resulting document is : {}", renewed, currentDoc);
+            
             return renewed;
         }
 
