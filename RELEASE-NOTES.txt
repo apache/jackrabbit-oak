@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.52.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.54.0
 
 Introduction
 ------------
@@ -7,100 +7,124 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.52.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.54.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.52.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.54.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.52.0
+Changes in Oak 1.54.0
 ---------------------
 
 Technical task
 
-    [OAK-7541] - SegmentCompactionIT's use of com.google.common.util.concurrent.Futures.dereference
-    [OAK-9989] - introduce oak-shaded-guava project
-    [OAK-10164] - oak-commons: prepare for switch to shaded guava
-    [OAK-10169] - improve output of test-assertions
-    [OAK-10170] - simplify usage of authorizableiterator
-    [OAK-10175] - Reduce currently supported Guava range to 15 - 19
-    [OAK-10176] - oak-shaded-guava: switch to latest Guava version
-    [OAK-10177] - adjust OSGi ITs and size limits for shaded guava inclusion
-    [OAK-10179] - switch oak-commons to shaded guava
-    [OAK-10180] - switch oak-core-spi to shaded guava
-    [OAK-10185] - oak-blob-cloud-azure - relax Guava import range
-    [OAK-10186] - switch oak-store-spi to shaded guava
-    [OAK-10192] - switch oak-query-spi to shaded guava
-    [OAK-10194] - switch oak-security-spi to shaded guava
-    [OAK-10195] - switch oak-store-composite to shaded guava
-    [OAK-10196] - switch oak-store-document to shaded guava
-    [OAK-10198] - switch oak-core to shaded guava
-    [OAK-10205] - switch oak-http to shaded guava
-    [OAK-10208] - switch oak-run-commons to shaded guava
-    [OAK-10215] - switch oak-run to shaded guava
-    [OAK-10216] - switch oak-jcr to shaded guava
-    [OAK-10218] - oak-it-osgi: avoid Guava dependency
-    [OAK-10219] - switch oak-pojosr to shaded guava
-    [OAK-10221] - switch oak-auth-external to shaded guava
-    [OAK-10227] - switch oak-auth-ldap to shaded guava
-    [OAK-10229] - switch oak-authorization-cug to shaded guava
-    [OAK-10230] - switch oak-authorization-principalbased to shaded guava
-    [OAK-10231] - switch oak-exercise to shaded guava
-    [OAK-10234] - Update oak-segment-tar with shaded guava
+    [OAK-10197] - switch oak-blob-plugins to shaded guava
+    [OAK-10204] - switch oak-blob to shaded guava
+    [OAK-10236] - Update oak-segment-remote modules with shaded guava
+    [OAK-10237] - Update oak-blob* modules with shaded guava
+    [OAK-10238] - switch oak-search to shaded guava
+    [OAK-10239] - Update oak-lucene with shaded guava
+    [OAK-10240] - switch oak-solr to shaded guava
+    [OAK-10242] - switch oak-search-elastic to shaded guava
+    [OAK-10244] - oak-solr-osgi: remove Guava import decl
+    [OAK-10245] - Document OAK-10173
+    [OAK-10246] - Minor cleanup of unused imports, indention and whitespace
+    [OAK-10247] - oak-commons: remove Guava from public API
+    [OAK-10270] - Document limitation
+    [OAK-10276] - switch oak-upgrade to shaded guava
+    [OAK-10278] - switch oak-run-elastic to shaded guava
+    [OAK-10282] - switch oak-it to shaded guava
+    [OAK-10283] - switch oak-examples to shaded guava
+    [OAK-10284] - switch oak-benchmarks to shaded guava
+    [OAK-10287] - switch oak-benchmarks-lucene to shaded guava
+    [OAK-10290] - switch oak-benchmarks-elastic to shaded guava
+    [OAK-10292] - switch oak-benchmarks-solr to shaded guava
+    [OAK-10307] - oak-shaded-guava leaks original guava as transitive dependency
+    [OAK-10330] - oak-it-osgi: temporarily introduce Guava dependency again
 
 Bug
 
-    [OAK-10146] - oak-search-elastic: similarity search does not work for some nodes
-    [OAK-10151] - oak-auth-external tests fail with Guava 20
-    [OAK-10162] - Fix Version copier with preserveOnTarget to ignore diverged history
-    [OAK-10182] - datastore-copy cmd: checksum option does not write the file entirely
-    [OAK-10190] - Reusing Azure segment container hangs when primary location is not available
-    [OAK-10191] - Reusing Azure blob container hangs when primary location is not available
+    [OAK-9660] - NullPointerException When Moving Transient node
+    [OAK-10226] - Elasticsearch custom analyzers fail when the files contain comments
+    [OAK-10241] - NPE while trying to get the BinaryDownload URI
+    [OAK-10243] - Flaky test in oak-blob-cloud-azure and oak-run
+    [OAK-10257] - NodeCounterMetricTest does not release resources
+    [OAK-10259] - oak-core tests running out of memory
+    [OAK-10263] - Inconsistent state in TarWriter when close() fails to write to Azure
+    [OAK-10268] - oak-search-elastic: propertyIndex=false fields cannot be used for sorting
+    [OAK-10280] - Occasional failure to start docker container
+    [OAK-10305] - oak-core should changes scope of annotation dependencies to provided
+    [OAK-10306] - Incorrect dependency scope for commons-math3
+    [OAK-10308] - Tests using MongoUtils may skip even if Docker is available
+    [OAK-10324] - oak-search-elastic: IN queries on boolean fields should not fail when one of the value cannot be parsed
+    [OAK-10338] - PipelinedMergeSortTaskTest is failing on Windows due to line end issues
+    [OAK-10340] - Child order not updated on source after move
 
 New Feature
 
-    [OAK-10130] - Add API to retrieve effective policies for a set of principals for a given path
+    [OAK-10093] - Oak Blob Store support for SSE-C for AWS
+
+Story
+
+    [OAK-10173] - Allow configured principals to impersonate any user
 
 Improvement
 
-    [OAK-10050] - Enable access to the secondary Azure blobstore service endpoint in Oak segment node store
-    [OAK-10135] - JackrabbitAccessControlManager.getEffectivePolicies(Set principals) should include ReadPolicy
-    [OAK-10141] - oak-search-elastic: relevance on queries involving dynamic boost sometimes differ from lucene
-    [OAK-10149] - Rebase may be expensive with many siblings
-    [OAK-10167] - Elastic bulk processor should fail when intermediate bulks fail
-    [OAK-10168] - Bump and align testcontainers dependency to v1.17.6
-    [OAK-10171] - datastore-copy cmd: add checksum validation
-    [OAK-10183] - large Bulk size for BulkProcessor sometimes lead to SocketTimeoutException
-    [OAK-10200] - CompositeAccessControlManager.getEffectivePolicies(String) should filter duplicate policies
-    [OAK-10210] - Prefetch breaks Fast Result Size
-    [OAK-10212] - Binary references file in the newly created archive might be missing
-    [OAK-10214] - Expose node counter value as a metric in Oak
-    [OAK-10223] - Introduce constant for the 'do-create-token' marker value
-    [OAK-10225] - Utility to rate limit writes in case async indexing is delayed
+    [OAK-10211] - Rectify documentation for hybrid indexes
+    [OAK-10213] - Add new api in DocumentStore to handle bulk findAndUpdate operations
+    [OAK-10250] - Configurable suspend timeout
+    [OAK-10252] - Distinguish in oak-jackrabbit-api between provider and consumer type interfaces
+    [OAK-10253] - Option to only collect references when calling checkConsistency
+    [OAK-10256] - Principal documentation does not mention GroupPrincipal
+    [OAK-10261] - Query with OR clause with COALESCE function incorrectly interpreted
+    [OAK-10262] - Document ASCIIFolder and OakAnalyzer
+    [OAK-10267] - oak-search-elastic: index should be more lenient when a field cannot be converted to the mapped type
+    [OAK-10285] - MembershipProvider change log level to ERROR for cyclic membership
+    [OAK-10286] - AutoMembershipPrincipals.isInheritedMember add check for cyclic membership
+    [OAK-10294] - Indexing job: add new Pipelined Strategy for dumping Mongo contents in preparation for reindexing
+    [OAK-10303] - oak-search-elastic: remove propertyIndex/nodeScopeIndex from dynamicBoost tests
+    [OAK-10310] - Bump testcontainers dependency to v1.18.3
+    [OAK-10315] - Counter for DocumentStore check
+    [OAK-10327] - Embedded dependencies should have "provided" scope
+    [OAK-10328] - jackrabbit-jcr-tests should have scope "tests"
+    [OAK-10332] - Ease using o.a.j.o.spi.security.authorization.principalbased.impl.FilterProviderImpl outside OSGi containers
+    [OAK-10345] - Add debug logger for bytewise comparison of big blobs
+
+Test
+
+    [OAK-10291] - oak-segment-remote: PersistentRedisCacheTest may fail on Windows due to insufficient pagefile size
+    [OAK-10317] - Additional tests for dynamic automembership
 
 Task
 
-    [OAK-10106] - Guava deprecations: set minimal logging level to 'warn'
-    [OAK-10150] - Add a test for index purge command where the latest OOB index is disabled and the queries are served by a lower versioned index
-    [OAK-10156] - update Tomcat JDBC dependency to 8.5.87
-    [OAK-10157] - examples: update Tomcat dependency to 8.5.87
-    [OAK-10159] - Upgrade jackson-databind dependency to 2.13.5
-    [OAK-10160] - Update commons-codec dependency to 1.15
-    [OAK-10163] - Benchmark performance gains by using query with projection
-    [OAK-10187] - oak-search-elastic: update Java Client independently of HLRC
-    [OAK-10201] - oak-blub-plugins: exported packages need to be marked @internal
-    [OAK-10202] - oak-search-elastic: change default fetch size to match lucene behaviour
-    [OAK-10207] - oak-jcr: remove unused test dependency zip4j
-    [OAK-10220] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.10
+    [OAK-10127] - Log warn message when MongoDB document is big
+    [OAK-10147] - Many move operations may consume a lot of memory
+    [OAK-10154] - Guava deprecations: set minimal logging level to 'error'
+    [OAK-10249] - Reduce logging in the datastore check and gc process
+    [OAK-10254] - Test cases to reproduce late write inconsistencies
+    [OAK-10265] - Oak-run offline reindex - async lane revert not taking place for stored index def after index import
+    [OAK-10271] - Fix dependencies on oak-exercise
+    [OAK-10275] - oak-upgrade: remove workaround for Java 1.6
+    [OAK-10297] - Update (shaded) Guava to 32.0.1
+    [OAK-10300] - update groovy dependency to 2.5.22
+    [OAK-10301] - Update Mockito dependency to 4.11.0
+    [OAK-10304] - log registration of invalid namespace names
+    [OAK-10313] - Identify revisions created by late-write scenario
+    [OAK-10316] - Importer exception always should mention path
+    [OAK-10326] - temporarily set baseline version explicitly (and remove before release of 1.54.0)
+    [OAK-10331] - Log calling method when a query does not use an index
+    [OAK-10337] - mvn jetty:run fails to start oak-webapp
+    [OAK-10349] - Update Tomcat dependency to 9.0.78
+    [OAK-10352] - Update (shaded) Guava to 32.1.1
 
 Documentation
 
-    [OAK-10188] - Document OAK-10130 JackrabbitAccessControlManager.getEffectivePolicies(Set,String...)
+    [OAK-10228] - Explain effect of policies for unknown principals and non-existing paths
 
 
 In addition to the above-mentioned changes, this release contains all
