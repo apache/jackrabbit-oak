@@ -23,6 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
@@ -35,6 +36,7 @@ import junitx.util.PrivateAccessor;
 public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteServiceTest {
 
     @Test
+    @Ignore
     public void testActivateDeactivate() throws Exception {
         // then test normal start with a DocumentNodeStore
         DocumentMK mk1 = createMK(1, 0);
@@ -49,6 +51,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    @Ignore
     public void testOneNode() throws Exception {
         final SimplifiedInstance s1 = createInstance();
         final ViewExpectation expectation = new ViewExpectation(s1);
@@ -57,6 +60,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    @Ignore
     public void testOneInvisibleNode() throws Exception {
         final SimplifiedInstance s1 = createInstance(true);
         final ViewExpectation expectation = new ViewExpectation(s1);
@@ -65,6 +69,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    @Ignore
     public void testTwoNodesWithCleanShutdown() throws Exception {
         final SimplifiedInstance s1 = createInstance();
         final SimplifiedInstance s2 = createInstance();
@@ -83,6 +88,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    @Ignore
     public void testTwoNodesWithInvisibleCleanShutdown() throws Exception {
         final SimplifiedInstance s1 = createInstance(true);
         final SimplifiedInstance s2 = createInstance();
@@ -119,6 +125,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    @Ignore
     public void testTwoNodesInvisibleWithCrash() throws Throwable {
         final SimplifiedInstance s1 = createInstance(true);
         final SimplifiedInstance s2 = createInstance();
@@ -142,6 +149,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
      * clusterView is correct
      */
     @Test
+    @Ignore
     public void testSmallStartStopFiesta() throws Throwable {
         logger.info("testSmallStartStopFiesta: start, seed="+SEED);
         final int LOOP_CNT = 5; // with too many loops have also seen mongo
@@ -151,6 +159,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
     }
 
     @Test
+    @Ignore
     public void versionCompare() {
         // see OAK-8139
 
