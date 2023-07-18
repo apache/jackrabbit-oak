@@ -587,7 +587,8 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                                             .newConsoleAppender("console")
                                             .addAppenderFilter("console", "info")
                                             .addAppenderFilter("file", "info")
-                                            .setLoggerLevel("org.apache.jackrabbit.oak", "debug");
+                                            .setLoggerLevel("org.apache.jackrabbit.oak", "debug")
+                                            .setLoggerLevel("org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo", "trace");
 
     // subsequent tests should get a DocumentDiscoveryLiteService setup from the
     // start
