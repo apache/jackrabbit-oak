@@ -79,7 +79,7 @@ public class PipelinedSortBatchTaskTest {
 
     @Test
     public void emptyBatch() throws Exception {
-        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(1024, 10);
+        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
 
         TestResult testResult = runTest(batch);
 
@@ -91,7 +91,7 @@ public class PipelinedSortBatchTaskTest {
 
     @Test
     public void oneBatch() throws Exception {
-        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(1024, 10);
+        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
         addEntry(batch, "/a0/b0", "{\"key\":2}");
         addEntry(batch, "/a0", "{\"key\":1}");
         addEntry(batch, "/a1/b0", "{\"key\":6}");
@@ -120,12 +120,12 @@ public class PipelinedSortBatchTaskTest {
 
     @Test
     public void twoBatches() throws Exception {
-        NodeStateEntryBatch batch1 = NodeStateEntryBatch.createNodeStateEntryBatch(1024, 10);
+        NodeStateEntryBatch batch1 = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
         addEntry(batch1, "/a0/b0", "{\"key\":2}");
         addEntry(batch1, "/a0", "{\"key\":1}");
         addEntry(batch1, "/a1/b0", "{\"key\":6}");
 
-        NodeStateEntryBatch batch2 = NodeStateEntryBatch.createNodeStateEntryBatch(1024, 10);
+        NodeStateEntryBatch batch2 = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
         addEntry(batch2, "/a0/b1", "{\"key\":5}");
         addEntry(batch2, "/a0/b0/c1", "{\"key\":4}");
         addEntry(batch2, "/a0/b0/c0", "{\"key\":3}");

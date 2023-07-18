@@ -22,9 +22,11 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class NodeStateEntryBatch {
+    // Must be large enough to hold a full node state entry
+    static final int MIN_BUFFER_SIZE = 256 * 1024;
     public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSize, int maxNumEntries) {
-        if (bufferSize < 128) {
-            throw new IllegalArgumentException("Buffer size must be at least 128 bytes");
+        if (bufferSize < MIN_BUFFER_SIZE) {
+            throw new IllegalArgumentException("Buffer size must be at least " + MIN_BUFFER_SIZE + " bytes");
         }
         if (maxNumEntries < 1) {
             throw new IllegalArgumentException("Max number of entries must be at least 1");
