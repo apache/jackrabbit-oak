@@ -84,6 +84,7 @@ Improvement
     [OAK-10261] - Query with OR clause with COALESCE function incorrectly interpreted
     [OAK-10262] - Document ASCIIFolder and OakAnalyzer
     [OAK-10267] - oak-search-elastic: index should be more lenient when a field cannot be converted to the mapped type
+    [OAK-10273] - Index-definition json created during oak-run reindex should not serialise index data
     [OAK-10285] - MembershipProvider change log level to ERROR for cyclic membership
     [OAK-10286] - AutoMembershipPrincipals.isInheritedMember add check for cyclic membership
     [OAK-10294] - Indexing job: add new Pipelined Strategy for dumping Mongo contents in preparation for reindexing
