@@ -37,7 +37,7 @@ import junitx.util.PrivateAccessor;
 public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteServiceTest {
 
     @Before
-    void setUp() {
+    public void setUp() {
         ClusterNodeInfo.resetClockToDefault();
     }
 
