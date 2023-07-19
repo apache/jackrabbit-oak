@@ -95,6 +95,7 @@ Improvement
     [OAK-10328] - jackrabbit-jcr-tests should have scope "tests"
     [OAK-10332] - Ease using o.a.j.o.spi.security.authorization.principalbased.impl.FilterProviderImpl outside OSGi containers
     [OAK-10345] - Add debug logger for bytewise comparison of big blobs
+    [OAK-10356] - Adjust lower and upper bounds of auto-detected memory limits in PipelinedStrategy
 
 Test
 
@@ -121,7 +122,9 @@ Task
     [OAK-10331] - Log calling method when a query does not use an index
     [OAK-10337] - mvn jetty:run fails to start oak-webapp
     [OAK-10349] - Update Tomcat dependency to 9.0.78
+    [OAK-10350] - Update spring-boot dependency to version 2.7.13
     [OAK-10352] - Update (shaded) Guava to 32.1.1
+    [OAK-10361] - Exclude dependency-reduced-pom.xml from the source package during release
 
 Documentation
 
