@@ -33,7 +33,7 @@ public class NodeStateEntryBatchTest {
 
     @Test
     public void testMaximumNumberOfEntries() {
-        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(1024, 2);
+        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 2);
         assertFalse(batch.isAtMaxEntries());
         batch.addEntry("a", new byte[1]);
         assertFalse(batch.isAtMaxEntries());
@@ -45,12 +45,12 @@ public class NodeStateEntryBatchTest {
 
     @Test
     public void testMaximumBufferSize() {
-        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(128, 10);
-        assertTrue(batch.hasSpaceForEntry(new byte[124])); // Needs 4 bytes for the length
-        assertFalse(batch.hasSpaceForEntry(new byte[125]));
+        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
+        assertTrue(batch.hasSpaceForEntry(new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE -4])); // Needs 4 bytes for the length
+        assertFalse(batch.hasSpaceForEntry(new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE]));
 
-        batch.addEntry("a", new byte[124]);
-        assertEquals(124 + 4, batch.sizeOfEntries());
+        batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE -4]);
+        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntries());
         assertEquals(1, batch.numberOfEntries());
         assertFalse(batch.hasSpaceForEntry(new byte[1]));
         assertThrows(BufferOverflowException.class, () -> batch.addEntry("b", new byte[1]));
@@ -58,9 +58,8 @@ public class NodeStateEntryBatchTest {
 
     @Test
     public void flipAndResetBuffer() {
-        int sizeOfEntry = 124;
-        int bufferSize = 1024;
-        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(bufferSize, 10);
+        int sizeOfEntry = NodeStateEntryBatch.MIN_BUFFER_SIZE-4;
+        NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
         byte[] testArray = new byte[sizeOfEntry];
         for (int i = 0; i < sizeOfEntry; i++) {
             testArray[i] = (byte) (i % 127);
@@ -83,6 +82,6 @@ public class NodeStateEntryBatchTest {
 
         assertEquals(0, batch.numberOfEntries());
         assertEquals(0, batch.getBuffer().position());
-        assertEquals(bufferSize, batch.getBuffer().remaining());
+        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.getBuffer().remaining());
     }
 }
