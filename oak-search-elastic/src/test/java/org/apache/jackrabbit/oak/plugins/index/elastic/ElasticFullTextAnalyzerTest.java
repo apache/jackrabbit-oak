@@ -104,7 +104,7 @@ public class ElasticFullTextAnalyzerTest extends FullTextAnalyzerCommonTest {
             anl.addChild(FulltextIndexConstants.ANL_TOKENIZER).setProperty(FulltextIndexConstants.ANL_NAME, "Standard");
 
             Tree filters = anl.addChild(FulltextIndexConstants.ANL_FILTERS);
-            addFilter(filters, "Lowercase");
+            addFilter(filters, "LowerCase");
             Tree stemmer = addFilter(filters, "stemmer");
             stemmer.setProperty("language", "dutch_kp");
         });
