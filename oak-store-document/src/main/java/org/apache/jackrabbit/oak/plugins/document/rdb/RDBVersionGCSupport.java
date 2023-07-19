@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
@@ -133,32 +134,37 @@ public class RDBVersionGCSupport extends VersionGCSupport {
                 new QueryCondition(MODIFIED_IN_SECS, ">", getModifiedInSecs(fromModified)));
 
         if (MODE == 1) {
-            final Iterable<NodeDocument> itr1 = getIterator(EMPTY_KEY_PATTERN, c1);
-            if (size(itr1) >= limit) {
-                return itr1;
-            }
-            final Iterable<NodeDocument> itr2 = getIterator(EMPTY_KEY_PATTERN, c2);
-
-            final Stream<NodeDocument> s1 = stream(itr1.spliterator(), false);
-            final Stream<NodeDocument> s2 = stream(itr2.spliterator(), false);
-            return wrap(concat(s1, s2).sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)).limit(limit).collect(toList()), () -> {
-                closeIfCloseable(itr1);
-                closeIfCloseable(itr2);
-            });
+            return getNodeDocuments(() -> getIterator(EMPTY_KEY_PATTERN, c1), () -> getIterator(EMPTY_KEY_PATTERN, c2), limit);
         } else {
-            final Iterable<NodeDocument> itr1 = store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, c1, limit, of(MODIFIED_IN_SECS, ID));
-            if (size(itr1) >= limit) {
-                return itr1;
-            }
-            final Iterable<NodeDocument> itr2 = store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, c2, limit, of(MODIFIED_IN_SECS, ID));
-
-            final Stream<NodeDocument> s1 = stream(itr1.spliterator(), false);
-            final Stream<NodeDocument> s2 = stream(itr2.spliterator(), false);
-            return wrap(concat(s1, s2).sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)).limit(limit).collect(toList()), () -> {
-                closeIfCloseable(itr1);
-                closeIfCloseable(itr2);
-            });
+            return getNodeDocuments(() -> store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, c1, limit, of(MODIFIED_IN_SECS, ID)),
+                    () -> store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, c2, limit, of(MODIFIED_IN_SECS, ID)),
+                    limit);
         }
+    }
+
+    /**
+     * To fetch {@link NodeDocument} from database
+     *
+     * @param supplier1 document supplier on basis of 1st Condition
+     * @param supplier2 document supplier on basis of 2nd Condition
+     * @param limit no. of documents to fetch from db
+     * @return sorted documents supplied by supplier1 & supplier2
+     */
+    private Iterable<NodeDocument> getNodeDocuments(final Supplier<Iterable<NodeDocument>> supplier1, final Supplier<Iterable<NodeDocument>> supplier2, final int limit) {
+
+        final Iterable<NodeDocument> itr1 = supplier1.get();
+        if (size(itr1) >= limit) {
+            return itr1;
+        }
+
+        final Iterable<NodeDocument> itr2 = supplier2.get();
+
+        final Stream<NodeDocument> s1 = stream(itr1.spliterator(), false);
+        final Stream<NodeDocument> s2 = stream(itr2.spliterator(), false);
+        return wrap(concat(s1, s2).sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)).limit(limit).collect(toList()), () -> {
+            closeIfCloseable(itr1);
+            closeIfCloseable(itr2);
+        });
     }
 
     @Override
