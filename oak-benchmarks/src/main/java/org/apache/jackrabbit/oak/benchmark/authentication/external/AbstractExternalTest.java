@@ -41,7 +41,9 @@ import org.apache.jackrabbit.oak.fixture.JcrCreator;
 import org.apache.jackrabbit.oak.fixture.OakRepositoryFixture;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.jcr.Jcr;
+import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
+import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -63,6 +65,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.impl.princ
 import org.apache.jackrabbit.oak.spi.security.principal.CompositePrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
+import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
@@ -127,10 +130,18 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
                 .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
         syncConfig.group()
                 .setExpirationTime(expTime).setPathPrefix(PATH_PREFIX);
-
+        expandSyncConfig();
     }
 
     protected abstract Configuration createConfiguration();
+    
+    protected ConfigurationParameters getSecurityConfiguration() {
+        return ConfigurationParameters.EMPTY;
+    }
+    
+    protected void expandSyncConfig() {
+        // nop
+    }
 
     protected ContentRepository getContentRepository() {
         checkState(contentRepository != null);
@@ -194,8 +205,10 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
             return ((OakRepositoryFixture) fixture).setUpCluster(1, new JcrCreator() {
                 @Override
                 public Jcr customize(Oak oak) {
-                    Whiteboard whiteboard = oak.getWhiteboard();
-
+                    OsgiContextImpl context = new OsgiContextImpl();
+                    Whiteboard whiteboard = new OsgiWhiteboard(context.bundleContext());
+                    oak.with(whiteboard);
+                    
                     syncManager = new SyncManagerImpl(whiteboard);
                     whiteboard.register(SyncManager.class, syncManager, Collections.emptyMap());
 
@@ -207,7 +220,11 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
 
                     // assert proper init of the 'externalPrincipalConfiguration' if dynamic membership is enabled
                     if (syncConfig.user().getDynamicMembership()) {
-                        OsgiContextImpl context = new OsgiContextImpl();
+                        
+                        // register the userconfiguration in order to have the dynamicmembership provider registered in 
+                        // the activate method
+                        UserConfiguration uc = securityProvider.getConfiguration(UserConfiguration.class);
+                        context.registerInjectActivateService(uc);
 
                         // register the ExternalPrincipal configuration in order to have it's
                         // activate method invoked.
@@ -235,10 +252,10 @@ abstract class AbstractExternalTest extends AbstractTest<RepositoryFixture> {
         }
     }
 
-    private static SecurityProvider newTestSecurityProvider(
+    private SecurityProvider newTestSecurityProvider(
             ExternalPrincipalConfiguration externalPrincipalConfiguration) {
-        SecurityProvider delegate = SecurityProviderBuilder.newBuilder().build();
-
+        SecurityProvider delegate = SecurityProviderBuilder.newBuilder().with(getSecurityConfiguration()).build();
+    
         PrincipalConfiguration principalConfiguration = delegate.getConfiguration(PrincipalConfiguration.class);
         if (!(principalConfiguration instanceof CompositePrincipalConfiguration)) {
             throw new IllegalStateException();
