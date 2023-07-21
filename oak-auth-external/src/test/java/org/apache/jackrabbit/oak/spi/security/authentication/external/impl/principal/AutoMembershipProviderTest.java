@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -80,7 +81,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         super.before();
         provider = createAutoMembershipProvider(root, userManager);
     }
-    
+
     private void setExternalId(@NotNull String id, @NotNull String idpName) throws Exception {
         Root sr = getSystemRoot();
         sr.refresh();
@@ -89,7 +90,17 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         sr.commit();
         root.refresh();
     }
-    
+
+    @Override
+    protected @NotNull DefaultSyncConfig createSyncConfig() {
+        DefaultSyncConfig dsc = super.createSyncConfig();
+        dsc.user().setDynamicMembership(true).setAutoMembership(MAPPING.get(IDP_VALID_AM));
+        if (dynamicGroupsEnabled) {
+            dsc.group().setDynamicGroups(true).setAutoMembership(MAPPING_GROUP.get(IDP_VALID_AM));
+        }
+        return dsc;
+    }
+
     @NotNull
     private AutoMembershipProvider createAutoMembershipProvider(@NotNull Root root, @NotNull UserManager userManager) {
         Map<String, String[]> groupMapping = (dynamicGroupsEnabled) ? MAPPING_GROUP : null;
@@ -303,13 +314,15 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup();
         Group base = userManager.createGroup("baseGroup");
         base.addMember(testGroup);
+        root.commit();
 
         assertFalse(provider.isMember(base, testUser, false));
         assertFalse(provider.isMember(base, testUser, true));
         
         // add 'automembership-group' as nested members
         testGroup.addMember(automembershipGroup1);
-        
+        root.commit();
+
         assertFalse(provider.isMember(base, testUser, false));
         assertTrue(provider.isMember(base, testUser, true));
     }
