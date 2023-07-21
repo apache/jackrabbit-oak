@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 
-public class ElasticIndexTest  extends ElasticAbstractQueryTest {
+public class ElasticIndexTest extends ElasticAbstractQueryTest {
 
     @Test
     public void indexStoresMappingVersion() throws Exception {

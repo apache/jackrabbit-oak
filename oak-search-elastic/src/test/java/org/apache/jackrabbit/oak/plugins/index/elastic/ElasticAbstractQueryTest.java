@@ -94,8 +94,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     }
 
     /*
-    Override this to create some other repo initializer if needed
-    // Make sure to call super.initialize(builder)
+     * Override this to create some other repo initializer if needed
+     * Make sure to call super.initialize(builder)
      */
     protected InitialContent getInitialContent() {
         return new InitialContent() {

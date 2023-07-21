@@ -281,7 +281,7 @@ class ElasticIndexHelper {
                                 "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
                                 "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
                                 "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
-                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() + "" +
+                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
                                 "  }" +
                                 "}");
 
