@@ -46,6 +46,16 @@ import java.util.stream.Collectors;
  */
 class ElasticIndexHelper {
 
+    /**
+     * Mapping version that uses <a href="https://semver.org/">SemVer Specification</a> to allow changes without
+     * breaking existing queries.
+     * Changes breaking compatibility should increment the major version (indicating that a reindex is mandatory).
+     * Changes not breaking compatibility should increment the minor version (old queries still work, but they might not
+     * use the new feature).
+     * Changes that do not affect queries should increment the patch version (eg: bug fixes).
+     */
+    protected static final String MAPPING_VERSION = "1.0.0";
+
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
     private static final Time INITIAL_REFRESH_INTERVAL = Time.of(b -> b.time("-1"));
