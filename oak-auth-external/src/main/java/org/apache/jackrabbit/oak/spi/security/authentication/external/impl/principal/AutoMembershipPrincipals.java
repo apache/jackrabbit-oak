@@ -147,7 +147,7 @@ final class AutoMembershipPrincipals {
             Authorizable gr = userManager.getAuthorizable(automembershipId);
             if (gr == null || !gr.isGroup()) {
                 log.warn("Configured automembership id '{}' is not a valid group", automembershipId);
-            } else if (hasInheritedMembership(gr.declaredMemberOf(), groupId, automembershipId, processed)) {
+            } else if (hasInheritedMembership(gr.declaredMemberOf(), groupId, automembershipId, processed, "> ")) {
                 return true;
             }
         }
@@ -155,28 +155,29 @@ final class AutoMembershipPrincipals {
     }
 
     private static boolean hasInheritedMembership(@NotNull Iterator<Group> declared, @NotNull String groupId, 
-                                                  @NotNull String memberId, @NotNull Set<String> processed) throws RepositoryException {
+                                                  @NotNull String memberId, @NotNull Set<String> processed, 
+                                                  @NotNull String trace) throws RepositoryException {
         List<Group> groups = new ArrayList<>();
         while (declared.hasNext()) {
             Group gr = declared.next();
             String grId = gr.getID();
-            if (memberId.equals(grId)) {
-                log.error("Cyclic group membership detected for group id {}", memberId);
-            }
-            if (!processed.add(grId)) {
-                // group has already been processed before (shared membership e.g. for the 'everyone' group)
-                return false;
-            }
             if (groupId.equals(grId)) {
                 // the specified groupId defines inherited membership of a configured auto-membership group
                 return true;
             }
-            // remember group for traversing up the membership hierarchy
-            groups.add(gr);
+            if (memberId.equals(grId)) {
+                log.error("Cyclic group membership detected for group id {} via {}{}", memberId, trace, grId);
+                continue;
+            }
+            if (processed.add(grId)) {
+                // remember group for traversing up the membership hierarchy if it has not already been 
+                // processed before (shared membership e.g. for the 'everyone' group)
+                groups.add(gr);
+            }
         }
         // recursively call to search for inherited membership
         for (Group group : groups) {
-            if (hasInheritedMembership(group.declaredMemberOf(), groupId, memberId, processed)) {
+            if (hasInheritedMembership(group.declaredMemberOf(), groupId, memberId, processed, String.format("%s %s > ", trace, group.getID()))) {
                 return true;
             }
         }

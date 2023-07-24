@@ -40,7 +40,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -143,6 +142,48 @@ public class AutoMembershipCycleTest extends AbstractAutoMembershipTest {
     }
 
     @Test
+    public void testIsInheritedMemberNestedCircularIncludingAutoMembership() throws Exception {
+        // create cycle
+        assertTrue(amGr1.addMembers(gr.getID()).isEmpty());
+        assertTrue(gr.addMembers(gr2.getID()).isEmpty());
+        assertTrue(gr2.addMembers(amGr1.getID()).isEmpty());
+        root.commit();
+        clearInvocations(gr, gr2, amGr1);
+
+        // declared automembership in amGr1 (cycle)
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr, authorizable));
+        verifyNoInteractions(authorizable);
+        verify(gr).getID();
+        verify(amGr1).declaredMemberOf();
+        verify(umMock).getAuthorizable(AUTOMEMBERSHIP_GROUP_ID_1);
+        verifyNoMoreInteractions(gr);
+        clearInvocations(authorizable, amGr1, gr, gr2, umMock);
+
+        // declared automembership in amGr1 (cycle)
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr, amGr1));
+        verify(gr).getID();
+        verify(amGr1).declaredMemberOf();
+        verify(umMock).getAuthorizable(AUTOMEMBERSHIP_GROUP_ID_1);
+        verifyNoMoreInteractions(gr);
+        clearInvocations(authorizable, amGr1, gr, gr2, umMock);
+
+        // declared automembership in amGr1 (cycle)
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr2, authorizable));
+        verify(gr2).getID();
+        verify(amGr1).declaredMemberOf();
+        verify(umMock).getAuthorizable(AUTOMEMBERSHIP_GROUP_ID_1);
+        verifyNoMoreInteractions(gr, gr2, umMock);
+        clearInvocations(authorizable, amGr1, gr, gr2, umMock);
+
+        // declared automembership in amGr1 (cycle)
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr2, amGr1));
+        verify(gr2).getID();
+        verify(amGr1).declaredMemberOf();
+        verify(umMock).getAuthorizable(AUTOMEMBERSHIP_GROUP_ID_1);
+        verifyNoMoreInteractions(gr, gr2, umMock);
+    }
+
+    @Test
     public void testIsInheritedMemberCircularWithoutAutoMembership() throws Exception {
         // create cycle
         assertTrue(gr.addMembers(gr2.getID()).isEmpty());
@@ -152,7 +193,7 @@ public class AutoMembershipCycleTest extends AbstractAutoMembershipTest {
         
         assertFalse(amp.isInheritedMember(IDP_VALID_AM, gr, gr2));
         
-        verify(gr, times(1)).getID();
+        verify(gr).getID();
         verifyNoMoreInteractions(gr, gr2);
     }
     
@@ -171,9 +212,32 @@ public class AutoMembershipCycleTest extends AbstractAutoMembershipTest {
         gr.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, vf.createValue(gr.getID() + ';' + idp.getName()));
         amGr1.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, vf.createValue(amGr1.getID() + ';' + idp.getName()));
         root.commit();
-        clearInvocations(gr, amGr1);
 
         assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr, authorizable));
         assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr, amGr1));
+    }
+
+    @Test
+    public void testIsInheritedMemberNestedCircularIncludingExternalGroup() throws Exception {
+        externalPrincipalConfiguration.setParameters(ConfigurationParameters.of(
+                PARAM_PROTECT_EXTERNAL_IDS, false));
+
+        // create cycle
+        assertTrue(amGr1.addMembers(gr2.getID()).isEmpty());
+        assertTrue(gr2.addMembers(gr.getID()).isEmpty());
+        assertTrue(gr.addMembers(amGr1.getID()).isEmpty());
+        root.commit();
+
+        // mark groups as external identities
+        ValueFactory vf = getValueFactory(root);
+        gr.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, vf.createValue(gr.getID() + ';' + idp.getName()));
+        amGr1.setProperty(DefaultSyncContext.REP_EXTERNAL_ID, vf.createValue(amGr1.getID() + ';' + idp.getName()));
+        root.commit();
+
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr, authorizable));
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr, amGr1));
+
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr2, authorizable));
+        assertTrue(amp.isInheritedMember(IDP_VALID_AM, gr2, amGr1));
     }
 }
