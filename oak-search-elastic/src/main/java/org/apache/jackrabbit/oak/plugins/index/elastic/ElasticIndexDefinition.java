@@ -68,6 +68,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String TRACK_TOTAL_HITS = "trackTotalHits";
     public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
 
+    /**
+     * Hidden property for storing the index mapping version.
+     */
+    public static final String PROP_INDEX_MAPPING_VERSION = ":mappingVersion";
+
     public static final String DYNAMIC_MAPPING = "dynamicMapping";
     // possible values are: true, false, runtime, strict. See https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic.html
     public static final String DYNAMIC_MAPPING_DEFAULT = "true";
@@ -267,6 +272,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public boolean analyzerConfigSplitOnNumerics() {
         NodeState analyzersTree = definition.getChildNode(FulltextIndexConstants.ANALYZERS);
         return getOptionalValue(analyzersTree, SPLIT_ON_NUMERICS, false);
+    }
+
+    /**
+     * Returns the mapping version for this index definition.
+     * If the version is not specified, the default value is {@code 1.0.0}.
+     */
+    public String getMappingVersion() {
+        return getOptionalValue(definition, PROP_INDEX_MAPPING_VERSION, "1.0.0");
     }
 
     @Override
