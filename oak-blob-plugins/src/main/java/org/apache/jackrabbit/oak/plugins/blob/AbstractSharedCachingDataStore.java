@@ -44,7 +44,6 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
-import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -58,6 +57,9 @@ import org.slf4j.LoggerFactory;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.cache.CacheLoader;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.io.Closeables;
@@ -146,6 +148,11 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
 
     protected ExecutorService executor;
 
+    /**
+     * DataRecord cache
+     */
+    private Cache<String, DataRecord> recordCache;
+
     public void init(String homeDir) throws DataStoreException {
         if (path == null) {
             path = homeDir + "/repository/datastore";
@@ -179,6 +186,10 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 }
             }, statisticsProvider, listeningExecutor, schedulerExecutor, executor, stagingPurgeInterval,
                 stagingRetryInterval);
+        this.recordCache = CacheBuilder
+                .newBuilder()
+                .maximumSize(100000)
+                .build();
     }
 
     protected abstract AbstractSharedBackend createBackend();
@@ -208,7 +219,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         } else {
             // Return the metadata from backend and lazily load the stream
             try {
-                DataRecord rec = backend.getRecord(dataIdentifier);
+                DataRecord rec = recordCache.get(dataIdentifier.toString(), () -> backend.getRecord(dataIdentifier));
                 return new FileCacheDataRecord(this, backend, dataIdentifier, rec.getLength(),
                     tmp, rec.getLastModified());
             } catch (Exception e) {
