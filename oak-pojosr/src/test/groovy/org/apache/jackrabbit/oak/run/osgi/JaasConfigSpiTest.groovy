@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.run.osgi
 
-import com.google.common.collect.ImmutableSet
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet
 import org.apache.felix.jaas.LoginModuleFactory
 import org.apache.jackrabbit.oak.spi.security.authentication.AbstractLoginModule
 import org.apache.jackrabbit.oak.spi.security.authentication.AuthenticationConfiguration
