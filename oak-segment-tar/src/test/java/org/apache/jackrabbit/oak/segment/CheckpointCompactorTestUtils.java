@@ -43,9 +43,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 
-public class CompactorTestUtils {
+public class CheckpointCompactorTestUtils {
 
-    private CompactorTestUtils() {}
+    private CheckpointCompactorTestUtils() {
+
+    }
 
     public static void checkGeneration(NodeState node, GCGeneration gcGeneration) {
         assertTrue(node instanceof SegmentNodeState);
@@ -81,6 +83,20 @@ public class CompactorTestUtils {
         assertEquals("Nodes should have been deduplicated",
                 ((SegmentNodeState) node1).getRecordId(),
                 ((SegmentNodeState) node2).getRecordId());
+    }
+
+    @NotNull
+    public static CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
+        SegmentWriter writer = defaultSegmentWriterBuilder("c")
+                .withGeneration(generation)
+                .build(fileStore);
+
+        return new CheckpointCompactor(
+                GCMonitor.EMPTY,
+                fileStore.getReader(),
+                writer,
+                fileStore.getBlobStore(),
+                GCNodeWriteMonitor.EMPTY);
     }
 
     public static void addTestContent(@NotNull String parent, @NotNull NodeStore nodeStore, int binPropertySize)

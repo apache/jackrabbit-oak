@@ -14,14 +14,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index;
-
-import org.junit.Test;
-
-import java.util.Random;
+package org.apache.jackrabbit.oak.plugins.index.counter;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
+import java.util.Random;
+
+import org.apache.jackrabbit.oak.plugins.index.counter.ApproximateCounter;
+import org.junit.Test;
 
 public class ApproximateCounterTest {
 

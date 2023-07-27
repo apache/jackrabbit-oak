@@ -598,11 +598,14 @@ public class CompactionAndCleanupIT {
         try {
             SegmentNodeStore nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
 
-            final Callable<Void> cancel = () -> {
-                // Give the compaction thread a head start
-                sleepUninterruptibly(1000, MILLISECONDS);
-                fileStore.cancelGC();
-                return null;
+            final Callable<Void> cancel = new Callable<Void>() {
+                @Override
+                public Void call() throws Exception {
+                    // Give the compaction thread a head start
+                    sleepUninterruptibly(1000, MILLISECONDS);
+                    fileStore.cancelGC();
+                    return null;
+                }
             };
 
             for (int k = 0; k < 100; k++) {

@@ -18,17 +18,12 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkState;
-
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.LongAdder;
-
 /**
  * Monitors the compaction cycle and keeps a compacted nodes counter, in order
- * to provide a best-effort progress log based on extrapolating the previous
+ * to provide a best effort progress log based on extrapolating the previous
  * size and node count and current size to deduce current node count.
  */
 public class GCNodeWriteMonitor {
@@ -55,19 +50,19 @@ public class GCNodeWriteMonitor {
     /**
      * Number of compacted nodes
      */
-    private final AtomicLong nodes = new AtomicLong();
+    private long nodes;
 
     /**
      * Number of compacted properties
      */
-    private final LongAdder properties = new LongAdder();
+    private long properties;
 
     /**
      * Number of compacted binaries
      */
-    private final LongAdder binaries = new LongAdder();
+    private long binaries;
 
-    private volatile boolean running = false;
+    private boolean running = false;
 
     public GCNodeWriteMonitor(long gcProgressLog, @NotNull GCMonitor gcMonitor) {
         this.gcProgressLog = gcProgressLog;
@@ -82,8 +77,7 @@ public class GCNodeWriteMonitor {
      * @param currentSize
      *            current repository size
      */
-    public void init(long prevSize, long prevCompactedNodes, long currentSize) {
-        checkState(!running);
+    public synchronized void init(long prevSize, long prevCompactedNodes, long currentSize) {
         if (prevCompactedNodes > 0) {
             estimated = (long) (((double) currentSize / prevSize) * prevCompactedNodes);
             gcMonitor.info(
@@ -93,67 +87,69 @@ public class GCNodeWriteMonitor {
         } else {
             gcMonitor.info("unable to estimate number of nodes for compaction, missing gc history.");
         }
-        nodes.set(0);
-        properties.reset();
-        binaries.reset();
+        nodes = 0;
         start = System.currentTimeMillis();
         running = true;
     }
 
-    public void onNode() {
-        long writtenNodes = nodes.incrementAndGet();
-        if (gcProgressLog > 0 && writtenNodes % gcProgressLog == 0) {
+    public synchronized void onNode() {
+        nodes++;
+        if (gcProgressLog > 0 && nodes % gcProgressLog == 0) {
             gcMonitor.info("compacted {} nodes, {} properties, {} binaries in {} ms. {}",
-                    writtenNodes, properties, binaries, System.currentTimeMillis() - start, getPercentageDone());
+                nodes, properties, binaries, System.currentTimeMillis() - start, getPercentageDone());
         }
     }
 
-    public void onProperty() {
-        properties.increment();
+    public synchronized void onProperty() {
+        properties++;
     }
 
-    public void onBinary() {
-        binaries.increment();
+    public synchronized void onBinary() {
+        binaries++;
     }
 
-    public void finished() {
+    public synchronized void finished() {
         running = false;
     }
 
     /**
      * Compacted nodes in current cycle
      */
-    public long getCompactedNodes() {
-        return nodes.get();
+    public synchronized long getCompactedNodes() {
+        return nodes;
     }
 
     /**
      * Estimated nodes to compact in current cycle. Can be {@code -1} if the
      * estimation could not be performed.
      */
-    public long getEstimatedTotal() {
+    public synchronized long getEstimatedTotal() {
         return estimated;
     }
 
     @NotNull
     private String getPercentageDone() {
-        int percentage = getEstimatedPercentage();
-        return (percentage >= 0) ? percentage + "% complete." : "";
+        return estimated > 0
+            ? getEstimatedPercentage() + "% complete."
+            : "";
     }
 
     /**
      * Estimated completion percentage. Can be {@code -1} if the estimation
      * could not be performed.
      */
-    public int getEstimatedPercentage() {
-        if (!running) {
-            return 100;
+    public synchronized int getEstimatedPercentage() {
+        if (estimated > 0) {
+            if (!running) {
+                return 100;
+            } else {
+                return Math.min((int) (100 * ((double) nodes / estimated)), 99);
+            }
         }
-        long numNodes = estimated;
-        return (numNodes <= 0) ? -1 : Math.min((int) (100 * ((double) nodes.get() / numNodes)), 99);
+        return -1;
     }
 
-    public boolean isCompactionRunning() {
+    public synchronized boolean isCompactionRunning() {
         return running;
     }
 

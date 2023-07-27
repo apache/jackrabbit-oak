@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
-import static org.apache.jackrabbit.oak.segment.CompactorUtils.getStableIdBytes;
 
 import java.io.IOException;
 import java.util.Date;
@@ -33,7 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
@@ -59,13 +57,13 @@ import org.jetbrains.annotations.Nullable;
  */
 public class CheckpointCompactor implements Compactor {
     @NotNull
-    protected final GCMonitor gcListener;
+    private final GCMonitor gcListener;
 
     @NotNull
     private final Map<NodeState, NodeState> cpCache = newHashMap();
 
     @NotNull
-    protected final ClassicCompactor compactor;
+    private final ClassicCompactor compactor;
 
     @NotNull
     private final NodeWriter nodeWriter;
@@ -141,8 +139,14 @@ public class CheckpointCompactor implements Compactor {
             childBuilder.setChildNode(getName(path), state);
         }
 
-        return nodeWriter.writeNode(builder.getNodeState(),
-                Objects.requireNonNull(getStableIdBytes(uncompacted)));
+        return nodeWriter.writeNode(builder.getNodeState(), getStableIdBytes(uncompacted));
+    }
+
+    @Nullable
+    private static Buffer getStableIdBytes(@NotNull NodeState node) {
+        return node instanceof SegmentNodeState
+            ? ((SegmentNodeState) node).getStableIdBytes()
+            : null;
     }
 
     @NotNull
@@ -229,19 +233,6 @@ public class CheckpointCompactor implements Compactor {
         }
 
     /**
-     * Delegate compaction to another, usually simpler, implementation.
-     */
-    @Nullable
-    protected SegmentNodeState compactWithDelegate(
-            @NotNull NodeState before,
-            @NotNull NodeState after,
-            @NotNull NodeState onto,
-            Canceller canceller
-    ) throws IOException {
-        return compactor.compact(before, after, onto, canceller);
-    }
-
-    /**
      * Compact {@code after} against {@code before} on top of {@code onto} unless
      * {@code after} has been compacted before and is found in the cache. In this
      * case the cached version of the previously compacted {@code before} is returned.
@@ -257,7 +248,7 @@ public class CheckpointCompactor implements Compactor {
         gcListener.info("compacting {}.", path);
         NodeState compacted = cpCache.get(after);
         if (compacted == null) {
-            compacted = compactWithDelegate(before, after, onto, canceller);
+            compacted = compactor.compact(before, after, onto, canceller);
             if (compacted == null) {
                 return null;
             } else {
@@ -269,4 +260,5 @@ public class CheckpointCompactor implements Compactor {
             return new Result(compacted, before, onto);
         }
     }
+
 }

@@ -53,14 +53,9 @@ public class SegmentGCOptions {
         CLASSIC_COMPACTOR("classic"),
 
         /**
-         * Checkpoint-aware compaction implementation
+         * Checkpoints aware compaction implementation
          */
-        CHECKPOINT_COMPACTOR("diff"),
-
-        /**
-         * Multithreaded compaction implementation
-         */
-        PARALLEL_COMPACTOR("parallel");
+        CHECKPOINT_COMPACTOR("diff");
 
         private final String description;
 
@@ -74,10 +69,8 @@ public class SegmentGCOptions {
                 return CLASSIC_COMPACTOR;
             case "diff":
                 return CHECKPOINT_COMPACTOR;
-            case "parallel":
-                return PARALLEL_COMPACTOR;
             default:
-                throw new IllegalArgumentException("Unrecognized compactor type " + description);
+                throw new IllegalArgumentException("Unrecongnized compactor type " + description);
             }
         }
 
@@ -126,11 +119,6 @@ public class SegmentGCOptions {
      */
     public static final int MEMORY_THRESHOLD_DEFAULT = 15;
 
-    /**
-     * Default value for {@link #getConcurrency()}
-     */
-    public static final int DEFAULT_CONCURRENCY = 1;
-
     private boolean paused = PAUSE_DEFAULT;
 
     /**
@@ -161,13 +149,7 @@ public class SegmentGCOptions {
      */
     private long gcLogInterval = -1;
 
-    /**
-     * Number of threads to use for compaction. Negative numbers are interpreted
-     * relative to number of available processors.
-     */
-    private int concurrency = DEFAULT_CONCURRENCY;
-
-    private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
+    private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
 
     public SegmentGCOptions(boolean paused, int retryCount, int forceTimeout) {
         this.paused = paused;
@@ -293,7 +275,6 @@ public class SegmentGCOptions {
                     "offline=" + offline +
                     ", retainedGenerations=" + retainedGenerations +
                     ", compactorType=" + compactorType +
-                    ", concurrency=" + concurrency +
                     "}";
         } else {
             return getClass().getSimpleName() + "{" +
@@ -403,7 +384,7 @@ public class SegmentGCOptions {
     }
 
     /**
-     * @return the current compactor type (i.e. classic, checkpoint-aware or parallel)
+     * @return the current compactor type (i.e. classic or checkpoint-aware)
      */
     public CompactorType getCompactorType() {
         return compactorType;
@@ -412,27 +393,9 @@ public class SegmentGCOptions {
     /**
      * Sets the compactor type to be used for compaction
      * @param compactorType
-     * @return this instance
      */
     public SegmentGCOptions setCompactorType(CompactorType compactorType) {
         this.compactorType = compactorType;
-        return this;
-    }
-
-    /**
-     * @return the current level of concurrency
-     */
-    public int getConcurrency() {
-        return concurrency;
-    }
-
-    /**
-     * Sets the concurrency level for compaction
-     * @param concurrency number of threads to use
-     * @return this instance                    
-     */
-    public SegmentGCOptions setConcurrency(int concurrency) {
-        this.concurrency = concurrency;
         return this;
     }
 }

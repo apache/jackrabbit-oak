@@ -79,9 +79,7 @@ public class AzureCompact {
 
         private int segmentCacheSize = 2048;
 
-        private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
-
-        private int concurrency = 1;
+        private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
 
         private String persistentCachePath;
 
@@ -161,22 +159,12 @@ public class AzureCompact {
 
         /**
          * The compactor type to be used by compaction. If not specified it defaults to
-         * "parallel" compactor
+         * "diff" compactor
          * @param compactorType the compactor type
          * @return this builder
          */
         public Builder withCompactorType(CompactorType compactorType) {
             this.compactorType = compactorType;
-            return this;
-        }
-
-        /**
-         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
-         * @param concurrency the number of threads
-         * @return this builder
-         */
-        public Builder withConcurrency(int concurrency) {
-            this.concurrency = concurrency;
             return this;
         }
 
@@ -227,8 +215,6 @@ public class AzureCompact {
 
     private final CompactorType compactorType;
 
-    private final int concurrency;
-
     private String persistentCachePath;
 
     private Integer persistentCacheSizeGb;
@@ -240,7 +226,6 @@ public class AzureCompact {
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
         this.compactorType = builder.compactorType;
-        this.concurrency = builder.concurrency;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
     }
@@ -269,7 +254,7 @@ public class AzureCompact {
         System.out.printf("    -> compacting\n");
 
         try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
-                gcLogInterval, compactorType, concurrency)) {
+                gcLogInterval, compactorType)) {
             if (!store.compactFull()) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;

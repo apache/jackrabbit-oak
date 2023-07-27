@@ -29,13 +29,12 @@ import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 
+import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
+import org.apache.jackrabbit.oak.segment.ClassicCompactor;
+import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeState;
-import org.apache.jackrabbit.oak.segment.Compactor;
 import org.apache.jackrabbit.oak.segment.SegmentWriter;
-import org.apache.jackrabbit.oak.segment.ClassicCompactor;
-import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
-import org.apache.jackrabbit.oak.segment.ParallelCompactor;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.file.cancel.Cancellation;
@@ -222,7 +221,6 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
                 writer.flush();
                 context.getFlusher().flush();
                 context.getGCListener().info("compaction succeeded in {}, after {} cycles", watch, cycles);
-                context.getCompactionMonitor().finished();
                 return compactionSucceeded(context, nextGeneration, compacted.getRecordId());
             } else {
                 context.getGCListener().info("compaction failed after {}, and {} cycles", watch, cycles);
@@ -241,18 +239,15 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
     private Compactor newCompactor(Context context, SegmentWriter writer) {
         CompactorType compactorType = context.getGCOptions().getCompactorType();
         switch (compactorType) {
-            case PARALLEL_COMPACTOR:
-                return new ParallelCompactor(context.getGCListener(), context.getSegmentReader(), writer,
-                        context.getBlobStore(), context.getCompactionMonitor(),
-                        context.getGCOptions().getConcurrency());
-            case CHECKPOINT_COMPACTOR:
-                return new CheckpointCompactor(context.getGCListener(), context.getSegmentReader(), writer,
-                        context.getBlobStore(), context.getCompactionMonitor());
-            case CLASSIC_COMPACTOR:
-                return new ClassicCompactor(context.getSegmentReader(), writer, context.getBlobStore(),
-                        context.getCompactionMonitor());
-            default:
-                throw new IllegalArgumentException("Unknown compactor type: " + compactorType);
-            }
+        case CHECKPOINT_COMPACTOR:
+            return new CheckpointCompactor(context.getGCListener(), context.getSegmentReader(), writer,
+                    context.getBlobStore(), context.getCompactionMonitor());
+        case CLASSIC_COMPACTOR:
+            return new ClassicCompactor(context.getSegmentReader(), writer, context.getBlobStore(),
+                    context.getCompactionMonitor());
+        default:
+            throw new IllegalArgumentException("Unknown compactor type: " + compactorType);
         }
     }
+
+}
