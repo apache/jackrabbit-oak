@@ -16,20 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.counter;
+package org.apache.jackrabbit.oak.plugins.index;
+
+import java.util.Random;
+import java.util.UUID;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.util.Random;
-import java.util.UUID;
-
 /**
- * Moved to oak-store-spi
+ * An approximate counter algorithm.
  */
-@Deprecated
 public class ApproximateCounter {
     
     public static final String COUNT_PROPERTY_PREFIX = ":count_";
