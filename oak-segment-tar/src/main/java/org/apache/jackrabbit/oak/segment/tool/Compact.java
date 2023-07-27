@@ -78,7 +78,9 @@ public class Compact {
 
         private int segmentCacheSize = DEFAULT_SEGMENT_CACHE_MB;
 
-        private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
+        private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
+
+        private int concurrency = 1;
 
         private Builder() {
             // Prevent external instantiation.
@@ -164,12 +166,22 @@ public class Compact {
 
         /**
          * The compactor type to be used by compaction. If not specified it defaults to
-         * "diff" compactor
+         * "parallel" compactor
          * @param compactorType the compactor type
          * @return this builder
          */
         public Builder withCompactorType(CompactorType compactorType) {
             this.compactorType = compactorType;
+            return this;
+        }
+
+        /**
+         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
+         * @param concurrency the number of threads
+         * @return this builder
+         */
+        public Builder withConcurrency(int concurrency) {
+            this.concurrency = concurrency;
             return this;
         }
 
@@ -267,6 +279,8 @@ public class Compact {
 
     private final CompactorType compactorType;
 
+    private final int concurrency;
+
     private Compact(Builder builder) {
         this.path = builder.path;
         this.journal = new File(builder.path, "journal.log");
@@ -275,6 +289,7 @@ public class Compact {
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
         this.compactorType = builder.compactorType;
+        this.concurrency = builder.concurrency;
     }
 
     public int run() {
@@ -330,7 +345,8 @@ public class Compact {
             .withGCOptions(defaultGCOptions()
                 .setOffline()
                 .setGCLogInterval(gcLogInterval)
-                .setCompactorType(compactorType));
+                .setCompactorType(compactorType)
+                .setConcurrency(concurrency));
         if (fileAccessMode.memoryMapped != null) {
             builder.withMemoryMapping(fileAccessMode.memoryMapped);
         }
