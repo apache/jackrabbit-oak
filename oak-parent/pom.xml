@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.53-SNAPSHOT</version>
+  <version>1.55-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -45,7 +45,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.10</jackrabbit.version>
+    <jackrabbit.version>2.20.11</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -61,8 +61,7 @@
     <logback.version>1.2.10</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.26</tika.version>
-    <guava.version>15.0</guava.version>
-    <guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
+    <!-- OAK-10369 --><guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
     <jackson.version>2.13.5</jackson.version>
     <testcontainers.version>1.18.3</testcontainers.version>
@@ -129,7 +128,6 @@
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
-              <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
               <link>http://www.slf4j.org/apidocs/</link>
             </links>
             <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
@@ -183,8 +181,6 @@
               </goals>
               <phase>pre-integration-test</phase>
               <configuration>
-                <!-- see https://issues.apache.org/jira/browse/OAK-10326 -->
-                <comparisonVersion>1.52.0</comparisonVersion>
                 <logResults>false</logResults>
                 <failOnWarning>false</failOnWarning>
                 <failOnError>true</failOnError>
@@ -546,11 +542,6 @@
         <groupId>org.mongodb</groupId>
         <artifactId>mongo-java-driver</artifactId>
         <version>${mongo.driver.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
@@ -947,48 +938,6 @@
       </build>
    </profile>
     
-   <profile>
-      <id>guavabetachecks</id>
-      <build>
-         <plugins>
-            <plugin>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <configuration>
-                <compilerId>javac-with-errorprone</compilerId>
-                <forceJavacCompilerUse>true</forceJavacCompilerUse>
-                <target>${java.version}</target>
-                <source>${java.version}</source>
-                <annotationProcessorPaths>
-                  <path>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava-beta-checker</artifactId>
-                    <version>1.0</version>
-                  </path>
-                </annotationProcessorPaths>
-                <compilerArgs>
-                  <!-- OAK-7310 -->
-                  <arg>-Xpkginfo:always</arg>
-                  <arg>-XepDisableAllChecks</arg>
-                  <arg>-Xep:BetaApi:ERROR</arg>
-                </compilerArgs>
-              </configuration>
-              <dependencies>
-                <dependency>
-                  <groupId>org.codehaus.plexus</groupId>
-                  <artifactId>plexus-compiler-javac-errorprone</artifactId>
-                  <version>2.5</version>
-                </dependency>
-                <dependency>
-                  <groupId>com.google.errorprone</groupId>
-                  <artifactId>error_prone_core</artifactId>
-                  <version>2.3.1</version>
-                </dependency>
-              </dependencies>
-            </plugin>
-         </plugins>
-      </build>
-   </profile>
-
     <profile>
       <id>rat</id>
       <build>
@@ -1093,12 +1042,6 @@
            </plugin>
         </plugins>
       </build>
-    </profile>
-    <profile>
-      <id>guava-latest</id>
-      <properties>
-        <guava.version>19.0</guava.version>
-      </properties>
     </profile>
     <profile>
       <id>rdb-derby</id>
@@ -1355,6 +1298,6 @@
   </profiles>
 
   <scm>
-    <tag>jackrabbit-oak-1.52.0</tag>
+    <tag>jackrabbit-oak-1.54.0</tag>
   </scm>
 </project>

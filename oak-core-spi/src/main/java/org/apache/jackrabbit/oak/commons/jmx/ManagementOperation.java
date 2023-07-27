@@ -53,7 +53,6 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
-import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,18 +104,6 @@ public class ManagementOperation<R> extends FutureTask<R> {
             @NotNull Supplier<String> statusMessage,
             @NotNull Callable<R> task) {
         return new ManagementOperation<R>(name, statusMessage, task);
-    }
-
-    /**
-     * @deprecated use {@link #newManagementOperation(String, Supplier, Callable)} instead
-     */
-    @Deprecated(since = "1.20.0", forRemoval = true)
-    public static <R> ManagementOperation<R> newManagementOperation(
-            @NotNull String name,
-            @NotNull com.google.common.base.Supplier<String> statusMessage,
-            @NotNull Callable<R> task) {
-        GuavaDeprecation.handleCall("OAK-8687");
-        return new ManagementOperation<R>(name, () -> statusMessage.get(), task);
     }
 
     /**

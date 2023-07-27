@@ -58,13 +58,14 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
         if (!asyncIndex) {
             idxBuilder.noAsync();
         }
-        idxBuilder.indexRule(nodeType).property(propName).propertyIndex();
+        idxBuilder.indexRule(nodeType).property(propName).propertyIndex().useInSuggest().analyzed();
 
         Session session = fixture.getAdminSession();
         Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,
                 "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
+        fooIndex.addNode("suggestion").setProperty("suggestUpdateFrequencyMinutes", 0);
         session.save();
         session.logout();
     }

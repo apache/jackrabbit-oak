@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.53-SNAPSHOT</version>
+    <version>1.55-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -45,7 +45,6 @@
         <configuration>
           <instructions>
             <Import-Package>
-              <!-- OAK-7182 -->${guava.osgi.import},
               com.codahale.metrics*;version="[3.1, 4)";resolution:=optional,
               *
             </Import-Package>
@@ -292,11 +291,6 @@
       <version>${project.version}</version>
     </dependency>
     <!-- General utility libraries -->
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <scope>provided</scope>
-    </dependency>
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
