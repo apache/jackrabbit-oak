@@ -38,7 +38,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                            <!-- OAK-7182 -->${guava.osgi.import},
+                            <!-- OAK-10369 -->${guava.osgi.import},
                             *
                         </Import-Package>
                         <Export-Package>

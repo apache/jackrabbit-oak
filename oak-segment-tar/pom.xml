@@ -239,15 +239,7 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- General utility libraries -->
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
         <!-- Other dependencies -->
-
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
