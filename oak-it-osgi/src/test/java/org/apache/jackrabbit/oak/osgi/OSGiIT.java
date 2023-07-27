@@ -67,7 +67,8 @@ public class OSGiIT {
                 mavenBundle("org.osgi", "org.osgi.util.function", "1.1.0"),
                 mavenBundle("org.apache.felix", "org.apache.felix.jaas", "1.0.2"),
                 mavenBundle("org.osgi", "org.osgi.dto", "1.0.0"),
-                mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.8.16" ),
+                // require at least ConfigAdmin 1.6 supported by felix.configadmin 1.9.0+
+                mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.9.20" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
                 frameworkProperty("repository.home").value("target"),
