@@ -69,12 +69,14 @@ public class OsgiWhiteboard implements Whiteboard {
         Objects.requireNonNull(properties);
         checkArgument(type.isInstance(service));
 
+        // convert Map to Dictionary
         Dictionary<String, Object> dictionary = new Hashtable<>();
         for (Map.Entry<?, ?> entry : properties.entrySet()) {
-            dictionary.put((String)entry.getKey(), entry.getValue());
+            // always assume String as key, otherwise throwing a CCE is fine
+            dictionary.put(String.class.cast(entry.getKey()), entry.getValue());
         }
 
-        final ServiceRegistration registration =
+        final ServiceRegistration<T> registration =
                 context.registerService(type, service, dictionary);
         return new Registration() {
             private volatile boolean unregistered;
