@@ -61,6 +61,7 @@
     <logback.version>1.2.10</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.26</tika.version>
+    <!-- OAK-10369 --><guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
     <jackson.version>2.13.5</jackson.version>
     <testcontainers.version>1.18.3</testcontainers.version>
