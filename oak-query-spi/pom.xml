@@ -60,10 +60,9 @@
     </build>
 
   <dependencies>
-    <!-- Optional OSGi dependencies, used only when running within OSGi -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.annotation</artifactId>
+      <artifactId>org.osgi.annotation.versioning</artifactId>
       <scope>provided</scope>
     </dependency>
 
