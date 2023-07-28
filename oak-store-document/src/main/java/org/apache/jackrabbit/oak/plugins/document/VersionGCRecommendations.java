@@ -54,7 +54,7 @@ public class VersionGCRecommendations {
     private final GCMonitor gcmon;
 
     final boolean ignoreDueToCheckPoint;
-    final boolean ignoreDetailGCDueToCheckPoint;
+    final boolean ignoreDetailedGCDueToCheckPoint;
     final TimeInterval scope;
     final TimeInterval scopeDetailedGC;
     final long maxCollect;
@@ -94,7 +94,7 @@ public class VersionGCRecommendations {
     public VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
                                     VersionGCOptions options, GCMonitor gcMonitor, final boolean detailedGCEnabled) {
         boolean ignoreDueToCheckPoint = false;
-        boolean ignoreDetailGCDueToCheckPoint = false;
+        boolean ignoreDetailedGCDueToCheckPoint = false;
         long deletedOnceCount = 0;
         long suggestedIntervalMs;
         long oldestPossible;
@@ -176,13 +176,13 @@ public class VersionGCRecommendations {
         //Check for any registered checkpoint which prevent the GC from running
         Revision checkpoint = checkpoints.getOldestRevisionToKeep();
 
-        final GCResult gcResult = getResult(options, ignoreDueToCheckPoint, scope, checkpoint);
+        final GCResult gcResult = getResult(options, checkpoint, scope);
         scope = gcResult.gcScope;
         ignoreDueToCheckPoint = gcResult.ignoreGC;
 
-        final GCResult detailGCResult = getResult(options, ignoreDetailGCDueToCheckPoint, scopeDetailedGC, checkpoint);
+        final GCResult detailGCResult = getResult(options, checkpoint, scopeDetailedGC);
         scopeDetailedGC = detailGCResult.gcScope;
-        ignoreDetailGCDueToCheckPoint = detailGCResult.ignoreGC;
+        ignoreDetailedGCDueToCheckPoint = detailGCResult.ignoreGC;
 
         if (scope.getDurationMs() <= options.precisionMs) {
             // If we have narrowed the collect time interval down as much as we can, no
@@ -194,7 +194,7 @@ public class VersionGCRecommendations {
         this.precisionMs = options.precisionMs;
         this.ignoreDueToCheckPoint = ignoreDueToCheckPoint;
         this.scope = scope;
-        this.ignoreDetailGCDueToCheckPoint = ignoreDetailGCDueToCheckPoint;
+        this.ignoreDetailedGCDueToCheckPoint = ignoreDetailedGCDueToCheckPoint;
         this.scopeDetailedGC = scopeDetailedGC;
         this.detailedGCId = oldestModifiedDocId;
         this.scopeIsComplete = scope.toMs >= keep.fromMs;
@@ -251,7 +251,7 @@ public class VersionGCRecommendations {
         }
 
         // save data for detailed GC
-        if (detailedGCEnabled && !stats.canceled && !stats.ignoredDetailGCDueToCheckPoint) {
+        if (detailedGCEnabled && !stats.canceled && !stats.ignoredDetailedGCDueToCheckPoint) {
             // success, we would not expect to encounter revisions older than this in the future
             setLongSetting(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
             setStringSetting(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
@@ -297,7 +297,8 @@ public class VersionGCRecommendations {
     }
 
     @NotNull
-    private static GCResult getResult(VersionGCOptions options, boolean ignoreGC, TimeInterval gcScope, Revision checkpoint) {
+    private static GCResult getResult(final VersionGCOptions options, final Revision checkpoint, TimeInterval gcScope) {
+        boolean ignoreGC = false;
         if (checkpoint != null && gcScope.endsAfter(checkpoint.getTimestamp())) {
             TimeInterval minimalScope = gcScope.startAndDuration(options.precisionMs);
             if (minimalScope.endsAfter(checkpoint.getTimestamp())) {
