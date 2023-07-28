@@ -1672,7 +1672,12 @@ public final class NodeDocument extends Document {
 
     /**
      * Returns name of all the properties on this document
-     * @return Set of all property names
+     * <p>
+     *  Note: property names returned are escaped
+     * <p/>
+     * @return Set of all property names (escaped)
+     * @see Utils#unescapePropertyName(String)
+     * @see Utils#escapePropertyName(String)
      */
     @NotNull
     Set<String> getPropertyNames() {
