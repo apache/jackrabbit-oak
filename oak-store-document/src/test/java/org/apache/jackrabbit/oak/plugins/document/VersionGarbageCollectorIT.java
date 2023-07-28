@@ -217,14 +217,14 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
         assertTrue(stats.ignoredGCDueToCheckPoint);
-        assertFalse(stats.ignoredDetailGCDueToCheckPoint);
+        assertFalse(stats.ignoredDetailedGCDueToCheckPoint);
         assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
         assertFalse("GC should be performed", stats.ignoredGCDueToCheckPoint);
-        assertFalse("Detailed GC shouldn't be performed", stats.ignoredDetailGCDueToCheckPoint);
+        assertFalse("Detailed GC shouldn't be performed", stats.ignoredDetailedGCDueToCheckPoint);
         assertFalse(stats.canceled);
     }
 
@@ -303,13 +303,13 @@ public class VersionGarbageCollectorIT {
         //Fast forward time to future but before expiry of checkpoint
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
-        assertTrue(stats.ignoredDetailGCDueToCheckPoint);
+        assertTrue(stats.ignoredDetailedGCDueToCheckPoint);
         assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
-        assertFalse("Detailed GC should be performed", stats.ignoredDetailGCDueToCheckPoint);
+        assertFalse("Detailed GC should be performed", stats.ignoredDetailedGCDueToCheckPoint);
         assertFalse(stats.canceled);
     }
 
@@ -360,7 +360,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(1, stats.deletedPropsGCCount);
         assertEquals(1, stats.updatedDetailedGCDocsCount);
         assertTrue(stats.ignoredGCDueToCheckPoint);
-        assertFalse(stats.ignoredDetailGCDueToCheckPoint);
+        assertFalse(stats.ignoredDetailedGCDueToCheckPoint);
         assertFalse(stats.canceled);
     }
 
