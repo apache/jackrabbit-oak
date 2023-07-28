@@ -330,16 +330,16 @@ public class RDBVersionGCSupport extends VersionGCSupport {
     @Override
     public Optional<NodeDocument> getOldestModifiedDoc(Clock clock) {
 
-        LOG.info("getOldestModifiedDoc() <- start");
         Iterable<NodeDocument> modifiedDocs = null;
         try {
             modifiedDocs = getModifiedDocs(0L, clock.getTime(), 1, MIN_ID_VALUE);
             return modifiedDocs.iterator().hasNext() ? ofNullable(modifiedDocs.iterator().next()) : empty();
         } catch (DocumentStoreException ex) {
-            LOG.error("getOldestModifiedDoc()", ex);
+            LOG.error("getOldestModifiedDoc() <- Error ", ex);
         } finally {
             closeIfCloseable(modifiedDocs);
         }
+        LOG.info("No Modified Doc has been found, retuning empty");
         return empty();
     }
 
