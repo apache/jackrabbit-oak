@@ -141,8 +141,8 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      * then perform the comparison.
      * <p/>
      *
-     * @param fromModified the lower bound modified timestamp (inclusive)
-     * @param toModified   the upper bound modified timestamp (exclusive)
+     * @param fromModified the lower bound modified timestamp in millis (inclusive)
+     * @param toModified   the upper bound modified timestamp in millis (exclusive)
      * @param limit        the limit of documents to return
      * @param fromId       the lower bound {@link NodeDocument#ID}
      * @return matching documents.
@@ -246,8 +246,6 @@ public class MongoVersionGCSupport extends VersionGCSupport {
      */
     @Override
     public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
-        LOG.info("getOldestModifiedDoc() <- start");
-
         final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
 
         // we need to add query condition to ignore `previous` documents which doesn't have this field
@@ -260,6 +258,7 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } catch (Exception ex) {
             LOG.error("getOldestModifiedDoc() <- error while fetching data from Mongo", ex);
         }
+        LOG.info("No Modified Doc has been found, retuning empty");
         return empty();
     }
 

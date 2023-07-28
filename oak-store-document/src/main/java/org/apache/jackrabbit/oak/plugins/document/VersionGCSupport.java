@@ -209,20 +209,19 @@ public class VersionGCSupport {
      * @return the oldest modified document.
      */
     public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
-        long ts = 0;
         long now = clock.getTime();
         Iterable<NodeDocument> docs = null;
-
-        LOG.info("find oldest modified document");
         try {
-            docs = getModifiedDocs(ts, now, 1, MIN_ID_VALUE);
+            docs = getModifiedDocs(0, now, 1, MIN_ID_VALUE);
             if (docs.iterator().hasNext()) {
-                return ofNullable(docs.iterator().next());
+                final NodeDocument oldestModifiedDoc = docs.iterator().next();
+                LOG.info("Oldest modified document is {}", oldestModifiedDoc);
+                return ofNullable(oldestModifiedDoc);
             }
         } finally {
             Utils.closeIfCloseable(docs);
         }
-        LOG.info("find oldest modified document to be {}", Utils.timestampToString(ts));
+        LOG.info("No Modified Doc has been found, retuning empty");
         return empty();
     }
 
