@@ -23,6 +23,7 @@ package org.apache.jackrabbit.oak.spi.filter;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -72,13 +73,12 @@ public class PathFilter {
         TRAVERSE
     }
 
-    private static final PathFilter ALL = new PathFilter(INCLUDE_ROOT, Collections.<String>emptyList()) {
+    private static final PathFilter ALL = new PathFilter(INCLUDE_ROOT, Collections.emptyList()) {
         @Override
         public Result filter(@NotNull String path) {
             return Result.INCLUDE;
         }
     };
-
     private final String[] includedPaths;
     private final String[] excludedPaths;
 
@@ -99,7 +99,7 @@ public class PathFilter {
         }
         return new PathFilter(getStrings(defn, PROP_INCLUDED_PATHS,
                 INCLUDE_ROOT), getStrings(defn, PROP_EXCLUDED_PATHS,
-                Collections.<String> emptyList()));
+                Collections.emptyList()));
     }
 
     /**
@@ -108,8 +108,7 @@ public class PathFilter {
      * If both are empty then all paths would be considered to be included
      *
      * @param includes list of paths which should not be included
-     * @param excludes list of p
-     *                 aths which should be included
+     * @param excludes list of paths which should be included
      */
     public PathFilter(Iterable<String> includes, Iterable<String> excludes) {
         Set<String> includeCopy = newHashSet(includes);
@@ -147,6 +146,14 @@ public class PathFilter {
         }
 
         return Result.EXCLUDE;
+    }
+
+    public List<String> getIncludedPaths() {
+        return List.of(includedPaths);
+    }
+
+    public List<String> getExcludedPaths() {
+        return List.of(excludedPaths);
     }
 
     @Override

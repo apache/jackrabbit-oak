@@ -32,13 +32,13 @@
     <!--
     <logger name="org.apache.jackrabbit.oak.index.IndexerSupport" level="TRACE"/>
     -->
-    <logger name="org.apache.jackrabbit.oak.index.indexer.document.flatfile" level="TRACE"/>
+<!--    <logger name="org.apache.jackrabbit.oak.index.indexer.document.flatfile" level="TRACE"/>-->
 
     <root level="INFO">
         <!--
-        <appender-ref ref="console"/>
-        -->
         <appender-ref ref="file"/>
+        -->
+        <appender-ref ref="console"/>
     </root>
 
 </configuration>

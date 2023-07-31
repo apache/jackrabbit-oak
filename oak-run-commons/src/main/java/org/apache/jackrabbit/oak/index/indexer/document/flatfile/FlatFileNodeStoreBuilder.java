@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.unmodifiableSet;
 
@@ -137,6 +139,8 @@ public class FlatFileNodeStoreBuilder {
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
+    private Set<IndexDefinition> indexDefinitions = null;
+
 
     public enum SortStrategyType {
         /**
@@ -203,6 +207,12 @@ public class FlatFileNodeStoreBuilder {
         this.pathPredicate = pathPredicate;
         return this;
     }
+
+    public FlatFileNodeStoreBuilder withIndexDefinitions(Set<IndexDefinition> indexDefinitions) {
+        this.indexDefinitions = indexDefinitions;
+        return this;
+    }
+
 
     public FlatFileNodeStoreBuilder withRootRevision(RevisionVector rootRevision) {
         this.rootRevision = rootRevision;
@@ -323,8 +333,9 @@ public class FlatFileNodeStoreBuilder {
                         blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate);
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
+                List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
                 return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate);
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
