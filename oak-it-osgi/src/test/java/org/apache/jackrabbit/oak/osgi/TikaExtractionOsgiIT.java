@@ -74,7 +74,7 @@ public class TikaExtractionOsgiIT {
     public Option[] configuration() throws IOException {
         return CoreOptions.options(
                 junitBundles(),
-                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
+                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "2.2.3" ),
                 frameworkProperty("repository.home").value("target"),
                 setupTikaAndPoi(),
                 jpmsOptions()
@@ -125,7 +125,6 @@ public class TikaExtractionOsgiIT {
                         , mavenBundle("org.apache.commons", "commons-compress", versions.get(COMPRESS_VERSION))
                         , mavenBundle("org.apache.commons", "commons-lang3", versions.get(LANG3_VERSION))
                         , mavenBundle("org.apache.commons", "commons-math3", versions.get(MATH3_VERSION))
-                        , mavenBundle("org.apache.logging.log4j", "log4j-api", "2.17.2")
                         // poi dependency end
                 )
                 , jarBundles()
