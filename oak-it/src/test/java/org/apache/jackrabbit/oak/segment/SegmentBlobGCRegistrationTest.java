@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
+import java.util.Collection;
 import java.util.Map;
 
 import org.apache.jackrabbit.oak.plugins.blob.AbstractBlobGCRegistrationTest;
@@ -27,23 +28,23 @@ import org.osgi.framework.ServiceReference;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 
-public class SegmentBlobGCRegistrationTest extends AbstractBlobGCRegistrationTest {
+import static org.junit.Assert.assertNotNull;
 
-    private SegmentNodeStoreService service;
+public class SegmentBlobGCRegistrationTest extends AbstractBlobGCRegistrationTest {
 
     @Override
     protected void registerNodeStoreService() {
         Map<String, Object> properties = newHashMap();
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, true);
         properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, repoHome);
-        service = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
+        assertNotNull(context.registerInjectActivateService(new SegmentNodeStoreService(), properties));
     }
 
     @Override
     protected void unregisterNodeStoreService() {
-        ServiceReference[] serviceReferences;
+        Collection<ServiceReference<SegmentNodeStoreService>> serviceReferences;
         try {
-            serviceReferences = context.bundleContext().getServiceReferences(SegmentNodeStoreService.class.getName(), null);
+            serviceReferences = context.bundleContext().getServiceReferences(SegmentNodeStoreService.class, null);
         } catch (InvalidSyntaxException e) {
             throw new IllegalStateException("Unable to read references to SegmentNodeStoreService", e);
         }
