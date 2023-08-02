@@ -151,7 +151,7 @@ public class ImporterImpl implements Importer {
         }
         boolean hasLocking = sessionContext.getRepository().getDescriptorValue(Repository.OPTION_LOCKING_SUPPORTED).getBoolean();
         if (importTargetTree.getStatus() != Tree.Status.NEW && hasLocking && nd.isLocked()) {
-            throw new LockException("Target node is locked:" + absPath);
+            throw new LockException("Target node is locked: " + absPath);
         }
         effectiveNodeTypeProvider = wsp.getNodeTypeManager();
         definitionProvider = wsp.getNodeTypeManager();
