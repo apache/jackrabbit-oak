@@ -882,7 +882,8 @@ public class VersionGarbageCollector {
                 // eligible to be garbage collected.
 
                 final Set<String> retainPropSet = ofNullable(doc.getNodeAtRevision(nodeStore, headRevision, null))
-                        .map(DocumentNodeState::getPropertyNames)
+                        .map(DocumentNodeState::getAllBundledProperties)
+                        .map(Map::keySet)
                         .map(p -> p.stream().map(Utils::escapePropertyName).collect(toSet()))
                         .orElse(emptySet());
 
