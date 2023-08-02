@@ -397,9 +397,9 @@ public class ElasticRequestHandler {
                     // results when the _ignored metadata field is part of the input document
                     .perFieldAnalyzer("_ignored", "keyword")));
             // MLT queries, when no fields are specified, do not use the entire document but only a maximum of
-            // max_query_terms (default 25). Even increasing this value to a greater number could produce not so relevant
+            // max_query_terms (default 25). Even increasing this value, the query could produce not so relevant
             // results (eg: based on the :fulltext content). To work this around, we can specify DYNAMIC_BOOST_FULLTEXT
-            // field as first field since it usually contains relevant terms. This will make sure that the MLT query
+            // field as first field since it usually contains relevant terms. This will make sure that the MLT queries
             // give more priority to the terms in this field while the rest (*) are considered secondary.
             mlt.fields(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT, "*");
         } else {
