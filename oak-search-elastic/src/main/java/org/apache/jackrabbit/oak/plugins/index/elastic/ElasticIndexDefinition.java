@@ -136,6 +136,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<PropertyDefinition> dynamicBoostProperties;
     private final List<PropertyDefinition> similarityProperties;
+    private final List<PropertyDefinition> similarityTagsProperties;
 
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
@@ -181,6 +182,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .stream()
                 .flatMap(rule -> rule.getSimilarityProperties().stream())
                 .collect(Collectors.toList());
+
+        this.similarityTagsProperties = propertiesByName.values().stream()
+                .flatMap(List::stream)
+                .filter(pd -> pd.similarityTags).collect(Collectors.toList());
     }
 
     @Nullable
@@ -211,6 +216,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public List<PropertyDefinition> getSimilarityProperties() {
         return similarityProperties;
+    }
+
+    public List<PropertyDefinition> getSimilarityTagsProperties() {
+        return similarityTagsProperties;
     }
 
     public boolean areSimilarityTagsEnabled() {
