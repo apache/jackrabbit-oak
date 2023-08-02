@@ -493,18 +493,8 @@
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.service.component.annotations</artifactId>
-        <version>1.4.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.metatype</artifactId>
         <version>1.4.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.service.metatype.annotations</artifactId>
-        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
@@ -515,15 +505,23 @@
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.log</artifactId>
         <version>1.4.0</version>
-        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.event</artifactId>
         <version>1.4.1</version>
-        <scope>test</scope>
       </dependency>
       <!-- OSGi R7 annotations -->
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.component.annotations</artifactId>
+        <version>1.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.metatype.annotations</artifactId>
+        <version>1.4.0</version>
+      </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.annotation.bundle</artifactId>

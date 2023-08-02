@@ -75,16 +75,4 @@ public class SegmentBlobTrackerRegistrationTest extends AbstractBlobTrackerRegis
             deactivate(service, serviceReference.getBundle().getBundleContext());
         }
     }
-
-//    @Override
-//    protected void unregisterNodeStoreService() {
-//        @NotNull SegmentNodeStoreService @NotNull [] services;
-//        services = context.getServices(SegmentNodeStoreService.class, null);
-//        for (SegmentNodeStoreService service : services) {
-//            if (service == null) {
-//                continue;
-//            }
-//            service.deactivate();
-//        }
-//    }
 }

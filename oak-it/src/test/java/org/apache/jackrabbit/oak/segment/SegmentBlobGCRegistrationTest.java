@@ -19,13 +19,14 @@
 package org.apache.jackrabbit.oak.segment;
 
 import java.util.Collection;
-import java.util.Map;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 import org.apache.jackrabbit.oak.plugins.blob.AbstractBlobGCRegistrationTest;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 
 import static org.junit.Assert.assertNotNull;
@@ -34,10 +35,22 @@ public class SegmentBlobGCRegistrationTest extends AbstractBlobGCRegistrationTes
 
     @Override
     protected void registerNodeStoreService() {
-        Map<String, Object> properties = newHashMap();
+        Hashtable<String, Object> properties = new Hashtable<>();
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, true);
         properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, repoHome);
-        assertNotNull(context.registerInjectActivateService(new SegmentNodeStoreService(), properties));
+        SegmentNodeStoreService service = new SegmentNodeStoreService();
+
+        // OAK-10367: The call 
+        // context.registerInjectActivateService(service, properties)
+        // isn't working properly anymore. It calls
+        // context.bundleContext().registerService(null, service, properties).
+        // A service registered this way will not be found by
+        // context.bundleContext().getServiceReferences(SegmentNodeStoreService.class, null).
+        // 
+        //assertNotNull(context.registerInjectActivateService(service, properties));
+        MockOsgi.injectServices(service, context.bundleContext(), properties);
+        MockOsgi.activate(service, context.bundleContext(), (Dictionary<String, Object>) properties);
+        assertNotNull(context.bundleContext().registerService(SegmentNodeStoreService.class, service, properties));
     }
 
     @Override

@@ -77,8 +77,14 @@
     <dependency>
       <groupId>org.osgi</groupId>
       <artifactId>osgi.core</artifactId>
+      <version>6.0.0</version>
     </dependency>
-   
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>osgi.cmpn</artifactId>
+      <version>6.0.0</version>
+    </dependency>
+  
     <!-- Pojo SR -->
     <!-- Added first to ensure that in an IDE the transitive dependencies of the oak modules
          don't bring in an older version of the OSGi jars -->
@@ -89,7 +95,7 @@
       <exclusions>
         <exclusion>
           <groupId>org.osgi</groupId>
-          <artifactId>osgi.core</artifactId>
+          <artifactId>org.osgi.core</artifactId>
         </exclusion>
         <exclusion>
           <groupId>org.osgi</groupId>
