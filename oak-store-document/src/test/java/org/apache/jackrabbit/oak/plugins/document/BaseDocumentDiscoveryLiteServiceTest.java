@@ -322,10 +322,6 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
             ns.getDocumentStore().findAndUpdate(Collection.CLUSTER_NODES, op);
 
             boolean renewed = ns.renewClusterIdLease();
-
-            ClusterNodeInfoDocument currentDoc = ns.getDocumentStore().find(Collection.CLUSTER_NODES, String.valueOf(ns.getClusterId()));
-            logger.info("setLeaseTime : renewed : {} - resulting document is : {}", renewed, currentDoc);
-            
             return renewed;
         }
 
@@ -591,8 +587,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
                                             .newConsoleAppender("console")
                                             .addAppenderFilter("console", "info")
                                             .addAppenderFilter("file", "info")
-                                            .setLoggerLevel("org.apache.jackrabbit.oak", "debug")
-                                            .setLoggerLevel("org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo", "trace");
+                                            .setLoggerLevel("org.apache.jackrabbit.oak", "debug");
 
     // subsequent tests should get a DocumentDiscoveryLiteService setup from the
     // start
