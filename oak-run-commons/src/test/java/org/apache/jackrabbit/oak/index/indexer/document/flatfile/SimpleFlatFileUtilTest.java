@@ -18,10 +18,13 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
@@ -87,5 +90,21 @@ public class SimpleFlatFileUtilTest {
         bw.close();
         assertEquals("/|{\"a\":\"z\",\"c\":\"t\",\"g\":\"a\"}" + LINE_SEPARATOR,
                 sw.toString());
+    }
+
+    @Test
+    public void testChildOrder() throws Exception {
+        NodeBuilder b = dns.getRoot().builder();
+        b.setProperty("b", "2");
+        List<String> names = new ArrayList<>();
+        names.add("a");
+        names.add("x");
+        names.add("c");
+        b.setProperty(":childOrder", names, NAMES);
+        dns.merge(b, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        SimpleFlatFileUtil.createFlatFileFor(dns.getRoot(), bw);
+        bw.close();
+        assertEquals("/|{\":childOrder\":[\"nam:a\",\"nam:x\",\"nam:c\"],\"b\":\"2\"}"
+                + LINE_SEPARATOR, sw.toString());
     }
 }

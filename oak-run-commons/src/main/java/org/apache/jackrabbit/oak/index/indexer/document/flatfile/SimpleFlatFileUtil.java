@@ -51,7 +51,7 @@ public class SimpleFlatFileUtil {
 
     private SimpleFlatFileUtil(Writer writer) {
         // blobStore is only used for deserialization - so pass null here:
-        this.entryWriter = new NodeStateEntryWriter(null);
+        this.entryWriter = new NodeStateEntryWriter(null, true);
         this.writer = writer;
     }
 

@@ -42,13 +42,19 @@ public class NodeStateEntryWriter {
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
+    private final boolean includeChildOrder;
 
     //TODO Possible optimizations
     //1. Compression
     //2. Dictionary for properties
 
     public NodeStateEntryWriter(BlobStore blobStore) {
+        this(blobStore, false);
+    }
+
+    public NodeStateEntryWriter(BlobStore blobStore, boolean includeChildOrder) {
         this.serializer = new JsonSerializer(jw, new BlobIdSerializer(blobStore));
+        this.includeChildOrder = includeChildOrder;
     }
 
     public String toString(NodeStateEntry e) {
@@ -102,7 +108,7 @@ public class NodeStateEntryWriter {
     }
 
     private boolean include(String propertyName) {
-        return !OAK_CHILD_ORDER.equals(propertyName);
+        return !OAK_CHILD_ORDER.equals(propertyName) || includeChildOrder;
     }
 
     //~-----------------------------------< Utilities to parse >
