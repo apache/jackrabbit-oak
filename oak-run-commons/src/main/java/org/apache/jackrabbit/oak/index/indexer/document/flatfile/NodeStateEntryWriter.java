@@ -30,6 +30,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
