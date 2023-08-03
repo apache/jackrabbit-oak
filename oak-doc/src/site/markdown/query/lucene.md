@@ -1563,9 +1563,9 @@ The query result therefore only reflects information the user has access rights 
 This can be slow, specially for large result set.
 
 * `insecure` means the facet counts are reported as stored in the index, without performing access rights checks. 
-This setting may reveal repository information. It is recommended to use this setting only if 
-either the index is guaranteed to only contain data that is public (e.g. a public subtree of the repository), 
-or if the information is not sensitive.
+This setting may allow users to infer the existence of content to which they do not have access.
+It is recommended to use this setting only if either the index is guaranteed to only contain data that is public 
+(e.g. a public subtree of the repository), or if the information is not sensitive.
 
 * `statistical` means the data is sampled randomly (default `1000` configurable via
 `sampleSize`), and ACL checks are performed on this sample.
