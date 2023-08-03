@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.util.Comparator;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
