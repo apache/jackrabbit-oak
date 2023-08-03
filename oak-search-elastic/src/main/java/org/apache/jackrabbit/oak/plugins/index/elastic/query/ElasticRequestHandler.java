@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -396,12 +397,8 @@ public class ElasticRequestHandler {
                     // this is needed to workaround https://github.com/elastic/elasticsearch/pull/94518 that causes empty
                     // results when the _ignored metadata field is part of the input document
                     .perFieldAnalyzer("_ignored", "keyword")));
-            // MLT queries, when no fields are specified, do not use the entire document but only a maximum of
-            // max_query_terms (default 25). Even increasing this value, the query could produce not so relevant
-            // results (eg: based on the :fulltext content). To work this around, we can specify DYNAMIC_BOOST_FULLTEXT
-            // field as first field since it usually contains relevant terms. This will make sure that the MLT queries
-            // give more priority to the terms in this field while the rest (*) are considered secondary.
-            mlt.fields(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT, "*");
+            // when no fields are specified, we set the ones from the index definition
+            mlt.fields(Arrays.asList(elasticIndexDefinition.getSimilarityTagsFields()));
         } else {
             // This is for native queries if someone sends additional fields via
             // mlt.fl=field1,field2
