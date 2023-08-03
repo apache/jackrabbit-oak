@@ -26,10 +26,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -70,9 +70,17 @@ public class SimpleFlatFileUtil {
 
     private void addEntryAndTraverseChildren(NodeState ns) throws IOException {
         addEntry(ns);
-        for (ChildNodeEntry e : ns.getChildNodeEntries()) {
-            addEntryAndTraverseChildren(e.getNodeState());
-        }
+        StreamSupport.stream(ns.getChildNodeEntries().spliterator(), false)
+                .sorted((o1, o2) -> o1.getName().compareTo(o2.getName())).forEach(e -> {
+                    try {
+                        addEntryAndTraverseChildren(e.getNodeState());
+                    } catch (IOException e1) {
+                        log.error("addEntryAndTraverseChildren : got an IOException : {}",
+                                e1.getMessage(), e1);
+                        // rethrow as RuntimeException to stop immediately
+                        throw new RuntimeException(e1);
+                    }
+                });
     }
 
     private void addEntry(NodeState ns) throws IOException {
