@@ -75,9 +75,7 @@ public class SimpleFlatFileUtil {
                     try {
                         addEntryAndTraverseChildren(e.getNodeState());
                     } catch (IOException e1) {
-                        log.error("addEntryAndTraverseChildren : got an IOException : {}",
-                                e1.getMessage(), e1);
-                        // rethrow as RuntimeException to stop immediately
+                        // NOSONAR
                         throw new RuntimeException(e1);
                     }
                 });
