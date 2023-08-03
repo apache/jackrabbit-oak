@@ -71,7 +71,7 @@ public class SimpleFlatFileUtil {
     private void addEntryAndTraverseChildren(NodeState ns) throws IOException {
         addEntry(ns);
         StreamSupport.stream(ns.getChildNodeEntries().spliterator(), false)
-                .sorted((o1, o2) -> o1.getName().compareTo(o2.getName())).forEach(e -> {
+                .sorted(Comparator.comparing(ChildNodeEntry::getName)).forEach(e -> {
                     try {
                         addEntryAndTraverseChildren(e.getNodeState());
                     } catch (IOException e1) {
