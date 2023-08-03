@@ -56,8 +56,7 @@ public class SimpleFlatFileUtil {
 
     public static void createFlatFileFor(NodeState ns, File f) throws IOException {
         log.info("createFlatFileFor : writing to {}", f.getCanonicalPath());
-        try (FileWriter fw = new FileWriter(f);
-                BufferedWriter bw = new BufferedWriter(fw)) {
+        try (BufferedWriter bw = Files.newBufferedReader(f.toPath())) {
             SimpleFlatFileUtil h = new SimpleFlatFileUtil(bw);
             h.addEntryAndTraverseChildren(ns);
             log.info("createFlatFileFor : done. wrote {} lines in total.", h.totalLines);
