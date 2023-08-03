@@ -31,6 +31,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -77,15 +79,24 @@ public class NodeStateEntryWriter {
     }
 
     public String asJson(NodeState nodeState) {
+        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
+    }
+
+    String asSortedJson(NodeState nodeState) {
+        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
+                .sorted((o1, o2) -> o1.getName().compareTo(o2.getName())));
+    }
+
+    private String asJson(Stream<? extends PropertyState> stream) {
         jw.resetWriter();
         jw.object();
-        for (PropertyState ps : nodeState.getProperties()) {
+        stream.forEach(ps -> {
             String name = ps.getName();
             if (include(name)) {
                 jw.key(name);
                 serializer.serialize(ps);
             }
-        }
+        });
         jw.endObject();
         return jw.toString();
     }

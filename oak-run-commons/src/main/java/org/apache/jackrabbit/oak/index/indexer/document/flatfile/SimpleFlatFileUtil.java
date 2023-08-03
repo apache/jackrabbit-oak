@@ -23,8 +23,9 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.nio.file.Files;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -44,23 +45,27 @@ public class SimpleFlatFileUtil {
 
     private static final String LINE_SEPARATOR = System.getProperty("line.separator");
 
-    private final BufferedWriter bw;
+    private final Writer writer;
     private final NodeStateEntryWriter entryWriter;
     private long totalLines = 0;
 
-    private SimpleFlatFileUtil(BufferedWriter bw) throws IOException {
+    private SimpleFlatFileUtil(Writer writer) {
         // blobStore is only used for deserialization - so pass null here:
-        entryWriter = new NodeStateEntryWriter(null);
-        this.bw = bw;
+        this.entryWriter = new NodeStateEntryWriter(null);
+        this.writer = writer;
     }
 
     public static void createFlatFileFor(NodeState ns, File f) throws IOException {
         log.info("createFlatFileFor : writing to {}", f.getCanonicalPath());
-        try (BufferedWriter bw = Files.newBufferedReader(f.toPath())) {
-            SimpleFlatFileUtil h = new SimpleFlatFileUtil(bw);
-            h.addEntryAndTraverseChildren(ns);
-            log.info("createFlatFileFor : done. wrote {} lines in total.", h.totalLines);
+        try (BufferedWriter bw = Files.newBufferedWriter(f.toPath())) {
+            createFlatFileFor(ns, bw);
         }
+    }
+
+    public static void createFlatFileFor(NodeState ns, Writer writer) throws IOException {
+        SimpleFlatFileUtil h = new SimpleFlatFileUtil(writer);
+        h.addEntryAndTraverseChildren(ns);
+        log.info("createFlatFileFor : done. wrote {} lines in total.", h.totalLines);
     }
 
     private void addEntryAndTraverseChildren(NodeState ns) throws IOException {
@@ -79,10 +84,10 @@ public class SimpleFlatFileUtil {
             // skip
             return;
         }
-        String jsonText = entryWriter.asJson(e.getNodeState());
+        String jsonText = entryWriter.asSortedJson(e.getNodeState());
         String line = entryWriter.toString(copyOf(elements(path)), jsonText);
-        bw.append(line);
-        bw.append(LINE_SEPARATOR);
+        writer.append(line);
+        writer.append(LINE_SEPARATOR);
         totalLines++;
         if (totalLines % 10000 == 0) {
             log.info("addEntry : wrote {} lines so far.", totalLines);
