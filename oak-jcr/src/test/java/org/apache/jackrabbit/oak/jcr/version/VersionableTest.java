@@ -362,6 +362,33 @@ public class VersionableTest extends AbstractJCRTest {
         assertFalse(guest.getNode(nodePath).isCheckedOut());
     }
 
+    public void testNonVersionableCheckedOut() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+
+        node.setProperty("jcr:isCheckedOut", false);
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+    }
+
+    public void testModifyNonVersionableNodeWithCheckedOutProperty() throws Exception {
+        Node node = testRootNode.addNode(nodeName1, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.isCheckedOut());
+
+        node.setProperty("jcr:isCheckedOut", false);
+        superuser.save();
+
+        node.setProperty("test", true);
+        superuser.save();
+
+        assertTrue(node.hasProperty("test"));
+    }
+
     private static void assertSuccessors(VersionHistory history, Set<String> expectedSuccessors, String versionName) throws RepositoryException {
         assertEquals(expectedSuccessors, getNames(history.getVersion(versionName).getSuccessors()));
     }
