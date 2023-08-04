@@ -633,8 +633,7 @@ public class VersionGarbageCollector {
          * @param headRevision the current head revision of node store
          * @param rec {@link VersionGCRecommendations} to recommend GC operation
          */
-        private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec)
-                throws IOException {
+        private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec) {
 
             final long oldestModifiedMs = rec.scopeDetailedGC.fromMs;
             final long toModifiedMs = rec.scopeDetailedGC.toMs;
@@ -645,15 +644,15 @@ public class VersionGarbageCollector {
             long oldModifiedMs = oldestModifiedMs;
 
             try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
-                long fromModified = oldestModifiedMs;
+                long fromModifiedMs = oldestModifiedMs;
                 String fromId = ofNullable(oldestModifiedDocId).orElse(MIN_ID_VALUE);
                 NodeDocument lastDoc;
                 if (phases.start(GCPhase.DETAILED_GC)) {
-                    while (foundDoc && fromModified < toModifiedMs && docsTraversed < PROGRESS_BATCH_SIZE) {
+                    while (foundDoc && fromModifiedMs < toModifiedMs && docsTraversed < PROGRESS_BATCH_SIZE) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
                         lastDoc = null;
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModified, toModifiedMs, DETAILED_GC_BATCH_SIZE, fromId);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, DETAILED_GC_BATCH_SIZE, fromId);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -666,7 +665,7 @@ public class VersionGarbageCollector {
                                 docsTraversed++;
                                 if (docsTraversed % 100 == 0) {
                                     monitor.info("Iterated through {} documents so far. {} had detailed garbage",
-                                            docsTraversed, gc.getGarbageDocsCount());
+                                            docsTraversed, gc.getGarbageCount());
                                 }
 
                                 lastDoc = doc;
@@ -680,10 +679,10 @@ public class VersionGarbageCollector {
                                 if (modified == null) {
                                     monitor.warn("collectDetailedGarbage : document has no _modified property : {}",
                                             doc.getId());
-                                } else if (SECONDS.toMillis(modified) < fromModified) {
+                                } else if (SECONDS.toMillis(modified) < fromModifiedMs) {
                                     monitor.warn(
                                             "collectDetailedGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
-                                            modified, fromModified, toModifiedMs);
+                                            modified, fromModifiedMs, toModifiedMs);
                                 }
                             }
                             // now remove the garbage in one go, if any
@@ -692,13 +691,13 @@ public class VersionGarbageCollector {
                                 phases.stop(GCPhase.DETAILED_GC_CLEANUP);
                             }
                             if (lastDoc != null) {
-                                fromModified = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
+                                fromModifiedMs = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
                                 fromId = lastDoc.getId();
                             }
                         } finally {
                             Utils.closeIfCloseable(itr);
-                            phases.stats.oldestModifiedDocTimeStamp = fromModified;
-                            if (fromModified > oldModifiedMs) {
+                            phases.stats.oldestModifiedDocTimeStamp = fromModifiedMs;
+                            if (fromModifiedMs > oldModifiedMs) {
                                 // we have moved ahead, now we can reset oldestModifiedId to min value
                                 fromId = MIN_ID_VALUE;
                                 phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
@@ -707,14 +706,14 @@ public class VersionGarbageCollector {
                                 // save the last _id traversed to avoid re-fetching of ids
                                 phases.stats.oldestModifiedDocId = fromId;
                             }
-                            oldModifiedMs = fromModified;
+                            oldModifiedMs = fromModifiedMs;
                         }
                         // if we didn't find any document i.e. either we are already at last document
                         // of current timeStamp or there is no document for this timeStamp
-                        // we need to reset fromId & increment fromModified and check again
+                        // we need to reset fromId & increment fromModifiedMs and check again
                         if (!foundDoc && !Objects.equals(fromId, MIN_ID_VALUE)) {
                             fromId = MIN_ID_VALUE;
-                            fromModified = fromModified + SECONDS.toMillis(5);
+                            fromModifiedMs = fromModifiedMs + SECONDS.toMillis(5);
                             foundDoc = true; // to run while loop again
                         }
                     }
@@ -865,7 +864,7 @@ public class VersionGarbageCollector {
 
         private void collectUnmergedBranchCommitDocument(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
             if (phases.start(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC)){
-                // TODO add umerged BC collection logic
+                // TODO add unmerged BC collection logic
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
             }
 
@@ -912,7 +911,7 @@ public class VersionGarbageCollector {
 
         }
 
-        int getGarbageDocsCount() {
+        int getGarbageCount() {
             return totalGarbageDocsCount;
         }
 
