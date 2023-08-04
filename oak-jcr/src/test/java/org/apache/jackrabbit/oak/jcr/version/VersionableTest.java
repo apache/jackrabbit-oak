@@ -386,7 +386,26 @@ public class VersionableTest extends AbstractJCRTest {
         node.setProperty("test", true);
         superuser.save();
 
-        assertTrue(node.hasProperty("test"));
+        assertTrue(node.getProperty("test").getBoolean());
+
+        node.setProperty("test", false);
+        superuser.save();
+
+        assertTrue(!node.getProperty("test").getBoolean());
+        
+        node.getProperty("test").remove();
+        superuser.save();
+        assertTrue(!node.hasProperty("test"));
+
+        node.addNode(nodeName2, "nt:unstructured");
+        superuser.save();
+
+        assertTrue(node.hasNode(nodeName2));
+
+        node.getNode(nodeName2).remove();
+        superuser.save();
+
+        assertFalse(node.hasNode(nodeName2));
     }
 
     private static void assertSuccessors(VersionHistory history, Set<String> expectedSuccessors, String versionName) throws RepositoryException {

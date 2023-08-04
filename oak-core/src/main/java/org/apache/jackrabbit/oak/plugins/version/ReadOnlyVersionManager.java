@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.identifier.IdentifierManager;
 import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.version.VersionConstants;
@@ -39,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
@@ -119,9 +121,10 @@ public abstract class ReadOnlyVersionManager {
         // but it may mean oak-jcr sees a node as checked out even though
         // it is in fact read-only because of a checked-in (but non-accessible) ancestor.
         // if this turns out to be an issue see NodeImpl#getReadOnlyTree for an potential fix
+        
         PropertyState p = tree.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
         if (p != null) {
-            return p.getValue(Type.BOOLEAN);
+            return p.getValue(Type.BOOLEAN) || !isVersionable(tree);
         }
         if (tree.isRoot()) {
             return true;

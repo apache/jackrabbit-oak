@@ -120,18 +120,16 @@ class VersionEditor implements Editor {
                 || after.getName().equals(JcrConstants.JCR_LOCKISDEEP)) {
             return;
         }
-        throwCheckedIn("Cannot add property " + after.getName()
-                + " on checked in node");
+        if (isVersionable()) {
+            throwCheckedIn("Cannot add property " + after.getName()
+                    + " on checked in node");
+        }
     }
 
     @Override
     public void propertyChanged(PropertyState before, PropertyState after)
             throws CommitFailedException {
         if (!isVersionable()) {
-            if (!isVersionProperty(after) && isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
-                throwCheckedIn("Cannot change property " + after.getName()
-                        + " on checked in node");
-            }
             return;
         }
         String propName = after.getName();
@@ -151,8 +149,10 @@ class VersionEditor implements Editor {
         } else if (isVersionProperty(after)) {
             throwProtected(after.getName());
         } else if (isReadOnly && getOPV(after) != OnParentVersionAction.IGNORE) {
-            throwCheckedIn("Cannot change property " + after.getName()
-                    + " on checked in node");
+            if (isVersionable()) {
+                throwCheckedIn("Cannot change property " + after.getName()
+                        + " on checked in node");
+            }
         }
     }
 
@@ -160,7 +160,7 @@ class VersionEditor implements Editor {
     public void propertyDeleted(PropertyState before)
             throws CommitFailedException {
         if (isReadOnly) {
-            if (!isVersionProperty(before) && !isLockProperty(before) && getOPV(before) != OnParentVersionAction.IGNORE) {
+            if (isVersionable() && !isVersionProperty(before) && !isLockProperty(before) && getOPV(before) != OnParentVersionAction.IGNORE) {
                 throwCheckedIn("Cannot delete property on checked in node");
             }
         }
