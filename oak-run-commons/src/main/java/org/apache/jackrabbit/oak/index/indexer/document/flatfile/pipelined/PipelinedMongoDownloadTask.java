@@ -30,7 +30,6 @@ import com.mongodb.client.model.Filters;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
@@ -329,14 +328,20 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             path = path + "/";
         }
         String quotedPath = path.replace("/", "\\/");
-        return regex("_id", "^[0-9]{1,3}:" + quotedPath + ".*$");
+        // For entries with path sizes above a certain threshold, the _id field contains a hash instead of the path of
+        // the entry. The path is stored instead in the _path field. Therefore, we have to include in the filter also
+        // the documents with matching _path.
+        return Filters.or(
+                regex(NodeDocument.ID, "^[0-9]{1,3}:" + quotedPath + ".*$"),
+                regex(NodeDocument.PATH, quotedPath + ".*$")
+        );
     }
 
     private static Bson ancestorsFilter(String path) {
         ArrayList<Bson> parentFilters = new ArrayList<>();
         int depth = PathUtils.getDepth(path);
         while (true) {
-            parentFilters.add(Filters.eq("_id", depth + ":" + path));
+            parentFilters.add(Filters.eq(NodeDocument.ID, depth + ":" + path));
             if (depth == 0) {
                 break;
             }
@@ -353,7 +358,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 while (cursor.hasNext()) {
                     BasicDBObject next = cursor.next();
-                    String id = next.getString(Document.ID);
+                    String id = next.getString(NodeDocument.ID);
                     // If we are retrying on connection errors, we need to keep track of the last _modified value
                     if (retryOnConnectionErrors) {
                         this.nextLastModified = next.getLong(NodeDocument.MODIFIED_IN_SECS);

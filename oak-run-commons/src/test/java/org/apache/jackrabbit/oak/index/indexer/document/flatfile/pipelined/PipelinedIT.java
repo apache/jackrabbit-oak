@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assume;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -49,7 +48,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -70,15 +69,20 @@ public class PipelinedIT {
     @Rule
     public final TemporaryFolder sortFolder = new TemporaryFolder();
 
-    @BeforeClass
-    public static void checkMongoDbAvailable() {
-        Assume.assumeTrue(MongoUtils.isAvailable());
-    }
-
     private static final PathFilter contentDamPathFilter = new PathFilter(List.of("/content/dam"), List.of());
 
-    @Before
-    public void setup() throws IOException {
+    private static final int LONG_PATH_TEST_LEVELS = 30;
+    private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
+
+    @BeforeClass
+    public static void setup() throws IOException {
+        Assume.assumeTrue(MongoUtils.isAvailable());
+        // Generate dynamically the entries expected for the long path tests
+        StringBuilder path = new StringBuilder("/content/dam");
+        for (int i = 0; i < LONG_PATH_TEST_LEVELS; i++) {
+            path.append("/").append(LONG_PATH_LEVEL_STRING).append(i);
+            EXPECTED_FFS.add(path + "|{}");
+        }
     }
 
     @After
@@ -240,6 +244,12 @@ public class PipelinedIT {
         contentDamBuilder.child("2023").setProperty("p2", "v2023");
         contentDamBuilder.child("2023").child("02").child("28").setProperty("p1", "v20230228");
 
+        // Node with very long name
+        @NotNull NodeBuilder node = contentDamBuilder;
+        for (int i = 0; i < LONG_PATH_TEST_LEVELS; i++) {
+            node = node.child(LONG_PATH_LEVEL_STRING + i);
+        }
+
         // Other subtrees, to exercise filtering
         rootBuilder.child("jcr:system").child("jcr:versionStorage")
                 .child("42").child("41").child("1.0").child("jcr:frozenNode").child("nodes").child("node0");
@@ -253,7 +263,7 @@ public class PipelinedIT {
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private static final List<String> EXPECTED_FFS = Arrays.asList(
+    private static final List<String> EXPECTED_FFS = new ArrayList<>(List.of(
             "/|{}",
             "/content|{}",
             "/content/dam|{}",
@@ -265,7 +275,7 @@ public class PipelinedIT {
             "/content/dam/2023/01|{\"p1\":\"v202301\"}",
             "/content/dam/2023/02|{}",
             "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
-    );
+    ));
 
     private ImmutablePair<MongoDocumentStore, DocumentNodeStore> createNodeStore(boolean readOnly) {
         MongoConnection c = connectionFactory.getConnection();
