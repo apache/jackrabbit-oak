@@ -317,7 +317,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
         if (excludePaths.isEmpty() && includePaths.size() == 1) {
             return includePaths.get(0);
-
         } else {
             return null;
         }
