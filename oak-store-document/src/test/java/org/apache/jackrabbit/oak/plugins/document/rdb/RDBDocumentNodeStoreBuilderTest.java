@@ -16,13 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.UUID;
 
 import javax.sql.DataSource;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.junit.Test;
 
 public class RDBDocumentNodeStoreBuilderTest {
@@ -53,5 +58,21 @@ public class RDBDocumentNodeStoreBuilderTest {
             fail("should not get here");
         } catch (DocumentStoreException expected) {
         }
+    }
+
+    @Test
+    public void detailedGCDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setDetailedGCEnabled(true);
+        assertFalse(builder.isDetailedGCEnabled());
+    }
+
+    @Test
+    public void detailedGCFeatureToggleDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        Feature docStoreDetailedGCFeature = mock(Feature.class);
+        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
+        assertNull(builder.getDocStoreDetailedGCFeature());
     }
 }
