@@ -619,9 +619,9 @@ public class VersionGarbageCollector {
          * et al: essentially garbage that in earlier versions of Oak were ignored. This
          * includes: deleted properties, revision information within documents, branch
          * commit related garbage.
-         * <p/>
+         * <p>
          * TODO: limit this to run only on a singleton instance, eg the cluster leader
-         * <p/>
+         * <p>
          * The "detailed garbage" collector can be instructed to do a full repository scan
          * - or incrementally based on where it last left off. When doing a full
          * repository scan (but not limited to that), it executes in (small) batches

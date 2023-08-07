@@ -72,7 +72,7 @@ public class DocumentNodeStoreHelper {
     }
 
     public static VersionGarbageCollector createVersionGC(
-            DocumentNodeStore nodeStore, VersionGCSupport gcSupport, final boolean detailedGCEnabled) {
+            DocumentNodeStore nodeStore, VersionGCSupport gcSupport, boolean detailedGCEnabled) {
         return new VersionGarbageCollector(nodeStore, gcSupport, detailedGCEnabled);
     }
 
