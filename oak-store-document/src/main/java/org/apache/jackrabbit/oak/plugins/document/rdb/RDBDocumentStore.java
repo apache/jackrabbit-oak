@@ -1854,7 +1854,7 @@ public class RDBDocumentStore implements DocumentStore {
         }
 
         if (sortBy != null && !sortBy.isEmpty()) {
-            for (String key: sortBy) {
+            for (String key : sortBy) {
                 if (!allowedProps.contains(key)) {
                     final String message = "indexed property " + key + " not supported. supported properties are " + allowedProps;
                     LOG.error(message);
