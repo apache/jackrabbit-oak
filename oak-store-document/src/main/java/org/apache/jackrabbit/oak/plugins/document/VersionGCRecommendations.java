@@ -92,7 +92,7 @@ public class VersionGCRecommendations {
      * @param detailedGCEnabled whether detailedGC is enabled or not
      */
     public VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
-                                    VersionGCOptions options, GCMonitor gcMonitor, final boolean detailedGCEnabled) {
+                                    VersionGCOptions options, GCMonitor gcMonitor, boolean detailedGCEnabled) {
         boolean ignoreDueToCheckPoint = false;
         boolean ignoreDetailedGCDueToCheckPoint = false;
         long deletedOnceCount = 0;
@@ -306,7 +306,7 @@ public class VersionGCRecommendations {
                 ignoreGC = true;
             } else {
                 gcScope = gcScope.notLaterThan(checkpoint.getTimestamp() - 1);
-                log.info("checkpoint at [{}] found, detailedGCScope now {}", timestampToString(checkpoint.getTimestamp()), gcScope);
+                log.debug("checkpoint at [{}] found, detailedGCScope now {}", timestampToString(checkpoint.getTimestamp()), gcScope);
             }
         }
         return new GCResult(ignoreGC, gcScope);
