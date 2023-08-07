@@ -83,7 +83,7 @@ public class VersionGCSupport {
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
      * then perform the comparison.
-     * <p/>
+     *
      *
      * @param fromModified the lower bound modified timestamp (inclusive)
      * @param toModified   the upper bound modified timestamp (exclusive)
