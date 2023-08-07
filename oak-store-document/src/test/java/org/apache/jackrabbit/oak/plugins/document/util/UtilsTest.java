@@ -56,6 +56,7 @@ import org.mockito.Mockito;
 import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isDetailedGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -221,6 +222,17 @@ public class UtilsTest {
         builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
         boolean detailedGCEnabled = isDetailedGCEnabled(builder);
         assertTrue("Detailed GC is enabled via Feature Toggle", detailedGCEnabled);
+    }
+
+    @Test
+    public void detailedGCDisabledForRDB() {
+        DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
+        builder.setDetailedGCEnabled(true);
+        Feature docStoreDetailedGCFeature = mock(Feature.class);
+        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
+        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
+        assertFalse("Detailed GC is disabled for RDB Document Store", detailedGCEnabled);
     }
 
     @Test

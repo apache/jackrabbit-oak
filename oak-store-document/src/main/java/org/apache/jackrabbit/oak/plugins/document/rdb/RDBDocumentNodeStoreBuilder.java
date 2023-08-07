@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A builder for a {@link DocumentNodeStore} backed by a relational database.
@@ -112,5 +114,28 @@ public class RDBDocumentNodeStoreBuilder
         } else {
             return super.createMissingLastRevSeeker();
         }
+    }
+
+    @Override
+    public boolean isDetailedGCEnabled() {
+        // detailedGC is non supported for RDB
+        return false;
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setDetailedGCEnabled(boolean b) {
+        // detailedGC is non supported for RDB
+        return thisBuilder();
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setDocStoreDetailedGCFeature(@Nullable Feature docStoreDetailedGC) {
+        return thisBuilder();
+    }
+
+    @Override
+    @Nullable
+    public Feature getDocStoreDetailedGCFeature() {
+        return null;
     }
 }
