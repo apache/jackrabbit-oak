@@ -212,7 +212,7 @@ class VersionEditor implements Editor {
     private boolean wasCheckedIn() {
         PropertyState prop = before.getProperty(JCR_ISCHECKEDOUT);
         if (prop != null) {
-            return !prop.getValue(Type.BOOLEAN);
+            return !prop.getValue(Type.BOOLEAN) && isVersionable;
         }
         // new node or not versionable, check parent
         return parent != null && parent.wasCheckedIn();
