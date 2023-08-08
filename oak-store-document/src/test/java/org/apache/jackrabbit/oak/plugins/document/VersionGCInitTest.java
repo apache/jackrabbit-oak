@@ -31,6 +31,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDe
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -51,12 +52,12 @@ public class VersionGCInitTest {
     @Test
     public void lazyInitialize() throws Exception {
         DocumentStore store = ns.getDocumentStore();
-        Document vgc = store.find(SETTINGS, "versionGC");
+        Document vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNull(vgc);
 
         ns.getVersionGarbageCollector().gc(1, DAYS);
 
-        vgc = store.find(SETTINGS, "versionGC");
+        vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(vgc);
         assertEquals(0L, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
         assertNull(vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
@@ -65,7 +66,7 @@ public class VersionGCInitTest {
     @Test
     public void lazyInitializeWithDetailedGC() throws Exception {
         DocumentStore store = ns.getDocumentStore();
-        Document vgc = store.find(SETTINGS, "versionGC");
+        Document vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNull(vgc);
 
         enableDetailGC(ns.getVersionGarbageCollector());
@@ -77,7 +78,7 @@ public class VersionGCInitTest {
         store.createOrUpdate(NODES, op);
         VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
 
-        vgc = store.find(SETTINGS, "versionGC");
+        vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(vgc);
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
         assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
@@ -87,13 +88,13 @@ public class VersionGCInitTest {
     @Test
     public void lazyInitializeWithDetailedGCWithNoData() throws Exception {
         DocumentStore store = ns.getDocumentStore();
-        Document vgc = store.find(SETTINGS, "versionGC");
+        Document vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNull(vgc);
 
         enableDetailGC(ns.getVersionGarbageCollector());
         VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
 
-        vgc = store.find(SETTINGS, "versionGC");
+        vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(vgc);
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
         assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));

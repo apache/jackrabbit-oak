@@ -350,7 +350,7 @@ public class VersionGarbageCollector {
 
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
-                    "ignoredDetailedGCDueToCheckPoint=" + ignoredDetailedGCDueToCheckPoint +
+                    ", ignoredDetailedGCDueToCheckPoint=" + ignoredDetailedGCDueToCheckPoint +
                     ", canceled=" + canceled +
                     ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
                     ", updateResurrectedGCCount=" + updateResurrectedGCCount +
@@ -950,7 +950,7 @@ public class VersionGarbageCollector {
                 updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
                 stats.updatedDetailedGCDocsCount += updatedDocs;
                 stats.deletedPropsGCCount += deletedProps;
-                log.info("Updated [{}] documents, deleted [{}] properties", updatedDocs, deletedProps);
+                log.debug("Updated [{}] documents, deleted [{}] properties", updatedDocs, deletedProps);
                 // now reset delete metadata
                 updateOpList.clear();
                 deletedPropsCountMap.clear();
