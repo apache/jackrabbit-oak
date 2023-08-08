@@ -23,6 +23,12 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -163,6 +169,22 @@ public class FileStore implements Store {
         }
     }
 
+    @Override
+    public boolean putIfAbsent(String key, PageFile value) {
+        writeCount++;
+        File file = getFile(key);
+        byte[] data = value.toBytes();
+        Path path = Paths.get(file.getAbsolutePath());
+        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+            channel.write(ByteBuffer.wrap(data));
+            return true;
+        } catch (FileAlreadyExistsException e) {
+            return false;
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
     private void writeFileAsync(String key, PageFile value) {
         pendingWrites.put(key, value);
         WriteOperation op = new WriteOperation();
@@ -216,22 +238,6 @@ public class FileStore implements Store {
     private void writeFile(String key, byte[] data) {
         data = compression.compress(data);
         putBytes(key, data);
-
-        /*
-        File tempFile = getFile(key, true);
-        File targetFile = getFile(key);
-        // https://stackoverflow.com/questions/595631/how-to-atomically-rename-a-file-in-java-even-if-the-dest-file-already-exists
-        try (RandomAccessFile file = new RandomAccessFile(tempFile, "rw")) {
-            file.write(data);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-        try {
-            Files.move(tempFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-        */
     }
 
     private File getFile(String key) {

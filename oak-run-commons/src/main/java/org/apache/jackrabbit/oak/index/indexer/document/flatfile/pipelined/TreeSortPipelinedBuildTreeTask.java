@@ -20,10 +20,12 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,10 +39,11 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
  */
-class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildTreeTask.Result> {
+public class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildTreeTask.Result> {
 
     private final Store store;
     private final Session session;
+    private final StoreLock storeLock;
 
     public static class Result {
         private final File sortedTreeDirectory;
@@ -64,23 +67,25 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
     private final BlockingQueue<List<NodeStateEntryJson>> nonEmptyBuffersQueue;
     private final File storeDir;
     private long totalEntriesProcessed = 0;
-    private int mergeRootsEveryXBatches = 20;
+    private int mergeRootsEveryXBatches = 10;
 
     public TreeSortPipelinedBuildTreeTask(File storeDir,
                                           Compression algorithm,
                                           BlockingQueue<List<NodeStateEntryJson>> nseQueue) {
         this.nonEmptyBuffersQueue = nseQueue;
         this.storeDir = storeDir;
-
-        String storeConfig = "type=file\n" +
-                "cacheSizeMB=2048\n" +
-                "maxFileSize=48000000\n" +
-                "dir=" + this.storeDir.getAbsolutePath();
+        String storeConfig = System.getProperty("oak.treeStoreConfig",
+                "type=file\n" +
+                "cacheSizeMB=4096\n" +
+                "maxFileSize=64000000\n" +
+                "dir=" + storeDir.getAbsolutePath());
         this.store = StoreBuilder.build(storeConfig);
+        LOG.info("Initializing the tree store; removing all entries");
+        store.removeAll();
+        storeLock = StoreLock.lock(store);
         store.setWriteCompression(algorithm);
-        session = new Session(store);
+        session = Session.open(store);
         session.setMaxRoots(Integer.MAX_VALUE);
-        session.init();
     }
 
     @Override
@@ -103,7 +108,6 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
                     session.flush();
                     session.runGC();
                     LOG.info("Merged all roots in {}", stopwatch);
-                    store.close();
                     LOG.info("Terminating thread, processed {} entries", totalEntriesProcessed);
                     return new Result(storeDir, totalEntriesProcessed);
                 }
@@ -118,7 +122,8 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
             LOG.warn("Thread terminating with exception.", t);
             throw t;
         } finally {
-            LOG.info("Closing store");
+            LOG.info("Unlocking and closing store");
+            storeLock.close();
             store.close();
             Thread.currentThread().setName(originalName);
         }
@@ -128,9 +133,10 @@ class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipelinedBuildT
         long textSizeInCurrentTree = 0;
         for (NodeStateEntryJson entry : nseb) {
             totalEntriesProcessed++;
-            // Retrieve the entry from the buffer
-            session.put(entry.path, entry.json);
-            textSizeInCurrentTree += entry.path.length() + entry.json.length();
+            String path = entry.path;
+            String json = entry.json;
+            session.put(path, json);
+            textSizeInCurrentTree += path.length() + json.length();
         }
         LOG.info("Checkpointing tree with: {} entries of size {}", nseb.size(), FileUtils.byteCountToDisplaySize(textSizeInCurrentTree));
         session.checkpoint();

@@ -30,14 +30,11 @@ import java.util.Properties;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Cache;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Position;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.SortedStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Read and write keys and values.
  */
 public class Session {
-    private static final Logger LOG = LoggerFactory.getLogger(Session.class);
 
     private static final int DEFAULT_CACHE_SIZE = 128;
     private static final int DEFAULT_MAX_FILE_SIZE = 16 * 1024;
@@ -52,6 +49,7 @@ public class Session {
     static final boolean MULTI_ROOT = true;
 
     private final Store store;
+
     private final Cache<String, PageFile> cache = new Cache<>(DEFAULT_CACHE_SIZE)  {
         private static final long serialVersionUID = 1L;
 
@@ -79,7 +77,23 @@ public class Session {
         this(new MemoryStore(new Properties()));
     }
 
-    public Session(Store store) {
+    /**
+     * Open a new session.
+     *
+     * @param store the store
+     * @return the session
+     */
+    public static Session open(Store store) {
+        PageFile root = store.getIfExists(ROOT_NAME);
+        if (root == null) {
+            root = new PageFile(false);
+            root.setFileName(ROOT_NAME);
+            store.put(ROOT_NAME, root);
+        }
+        return new Session(store);
+    }
+
+    private Session(Store store) {
         this.store = store;
         maxFileSize = Integer.parseInt(store.getConfig().getProperty("maxFileSize", "" + DEFAULT_MAX_FILE_SIZE));
         cacheSizeMB = Integer.parseInt(store.getConfig().getProperty("cacheSizeMB", "" + DEFAULT_CACHE_SIZE_MB));
@@ -150,17 +164,6 @@ public class Session {
         List<String> roots = getRootFileNames();
         if (roots.size() > maxRoots) {
             mergeRoots(Integer.MAX_VALUE);
-        }
-    }
-
-    /**
-     * Initialize the storage, creating a new root if needed.
-     */
-    public void init() {
-        PageFile root = store.getIfExists(ROOT_NAME);
-        if (root == null) {
-            root = newPageFile(false);
-            putFile(ROOT_NAME, root);
         }
     }
 
@@ -503,7 +506,6 @@ public class Session {
         PageFile root = getFile(ROOT_NAME);
         cache.remove(ROOT_NAME);
         String rootFileCopy = ROOT_NAME + "_" + updateId;
-        LOG.info("Checkpoint, new file: " + rootFileCopy);
         root = copyPageFile(root);
         root.setFileName(rootFileCopy);
         putFile(rootFileCopy, root);

@@ -229,48 +229,36 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return flatFileStore;
     }
 
-    // TODO: Testing code, remove
     public void reindexUsingTreeStore() throws CommitFailedException, IOException {
-        NodeStateEntryReader reader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
-        TreeStore treeStore = new TreeStore(new File("target/treeStore"), reader);
-
-        // TODO this is mostly a copy of reindex()
-
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
         configureEstimators(progressReporter);
-
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-        CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
-        if (indexer.isEmpty()) {
-            return;
+        try (CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter)) {
+            if (indexer.isEmpty()) {
+                return;
+            }
+            closer.register(indexer);
+            File directory = indexHelper.getWorkDir();
+            progressReporter.reset();
+            progressReporter.reindexingTraversalStart("/");
+            preIndexOpertaions(indexer.getIndexers());
+            Stopwatch indexerWatch = Stopwatch.createStarted();
+            NodeStateEntryReader reader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
+            try (TreeStore treeStore = new TreeStore(directory, reader)) {
+                for (NodeStateEntry entry : treeStore) {
+                    reportDocumentRead(entry.getPath(), progressReporter);
+                    indexer.index(entry);
+                }
+            }
+            progressReporter.reindexingTraversalEnd();
+            progressReporter.logReport();
+            log.info("Completed the indexing in {}", indexerWatch);
         }
-
-        closer.register(indexer);
-
-        progressReporter.reset();
-
-        progressReporter.reindexingTraversalStart("/");
-
-        preIndexOpertaions(indexer.getIndexers());
-
-        Stopwatch indexerWatch = Stopwatch.createStarted();
-
-        for (NodeStateEntry entry : treeStore) {
-            reportDocumentRead(entry.getPath(), progressReporter);
-            indexer.index(entry);
-        }
-
-        progressReporter.reindexingTraversalEnd();
-        progressReporter.logReport();
-        log.info("Completed the indexing in {}", indexerWatch);
-
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
         indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
@@ -325,29 +313,20 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
         configureEstimators(progressReporter);
-
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
         try (CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter)) {
             if (indexer.isEmpty()) {
                 return;
             }
-
             closer.register(indexer);
-
-            File treeStoreDirectory = buildTreeStore(checkpointedState, indexer::shouldInclude);
-
+            File treeStoreDirectory = buildTreeStore(checkpointedState);
             progressReporter.reset();
-
             progressReporter.reindexingTraversalStart("/");
-
             preIndexOpertaions(indexer.getIndexers());
-
             Stopwatch indexerWatch = Stopwatch.createStarted();
-
             NodeStateEntryReader reader = new NodeStateEntryReader(indexHelper.getGCBlobStore());
             try (TreeStore treeStore = new TreeStore(treeStoreDirectory, reader)) {
                 for (NodeStateEntry entry : treeStore) {
@@ -359,19 +338,16 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             progressReporter.logReport();
             log.info("Completed the indexing in {}", indexerWatch);
         }
-
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
         indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
-    public File buildTreeStore(NodeState checkpointedState, Predicate<String> pathPredicate) throws IOException {
+    public File buildTreeStore(NodeState checkpointedState) throws IOException {
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
         TreeNodeStoreBuilder builder = new TreeNodeStoreBuilder(indexHelper.getWorkDir())
                 .withBlobStore(indexHelper.getGCBlobStore())
-                .withPathPredicate(pathPredicate)
                 .withRootRevision(rootDocumentState.getRootRevision())
                 .withNodeStore(nodeStore)
                 .withMongoDocumentStore(getMongoDocumentStore());

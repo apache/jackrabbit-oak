@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Uuid;
 
+import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
@@ -69,8 +70,6 @@ public class AzureStore implements Store {
             dir = container.getDirectoryReference(
                     config.getProperty("directory"));
         } catch (Exception e) {
-; // TODO proper logging
-e.printStackTrace();
             throw new IllegalArgumentException(config.toString(), e);
         }
     }
@@ -92,8 +91,6 @@ e.printStackTrace();
             data = c.expand(data);
             return PageFile.fromBytes(data);
         } catch (URISyntaxException | StorageException e) {
-; // TODO proper logging
-e.printStackTrace();
             throw new IllegalArgumentException(key, e);
         }
     }
@@ -112,8 +109,6 @@ e.printStackTrace();
             blob.download(out);
             return out.toByteArray();
         } catch (URISyntaxException | StorageException e) {
-; // TODO proper logging
-e.printStackTrace();
             throw new IllegalArgumentException(key, e);
         }
     }
@@ -125,8 +120,6 @@ e.printStackTrace();
             CloudBlockBlob blob = dir.getBlockBlobReference(key);
             blob.upload(new ByteArrayInputStream(data), data.length);
         } catch (URISyntaxException | StorageException | IOException e) {
-; // TODO proper logging
-e.printStackTrace();
             throw new IllegalArgumentException(e);
         }
     }
@@ -139,14 +132,24 @@ e.printStackTrace();
         try {
             writeCount++;
             blob = dir.getBlockBlobReference(key);
-long start = System.nanoTime();
             blob.uploadFromByteArray(data, 0, data.length);
-long time = System.nanoTime() - start;
-System.out.println("Azure upload " + key + " size " + data.length + " nanos " + time);
-
         } catch (URISyntaxException | StorageException | IOException e) {
-; // TODO proper logging
-e.printStackTrace();
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public boolean putIfAbsent(String key, PageFile value) {
+        byte[] data = value.toBytes();
+        data = compression.compress(data);
+        CloudBlockBlob blob;
+        try {
+            writeCount++;
+            blob = dir.getBlockBlobReference(key);
+            blob.uploadFromByteArray(data, 0, data.length, AccessCondition.generateIfNoneMatchCondition("*"), null, null);
+            return true;
+        } catch (StorageException e) {
+            return false;
+        } catch (URISyntaxException | IOException e) {
             throw new IllegalArgumentException(e);
         }
     }
@@ -172,8 +175,6 @@ e.printStackTrace();
             }
             return set;
         } catch (StorageException | URISyntaxException e) {
-; // TODO proper logging
-e.printStackTrace();
             throw new IllegalArgumentException(e);
         }
     }
@@ -187,8 +188,6 @@ e.printStackTrace();
                 blob.deleteIfExists();
             }
         } catch (StorageException | URISyntaxException e) {
-; // TODO proper logging
-e.printStackTrace();
             throw new IllegalArgumentException(e);
         }
     }

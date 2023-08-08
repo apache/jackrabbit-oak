@@ -122,4 +122,17 @@ public interface Store {
         throw new UnsupportedOperationException();
     }
 
+    /**
+     * Storage a file if it doesn't exist yet.
+     * This method is atomic.
+     *
+     * @param key the file name
+     * @param value the file
+     * @throws UnsupportedOperationException if atomic operations are not supported
+     * @return if the call was successful, that is if the file was written
+     */
+    default boolean putIfAbsent(String key, PageFile value) {
+        throw new UnsupportedOperationException();
+    }
+
 }

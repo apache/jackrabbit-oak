@@ -62,7 +62,7 @@ public class TreeSortPipelinedStrategy implements SortStrategy {
     private static final Logger LOG = LoggerFactory.getLogger(TreeSortPipelinedStrategy.class);
 
 
-    static final List<NodeStateEntryJson> SENTINEL_NODE_STATE_ENTRY_JSON = new ArrayList<>(0);
+    public static final List<NodeStateEntryJson> SENTINEL_NODE_STATE_ENTRY_JSON = new ArrayList<>(0);
 
     private class MonitorTask implements Runnable {
         private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;

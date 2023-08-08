@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.tree.store;
 
-import java.util.HashMap;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MemoryStore implements Store {
 
     private final Properties config;
-    private final HashMap<String, PageFile> map = new HashMap<>();
+    private final ConcurrentHashMap<String, PageFile> map = new ConcurrentHashMap<>();
     private long nextFileName;
     private long writeCount, readCount;
 
@@ -48,8 +48,19 @@ public class MemoryStore implements Store {
     }
 
     public void put(String key, PageFile file) {
+        if (!key.equals(file.getFileName())) {
+            throw new AssertionError("key: " + key + " file name: " + file.getFileName());
+        }
+        if (key.equals(file.getNextRoot())) {
+            throw new AssertionError("key: " + key + " nextRoot: " + file.getNextRoot());
+        }
         writeCount++;
         map.put(key, file);
+    }
+
+    public boolean putIfAbsent(String key, PageFile value) {
+        writeCount++;
+        return map.putIfAbsent(key, value) == null;
     }
 
     public String toString() {

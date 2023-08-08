@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -245,7 +246,12 @@ public class IndexCommand implements Command {
             log.info("Using Document order traversal to perform reindexing");
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
                 if (idxOpts.useTreeStore()) {
-                    indexer.reindexUsingTreeStore();
+                    if (idxOpts.buildFlatFileStoreSeparately()) {
+                        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+                        File treeStoreDirectory = indexer.buildTreeStore(checkpointedState);
+                    } else {
+                        indexer.reindexUsingTreeStore();
+                    }
                 } else {
                     if (idxOpts.buildFlatFileStoreSeparately()) {
                         FlatFileStore ffs = indexer.buildFlatFileStore();

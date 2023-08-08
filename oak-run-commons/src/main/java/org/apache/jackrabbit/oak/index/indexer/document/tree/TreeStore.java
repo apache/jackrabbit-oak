@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryR
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreLock;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Cache;
 import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
@@ -49,7 +50,6 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
         Session session = treeStore.session;
         Store store = treeStore.store;
         if (store.keySet().isEmpty()) {
-            session.init();
             String fileName = args[1];
             BufferedReader lineReader = new BufferedReader(
                     new FileReader(fileName, StandardCharsets.UTF_8));
@@ -84,6 +84,14 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
             session.flush();
             store.close();
         }
+        /*
+        Iterator<Entry<String, String>> it0 = session.iterator();
+        while (it0.hasNext()) {
+            Entry<String, String> e = it0.next();
+            System.out.println("key: " + e.getKey() + " values: " + e.getValue());
+        }
+        */
+
         Iterator<NodeStateEntry> it = treeStore.iterator();
         long nodeCount = 0;
         long childNodeCount = 0;
@@ -100,9 +108,11 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
             }
         }
         System.out.println("Node count: " + nodeCount + " Child node count: " + childNodeCount);
+        treeStore.close();
     }
 
     private final Store store;
+    private final StoreLock storeLock;
     private final Session session;
     private final NodeStateEntryReader entryReader;
     private final Cache<String, NodeState> nodeStateCache = new Cache<>(10000);
@@ -115,12 +125,13 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
                 "maxFileSize=64000000\n" +
                 "dir=" + directory.getAbsolutePath());
         this.store = StoreBuilder.build(storeConfig);
-        this.session = new Session(store);
+        this.storeLock = StoreLock.lock(store);
+        this.session = Session.open(store);
     }
 
     @Override
     public void close() throws IOException {
-        session.flush();
+        storeLock.close();
         store.close();
     }
 
@@ -162,7 +173,7 @@ public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
         };
     }
 
-    NodeStateEntry getNodeStateEntry(String path) {
+    public NodeStateEntry getNodeStateEntry(String path) {
         return new NodeStateEntryBuilder(getNodeState(path), path).build();
     }
 
