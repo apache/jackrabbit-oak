@@ -48,6 +48,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 
 import static com.mongodb.client.model.Filters.regex;
 import static com.mongodb.client.model.Sorts.ascending;
@@ -326,13 +327,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (!path.endsWith("/")) {
             path = path + "/";
         }
-        String quotedPath = path.replace("/", "\\/");
+        String quotedPath = Pattern.quote(path);
         // For entries with path sizes above a certain threshold, the _id field contains a hash instead of the path of
         // the entry. The path is stored instead in the _path field. Therefore, we have to include in the filter also
         // the documents with matching _path.
         return Filters.or(
-                regex(NodeDocument.ID, "^[0-9]{1,3}:" + quotedPath + ".*$"),
-                regex(NodeDocument.PATH, quotedPath + ".*$")
+                regex(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$")),
+                regex(NodeDocument.PATH, Pattern.compile(quotedPath + ".*$"))
         );
     }
 
