@@ -44,11 +44,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static com.mongodb.client.model.Filters.regex;
 import static com.mongodb.client.model.Sorts.ascending;
@@ -89,7 +91,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     // TODO: Revise this timeout. It is used to prevent the indexer from blocking forever if the queue is full.
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(30);
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
-    private final static BsonDocument NATURAL_HINT =  BsonDocument.parse("{ $natural:1}");
+    private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural:1}");
 
     private final int batchSize;
     private final BlockingQueue<BasicDBObject[]> mongoDocQueue;
@@ -306,19 +308,25 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.info("Regex path filtering disabled.");
             return null;
         }
+        return getSingleIncludedPath(pathFilters);
+    }
+
+    // Package private for testing
+    static String getSingleIncludedPath(List<PathFilter> pathFilters) {
         LOG.info("Creating regex filter from pathFilters: " + pathFilters);
         if (pathFilters == null) {
             return null;
         }
-        if (pathFilters.size() != 1) {
-            return null;
-        }
-        PathFilter pathFilter = pathFilters.get(0);
-        List<String> includePaths = pathFilter.getIncludedPaths();
-        List<String> excludePaths = pathFilter.getExcludedPaths();
+        Set<String> includedPaths = pathFilters.stream()
+                .flatMap(pathFilter -> pathFilter.getIncludedPaths().stream())
+                .collect(Collectors.toSet());
 
-        if (excludePaths.isEmpty() && includePaths.size() == 1) {
-            return includePaths.get(0);
+        Set<String> excludedPaths = pathFilters.stream()
+                .flatMap(pathFilter -> pathFilter.getExcludedPaths().stream())
+                .collect(Collectors.toSet());
+
+        if (excludedPaths.isEmpty() && includedPaths.size() == 1) {
+            return includedPaths.stream().iterator().next();
         } else {
             return null;
         }

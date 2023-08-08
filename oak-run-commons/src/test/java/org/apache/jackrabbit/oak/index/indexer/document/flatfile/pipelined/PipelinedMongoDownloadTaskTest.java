@@ -25,6 +25,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 import org.junit.Test;
@@ -37,6 +38,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -100,5 +102,34 @@ public class PipelinedMongoDownloadTaskTest {
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 0}}"));
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 123000, \"$lt\": 123001}, \"_id\": {\"$gt\": \"3:/content/dam/asset1\"}}"));
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 123001}}"));
+    }
+
+    @Test
+    public void regexFilters() {
+        assertNull(PipelinedMongoDownloadTask.getSingleIncludedPath(null));
+
+        assertNull(PipelinedMongoDownloadTask.getSingleIncludedPath(List.of()));
+
+        List<PathFilter> singlePathFilter = List.of(
+                new PathFilter(List.of("/content/dam"), List.of())
+        );
+        assertEquals("/content/dam", PipelinedMongoDownloadTask.getSingleIncludedPath(singlePathFilter));
+
+        List<PathFilter> multipleIncludeFilters = List.of(
+                new PathFilter(List.of("/content/dam"), List.of()),
+                new PathFilter(List.of("/content/dam"), List.of())
+        );
+        assertEquals("/content/dam", PipelinedMongoDownloadTask.getSingleIncludedPath(multipleIncludeFilters));
+
+        List<PathFilter> multipleIncludeFiltersDifferent = List.of(
+                new PathFilter(List.of("/content/dam"), List.of()),
+                new PathFilter(List.of("/content/dam/collections"), List.of())
+        );
+        assertNull(PipelinedMongoDownloadTask.getSingleIncludedPath(multipleIncludeFiltersDifferent));
+
+        List<PathFilter> withExcludeFilter = List.of(
+                new PathFilter(List.of("/"), List.of("/var"))
+        );
+        assertNull(PipelinedMongoDownloadTask.getSingleIncludedPath(withExcludeFilter));
     }
 }
