@@ -307,7 +307,9 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
 
         Authorizable a = um.getAuthorizable(PREVIOUS_SYNCED_ID);
         assertTrue(getIds(a.memberOf()).contains(local.getID()));
-        
+
+        // create new context to ensure that the internal timestamp is ahead of the last sync time (OAK-10379)
+        syncContext = new DynamicSyncContext(syncConfig, idp, userManager, valueFactory);
         // sync again to establish dynamic membership
         syncContext.setForceUserSync(true);
         syncContext.setForceGroupSync(true);
