@@ -89,6 +89,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     // TODO: Revise this timeout. It is used to prevent the indexer from blocking forever if the queue is full.
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(30);
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
+    private final static BsonDocument NATURAL_HINT =  BsonDocument.parse("{ $natural:1}");
 
     private final int batchSize;
     private final BlockingQueue<BasicDBObject[]> mongoDocQueue;
@@ -277,7 +278,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             FindIterable<BasicDBObject> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
                     .find()
-                    .hint(BsonDocument.parse("{ $natural:1}"));
+                    .hint(NATURAL_HINT);
             download(mongoIterable);
 
         } else {
@@ -295,7 +296,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             FindIterable<BasicDBObject> childrenIterable = dbCollection
                     .withReadPreference(readPreference)
                     .find(childrenQuery)
-                    .hint(BsonDocument.parse("{ $natural:1}"));
+                    .hint(NATURAL_HINT);
             download(childrenIterable);
         }
     }
