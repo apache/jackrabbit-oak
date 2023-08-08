@@ -429,7 +429,12 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                     readCount++;
                     if (readCount % TRAVERSING_WARNING == 0) {
                         Cursors.checkReadLimit(readCount, settings);
-                        log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                        if (readCount == 2 * TRAVERSING_WARNING) {
+                            log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter(),
+                                    new Exception("call stack"));
+                        } else {
+                            log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                        }
                     }
                     return currentRow.path;
                 }

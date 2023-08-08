@@ -159,10 +159,15 @@ class TraversingCursor extends AbstractCursor {
 
                 readCount++;
                 if (readCount % 1000 == 0) {
-                    FilterIterators.checkReadLimit(readCount, settings);
-                    String caller = IndexUtils.getCaller(this.settings.getIgnoredClassNamesInCallTrace());
-                    LOG.warn("Traversed {} nodes with filter {} called by {}; consider creating an index or changing the query" , 
-                            readCount, filter, caller);
+                    if (readCount == 20000) {
+                        LOG.warn("Traversed {} nodes with filter {}; consider creating an index or changing the query",
+                                readCount, filter, new Exception("call stack"));
+                    } else {
+                        FilterIterators.checkReadLimit(readCount, settings);
+                        String caller = IndexUtils.getCaller(this.settings.getIgnoredClassNamesInCallTrace());
+                        LOG.warn("Traversed {} nodes with filter {} called by {}; consider creating an index or changing the query",
+                                readCount, filter, caller);
+                    }
                 }
 
                 NodeState node = entry.getNodeState();

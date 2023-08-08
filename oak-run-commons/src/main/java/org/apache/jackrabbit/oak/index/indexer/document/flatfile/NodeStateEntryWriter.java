@@ -30,7 +30,10 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -40,13 +43,19 @@ public class NodeStateEntryWriter {
     private final JsopBuilder jw = new JsopBuilder();
     private final JsonSerializer serializer;
     private final Joiner pathJoiner = Joiner.on('/');
+    private final boolean includeChildOrder;
 
     //TODO Possible optimizations
     //1. Compression
     //2. Dictionary for properties
 
     public NodeStateEntryWriter(BlobStore blobStore) {
+        this(blobStore, false);
+    }
+
+    public NodeStateEntryWriter(BlobStore blobStore, boolean includeChildOrder) {
         this.serializer = new JsonSerializer(jw, new BlobIdSerializer(blobStore));
+        this.includeChildOrder = includeChildOrder;
     }
 
     public String toString(NodeStateEntry e) {
@@ -77,21 +86,30 @@ public class NodeStateEntryWriter {
     }
 
     public String asJson(NodeState nodeState) {
+        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
+    }
+
+    String asSortedJson(NodeState nodeState) {
+        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
+                .sorted(Comparator.comparing(PropertyState::getName)));
+    }
+
+    private String asJson(Stream<? extends PropertyState> stream) {
         jw.resetWriter();
         jw.object();
-        for (PropertyState ps : nodeState.getProperties()) {
+        stream.forEach(ps -> {
             String name = ps.getName();
             if (include(name)) {
                 jw.key(name);
                 serializer.serialize(ps);
             }
-        }
+        });
         jw.endObject();
         return jw.toString();
     }
 
     private boolean include(String propertyName) {
-        return !OAK_CHILD_ORDER.equals(propertyName);
+        return !OAK_CHILD_ORDER.equals(propertyName) || includeChildOrder;
     }
 
     //~-----------------------------------< Utilities to parse >
