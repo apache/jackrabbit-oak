@@ -81,8 +81,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = true;
     public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = 300;
+    /**
+     * Whether to do path filtering on the MongoDB query instead of doing a full traversal of the document store and
+     * filtering in the indexing job. This feature may significantly reduce the amount of documents downloaded from
+     * Mongo.
+     * The performance gains may not be proportional to the reduction in the number of documents downloaded because Mongo
+     * still has to traverse all the documents. This is the case because the regex expression used for path filtering
+     * starts with a wildcard (because the _id starts with the depth of the path, so the regex expression must ignore
+     * this part). Because of the wildcard at the start, Mongo cannot make use of the index on _id.
+     */
     public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = "oak.indexer.pipelined.mongoRegexPathFiltering";
-    public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = true;
+    public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = false;
     // Use a short initial retry interval. In most cases if the connection to a replica fails, there will be other
     // replicas available so a reconnection attempt will succeed immediately.
     private final static long retryInitialIntervalMillis = 100;
@@ -185,7 +194,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private void downloadWithRetryOnConnectionErrors() throws InterruptedException, TimeoutException {
         // If regex filtering is enabled, start by downloading the ancestors of the path used for filtering.
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
-        // matched by the regex used in the Mongo query, which assumes a prefix of "--:/content/dam"
+        // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
         Bson childrenFilter = null;
         String regexBasePath = getPathForRegexFiltering();
         if (regexBasePath != null) {
