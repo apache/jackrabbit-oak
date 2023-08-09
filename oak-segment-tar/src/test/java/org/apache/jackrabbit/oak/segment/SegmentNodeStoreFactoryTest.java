@@ -18,14 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
-import java.util.Map;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStoreProvider;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 
 public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
 
@@ -33,13 +34,24 @@ public class SegmentNodeStoreFactoryTest extends SegmentNodeStoreServiceTest {
 
     @Override
     protected void registerSegmentNodeStoreService(boolean customBlobStore) {
-        Map<String, Object> properties = newHashMap();
+        Hashtable<String, Object> properties = new Hashtable<>();
 
         properties.put("role", "some-role");
         properties.put("customBlobStore", customBlobStore);
         properties.put("repository.home", folder.getRoot().getAbsolutePath());
 
-        segmentNodeStoreFactory = context.registerInjectActivateService(new SegmentNodeStoreFactory(), properties);
+        // OAK-10367: The call 
+        // context.registerInjectActivateService(new SegmentNodeStoreFactory(), properties)
+        // isn't working properly anymore. It calls
+        // context.bundleContext().registerService(null, new SegmentNodeStoreFactory(), properties).
+        // A service registered this way will not be found by
+        // context.bundleContext().getServiceReferences(SegmentNodeStoreService.class, null).
+        // 
+        //segmentNodeStoreFactory = context.registerInjectActivateService(new SegmentNodeStoreFactory(), properties);
+        segmentNodeStoreFactory = new SegmentNodeStoreFactory();
+        MockOsgi.injectServices(segmentNodeStoreFactory, context.bundleContext(), properties);
+        MockOsgi.activate(segmentNodeStoreFactory, context.bundleContext(), (Dictionary<String, Object>) properties);
+        context.bundleContext().registerService(SegmentNodeStoreFactory.class, segmentNodeStoreFactory, properties);
     }
 
     @Override
