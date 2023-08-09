@@ -227,7 +227,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.sling</groupId>
-            <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+            <artifactId>org.apache.sling.testing.osgi-mock.junit4</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
