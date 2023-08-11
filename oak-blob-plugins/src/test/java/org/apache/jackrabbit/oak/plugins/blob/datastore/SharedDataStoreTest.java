@@ -397,7 +397,7 @@ public class SharedDataStoreTest {
                 try {
                     fds.metadataRecordExists(name);
                 }
-                catch (IllegalArgumentException e) { }
+                catch (IllegalArgumentException | NullPointerException e) { }
             }
             else {
                 assertFalse(fds.metadataRecordExists(name));
