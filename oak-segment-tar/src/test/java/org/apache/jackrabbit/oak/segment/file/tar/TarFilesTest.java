@@ -282,12 +282,14 @@ public class TarFilesTest {
         GCGeneration ok = newGCGeneration(1, 1, false);
         GCGeneration ko = newGCGeneration(2, 2, false);
 
-        writeSegmentWithBinaryReferences(randomUUID(), ok, "ok");
-        writeSegmentWithBinaryReferences(randomUUID(), ko, "ko");
+        UUID u1 = randomUUID();
+        writeSegmentWithBinaryReferences(u1, ok, "ok");
+        UUID u2 = randomUUID();
+        writeSegmentWithBinaryReferences(u2, ko, "ko");
 
         Set<String> references = new HashSet<>();
         tarFiles.collectBlobReferences(references::add, ko::equals);
-        assertEquals(references, singleton("ok"));
+        assertEquals("unexpected results for collectBlobReferences, UUIDs where " + u1 + " and " + u2, singleton("ok"), references);
     }
 
     @Test
