@@ -289,7 +289,7 @@ public class TarFilesTest {
 
         Set<String> references = new HashSet<>();
         tarFiles.collectBlobReferences(references::add, ko::equals);
-        assertEquals("unexpected results for collectBlobReferences, UUIDs where " + u1 + " and " + u2, singleton("ok"), references);
+        assertEquals("unexpected results for collectBlobReferences, UUIDs were " + u1 + " and " + u2, singleton("ok"), references);
     }
 
     @Test
