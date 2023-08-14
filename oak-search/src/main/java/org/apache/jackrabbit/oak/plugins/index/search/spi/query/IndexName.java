@@ -231,8 +231,16 @@ public class IndexName implements Comparable<IndexName> {
     }
 
     public static boolean isIndexActive(String indexPath, NodeState rootState) {
+        return isIndexActive(indexPath, rootState, 0);
+    }
+
+    private static boolean isIndexActive(String indexPath, NodeState rootState, int recursionDepth) {
         // An index is active if it has a hidden child node that starts with ":oak:mount-",
         // OR if it is an active merged index
+        if (recursionDepth > 50) {
+            LOG.warn("Fail to check index activeness for {} due to high recursion depth", indexPath);
+            return true;
+        }
         try {
             NodeState indexNode = rootState;
             for (String e : PathUtils.elements(indexPath)) {
@@ -243,14 +251,22 @@ public class IndexName implements Comparable<IndexName> {
                     return true;
                 }
             }
-            return isIndexActiveMerged(indexNode, rootState);
+            if (recursionDepth >= 2) {
+                // special case OAK-10399: the _previous_ base index
+                // is always considered active
+                IndexName n = IndexName.parse(PathUtils.getName(indexPath));
+                if (n.getCustomerVersion() == 0) {
+                    return true;
+                }
+            }
+            return isIndexActiveMerged(indexNode, rootState, recursionDepth);
         } catch (StackOverflowError e) {
             LOG.error("Fail to check index activeness for {} due to StackOverflowError", indexPath, e);
             return true;
         }
     }
 
-    private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState) {
+    private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState, int recursionDepth) {
         // An index is an active merged index if it has the property "merges",
         // and that property points to index definitions,
         // and each of those indexes is either active, disabled, or removed.
@@ -274,7 +290,7 @@ public class IndexName implements Comparable<IndexName> {
             if (IndexConstants.TYPE_DISABLED.equals(indexType)) {
                 continue;
             }
-            if (isIndexActive(merges, rootState)) {
+            if (isIndexActive(merges, rootState, recursionDepth + 1)) {
                 continue;
             }
             return false;
