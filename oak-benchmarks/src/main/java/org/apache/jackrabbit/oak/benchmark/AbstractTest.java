@@ -35,8 +35,8 @@ import javax.security.auth.Subject;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
-import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.fixture.RepositoryFixture;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
