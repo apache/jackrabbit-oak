@@ -43,7 +43,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
 import org.apache.commons.io.output.NullOutputStream;
-import org.apache.commons.math.stat.descriptive.SynchronizedDescriptiveStatistics;
+import org.apache.commons.math3.stat.descriptive.SynchronizedDescriptiveStatistics;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.benchmark.TestInputStream;
 import org.apache.jackrabbit.oak.benchmark.util.Date;
