@@ -23,6 +23,7 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
+import org.apache.jackrabbit.oak.plugins.index.counter.CounterIndexImporter;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock;
 import org.apache.jackrabbit.oak.plugins.index.importer.ClusterNodeStoreLock;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexImporter;
@@ -45,6 +46,7 @@ class IndexImporterSupport extends IndexImporterSupportBase {
     @Override
     protected void addImportProviders(IndexImporter importer) {
         importer.addImporterProvider(new LuceneIndexImporter(extendedIndexHelper.getGCBlobStore()));
+        importer.addImporterProvider(new CounterIndexImporter());
     }
 
     private AsyncIndexerLock createLock() {

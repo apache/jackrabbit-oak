@@ -305,7 +305,7 @@ public class PipelinedStrategy implements SortStrategy {
 
             Stopwatch start = Stopwatch.createStarted();
             MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
-            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue);
+            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, 0L, mongoBatchSize, mongoDocQueue);
             ecs.submit(downloadTask);
 
             File flatFileStore = null;

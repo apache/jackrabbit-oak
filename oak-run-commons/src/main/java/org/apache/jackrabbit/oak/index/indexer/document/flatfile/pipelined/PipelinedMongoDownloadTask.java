@@ -90,16 +90,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final ReadPreference readPreference;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
 
-    private long totalEnqueueWaitTimeMillis = 0;
+    private long totalEnqueueWaitTimeMillis;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
-    private long documentsRead = 0;
-    private long nextLastModified = 0;
-    private String lastIdDownloaded = null;
+    private long documentsRead;
+    private long nextLastModified;
+    private String lastIdDownloaded;
 
     public PipelinedMongoDownloadTask(MongoCollection<BasicDBObject> dbCollection,
-                                      int batchSize,
+                                      long nextLastModified, int batchSize,
                                       BlockingQueue<BasicDBObject[]> queue) {
         this.dbCollection = dbCollection;
+        this.nextLastModified = nextLastModified;
         this.batchSize = batchSize;
         this.mongoDocQueue = queue;
         // Default retries for 5 minutes.
@@ -128,7 +129,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             //TODO This may lead to reads being routed to secondary depending on MongoURI
             //So caller must ensure that its safe to read from secondary
 
-            this.nextLastModified = 0;
             this.lastIdDownloaded = null;
 
             downloadStartWatch.start();

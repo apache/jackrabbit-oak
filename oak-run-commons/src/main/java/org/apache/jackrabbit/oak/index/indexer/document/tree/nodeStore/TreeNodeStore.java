@@ -8,11 +8,20 @@ import java.util.Map;
 
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
+import org.apache.jackrabbit.oak.json.JsonSerializer;
+import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.counter.NodeCounterEditorProvider;
+import org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.Editor;
+import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
+import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -39,6 +48,25 @@ public class TreeNodeStore implements NodeStore {
     @Override
     public @NotNull NodeState getRoot() {
         return treeStore.getNodeStateEntry("/").getNodeState();
+    }
+
+    public String reindexNodeCounter() throws CommitFailedException {
+        NodeState before = EmptyNodeState.MISSING_NODE;
+        NodeBuilder builder = getRoot().getChildNode("oak:index").getChildNode("counter").builder();
+        Editor editor = new NodeCounterEditorProvider().getIndexEditor("counter",
+                builder, getRoot(), new IndexUpdateCallback() {
+                    @Override
+                    public void indexUpdate() throws CommitFailedException {
+                        // nothing to do
+                    }
+        });
+        CommitFailedException exception = EditorDiff.process(VisibleEditor.wrap(editor), before, getRoot());
+        if (exception != null) {
+            throw exception;
+        }
+        JsopBuilder json = new JsopBuilder();
+        new JsonSerializer(json, "{}", new Base64BlobSerializer()).serialize(builder.getNodeState());
+        return json.toString();
     }
 
     @Override

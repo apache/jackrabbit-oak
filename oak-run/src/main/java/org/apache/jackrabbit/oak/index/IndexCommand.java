@@ -248,7 +248,7 @@ public class IndexCommand implements Command {
                 if (idxOpts.useTreeStore()) {
                     if (idxOpts.buildFlatFileStoreSeparately()) {
                         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-                        File treeStoreDirectory = indexer.buildTreeStore(checkpointedState);
+                        indexer.buildTreeStore(checkpointedState);
                     } else {
                         indexer.reindexUsingTreeStore();
                     }

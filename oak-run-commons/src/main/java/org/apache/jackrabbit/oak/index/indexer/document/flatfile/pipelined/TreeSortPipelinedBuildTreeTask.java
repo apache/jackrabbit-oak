@@ -20,11 +20,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,23 +66,13 @@ public class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipeline
     private long totalEntriesProcessed = 0;
     private int mergeRootsEveryXBatches = 10;
 
-    public TreeSortPipelinedBuildTreeTask(File storeDir,
-                                          Compression algorithm,
+    public TreeSortPipelinedBuildTreeTask(File storeDir, Store store, StoreLock storeLock, Session session,
                                           BlockingQueue<List<NodeStateEntryJson>> nseQueue) {
         this.nonEmptyBuffersQueue = nseQueue;
         this.storeDir = storeDir;
-        String storeConfig = System.getProperty("oak.treeStoreConfig",
-                "type=file\n" +
-                "cacheSizeMB=4096\n" +
-                "maxFileSize=64000000\n" +
-                "dir=" + storeDir.getAbsolutePath());
-        this.store = StoreBuilder.build(storeConfig);
-        LOG.info("Initializing the tree store; removing all entries");
-        store.removeAll();
-        storeLock = StoreLock.lock(store);
-        store.setWriteCompression(algorithm);
-        session = Session.open(store);
-        session.setMaxRoots(Integer.MAX_VALUE);
+        this.store = store;
+        this.storeLock = storeLock;
+        this.session = session;
     }
 
     @Override

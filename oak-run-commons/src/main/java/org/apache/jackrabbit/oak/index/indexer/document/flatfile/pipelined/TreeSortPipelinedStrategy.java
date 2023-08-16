@@ -18,22 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.mongodb.BasicDBObject;
-import com.mongodb.client.MongoCollection;
-import org.apache.jackrabbit.guava.common.base.Preconditions;
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
 
 import java.io.File;
 import java.io.IOException;
@@ -50,7 +35,28 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_MONGO_DOCUMENT;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreLock;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.mongodb.BasicDBObject;
+import com.mongodb.client.MongoCollection;
 
 public class TreeSortPipelinedStrategy implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = "oak.indexer.pipelined.mongoDocQueueSize";
@@ -185,7 +191,27 @@ public class TreeSortPipelinedStrategy implements SortStrategy {
 
             Stopwatch start = Stopwatch.createStarted();
             MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
-            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue);
+
+            String storeConfig = System.getProperty("oak.treeStoreConfig",
+                    "type=file\n" +
+                    "cacheSizeMB=4096\n" +
+                    "maxFileSize=64000000\n" +
+                    "dir=" + storeDir.getAbsolutePath());
+            Store store = StoreBuilder.build(storeConfig);
+            LOG.info("Initializing the tree store");
+            StoreLock storeLock = StoreLock.lock(store);
+            store.setWriteCompression(algorithm);
+            Session session = Session.open(store);
+            String lastModifiedStr = session.get(TreeStore.LAST_MODIFIED);
+            long lastModified = 0;
+            if (lastModifiedStr != null) {
+                lastModified = Long.parseLong(lastModifiedStr);
+                LOG.info("Last modified {}", lastModified);
+            }
+            session.setMaxRoots(Integer.MAX_VALUE);
+
+            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(
+                    dbCollection, lastModified, mongoBatchSize, mongoDocQueue);
             ecs.submit(downloadTask);
 
             File treeStoreDirectory = null;
@@ -207,7 +233,7 @@ public class TreeSortPipelinedStrategy implements SortStrategy {
             }
 
             TreeSortPipelinedBuildTreeTask addToTreeTask = new TreeSortPipelinedBuildTreeTask(
-                    storeDir, algorithm, nseQueue
+                    storeDir, store, storeLock, session, nseQueue
             );
             ecs.submit(addToTreeTask);
 

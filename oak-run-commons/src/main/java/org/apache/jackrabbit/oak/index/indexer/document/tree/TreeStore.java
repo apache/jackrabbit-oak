@@ -42,6 +42,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 public class TreeStore implements Iterable<NodeStateEntry>, Closeable {
 
+    public static final String LAST_MODIFIED = ":lastModified";
+
     public static void main(String... args) throws IOException {
         String dir = args[0];
         MemoryBlobStore blobStore = new MemoryBlobStore();

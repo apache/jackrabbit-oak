@@ -24,6 +24,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -158,6 +159,7 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
                             if (entries.isEmpty()) {
                                 statistics.addEmptyNodeStateEntry(dbObject.getString(Document.ID));
                             }
+                            long lastModified = 0;
                             for (NodeStateEntry nse : entries) {
                                 String path = nse.getPath();
                                 if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
@@ -174,6 +176,7 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
                                     }
                                     // Write entry to buffer
                                     String json = entryWriter.asJson(nse.getNodeState());
+                                    lastModified = nse.getLastModified();
                                     sizeEstimateOfBatch += 2 * (json.length() + path.length());
                                     nseBatch.add(new NodeStateEntryJson(path, json));
                                     if (!path.equals("/")) {
@@ -192,6 +195,9 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
                                         statistics.addRejectedFilteredPath(path);
                                     }
                                 }
+                            }
+                            if (lastModified != 0) {
+                                nseBatch.add(new NodeStateEntryJson(TreeStore.LAST_MODIFIED, "" + lastModified));
                             }
                         }
                     }
