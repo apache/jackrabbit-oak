@@ -84,7 +84,8 @@ public class TreeNodeStoreBuilder {
     }
 
     public File createSortedStoreFile() throws IOException {
-        File treeStoreDirectory = Files.createTempDirectory(workDir.toPath(), TREE_STORE_DIRECTORY).toFile();
+        File treeStoreDirectory = new File(workDir, TREE_STORE_DIRECTORY);
+        treeStoreDirectory.mkdirs();
         TreeSortPipelinedStrategy strategy = new TreeSortPipelinedStrategy(
                 mongoDocumentStore, nodeStore, rootRevision,
                 blobStore, treeStoreDirectory, algorithm, pathPredicate
