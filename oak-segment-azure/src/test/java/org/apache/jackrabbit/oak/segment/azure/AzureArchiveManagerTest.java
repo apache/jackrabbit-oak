@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
-import org.apache.jackrabbit.oak.segment.file.tar.TarReader;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -63,7 +62,6 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -414,10 +412,10 @@ public class AzureArchiveManagerTest {
             segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             rwFileStore.flush();
 
-            // file with binary references has been created
-            assertTrue(container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
+            // file with binary references is not created yet
+            assertFalse("brf file should not be present", container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
 
-            // create read-only FS
+            // create read-only FS, while the rw FS is still open
             AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
             try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
 
@@ -428,10 +426,8 @@ public class AzureArchiveManagerTest {
                 assertThat(fooProperty, not(nullValue()));
                 assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
 
-                // no exception should be thrown
-                roFileStore.collectBlobReferences(s -> {
-                });
-
+                assertDoesNotThrow(() -> roFileStore.collectBlobReferences(s -> {
+                }));
             }
         }
     }
@@ -446,13 +442,10 @@ public class AzureArchiveManagerTest {
             segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             rwFileStore.flush();
 
-            // file with binary references has been created
-            assertTrue(container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
+            // file with binary references is not created yet
+            assertFalse("brf file should not be present", container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
 
-            // delete binary references file
-            container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").delete();
-
-            // create read-only FS
+            // create read-only FS, while the rw FS is still open
             AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
             try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
 
@@ -463,13 +456,11 @@ public class AzureArchiveManagerTest {
                 assertThat(fooProperty, not(nullValue()));
                 assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
 
-                // no exception should be thrown
                 HashSet<String> references = new HashSet<>();
-                roFileStore.collectBlobReferences(reference -> {
-                    references.add(reference);
-                });
+                assertDoesNotThrow(() ->
+                        roFileStore.collectBlobReferences(references::add));
 
-                assertTrue("No references should have been collected since reference file has been deleted", references.isEmpty());
+                assertTrue("No references should have been collected since reference file has not been created", references.isEmpty());
             }
         }
     }
@@ -498,4 +489,15 @@ public class AzureArchiveManagerTest {
         };
     }
 
+    private static void assertDoesNotThrow(Executable executable) {
+        try {
+            executable.execute();
+        } catch (Exception e) {
+            fail("No Exception expected, but got: " + e.getMessage());
+        }
+    }
+
+    interface Executable {
+        void execute() throws Exception;
+    }
 }
