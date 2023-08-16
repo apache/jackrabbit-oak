@@ -70,6 +70,7 @@ import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
  */
 public class RevisionsCommand implements Command {
 
+    public boolean infoFullGCEnabled = false;
     private static final Logger LOG = LoggerFactory.getLogger(RevisionsCommand.class);
 
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
@@ -93,6 +94,7 @@ public class RevisionsCommand implements Command {
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
         static final String CMD_SWEEP = "sweep";
+        static final String CMD_INFOFULLGC = "infofullgc";
 
         final OptionSpec<?> once;
         final OptionSpec<Integer> limit;
@@ -175,6 +177,8 @@ public class RevisionsCommand implements Command {
             String subCmd = options.getSubCmd();
             if (RevisionsOptions.CMD_INFO.equals(subCmd)) {
                 info(options, closer);
+            } else if (RevisionsOptions.CMD_INFOFULLGC.equals(subCmd)) {
+                infoFullGC(options, closer);
             } else if (RevisionsOptions.CMD_COLLECT.equals(subCmd)) {
                 collect(options, closer);
             } else if (RevisionsOptions.CMD_RESET.equals(subCmd)) {
@@ -203,7 +207,7 @@ public class RevisionsCommand implements Command {
     }
 
     private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
-                                                 Closer closer)
+                                                 Closer closer, boolean detailedGCEnabled)
             throws IOException {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
@@ -212,6 +216,7 @@ public class RevisionsCommand implements Command {
         }
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
+        builder.setDetailedGCEnabled(detailedGCEnabled);
         // check for matching format version
         FormatVersion version = versionOf(gcSupport.getDocumentStore());
         if (!DocumentNodeStore.VERSION.equals(version)) {
@@ -243,7 +248,7 @@ public class RevisionsCommand implements Command {
 
     private void info(RevisionsOptions options, Closer closer)
             throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer);
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
         System.out.println("retrieving gc info");
         VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
 
@@ -263,9 +268,60 @@ public class RevisionsCommand implements Command {
                 info.estimatedIterations);
     }
 
+    private void infoFullGC(RevisionsOptions options, Closer closer)
+            throws IOException {
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
+        gc.infoFullGCEnabled = true;
+        System.out.println("retrieving gc info");
+        VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
+
+        System.out.printf(Locale.US, "%30s  %s%n", "Last Successful Run:",
+                info.lastSuccess > 0? fmtTimestamp(info.lastSuccess) : "<unknown>");
+        System.out.printf(Locale.US, "%30s  %s%n", "Oldest Revision:",
+                fmtTimestamp(info.oldestRevisionEstimate));
+        System.out.printf(Locale.US, "%30s  %d%n", "Delete Candidates:",
+                info.revisionsCandidateCount);
+        System.out.printf(Locale.US, "%30s  %d%n", "Collect Limit:",
+                info.collectLimit);
+        System.out.printf(Locale.US, "%30s  %s%n", "Collect Interval:",
+                fmtDuration(info.recommendedCleanupInterval));
+        System.out.printf(Locale.US, "%30s  %s%n", "Collect Before:",
+                fmtTimestamp(info.recommendedCleanupTimestamp));
+        System.out.printf(Locale.US, "%30s  %d%n", "Iterations Estimate:",
+                info.estimatedIterations);
+
+   //     VersionGCStats s = gc.gc(Timestamp.getTimestamp(), Timestamp.getTimeUnit());
+        VersionGCStats s = gc.gc(options.getOlderThan(), SECONDS);
+        System.out.printf("Retrieving Detailed GC info:%n");
+        System.out.printf("Stats %s%n", s.toString());
+//        System.out.printf(Locale.US,  "%30s  %d%n", "intermediateSplitDocGCCount:",
+//                s.splitDocGCCount);
+//        System.out.printf(Locale.US, "%30s  %s%n", "ignoredGCDueToCheckPoint:",
+//                s.ignoredGCDueToCheckPoint);
+//        System.out.printf(Locale.US,  "%30s  %s%n", "Detailed GC ignored due to checkpoint:",
+//                s.ignoredDetailedGCDueToCheckPoint);
+//        System.out.printf(Locale.US,  "%30s  %d%n", "splitDocGCCount:",
+//                s.updateResurrectedGCCount);
+//
+//        System.out.printf(Locale.US,  "%30s  %d%n", "intermediateSplitDocGCCount:",
+//                s.intermediateSplitDocGCCount);
+//        System.out.printf(Locale.US,  "%30s  %d%n", "oldestModifiedDocId",
+//                s.oldestModifiedDocId);
+//        System.out.printf(Locale.US,  "%30s  %d%n", "oldestModifiedDocTimeStamp",
+//                s.oldestModifiedDocTimeStamp);
+//        System.out.printf(Locale.US,  "%30s  %d%n", "updatedDetailedGCDocsCount",
+//                s.updatedDetailedGCDocsCount);
+//        System.out.printf(Locale.US,  "%30s  %d%n", "deletedPropsGCCount",
+//                s.deletedPropsGCCount);
+//        System.out.printf(Locale.US,  "%30s  %d%n", "deletedLeafDocGCCount",
+//                s.deletedLeafDocGCCount);
+//        System.out.printf(Locale.US,  "%30s  %s%n", "timings",
+//                s.timings);
+    }
+
     private void collect(final RevisionsOptions options, Closer closer)
             throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer);
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
@@ -350,7 +406,7 @@ public class RevisionsCommand implements Command {
 
     private void reset(RevisionsOptions options, Closer closer)
             throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer);
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
         System.out.println("resetting recommendations and statistics");
         gc.reset();
     }
@@ -414,4 +470,26 @@ public class RevisionsCommand implements Command {
         // revisions command does not read blobs anyway.
         builder.setBlobStore(new MemoryBlobStore());
     }
+
+//    protected static class Timestamp {
+//
+//        private static long timestamp;
+//        private static TimeUnit timeUnit;
+//
+//        public static void setTimestamp(long timestamp) {
+//            timestamp = timestamp;
+//        }
+//
+//        static long getTimestamp() {
+//            return timestamp;
+//        }
+//
+//        public static void setTimeUnit(TimeUnit tu) {
+//            timeUnit = tu;
+//        }
+//
+//        static TimeUnit getTimeUnit() {
+//            return timeUnit;
+//        }
+//    }
 }
