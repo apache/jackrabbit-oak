@@ -119,11 +119,21 @@ public class AbstractTwoNodeTest {
 
     @After
     public void tearDown() throws Exception {
-        ds1.dispose();
-        ds2.dispose();
-        store1.dispose();
-        store2.dispose();
-        fixture.dispose();
+        if (ds1 != null) {
+            ds1.dispose();
+        }
+        if (ds2 != null) {
+            ds2.dispose();
+        }
+        if (store1 != null) {
+            store1.dispose();
+        }
+        if (store2 != null) {
+            store2.dispose();
+        }
+        if (fixture != null) {
+            fixture.dispose();
+        }
         ClusterNodeInfo.resetClockToDefault();
         Revision.resetClockToDefault();
     }
