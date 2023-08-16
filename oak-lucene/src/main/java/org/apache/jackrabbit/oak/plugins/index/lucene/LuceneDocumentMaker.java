@@ -287,11 +287,8 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                         new BytesRef(property.getValue(Type.BOOLEAN).toString()));
             } else if (tag == Type.STRING.tag()) {
                 String stringValue = property.getValue(Type.STRING);
-                if (stringValue.length() > STRING_PROPERTY_MAX_LENGTH){
-                    log.warn("Truncating property {} having length {} at path:[{}] as it is > {}", name, stringValue.length(), this.path, STRING_PROPERTY_MAX_LENGTH);
-                    stringValue = stringValue.substring(0, STRING_PROPERTY_MAX_LENGTH);
-                }
-                f = new SortedDocValuesField(name, new BytesRef(stringValue));
+                f = new SortedDocValuesField(name, checkTruncateLength(name, stringValue, this.path,
+                        STRING_PROPERTY_MAX_LENGTH));
             }
 
             if (f != null && includePropertyValue(property, 0, pd)) {
@@ -314,6 +311,29 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                     Type.fromTag(tag, false), path, e);
         }
         return fieldAdded;
+    }
+    
+    private static BytesRef checkTruncateLength(String prop, String value, String path, int maxLength) {
+        String truncated = value;
+        if (value.length() > maxLength) {
+            log.warn("Truncating property {} having length {} at path:[{}] as it is > {}", prop, value.length(), path, maxLength);
+            truncated = value.substring(0, maxLength);
+        }
+        BytesRef ref = new BytesRef(truncated);
+
+        // Adjust if over limit
+        int estimatedSafeLength = maxLength;
+        if (ref.length > maxLength) {
+            int overLimit = ref.length - maxLength;
+            log.info("Further truncating property {} at path:[{}] as length after encoding {} is > {} ", prop,
+                path, ref.length, maxLength);
+            estimatedSafeLength -= overLimit;
+            truncated = value.substring(0, estimatedSafeLength);
+
+            ref = new BytesRef(truncated);
+        }
+
+        return ref;
     }
 
     private FacetsConfig getFacetsConfig(){

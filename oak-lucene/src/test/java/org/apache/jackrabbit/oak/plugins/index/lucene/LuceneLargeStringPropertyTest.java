@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
+import org.apache.lucene.util.BytesRef;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -212,19 +213,53 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         test.addChild("a").setProperty("propa", aVal);
         test.addChild("b").setProperty("propa", bVal);
         root.commit();
-
-        boolean truncationLogPresent = false;
-        String failureLog = MessageFormat.format("Truncating property :dv{0} having length {1,number,#} at path:[{2}] as it is > {3,number,#}",
-                "propa", aVal.length(), "/test/a", LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
-        for (String log : customizer.getLogs()) {
-            if (log.equals(failureLog)) {
-                truncationLogPresent = true;
-                break;
-            }
-        }
-        assertTrue(truncationLogPresent);
+        assertTruncation("propa", aVal, "/test/a", customizer);
         // order of result should be first b and then a i.e. sorted on propa
         assertQuery("select [jcr:path] from [nt:base] where contains(@propa, 'abcd') order by propa", asList("/test/b", "/test/a"));
     }
 
+    @Test
+    public void truncateLargeUnicodeString() throws Exception {
+        Tree idx = createIndex("test1", of("propa"));
+        Tree tr = idx.addChild(PROP_NODE).addChild("propa");
+        tr.setProperty("ordered", true, Type.BOOLEAN); // in case of ordered throws error that it can't index node
+        tr.setProperty("analyzed", true, Type.BOOLEAN);
+        idx.addChild(PROP_NODE).addChild("propa");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        int length = LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH + 2;
+        String generatedString = RandomStringUtils.random(length, true, true);
+        String aVal ="abcd Mình nói tiếng Việt" + generatedString.substring(0, length);
+        String bVal = "abcd æ œ" + generatedString.substring(0, length);
+
+        test.addChild("a").setProperty("propa", aVal);
+        test.addChild("b").setProperty("propa", bVal);
+        root.commit();
+
+        assertTruncation("propa", aVal, "/test/a", customizer);
+        assertExtendedTruncation("propa", aVal, "/test/b", customizer);
+        assertTruncation("propb", bVal, "/test/b", customizer);
+        assertExtendedTruncation("propb", bVal, "/test/b", customizer);
+        // order of result should be first b and then a i.e. sorted on propa
+        assertQuery("select [jcr:path] from [nt:base] where contains(@propa, 'abcd') order by propa", asList("/test/b", "/test/a"));
+    }
+    
+    private static boolean assertTruncation(String prop, String val, String path, LogCustomizer customizer) {
+        String errorMsg = "Truncating property :dv{0} having length {1,number,#} at path:[{2}] as it is > {3,number,#}";
+        String failureLog = MessageFormat.format(errorMsg,
+            prop, val.length(), path, LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
+        
+        return customizer.getLogs().contains(failureLog);
+    }
+
+    private static boolean assertExtendedTruncation(String prop, String val, String path, LogCustomizer customizer) {
+        String errorMsg = "Further truncating property :dv{0} at path:[{1}] as length after encoding {2,number,#} > " 
+            + "{3,number,#}";
+        BytesRef bytesRef = new BytesRef(val.substring(0, LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH));
+        String failureLog = MessageFormat.format(errorMsg,
+            prop, path, bytesRef.length, LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
+
+        return customizer.getLogs().contains(failureLog);
+    }
 }
