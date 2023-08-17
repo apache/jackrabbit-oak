@@ -26,6 +26,7 @@ import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -40,6 +41,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
@@ -57,6 +59,7 @@ public class RevisionsCommandTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     private DocumentNodeStore ns;
+    private VersionGarbageCollector vgc;
 
     @BeforeClass
     public static void assumeMongoDB() {
@@ -75,6 +78,16 @@ public class RevisionsCommandTest {
 
         String output = captureSystemOut(new RevisionsCmd("info"));
         assertTrue(output.contains("Last Successful Run"));
+    }
+
+    @Test
+    public void infoFullGC() throws Exception {
+        vgc = ns.getVersionGarbageCollector();
+        // enable the detailed gc flag
+        writeField(vgc, "detailedGCEnabled", true, true);
+        String output = captureSystemOut(new RevisionsCmd("infofullgc"));
+        assertTrue(output.contains("Last Successful Run"));
+        assertTrue(output.contains("Retrieving Detailed GC info:"));
     }
 
     @Test
