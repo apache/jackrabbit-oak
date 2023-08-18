@@ -29,7 +29,8 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -41,19 +42,20 @@ import org.jetbrains.annotations.Nullable;
 public class TreeNodeStore implements NodeStore {
     
     private final TreeStore treeStore;
+    private final BlobStore blobStore;
     
-    private TreeNodeStore(TreeStore treeStore) {
+    private TreeNodeStore(TreeStore treeStore, BlobStore blobStore) {
         this.treeStore = treeStore;
+        this.blobStore = blobStore;
     }
     
-    public static NodeStore create(String storeArg, Closer closer) {
+    public static NodeStore create(String storeArg, BlobStore blobStore, Closer closer) {
         String dir = storeArg.substring("tree:".length());
         File directory = new File(dir);
-        MemoryBlobStore blobStore = new MemoryBlobStore();
         NodeStateEntryReader entryReader = new NodeStateEntryReader(blobStore);
         TreeStore treeStore = new TreeStore(directory, entryReader);
         closer.register(treeStore);
-        return new TreeNodeStore(treeStore);
+        return new TreeNodeStore(treeStore, blobStore);
     }
 
     @Override
@@ -73,7 +75,7 @@ public class TreeNodeStore implements NodeStore {
 
     @Override
     public @NotNull Map<String, String> checkpointInfo(@NotNull String checkpoint) {
-        throw new UnsupportedOperationException();
+        return Collections.emptyMap();
     }
 
     @Override
@@ -88,7 +90,15 @@ public class TreeNodeStore implements NodeStore {
 
     @Override
     public @Nullable Blob getBlob(@NotNull String reference) {
-        throw new UnsupportedOperationException();
+        if (blobStore != null) {
+            String blobId = blobStore.getBlobId(reference);
+            if (blobId != null) {
+                return new BlobStoreBlob(blobStore, blobId);
+            }
+            return null;
+        }
+        throw new IllegalStateException("Attempt to read external blob with blobId [" + reference + "] " +
+                "without specifying BlobStore");
     }
 
     @Override
@@ -115,7 +125,7 @@ public class TreeNodeStore implements NodeStore {
 
     @Override
     public @Nullable NodeState retrieve(@NotNull String checkpoint) {
-        throw new UnsupportedOperationException();
+        return getRoot();
     }
 
 }

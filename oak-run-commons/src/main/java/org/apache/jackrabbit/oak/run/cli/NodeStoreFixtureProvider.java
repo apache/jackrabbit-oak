@@ -76,7 +76,7 @@ public class NodeStoreFixtureProvider {
         } else if (commonOpts.isOldSegment()) {
             store = SegmentFixtureProvider.create(options, blobStore, wb, closer, readOnly);
         } else if (commonOpts.isTreeNodeStore()) {
-            store = TreeNodeStore.create(commonOpts.getStoreArg(), closer);
+            store = TreeNodeStore.create(commonOpts.getStoreArg(), blobStore, closer);
         } else {
             try {
                 store = SegmentTarFixtureProvider.configureSegment(options, blobStore, wb, closer, readOnly);
