@@ -26,6 +26,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 
+import static java.util.Objects.nonNull;
+
 /**
  * Base class for test cases that need a {@link MongoConnection}
  * to a clean test database. Tests in subclasses are automatically
@@ -76,9 +78,14 @@ public abstract class AbstractMongoConnectionTest extends DocumentMKTestBase {
 
     @After
     public void tearDownConnection() throws Exception {
-        String dbName = mongoConnection.getDBName();
+        String dbName = null;
+        if (nonNull(mongoConnection)) {
+            dbName = mongoConnection.getDBName();
+        }
         mk.dispose();
-        MongoUtils.dropCollections(dbName);
+        if (nonNull(dbName)) {
+            MongoUtils.dropCollections(dbName);
+        }
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
     }
