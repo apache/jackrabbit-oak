@@ -850,6 +850,16 @@ public class VersionGarbageCollector {
         private final Stopwatch timer;
         private final List<UpdateOp> updateOpList;
 
+        /**
+         * Map of documentId => total no. of deleted properties.
+         * <p>
+         *
+         * The document can be updated or property might get recreated between collecting and deletion phases.
+         * This would lead to document not getting deleted (since now modified date & mod count would have changed)
+         * SO the Bulk API wouldn't update this doc.
+         * <p>
+         * In order to calculate the correct no. of updated documents & deleted properties, we save them in a map
+         */
         private final Map<String, Integer> deletedPropsCountMap;
         private int garbageDocsCount;
         private int totalGarbageDocsCount;
