@@ -18,11 +18,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.IOException;
-import java.util.List;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
-import com.mongodb.ReadPreference;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.stats.Clock;
@@ -31,6 +32,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import com.mongodb.ReadPreference;
 
 /**
  * A base class for two node cluster tests with a virtual clock.
@@ -67,7 +70,7 @@ public class AbstractTwoNodeTest {
 
     @Parameterized.Parameters(name = "{0}")
     public static java.util.Collection<Object[]> fixtures() throws IOException {
-        List<Object[]> fixtures = Lists.newArrayList();
+        List<Object[]> fixtures = new ArrayList<>();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 
         DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
@@ -98,6 +101,11 @@ public class AbstractTwoNodeTest {
             store2 = fixture.createDocumentStore(2);
         }
 
+        String rootdoc = "0:/";
+
+        assertNull("precondition: freshly instantiated document store " + store1 + " should not have a root document '" + rootdoc
+                + "' yet", store1.find(Collection.NODES, rootdoc));
+
         ds1 = new DocumentMK.Builder()
                 .setAsyncDelay(0)
                 .clock(clock)
@@ -115,6 +123,9 @@ public class AbstractTwoNodeTest {
                 .setClusterId(2)
                 .getNodeStore();
         c2Id = ds2.getClusterId();
+
+        assertNotNull("precondition: freshly initialized document store " + store1 + " should have a root node '" + rootdoc + "'",
+                store1.find(Collection.NODES, rootdoc));
     }
 
     @After
