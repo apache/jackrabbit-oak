@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -183,7 +184,10 @@ public class ElasticRequestHandler {
                                     fnb.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
                                 }
 
-                                if (elasticIndexDefinition.areSimilarityTagsEnabled()) {
+                                // Add should clause to improve relevance using similarity tags only when similarity is
+                                // enabled and there is at least one similarity tag property
+                                if (elasticIndexDefinition.areSimilarityTagsEnabled() &&
+                                        !elasticIndexDefinition.getSimilarityTagsProperties().isEmpty()) {
                                     // add should clause to improve relevance using similarity tags
                                     fnb.should(s -> s
                                             .moreLikeThis(m -> m
@@ -393,6 +397,8 @@ public class ElasticRequestHandler {
                     // this is needed to workaround https://github.com/elastic/elasticsearch/pull/94518 that causes empty
                     // results when the _ignored metadata field is part of the input document
                     .perFieldAnalyzer("_ignored", "keyword")));
+            // when no fields are specified, we set the ones from the index definition
+            mlt.fields(Arrays.asList(elasticIndexDefinition.getSimilarityTagsFields()));
         } else {
             // This is for native queries if someone sends additional fields via
             // mlt.fl=field1,field2

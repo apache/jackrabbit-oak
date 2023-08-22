@@ -19,15 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,11 +50,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
 import static java.lang.management.MemoryType.HEAP;
 import static org.apache.commons.io.FileUtils.ONE_GB;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
@@ -107,8 +107,9 @@ class TraverseWithSortStrategy implements SortStrategy {
 
     @Override
     public File createSortedStoreFile() throws IOException {
-        try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(new MongoDocumentTraverser.TraversingRange(new LastModifiedRange(0,
-                Long.MAX_VALUE),null))) {
+        try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(
+                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null))
+        ) {
             logFlags();
             configureMemoryListener();
             sortWorkDir = createdSortWorkDir(storeDir);
@@ -126,7 +127,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
-        try(BufferedWriter writer = createWriter(sortedFile, algorithm)) {
+        try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
@@ -157,7 +158,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         entryBatch.clear();
         entryBatch.trimToSize();
 
-        log.info("Dumped {} nodestates in json format in {}",entryCount, w);
+        log.info("Dumped {} nodestates in json format in {}", entryCount, w);
         log.info("Created {} sorted files of size {} to merge",
                 sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
     }
@@ -203,12 +204,12 @@ class TraverseWithSortStrategy implements SortStrategy {
             }
         }
         log.info("Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}",
-                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w);
+                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), entryBatch.size(), w);
         sortedFiles.add(newtmpfile);
     }
 
     private boolean isMemoryLow() {
-        if (useMaxMemory){
+        if (useMaxMemory) {
             return memoryUsed > maxMemoryBytes;
         }
         return !sufficientMemory.get();

@@ -28,6 +28,7 @@ import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.AutoMembershipTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
@@ -456,6 +457,8 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfGroups().value(options), benchmarkOptions.getExpiration().value(options),
                                 benchmarkOptions.getRoundtripDelay().value(options)),
                         new ListIdentitiesTest(benchmarkOptions.getNumberOfUsers().value(options)),
+                        new AutoMembershipTest(benchmarkOptions.getNumberOfUsers().value(options), benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getDynamicMembership().value(options), benchmarkOptions.getAutoMembership().values(options)),
                         new BundlingNodeTest(),
                         new PersistentCacheTest(statsProvider),
                         new StringWriteTest(),

@@ -1,0 +1,6 @@
+/a|{"jcr:primaryType":"nam:merge-a"}
+/a/1|{"jcr:primaryType":"nam:merge-a-1"}
+/b|{"jcr:primaryType":"nam:merge-b"}
+/b/1|{"jcr:primaryType":"nam:merge-b-1"}
+/c|{"jcr:primaryType":"nam:merge-c"}
+/c/1|{"jcr:primaryType":"nam:merge-c-1"}

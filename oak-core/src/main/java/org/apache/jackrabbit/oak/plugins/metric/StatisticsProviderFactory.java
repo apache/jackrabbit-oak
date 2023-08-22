@@ -47,6 +47,8 @@ import org.osgi.service.metatype.annotations.Option;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.codahale.metrics.MetricRegistry;
+
 /**
  * Factory to create StatisticsProvider depending on setup. It detects if the
  * <a href="http://metrics.dropwizard.io">Metrics</a> library is present or not. If present
@@ -146,9 +148,9 @@ public class StatisticsProviderFactory {
     private StatisticsProvider createMetricsProvider(ScheduledExecutorService executor) {
         org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider metricProvider =
          new org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider(server, executor);
-        Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
+        Dictionary<String, Object> dictionary = new Hashtable<>();
         dictionary.put("name", "oak");
-        regs.add(bundleContext.registerService("com.codahale.metrics.MetricRegistry",
+        regs.add(bundleContext.registerService(MetricRegistry.class,
                 metricProvider.getRegistry(),  dictionary));
         return metricProvider;
     }

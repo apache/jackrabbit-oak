@@ -23,6 +23,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.ComponentContext;
@@ -33,6 +34,11 @@ import junitx.util.PrivateAccessor;
  * Tests for the DocumentDiscoveryLiteService
  */
 public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteServiceTest {
+
+    @Before
+    public void setUp() {
+        ClusterNodeInfo.resetClockToDefault();
+    }
 
     @Test
     public void testActivateDeactivate() throws Exception {
@@ -115,7 +121,7 @@ public class DocumentDiscoveryLiteServiceTest extends BaseDocumentDiscoveryLiteS
         final ViewExpectation expectation1AfterShutdown = new ViewExpectation(s1);
         expectation1AfterShutdown.setActiveIds(s1.ns.getClusterId());
         expectation1AfterShutdown.setInactiveIds(s2.ns.getClusterId());
-        waitFor(expectation1AfterShutdown, 4000, "first should only see itself after shutdown");
+        waitFor(expectation1AfterShutdown, 10000, "first should only see itself after shutdown");
     }
 
     @Test

@@ -24,6 +24,8 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.text.CharacterIterator;
+import java.text.StringCharacterIterator;
 import java.util.Locale;
 
 /**
@@ -393,5 +395,24 @@ public final class IOUtils {
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         char pre = "kMGTPE".charAt(exp - 1);
         return String.format(Locale.ENGLISH, "%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
+
+    /**
+     * Returns a human-readable version of this byte count. The result uses the binary system, that is, 1K = 1024.
+     * Based on https://stackoverflow.com/a/3758880/2071159.
+     */
+    public static String humanReadableByteCountBin(long bytes) {
+        long absB = bytes == Long.MIN_VALUE ? Long.MAX_VALUE : Math.abs(bytes);
+        if (absB < 1024) {
+            return bytes + " B";
+        }
+        long value = absB;
+        CharacterIterator ci = new StringCharacterIterator("KMGTPE");
+        for (int i = 40; i >= 0 && absB > 0xfffccccccccccccL >> i; i -= 10) {
+            value >>= 10;
+            ci.next();
+        }
+        value *= Long.signum(bytes);
+        return String.format("%.2f %ciB", value / 1024.0, ci.current());
     }
 }

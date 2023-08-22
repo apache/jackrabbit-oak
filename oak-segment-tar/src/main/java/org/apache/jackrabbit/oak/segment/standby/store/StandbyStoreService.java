@@ -238,10 +238,10 @@ public class StandbyStoreService {
         StandbyClientSync standbyClientSync = builder.build();
         closer.register(standbyClientSync);
 
-        Dictionary<Object, Object> dictionary = new Hashtable<Object, Object>();
+        Dictionary<String, Object> dictionary = new Hashtable<>();
         dictionary.put("scheduler.period", config.interval());
         dictionary.put("scheduler.concurrent", false);
-        ServiceRegistration registration = context.getBundleContext().registerService(Runnable.class.getName(), standbyClientSync, dictionary);
+        ServiceRegistration registration = context.getBundleContext().registerService(Runnable.class, standbyClientSync, dictionary);
         closer.register(registration::unregister);
 
         log.info("Started standby on port {} with {}s sync frequency", config.port(), config.interval());
