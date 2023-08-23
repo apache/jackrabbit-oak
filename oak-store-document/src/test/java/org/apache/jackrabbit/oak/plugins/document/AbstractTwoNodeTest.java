@@ -119,23 +119,26 @@ public class AbstractTwoNodeTest {
 
     @After
     public void tearDown() throws Exception {
-        if (ds1 != null) {
-            ds1.dispose();
+        try {
+            if (ds2 != null) {
+                ds2.dispose();
+            }
+            if (ds1 != null) {
+                ds1.dispose();
+            }
+            if (store2 != null) {
+                store2.dispose();
+            }
+            if (store1 != null) {
+                store1.dispose();
+            }
+            if (fixture != null) {
+                fixture.dispose();
+            }
+        } finally {
+            ClusterNodeInfo.resetClockToDefault();
+            Revision.resetClockToDefault();
         }
-        if (ds2 != null) {
-            ds2.dispose();
-        }
-        if (store1 != null) {
-            store1.dispose();
-        }
-        if (store2 != null) {
-            store2.dispose();
-        }
-        if (fixture != null) {
-            fixture.dispose();
-        }
-        ClusterNodeInfo.resetClockToDefault();
-        Revision.resetClockToDefault();
     }
 
     private static DocumentStore wrap(DocumentStore ds) {
