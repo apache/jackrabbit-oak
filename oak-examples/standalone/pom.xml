@@ -229,15 +229,9 @@
     -->
     <dependency>
       <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
+      <artifactId>lucene-analysis-common</artifactId>
       <version>${lucene.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analyzers-common</artifactId>
-      <version>${lucene.version}</version>
-      <scope>test</scope>
+      <scope>import</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
@@ -256,6 +250,16 @@
       <artifactId>lucene-suggest</artifactId>
       <version>${lucene.version}</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-codecs</artifactId>
+      <version>${lucene.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-backward-codecs</artifactId>
+      <version>${lucene.version}</version>
     </dependency>
   </dependencies>
 
