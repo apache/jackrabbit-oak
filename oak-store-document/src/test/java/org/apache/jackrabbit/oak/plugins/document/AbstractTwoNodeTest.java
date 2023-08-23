@@ -25,6 +25,7 @@ import com.google.common.collect.Lists;
 import com.mongodb.ReadPreference;
 
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
+import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.Before;
@@ -70,7 +71,11 @@ public class AbstractTwoNodeTest {
         List<Object[]> fixtures = Lists.newArrayList();
         fixtures.add(new Object[] {new DocumentStoreFixture.MemoryFixture()});
 
-        DocumentStoreFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test", "sa", "");
+        DocumentStoreFixture.RDBFixture rdb = new DocumentStoreFixture.RDBFixture("RDB-H2(file)", "jdbc:h2:file:./target/ds-test",
+                "sa", "");
+        // ensure we have an empty database to start with
+        rdb.setRDBOptions(
+                new RDBOptions().tablePrefix("A2NT" + Long.toHexString(System.currentTimeMillis())).dropTablesOnClose(true));
         if (rdb.isAvailable()) {
             fixtures.add(new Object[] { rdb });
         }
