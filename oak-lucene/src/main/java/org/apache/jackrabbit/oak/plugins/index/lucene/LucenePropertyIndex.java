@@ -417,7 +417,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                                 QueryScorer scorer = new QueryScorer(query);
                                 scorer.setExpandMultiTermQuery(true);
                                 highlighter.setFragmentScorer(scorer);
-                                mergedFieldInfos = MultiFields.getMergedFieldInfos(searcher.getIndexReader());
+                                mergedFieldInfos = FieldInfos.getMergedFieldInfos(searcher.getIndexReader());
                             }
 
                             boolean earlyStop = false;
@@ -1392,7 +1392,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         // reference query
         BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
-        Collection<String> fields = MultiFields.getIndexedFields(reader);
+        Collection<String> fields = FieldInfos.getIndexedFields(reader);
         for (String f : fields) {
             bqBuilder.add(new TermQuery(new Term(f, uuid)), SHOULD);
         }
