@@ -65,24 +65,23 @@ public class LuceneIndexDefinition extends IndexDefinition {
 
     private final int maxFieldLength;
 
-    public LuceneIndexDefinition(NodeState root, NodeState defn, String indexPath) {
-        this(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
+    public LuceneIndexDefinition(NodeState root, NodeState definition, String indexPath) {
+        this(root, getIndexDefinitionState(definition), determineIndexFormatVersion(definition), determineUniqueId(definition), indexPath);
     }
 
-    LuceneIndexDefinition(NodeState root, NodeState defn, IndexFormatVersion version, String uid, String indexPath) {
-        super(root, defn, version, uid, indexPath);
-
-        this.saveDirListing = getOptionalValue(defn, LuceneIndexConstants.SAVE_DIR_LISTING, true);
-        this.maxFieldLength = getOptionalValue(defn, LuceneIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
-        this.analyzers = collectAnalyzers(defn);
+    LuceneIndexDefinition(NodeState root, NodeState definition, IndexFormatVersion version, String uid, String indexPath) {
+        super(root, definition, version, uid, indexPath);
+        this.saveDirListing = getOptionalValue(definition, LuceneIndexConstants.SAVE_DIR_LISTING, true);
+        this.maxFieldLength = getOptionalValue(definition, LuceneIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
+        this.analyzers = collectAnalyzers(definition);
         this.analyzer = createAnalyzer();
         this.codec = createCodec();
     }
 
-    public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
+    public static Builder newBuilder(NodeState root, NodeState definition, String indexPath){
         return (Builder)new Builder()
                 .root(root)
-                .defn(defn)
+                .defn(definition)
                 .indexPath(indexPath);
     }
 
@@ -99,8 +98,8 @@ public class LuceneIndexDefinition extends IndexDefinition {
         }
 
         @Override
-        protected IndexDefinition createInstance(NodeState indexDefnStateToUse) {
-            return new LuceneIndexDefinition(root, indexDefnStateToUse, version, uid, indexPath);
+        protected IndexDefinition createInstance(NodeState indexDefinitionStateToUse) {
+            return new LuceneIndexDefinition(root, indexDefinitionStateToUse, version, uid, indexPath);
         }
     }
 
@@ -160,10 +159,10 @@ public class LuceneIndexDefinition extends IndexDefinition {
         return new LimitTokenCountAnalyzer(result, maxFieldLength);
     }
 
-    private static Map<String, Analyzer> collectAnalyzers(NodeState defn) {
+    private static Map<String, Analyzer> collectAnalyzers(NodeState definition) {
         Map<String, Analyzer> analyzerMap = newHashMap();
         NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(VERSION);
-        NodeState analyzersTree = defn.getChildNode(FulltextIndexConstants.ANALYZERS);
+        NodeState analyzersTree = definition.getChildNode(FulltextIndexConstants.ANALYZERS);
         for (ChildNodeEntry cne : analyzersTree.getChildNodeEntries()) {
             Analyzer a = factory.createInstance(cne.getNodeState());
             analyzerMap.put(cne.getName(), a);
@@ -189,10 +188,10 @@ public class LuceneIndexDefinition extends IndexDefinition {
         Codec codec = null;
         if (codecName != null) {
             // prevent LUCENE-6482
-            // (also done in LuceneIndexProviderService, just to be save)
+            // (also done in LuceneIndexProviderService, just to be safe)
             OakCodec ensureLucene46CodecLoaded = new OakCodec();
             // to ensure the JVM doesn't optimize away object creation
-            // (probably not really needed; just to be save)
+            // (probably not really needed; just to be safe)
             log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
             codec = Codec.forName(codecName);
             log.debug("Codec is loaded: {}", codecName);
@@ -212,7 +211,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
         MergePolicy mergePolicy = null;
         if (mergePolicyName != null) {
             if (mergePolicyName.equalsIgnoreCase("no")) {
-                mergePolicy = NoMergePolicy.COMPOUND_FILES;
+                mergePolicy = NoMergePolicy.INSTANCE;
             } else if (mergePolicyName.equalsIgnoreCase("mitigated")) {
                 mergePolicy = new CommitMitigatingTieredMergePolicy();
             } else if (mergePolicyName.equalsIgnoreCase("tiered") || mergePolicyName.equalsIgnoreCase("default")) {
