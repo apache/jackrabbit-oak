@@ -68,6 +68,7 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.NodeStateCloner;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
@@ -77,7 +78,6 @@ import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TermQuery;
@@ -497,7 +497,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         if (terms == null) {
             return result;
         }
-        TermsEnum iterator = terms.iterator(null);
+        TermsEnum iterator = terms.iterator();
         BytesRef byteRef = null;
         class Entry implements Comparable<Entry> {
             String term;
@@ -676,7 +676,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static Query newDepthQuery(int depth) {
-        return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
+        return IntPoint.newExactQuery(FieldNames.PATH_DEPTH, depth);
     }
 
     private static String[] createMsg(String msg){
