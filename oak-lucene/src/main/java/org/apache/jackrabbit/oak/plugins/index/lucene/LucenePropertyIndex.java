@@ -120,7 +120,6 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -154,7 +153,6 @@ import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -163,13 +161,11 @@ import org.slf4j.LoggerFactory;
 /**
  *
  * Used to query new (compatVersion 2) Lucene indexes.
- *
  * Provides a QueryIndex that does lookups against a Lucene-based index
  *
  * <p>
  * To define a lucene index on a subtree you have to add an
  * <code>oak:index</code> node.
- *
  * Under it follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
@@ -1219,13 +1215,13 @@ public class LucenePropertyIndex extends FulltextIndex {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;
                 Long last = pr.last != null ? FieldFactory.dateToLong(pr.last.getValue(Type.DATE)) : null;
                 Long not = pr.not != null ? FieldFactory.dateToLong(pr.not.getValue(Type.DATE)) : null;
-                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
+                if (first != null && first.equals(last) && pr.firstIncluding && pr.lastIncluding) {
                     return LongPoint.newExactQuery(propertyName, first);
-                } else if (pr.first != null && pr.last != null) {
+                } else if (first != null && last != null) {
                     return LongPoint.newRangeQuery(propertyName, pr.firstIncluding ? first : Math.addExact(first, 1), pr.lastIncluding ? last : Math.subtractExact(last, 1));
-                } else if (pr.first != null && pr.last == null) {
+                } else if (first != null) {
                     return LongPoint.newRangeQuery(propertyName, pr.firstIncluding ? first : Math.addExact(first, 1), Long.MAX_VALUE);
-                } else if (pr.last != null && !pr.last.equals(pr.first)) {
+                } else if (last != null) {
                     return LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, pr.lastIncluding ? last : Math.subtractExact(last, 1));
                 } else if (pr.list != null) {
                     BooleanQuery.Builder in = new BooleanQuery.Builder();
@@ -1247,17 +1243,17 @@ public class LucenePropertyIndex extends FulltextIndex {
                 Double first = pr.first != null ? pr.first.getValue(DOUBLE) : null;
                 Double last = pr.last != null ? pr.last.getValue(DOUBLE) : null;
 
-                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
+                if (first != null && first.equals(last) && pr.firstIncluding && pr.lastIncluding) {
                     // [property]=[value]
                     return DoublePoint.newExactQuery(propertyName, first);
-                } else if (pr.first != null && pr.last != null) {
+                } else if (first != null && last != null) {
                     return DoublePoint.newRangeQuery(propertyName,
                         pr.firstIncluding ? first : Math.nextUp(first),
                         pr.lastIncluding ? last : Math.nextDown(last));
-                } else if (pr.first != null && pr.last == null) {
+                } else if (first != null) {
                     // '>' & '>=' use cases
                     return DoublePoint.newRangeQuery(propertyName, pr.firstIncluding ? first : Math.nextUp(first), Double.POSITIVE_INFINITY);
-                } else if (pr.last != null && !pr.last.equals(pr.first)) {
+                } else if (last != null) {
                     // '<' & '<='
                     return DoublePoint.newRangeQuery(propertyName, Double.NEGATIVE_INFINITY, pr.lastIncluding ? last : Math.nextDown(last));
                 } else if (pr.list != null) {
@@ -1284,17 +1280,17 @@ public class LucenePropertyIndex extends FulltextIndex {
                 Long first = pr.first != null ? pr.first.getValue(LONG) : null;
                 Long last = pr.last != null ? pr.last.getValue(LONG) : null;
 
-                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
+                if (first != null && first.equals(last) && pr.firstIncluding && pr.lastIncluding) {
                     // [property]=[value]
                     return LongPoint.newExactQuery(propertyName, first);
-                } else if (pr.first != null && pr.last != null) {
+                } else if (first != null && last != null) {
                     return LongPoint.newRangeQuery(propertyName,
                         pr.firstIncluding ? first : first + 1,
                         pr.lastIncluding ? last : last - 1);
-                } else if (pr.first != null && pr.last == null) {
+                } else if (first != null) {
                     // '>' & '>=' use cases
                     return LongPoint.newRangeQuery(propertyName, pr.firstIncluding ? first : first + 1, Long.MAX_VALUE);
-                } else if (pr.last != null && !pr.last.equals(pr.first)) {
+                } else if (last != null) {
                     // '<' & '<='
                     return LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, pr.lastIncluding ? last : last - 1);
                 } else if (pr.list != null) {
@@ -1325,17 +1321,17 @@ public class LucenePropertyIndex extends FulltextIndex {
                 //TODO Confirm that all other types can be treated as string
                 String first = pr.first != null ? pr.first.getValue(STRING) : null;
                 String last = pr.last != null ? pr.last.getValue(STRING) : null;
-                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
+                if (first != null && first.equals(last) && pr.firstIncluding
                         && pr.lastIncluding) {
                     // [property]=[value]
                     return new TermQuery(new Term(propertyName, first));
-                } else if (pr.first != null && pr.last != null) {
+                } else if (first != null && last != null) {
                     return TermRangeQuery.newStringRange(propertyName, first, last,
                             pr.firstIncluding, pr.lastIncluding);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
                     return TermRangeQuery.newStringRange(propertyName, first, null, pr.firstIncluding, true);
-                } else if (pr.last != null && !pr.last.equals(pr.first)) {
+                } else if (last != null) {
                     // '<' & '<='
                     return TermRangeQuery.newStringRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
