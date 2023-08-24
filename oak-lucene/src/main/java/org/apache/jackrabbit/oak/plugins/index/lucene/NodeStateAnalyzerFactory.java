@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -174,13 +175,8 @@ final class NodeStateAnalyzerFactory {
                 c = analyzerClazz.getConstructor(Version.class);
                 return c.newInstance(matchVersion);
             }
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (InvocationTargetException e) {
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
             throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         }
     }
@@ -229,22 +225,26 @@ final class NodeStateAnalyzerFactory {
 
     @SuppressWarnings("deprecation")
     private static Version parseLuceneVersionString(final String matchVersion) {
-        final Version version = Version.parseLeniently(matchVersion);
-        if (version == Version.LUCENE_CURRENT && !versionWarningAlreadyLogged.getAndSet(true)) {
-            log.warn(
-                    "You should not use LATEST as luceneMatchVersion property: "+
-                            "if you use this setting, and then Solr upgrades to a newer release of Lucene, "+
-                            "sizable changes may happen. If precise back compatibility is important "+
-                            "then you should instead explicitly specify an actual Lucene version."
-            );
+        try {
+            final Version version = Version.parseLeniently(matchVersion);
+            if (version == Version.LUCENE_CURRENT && !versionWarningAlreadyLogged.getAndSet(true)) {
+                log.warn(
+                        "You should not use LATEST as luceneMatchVersion property: "+
+                                "if you use this setting, and then Solr upgrades to a newer release of Lucene, "+
+                                "sizable changes may happen. If precise back compatibility is important "+
+                                "then you should instead explicitly specify an actual Lucene version."
+                );
+            }
+            return version;
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
         }
-        return version;
     }
 
     private static CharArraySet loadStopwordSet(NodeState file, String name,
                                                 Version matchVersion) throws IOException {
         Blob blob = ConfigUtil.getBlob(file, name);
-        Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.CHARSET_UTF_8);
+        Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.UTF_8);
         try {
             return WordlistLoader.getWordSet(stopwords, matchVersion);
         } finally {
