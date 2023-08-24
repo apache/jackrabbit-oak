@@ -160,7 +160,7 @@ final class NodeStateAnalyzerFactory {
                 && state.hasChildNode(FulltextIndexConstants.ANL_STOPWORDS)) {
             try {
                 stopwords = loadStopwordSet(state.getChildNode(FulltextIndexConstants.ANL_STOPWORDS),
-                        FulltextIndexConstants.ANL_STOPWORDS, matchVersion);
+                        FulltextIndexConstants.ANL_STOPWORDS);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while loading stopwords", e);
             }
@@ -241,12 +241,11 @@ final class NodeStateAnalyzerFactory {
         }
     }
 
-    private static CharArraySet loadStopwordSet(NodeState file, String name,
-                                                Version matchVersion) throws IOException {
+    private static CharArraySet loadStopwordSet(NodeState file, String name) throws IOException {
         Blob blob = ConfigUtil.getBlob(file, name);
         Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.UTF_8);
         try {
-            return WordlistLoader.getWordSet(stopwords, matchVersion);
+            return WordlistLoader.getWordSet(stopwords);
         } finally {
             IOUtils.close(stopwords);
         }
