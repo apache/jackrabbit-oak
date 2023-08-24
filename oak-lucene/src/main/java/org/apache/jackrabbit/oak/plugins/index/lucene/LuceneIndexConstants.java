@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
+import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.util.Version;
 
 /**
@@ -33,7 +33,7 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
 
     String TRASH_CHILD_NAME = ":trash";
 
-    Version VERSION = Version.LUCENE_47;
+    Version VERSION = Version.LUCENE_9_7_0;
 
     Analyzer ANALYZER = new OakAnalyzer(VERSION);
 
