@@ -72,9 +72,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfos;
-import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.MultiTerms;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
@@ -444,9 +442,9 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 log.info("Dumping Lucene directory content for [{}] to [{}]", sourcePath, destPath);
                 Directory source = getDirectory(getPrimaryReader(indexNode.getPrimaryReaders()));
                 checkNotNull(source, "IndexSearcher not backed by DirectoryReader");
-                Directory dest = FSDirectory.open(new File(destPath));
+                Directory dest = FSDirectory.open(new File(destPath).toPath());
                 for (String file : source.listAll()) {
-                    source.copy(dest, file, file, IOContext.DEFAULT);
+                    source.copyFrom(dest, file, file, IOContext.DEFAULT);
                 }
             }
         } finally {
@@ -469,13 +467,13 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static Function<BytesRef, String> getTypeHandler(String type) {
-        if (type != null) {
-            if (long.class.getName().equals(type) || Long.class.getName().equals(type)) {
-                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToLong(bytesRef));
-            } else if (int.class.getName().equals(type) || Integer.class.getName().equals(type)) {
-                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToInt(bytesRef));
-            }
-        }
+//        if (type != null) {
+//            if (long.class.getName().equals(type) || Long.class.getName().equals(type)) {
+//                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToLong(bytesRef));
+//            } else if (int.class.getName().equals(type) || Integer.class.getName().equals(type)) {
+//                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToInt(bytesRef));
+//            }
+//        }
         return BytesRef::utf8ToString;
     }
 
