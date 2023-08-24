@@ -29,6 +29,7 @@ import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IND
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -70,9 +71,11 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.Fields;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiFields;
+import org.apache.lucene.index.MultiTerms;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanClause;
@@ -456,7 +459,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     private static ArrayList<String> getFieldInfo(String path, IndexSearcher searcher) throws IOException {
         ArrayList<String> list = new ArrayList<String>();
         IndexReader reader = searcher.getIndexReader();
-        Fields fields = MultiFields.getFields(reader);
+        Collection<String> fields = FieldInfos.getIndexedFields(reader);
         if (fields != null) {
             for(String f : fields) {
                 list.add(path + " " + f + " " + reader.getDocCount(f));
@@ -481,7 +484,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         if (field == null || field.isEmpty()) {
             ArrayList<String> list = new ArrayList<>();
             IndexReader reader = searcher.getIndexReader();
-            Fields fields = MultiFields.getFields(reader);
+            Collection<String> fields = FieldInfos.getIndexedFields(reader);
             if (fields != null) {
                 for(String f : fields) {
                     list.addAll(getFieldTerms(path, f, max, term, searcher, null));
@@ -492,7 +495,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
         Function<BytesRef,String> handler = getTypeHandler(type);
         IndexReader reader = searcher.getIndexReader();
-        Terms terms = MultiFields.getTerms(reader, field);
+        Terms terms = MultiTerms.getTerms(reader, field);
         ArrayList<String> result = new ArrayList<>();
         if (terms == null) {
             return result;
@@ -608,7 +611,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         while(depth < maxLevel){
             //Confirm if we have any hit at current depth
             TopDocs docs = searcher.search(newDepthQuery(depth), 1);
-            if (docs.totalHits != 0){
+            if (docs.totalHits.value != 0){
                 return depth;
             }
             depth++;
