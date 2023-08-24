@@ -16,12 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.Reader;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
-import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter;
+import org.apache.lucene.analysis.miscellaneous.WordDelimiterGraphFilter;
 import org.apache.lucene.analysis.standard.StandardTokenizer;
 import org.apache.lucene.util.Version;
 
@@ -50,24 +48,23 @@ public class OakAnalyzer extends Analyzer {
      * original term being analyzed too.
      * @param matchVersion Lucene version to match See {@link #matchVersion above}
      * @param indexOriginalTerm flag to setup analyzer such that
-     *                              {@link WordDelimiterFilter#PRESERVE_ORIGINAL}
+     *                              {@link WordDelimiterGraphFilter#PRESERVE_ORIGINAL}
      *                              is set to configure word delimiter
      */
     public OakAnalyzer(Version matchVersion, boolean indexOriginalTerm) {
         this.matchVersion = matchVersion;
-        preserveOriginal = indexOriginalTerm ? WordDelimiterFilter.PRESERVE_ORIGINAL : 0;
+        preserveOriginal = indexOriginalTerm ? WordDelimiterGraphFilter.PRESERVE_ORIGINAL : 0;
     }
 
     @Override
-    protected TokenStreamComponents createComponents(final String fieldName,
-            final Reader reader) {
-        StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
-        TokenStream tok = new LowerCaseFilter(matchVersion, src);
-        tok = new WordDelimiterFilter(tok,
-                WordDelimiterFilter.GENERATE_WORD_PARTS
-                        | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE
-                        | preserveOriginal
-                        | WordDelimiterFilter.GENERATE_NUMBER_PARTS, null);
+    protected TokenStreamComponents createComponents(final String fieldName) {
+        StandardTokenizer src = new StandardTokenizer();
+        TokenStream tok = new LowerCaseFilter(src);
+        tok = new WordDelimiterGraphFilter(tok,
+            WordDelimiterGraphFilter.GENERATE_WORD_PARTS
+                | WordDelimiterGraphFilter.STEM_ENGLISH_POSSESSIVE
+                | preserveOriginal
+                | WordDelimiterGraphFilter.GENERATE_NUMBER_PARTS, null);
         return new TokenStreamComponents(src, tok);
     }
 }
