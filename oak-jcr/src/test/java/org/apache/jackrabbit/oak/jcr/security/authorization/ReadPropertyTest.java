@@ -204,18 +204,17 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
         assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE);
 
         Node node = testSession.getNode(path);
+        String mixTitle = "mix:title";
         assertFalse(node.hasProperty(JcrConstants.JCR_MIXINTYPES));
-        try {
-            node.addMixin("mix:title");
-        } catch (AccessDeniedException e) {
-            // permitted to fail because reading jcr:mixinTypes was denied
-            return;
-        }
-        // if we get here, then node.addMixin() was successful
+        assertTrue(node.canAddMixin(mixTitle));
+
+        // must be able to add mixin even if session
+        // does not have permission to read jcr:mixinTypes
+        node.addMixin(mixTitle);
         testSession.save();
-        // then we should be able to see all three mixin types
-        superuser.refresh(false);
-        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE, "mix:title");
+
+        // we should be able to see all three mixin types
+        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE, mixTitle);
     }
 
     private void assertMixinTypes(Node node, String... mixins)

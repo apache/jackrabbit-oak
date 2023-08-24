@@ -389,8 +389,8 @@ public class NodeDelegate extends ItemDelegate {
         }
     }
 
-    public void addMixin(String typeName) throws RepositoryException {
-        TreeUtil.addMixin(getTree(), typeName, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH), getUserID());
+    public void addMixin(Function<Tree, Iterable<String>> existingMixins, String typeName) throws RepositoryException {
+        TreeUtil.addMixin(getTree(), existingMixins, typeName, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH), getUserID());
     }
 
     public void removeMixin(String typeName) throws RepositoryException {
@@ -421,7 +421,7 @@ public class NodeDelegate extends ItemDelegate {
     public void updateMixins(Set<String> addMixinNames, Set<String> removedOakMixinNames) throws RepositoryException {
         // 1. set all new mixin types including validation
         for (String oakMixinName : addMixinNames) {
-            addMixin(oakMixinName);
+            addMixin(TreeUtil::getMixinTypeNames, oakMixinName);
         }
 
         if (!removedOakMixinNames.isEmpty()) {
