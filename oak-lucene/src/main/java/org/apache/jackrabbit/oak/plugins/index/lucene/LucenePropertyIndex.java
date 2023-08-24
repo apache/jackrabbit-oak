@@ -1785,7 +1785,7 @@ public class LucenePropertyIndex extends FulltextIndex {
      * phase, if there is no chance that the index is actually used.
      */
     static class LazyLuceneIndexNode implements LuceneIndexNode {
-        private AtomicBoolean released = new AtomicBoolean();
+        private final AtomicBoolean released = new AtomicBoolean();
         private IndexTracker tracker;
         private String indexPath;
         private volatile LuceneIndexNode indexNode;
