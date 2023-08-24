@@ -110,6 +110,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.DoublePoint;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.facet.FacetResult;
 import org.apache.lucene.facet.Facets;
 import org.apache.lucene.facet.LabelAndValue;
@@ -130,7 +133,6 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.NumericRangeQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
@@ -1217,110 +1219,104 @@ public class LucenePropertyIndex extends FulltextIndex {
                 Long first = pr.first != null ? FieldFactory.dateToLong(pr.first.getValue(Type.DATE)) : null;
                 Long last = pr.last != null ? FieldFactory.dateToLong(pr.last.getValue(Type.DATE)) : null;
                 Long not = pr.not != null ? FieldFactory.dateToLong(pr.not.getValue(Type.DATE)) : null;
-                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
-                        && pr.lastIncluding) {
-                    // [property]=[value]
-                    return NumericRangeQuery.newLongRange(propertyName, first, first, true, true);
+                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
+                    return LongPoint.newExactQuery(propertyName, first);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newLongRange(propertyName, first, last,
-                            pr.firstIncluding, pr.lastIncluding);
+                    return LongPoint.newRangeQuery(propertyName, pr.firstIncluding ? first : Math.addExact(first, 1), pr.lastIncluding ? last : Math.subtractExact(last, 1));
                 } else if (pr.first != null && pr.last == null) {
-                    // '>' & '>=' use cases
-                    return NumericRangeQuery.newLongRange(propertyName, first, null, pr.firstIncluding, true);
+                    return LongPoint.newRangeQuery(propertyName, pr.firstIncluding ? first : Math.addExact(first, 1), Long.MAX_VALUE);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
-                    // '<' & '<='
-                    return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
+                    return LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, pr.lastIncluding ? last : Math.subtractExact(last, 1));
                 } else if (pr.list != null) {
                     BooleanQuery.Builder in = new BooleanQuery.Builder();
                     for (PropertyValue value : pr.list) {
                         Long dateVal = FieldFactory.dateToLong(value.getValue(Type.DATE));
-                        in.add(NumericRangeQuery.newLongRange(propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
+                        in.add(LongPoint.newExactQuery(propertyName, dateVal), BooleanClause.Occur.SHOULD);
                     }
                     return in.build();
                 } else if (pr.isNotNullRestriction()) {
-                    // not null. As we are indexing generic dates which can be beyond epoch. So using complete numeric range
-                    return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
+                    return LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, Long.MAX_VALUE);
                 } else if (pr.isNot && pr.not != null) {
-                    // -[property]=[value]
                     BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
-                    
-                    // This will exclude entries with [property]=[value]
-                    bqBuilder.add(NumericRangeQuery.newLongRange(propertyName, not, not, true, true), MUST_NOT);
+                    bqBuilder.add(LongPoint.newExactQuery(propertyName, not), BooleanClause.Occur.MUST_NOT);
                     return bqBuilder.build();
                 }
-
                 break;
             }
             case PropertyType.DOUBLE: {
                 Double first = pr.first != null ? pr.first.getValue(DOUBLE) : null;
                 Double last = pr.last != null ? pr.last.getValue(DOUBLE) : null;
-                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
-                        && pr.lastIncluding) {
+
+                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newDoubleRange(propertyName, first, first, true, true);
+                    return DoublePoint.newExactQuery(propertyName, first);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newDoubleRange(propertyName, first, last,
-                            pr.firstIncluding, pr.lastIncluding);
+                    return DoublePoint.newRangeQuery(propertyName,
+                        pr.firstIncluding ? first : Math.nextUp(first),
+                        pr.lastIncluding ? last : Math.nextDown(last));
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newDoubleRange(propertyName, first, null, pr.firstIncluding, true);
+                    return DoublePoint.newRangeQuery(propertyName, pr.firstIncluding ? first : Math.nextUp(first), Double.POSITIVE_INFINITY);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newDoubleRange(propertyName, null, last, true, pr.lastIncluding);
+                    return DoublePoint.newRangeQuery(propertyName, Double.NEGATIVE_INFINITY, pr.lastIncluding ? last : Math.nextDown(last));
                 } else if (pr.list != null) {
                     BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     for (PropertyValue value : pr.list) {
                         Double doubleVal = value.getValue(DOUBLE);
-                        bqBuilder.add(NumericRangeQuery.newDoubleRange(propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
+                        bqBuilder.add(DoublePoint.newExactQuery(propertyName, doubleVal), BooleanClause.Occur.SHOULD);
                     }
                     return bqBuilder.build();
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
-                    return NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
+                    return DoublePoint.newRangeQuery(propertyName, Double.NEGATIVE_INFINITY, Double.POSITIVE_INFINITY);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
                     BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     // This will exclude entries with [property]=[value]
-                    bqBuilder.add(NumericRangeQuery.newDoubleRange(propertyName, pr.not.getValue(DOUBLE), pr.not.getValue(DOUBLE), true, true), MUST_NOT);
+                    bqBuilder.add(DoublePoint.newExactQuery(propertyName, pr.not.getValue(DOUBLE)), BooleanClause.Occur.MUST_NOT);
                     return bqBuilder.build();
                 }
                 break;
             }
+
             case PropertyType.LONG: {
                 Long first = pr.first != null ? pr.first.getValue(LONG) : null;
                 Long last = pr.last != null ? pr.last.getValue(LONG) : null;
-                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding
-                        && pr.lastIncluding) {
+
+                if (pr.first != null && pr.first.equals(pr.last) && pr.firstIncluding && pr.lastIncluding) {
                     // [property]=[value]
-                    return NumericRangeQuery.newLongRange(propertyName, first, first, true, true);
+                    return LongPoint.newExactQuery(propertyName, first);
                 } else if (pr.first != null && pr.last != null) {
-                    return NumericRangeQuery.newLongRange(propertyName, first, last,
-                            pr.firstIncluding, pr.lastIncluding);
+                    return LongPoint.newRangeQuery(propertyName,
+                        pr.firstIncluding ? first : first + 1,
+                        pr.lastIncluding ? last : last - 1);
                 } else if (pr.first != null && pr.last == null) {
                     // '>' & '>=' use cases
-                    return NumericRangeQuery.newLongRange(propertyName, first, null, pr.firstIncluding, true);
+                    return LongPoint.newRangeQuery(propertyName, pr.firstIncluding ? first : first + 1, Long.MAX_VALUE);
                 } else if (pr.last != null && !pr.last.equals(pr.first)) {
                     // '<' & '<='
-                    return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
+                    return LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, pr.lastIncluding ? last : last - 1);
                 } else if (pr.list != null) {
                     BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     for (PropertyValue value : pr.list) {
                         Long longVal = value.getValue(LONG);
-                        bqBuilder.add(NumericRangeQuery.newLongRange(propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
+                        bqBuilder.add(LongPoint.newExactQuery(propertyName, longVal), BooleanClause.Occur.SHOULD);
                     }
                     return bqBuilder.build();
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
-                    return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
+                    return LongPoint.newRangeQuery(propertyName, Long.MIN_VALUE, Long.MAX_VALUE);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
                     BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     // This will exclude entries with [property]=[value]
-                    bqBuilder.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
+                    bqBuilder.add(LongPoint.newExactQuery(propertyName, pr.not.getValue(LONG)), BooleanClause.Occur.MUST_NOT);
                     return bqBuilder.build();
                 }
                 break;
             }
+
             default: {
                 if (pr.isLike) {
                     return createLikeQuery(propertyName, pr.first.getValue(STRING));
@@ -1658,7 +1654,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private static Query newDepthQuery(String path, PlanResult planResult) {
         int depth = PathUtils.getDepth(path) + planResult.getParentDepth() + 1;
-        return NumericRangeQuery.newIntRange(FieldNames.PATH_DEPTH, depth, depth, true, true);
+        return IntPoint.newExactQuery(FieldNames.PATH_DEPTH, depth);
     }
 
     @SuppressWarnings("Guava")
