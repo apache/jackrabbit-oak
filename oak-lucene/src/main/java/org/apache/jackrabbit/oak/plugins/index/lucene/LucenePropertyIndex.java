@@ -147,10 +147,10 @@ import org.apache.lucene.search.highlight.QueryScorer;
 import org.apache.lucene.search.highlight.SimpleHTMLEncoder;
 import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.search.highlight.TextFragment;
-import org.apache.lucene.search.postingshighlight.PostingsHighlighter;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
+import org.apache.lucene.search.uhighlight.UnifiedHighlighter;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
@@ -222,9 +222,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
     private final Highlighter highlighter = new Highlighter(new SimpleHTMLFormatter("<strong>", "</strong>"),
         new SimpleHTMLEncoder(), null);
-
-    private final PostingsHighlighter postingsHighlighter = new PostingsHighlighter();
-
+    
     private final IndexAugmentorFactory augmentorFactory;
 
     static {
@@ -659,8 +657,10 @@ public class LucenePropertyIndex extends FulltextIndex {
             int[] maxPassages = new int[names.size()];
             Arrays.fill(maxPassages, 1);
             try {
-                Map<String, String[]> stringMap = postingsHighlighter.highlightFields(names.toArray(new String[names.size()]),
-                        query, searcher, new int[]{docID}, maxPassages);
+                UnifiedHighlighter unifiedHighlighter = new UnifiedHighlighter.Builder(searcher, analyzer).build();
+                Map<String, String[]> stringMap = unifiedHighlighter.highlightFields(
+                    names.toArray(new String[names.size()]),
+                    query, new int[]{docID}, maxPassages);
                 for (Map.Entry<String, String[]> entry : stringMap.entrySet()) {
                     String value = Arrays.toString(entry.getValue());
                     if (value.contains("<b>")) {
