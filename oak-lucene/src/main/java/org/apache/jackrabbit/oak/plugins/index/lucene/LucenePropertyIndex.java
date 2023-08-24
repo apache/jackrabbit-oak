@@ -18,7 +18,30 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import javax.jcr.PropertyType;
+import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
+import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
+import static org.apache.jackrabbit.oak.api.Type.LONG;
+import static org.apache.jackrabbit.oak.api.Type.STRING;
+import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
+import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexLookupUtil.LUCENE_INDEX_DEFINITION_PREDICATE;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.NATIVE_SORT_ORDER;
+import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
+import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_EXCERPT;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST;
+import static org.apache.lucene.search.BooleanClause.Occur.MUST_NOT;
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,7 +56,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
-
+import javax.jcr.PropertyType;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
@@ -48,13 +71,6 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
-import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
-import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
-import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
-import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.lucene.property.HybridPropertyIndexLookup;
 import org.apache.jackrabbit.oak.plugins.index.lucene.reader.LuceneIndexReader;
@@ -64,6 +80,13 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.MoreLikeThisHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.PathStoredFieldVisitor;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SpellcheckHelper;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
+import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
+import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
+import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.IndexingRule;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.SecureFacetConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
@@ -71,17 +94,17 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PlanResult;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner.PropertyIndexResult;
 import org.apache.jackrabbit.oak.plugins.index.search.util.QueryUtils;
+import org.apache.jackrabbit.oak.spi.query.Cursor;
+import org.apache.jackrabbit.oak.spi.query.Filter;
+import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
+import org.apache.jackrabbit.oak.spi.query.QueryConstants;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextAnd;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextContains;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextTerm;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextVisitor;
-import org.apache.jackrabbit.oak.spi.query.Cursor;
-import org.apache.jackrabbit.oak.spi.query.Filter;
-import org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
-import org.apache.jackrabbit.oak.spi.query.QueryConstants;
-import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -104,6 +127,7 @@ import org.apache.lucene.queryparser.flexible.standard.StandardQueryParser;
 import org.apache.lucene.queryparser.flexible.standard.config.StandardQueryConfigHandler;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.NumericRangeQuery;
@@ -133,29 +157,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
-import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
-import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
-import static org.apache.jackrabbit.oak.api.Type.LONG;
-import static org.apache.jackrabbit.oak.api.Type.STRING;
-import static org.apache.jackrabbit.oak.api.Type.DOUBLE;
-import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
-import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexLookupUtil.LUCENE_INDEX_DEFINITION_PREDICATE;
-import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
-import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.NATIVE_SORT_ORDER;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
-import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.JCR_PATH;
-import static org.apache.jackrabbit.oak.spi.query.QueryConstants.REP_EXCERPT;
-import static org.apache.lucene.search.BooleanClause.Occur.*;
 
 /**
  *
@@ -600,14 +601,10 @@ public class LucenePropertyIndex extends FulltextIndex {
             String path = getPathRestriction(plan);
             if (!PathUtils.denotesRoot(path)) {
                 if (getPlanResult(plan).indexDefinition.evaluatePathRestrictions()) {
-
-                    BooleanQuery compositeQuery = new BooleanQuery();
-                    compositeQuery.add(query, BooleanClause.Occur.MUST);
-
                     Query pathQuery = new TermQuery(newAncestorTerm(path));
-                    compositeQuery.add(pathQuery, BooleanClause.Occur.MUST);
-
-                    query = compositeQuery;
+                    query = new BooleanQuery.Builder().add(query, BooleanClause.Occur.MUST)
+                                                      .add(pathQuery, BooleanClause.Occur.MUST)
+                                                      .build();
                 } else {
                     LOG.warn("Descendant clause could not be added without path restrictions enabled. Plan: {}", plan);
                 }
@@ -893,7 +890,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         if (pr != null) {
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
-            QueryParser queryParser = new QueryParser(VERSION, "", analyzer);
+            QueryParser queryParser = new QueryParser("", analyzer);
             if (query.startsWith("mlt?")) {
                 String mltQueryString = query.replace("mlt?", "");
                 if (reader != null) {
@@ -984,7 +981,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             if (q instanceof BooleanQuery) {
                 BooleanQuery ibq = (BooleanQuery) q;
                 boolean onlyNotClauses = true;
-                for (BooleanClause c : ibq.getClauses()) {
+                for (BooleanClause c : ibq.clauses()) {
                     if (c.getOccur() != BooleanClause.Occur.MUST_NOT) {
                         onlyNotClauses = false;
                         break;
@@ -994,48 +991,56 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // if we have only NOT CLAUSES we have to add a match all docs (*.*) for the
                     // query to work
                     // This check is needed now for Older version of lucene(Implementation in LuceneIndex.java)
-                    ibq.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
+                    BooleanQuery.Builder builder = new BooleanQuery.Builder();
+                    ibq.clauses().forEach(builder::add);
+                    builder.add(new MatchAllDocsQuery(), BooleanClause.Occur.SHOULD);
+                    return new LuceneRequestFacade<>(builder.build());
                 }
             }
             return new LuceneRequestFacade<>(qs.get(0));
         }
-        BooleanQuery bq = new BooleanQuery();
+        
+        BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
         for (Query q : qs) {
             boolean unwrapped = false;
             if (q instanceof BooleanQuery) {
-                unwrapped = unwrapMustNot((BooleanQuery) q, bq);
+                unwrapped = unwrapMustNot((BooleanQuery) q, bqBuilder);
             }
 
             if (!unwrapped) {
-                bq.add(q, MUST);
+                bqBuilder.add(q, BooleanClause.Occur.MUST);
             }
         }
-        return new LuceneRequestFacade<>(bq);
+        return new LuceneRequestFacade<>(bqBuilder.build());
     }
-
+    
     /**
-     * unwraps any NOT clauses from the provided boolean query into another boolean query.
+     * Extracts and transfers NOT clauses from the source boolean query to the specified builder.
      *
-     * @param input  the query to be analysed for the existence of NOT clauses. Cannot be null.
-     * @param output the query where the unwrapped NOTs will be saved into. Cannot be null.
-     * @return true if there where at least one unwrapped NOT. false otherwise.
+     * <p>If any NOT clauses are found and transferred, the method also transfers the MUST clauses from the source query.</p>
+     *
+     * @param input         The source boolean query to examine for NOT clauses. Must not be null.
+     * @param outputBuilder The builder where the extracted NOT (and associated MUST) clauses will be added. Must not be null.
+     * @return true if at least one NOT clause was transferred; false otherwise.
      */
-    private static boolean unwrapMustNot(@NotNull BooleanQuery input, @NotNull BooleanQuery output) {
+    private static boolean unwrapMustNot(@NotNull BooleanQuery input, @NotNull BooleanQuery.Builder outputBuilder) {
         checkNotNull(input);
-        checkNotNull(output);
+        checkNotNull(outputBuilder);
+        
         boolean unwrapped = false;
-        for (BooleanClause bc : input.getClauses()) {
+        
+        for (BooleanClause bc : input.clauses()) {
             if (bc.getOccur() == BooleanClause.Occur.MUST_NOT) {
-                output.add(bc);
+                outputBuilder.add(bc);
                 unwrapped = true;
             }
         }
         if (unwrapped) {
             // if we have unwrapped "must not" conditions,
-            // then we need to unwrap "must" conditions as well
-            for (BooleanClause bc : input.getClauses()) {
+            // we need to unwrap "must" conditions as well
+            for (BooleanClause bc : input.clauses()) {
                 if (bc.getOccur() == BooleanClause.Occur.MUST) {
-                    output.add(bc);
+                    outputBuilder.add(bc);
                 }
             }
         }
@@ -1074,10 +1079,10 @@ public class LucenePropertyIndex extends FulltextIndex {
                 break;
             case DIRECT_CHILDREN:
                 if (defn.evaluatePathRestrictions()) {
-                    BooleanQuery bq = new BooleanQuery();
-                    bq.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
-                    bq.add(new BooleanClause(newDepthQuery(path, planResult), BooleanClause.Occur.MUST));
-                    qs.add(bq);
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
+                    bqBuilder.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
+                    bqBuilder.add(new BooleanClause(newDepthQuery(path, planResult), BooleanClause.Occur.MUST));
+                    qs.add(bqBuilder.build());
                 }
                 break;
             case EXACT:
@@ -1126,6 +1131,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             if (QueryConstants.RESTRICTION_LOCAL_NAME.equals(name)) {
                 if (planResult.evaluateNodeNameRestriction()) {
                     Query q = createNodeNameQuery(pr);
+                    // TODO: Remove this check
                     if (q != null) {
                         qs.add(q);
                     }
@@ -1189,6 +1195,8 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
     }
 
+    
+    // TODO: Rewrite this
     @Nullable
     private static Query createQuery(String propertyName, PropertyRestriction pr,
                                      PropertyDefinition defn) {
@@ -1223,21 +1231,22 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // '<' & '<='
                     return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
-                    BooleanQuery in = new BooleanQuery();
+                    BooleanQuery.Builder in = new BooleanQuery.Builder();
                     for (PropertyValue value : pr.list) {
                         Long dateVal = FieldFactory.dateToLong(value.getValue(Type.DATE));
                         in.add(NumericRangeQuery.newLongRange(propertyName, dateVal, dateVal, true, true), BooleanClause.Occur.SHOULD);
                     }
-                    return in;
+                    return in.build();
                 } else if (pr.isNotNullRestriction()) {
                     // not null. As we are indexing generic dates which can be beyond epoch. So using complete numeric range
                     return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
-                    BooleanQuery bool = new BooleanQuery();
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
+                    
                     // This will exclude entries with [property]=[value]
-                    bool.add(NumericRangeQuery.newLongRange(propertyName, not, not, true, true), MUST_NOT);
-                    return bool;
+                    bqBuilder.add(NumericRangeQuery.newLongRange(propertyName, not, not, true, true), MUST_NOT);
+                    return bqBuilder.build();
                 }
 
                 break;
@@ -1259,21 +1268,21 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // '<' & '<='
                     return NumericRangeQuery.newDoubleRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
-                    BooleanQuery in = new BooleanQuery();
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     for (PropertyValue value : pr.list) {
                         Double doubleVal = value.getValue(DOUBLE);
-                        in.add(NumericRangeQuery.newDoubleRange(propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
+                        bqBuilder.add(NumericRangeQuery.newDoubleRange(propertyName, doubleVal, doubleVal, true, true), BooleanClause.Occur.SHOULD);
                     }
-                    return in;
+                    return bqBuilder.build();
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
                     return NumericRangeQuery.newDoubleRange(propertyName, Double.MIN_VALUE, Double.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
-                    BooleanQuery bool = new BooleanQuery();
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     // This will exclude entries with [property]=[value]
-                    bool.add(NumericRangeQuery.newDoubleRange(propertyName, pr.not.getValue(DOUBLE), pr.not.getValue(DOUBLE), true, true), MUST_NOT);
-                    return bool;
+                    bqBuilder.add(NumericRangeQuery.newDoubleRange(propertyName, pr.not.getValue(DOUBLE), pr.not.getValue(DOUBLE), true, true), MUST_NOT);
+                    return bqBuilder.build();
                 }
                 break;
             }
@@ -1294,21 +1303,21 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // '<' & '<='
                     return NumericRangeQuery.newLongRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
-                    BooleanQuery in = new BooleanQuery();
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     for (PropertyValue value : pr.list) {
                         Long longVal = value.getValue(LONG);
-                        in.add(NumericRangeQuery.newLongRange(propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
+                        bqBuilder.add(NumericRangeQuery.newLongRange(propertyName, longVal, longVal, true, true), BooleanClause.Occur.SHOULD);
                     }
-                    return in;
+                    return bqBuilder.build();
                 } else if (pr.isNotNullRestriction()) {
                     // not null.
                     return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
-                    BooleanQuery bool = new BooleanQuery();
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     // This will exclude entries with [property]=[value]
-                    bool.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
-                    return bool;
+                    bqBuilder.add(NumericRangeQuery.newLongRange(propertyName, pr.not.getValue(LONG), pr.not.getValue(LONG), true, true), MUST_NOT);
+                    return bqBuilder.build();
                 }
                 break;
             }
@@ -1334,20 +1343,20 @@ public class LucenePropertyIndex extends FulltextIndex {
                     // '<' & '<='
                     return TermRangeQuery.newStringRange(propertyName, null, last, true, pr.lastIncluding);
                 } else if (pr.list != null) {
-                    BooleanQuery in = new BooleanQuery();
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     for (PropertyValue value : pr.list) {
                         String strVal = value.getValue(STRING);
-                        in.add(new TermQuery(new Term(propertyName, strVal)), BooleanClause.Occur.SHOULD);
+                        bqBuilder.add(new TermQuery(new Term(propertyName, strVal)), BooleanClause.Occur.SHOULD);
                     }
-                    return in;
+                    return bqBuilder.build();
                 } else if (pr.isNotNullRestriction()) {
                     return new TermRangeQuery(propertyName, null, null, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
-                    BooleanQuery bool = new BooleanQuery();
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                     // This will exclude entries with [property]=[value]
-                    bool.add(new TermQuery(new Term(propertyName, pr.not.getValue(STRING))), MUST_NOT);
-                    return bool;
+                    bqBuilder.add(new TermQuery(new Term(propertyName, pr.not.getValue(STRING))), MUST_NOT);
+                    return bqBuilder.build();
                 }
             }
         }
@@ -1386,22 +1395,25 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
 
         // reference query
-        BooleanQuery bq = new BooleanQuery();
+        BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
         Collection<String> fields = MultiFields.getIndexedFields(reader);
         for (String f : fields) {
-            bq.add(new TermQuery(new Term(f, uuid)), SHOULD);
+            bqBuilder.add(new TermQuery(new Term(f, uuid)), SHOULD);
         }
-        qs.add(bq);
+        qs.add(bqBuilder.build());
     }
 
     private static void addNodeTypeConstraints(IndexingRule defn, List<Query> qs, Filter filter) {
-        BooleanQuery bq = new BooleanQuery();
+        BooleanQuery.Builder bq = new BooleanQuery.Builder();
         PropertyDefinition primaryType = defn.getConfig(JCR_PRIMARYTYPE);
         //TODO OAK-2198 Add proper nodeType query support
-
+        
+        boolean clauseAdded = false; 
+        
         if (primaryType != null && primaryType.propertyIndex) {
             for (String type : filter.getPrimaryTypes()) {
                 bq.add(new TermQuery(new Term(JCR_PRIMARYTYPE, type)), SHOULD);
+                clauseAdded = true;
             }
         }
 
@@ -1409,11 +1421,12 @@ public class LucenePropertyIndex extends FulltextIndex {
         if (mixinType != null && mixinType.propertyIndex) {
             for (String type : filter.getMixinTypes()) {
                 bq.add(new TermQuery(new Term(JCR_MIXINTYPES, type)), SHOULD);
+                clauseAdded = true;
             }
         }
 
-        if (bq.clauses().size() != 0) {
-            qs.add(bq);
+        if (clauseAdded) {
+            qs.add(bq.build());
         }
     }
 
@@ -1433,36 +1446,36 @@ public class LucenePropertyIndex extends FulltextIndex {
 
             @Override
             public boolean visit(FullTextOr or) {
-                BooleanQuery q = new BooleanQuery();
+                BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                 for (FullTextExpression e : or.list) {
                     Query x = getFullTextQuery(plan, e, analyzer, augmentor);
-                    q.add(x, SHOULD);
+                    bqBuilder.add(x, SHOULD);
                 }
-                result.set(q);
+                result.set(bqBuilder.build());
                 return true;
             }
 
             @Override
             public boolean visit(FullTextAnd and) {
-                BooleanQuery q = new BooleanQuery();
+                BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
                 for (FullTextExpression e : and.list) {
                     Query x = getFullTextQuery(plan, e, analyzer, augmentor);
                     /* Only unwrap the clause if MUST_NOT(x) */
                     boolean hasMustNot = false;
                     if (x instanceof BooleanQuery) {
                         BooleanQuery bq = (BooleanQuery) x;
-                        if ((bq.getClauses().length == 1) &&
-                                (bq.getClauses()[0].getOccur() == BooleanClause.Occur.MUST_NOT)) {
+                        if ((bq.clauses().size() == 1) &&
+                                (bq.clauses().get(0).getOccur() == BooleanClause.Occur.MUST_NOT)) {
                             hasMustNot = true;
-                            q.add(bq.getClauses()[0]);
+                            bqBuilder.add(bq.clauses().get(0));
                         }
                     }
 
                     if (!hasMustNot) {
-                        q.add(x, MUST);
+                        bqBuilder.add(x, MUST);
                     }
                 }
-                result.set(q);
+                result.set(bqBuilder.build());
                 return true;
             }
 
@@ -1471,22 +1484,46 @@ public class LucenePropertyIndex extends FulltextIndex {
                 return visitTerm(term.getPropertyName(), term.getText(), term.getBoost(), term.isNot());
             }
 
+//            private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
+//                String p = getLuceneFieldName(propertyName, pr);
+//                Query q = tokenToQuery(text, p, pr, analyzer, augmentor);
+//                if (q == null) {
+//                    return false;
+//                }
+//                if (boost != null) {
+//                    
+//                    q.setBoost(Float.parseFloat(boost));
+//                }
+//                if (not) {
+//                    BooleanQuery bq = new BooleanQuery();
+//                    bq.add(q, MUST_NOT);
+//                    result.set(bq);
+//                } else {
+//                    result.set(q);
+//                }
+//                return true;
+//            }
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
                 Query q = tokenToQuery(text, p, pr, analyzer, augmentor);
+            
                 if (q == null) {
                     return false;
                 }
+            
                 if (boost != null) {
-                    q.setBoost(Float.parseFloat(boost));
+                    float boostValue = Float.parseFloat(boost);
+                    q = new BoostQuery(q, boostValue);
                 }
+            
                 if (not) {
-                    BooleanQuery bq = new BooleanQuery();
-                    bq.add(q, MUST_NOT);
-                    result.set(bq);
+                    BooleanQuery.Builder bqBuilder = new BooleanQuery.Builder();
+                    bqBuilder.add(q, MUST_NOT);
+                    result.set(bqBuilder.build());
                 } else {
                     result.set(q);
                 }
+            
                 return true;
             }
         });
@@ -1519,46 +1556,83 @@ public class LucenePropertyIndex extends FulltextIndex {
         return p;
     }
 
-    private static Query tokenToQuery(String text, String fieldName, PlanResult pr, Analyzer analyzer,
-                                      FulltextQueryTermsProvider augmentor) {
+//    private static Query tokenToQuery(String text, String fieldName, PlanResult pr, Analyzer analyzer,
+//                                      FulltextQueryTermsProvider augmentor) {
+//        Query ret;
+//        IndexingRule indexingRule = pr.indexingRule;
+//        //Expand the query on fulltext field
+//        if (FieldNames.FULLTEXT.equals(fieldName) &&
+//                !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
+//            BooleanQuery in = new BooleanQuery();
+//            for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
+//                Query q = tokenToQuery(text, FieldNames.createAnalyzedFieldName(pd.name), analyzer);
+//                q.setBoost(pd.boost);
+//                in.add(q, BooleanClause.Occur.SHOULD);
+//            }
+//
+//            //Add the query for actual fulltext field also. That query would
+//            //not be boosted
+//            in.add(tokenToQuery(text, fieldName, analyzer), BooleanClause.Occur.SHOULD);
+//            ret = in;
+//        } else {
+//            ret = tokenToQuery(text, fieldName, analyzer);
+//        }
+//
+//        //Augment query terms if available (as a 'SHOULD' clause)
+//        if (FieldNames.FULLTEXT.equals(fieldName)) {
+//            Query subQuery = new BooleanQuery();
+//            if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
+//                subQuery = tokenToQuery(text, FieldNames.SIMILARITY_TAGS, analyzer);
+//                // De-boosting dynamic boost based query so other clauses will have more relevance
+//                subQuery.setBoost(DYNAMIC_BOOST_WEIGHT);
+//            } else if (augmentor != null) {
+//                subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
+//            }
+//
+//            if (subQuery != null) {
+//                BooleanQuery query = new BooleanQuery();
+//
+//                query.add(ret, BooleanClause.Occur.SHOULD);
+//                query.add(subQuery, BooleanClause.Occur.SHOULD);
+//
+//                ret = query;
+//            }
+//        }
+//
+//        return ret;
+//    }
+
+    private static Query tokenToQuery(String text, String fieldName, PlanResult pr, Analyzer analyzer, FulltextQueryTermsProvider augmentor) {
         Query ret;
         IndexingRule indexingRule = pr.indexingRule;
-        //Expand the query on fulltext field
-        if (FieldNames.FULLTEXT.equals(fieldName) &&
-                !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
-            BooleanQuery in = new BooleanQuery();
+
+        if (FieldNames.FULLTEXT.equals(fieldName) && !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
+            BooleanQuery.Builder inBuilder = new BooleanQuery.Builder();
             for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
                 Query q = tokenToQuery(text, FieldNames.createAnalyzedFieldName(pd.name), analyzer);
-                q.setBoost(pd.boost);
-                in.add(q, BooleanClause.Occur.SHOULD);
+                q = new BoostQuery(q, pd.boost);
+                inBuilder.add(q, BooleanClause.Occur.SHOULD);
             }
-
-            //Add the query for actual fulltext field also. That query would
-            //not be boosted
-            in.add(tokenToQuery(text, fieldName, analyzer), BooleanClause.Occur.SHOULD);
-            ret = in;
+            inBuilder.add(tokenToQuery(text, fieldName, analyzer), BooleanClause.Occur.SHOULD);
+            ret = inBuilder.build();
         } else {
             ret = tokenToQuery(text, fieldName, analyzer);
         }
 
-        //Augment query terms if available (as a 'SHOULD' clause)
         if (FieldNames.FULLTEXT.equals(fieldName)) {
-            Query subQuery = new BooleanQuery();
+            Query subQuery = null;
             if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
                 subQuery = tokenToQuery(text, FieldNames.SIMILARITY_TAGS, analyzer);
-                // De-boosting dynamic boost based query so other clauses will have more relevance
-                subQuery.setBoost(DYNAMIC_BOOST_WEIGHT);
+                subQuery = new BoostQuery(subQuery, DYNAMIC_BOOST_WEIGHT);
             } else if (augmentor != null) {
                 subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
             }
 
             if (subQuery != null) {
-                BooleanQuery query = new BooleanQuery();
-
-                query.add(ret, BooleanClause.Occur.SHOULD);
-                query.add(subQuery, BooleanClause.Occur.SHOULD);
-
-                ret = query;
+                BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
+                queryBuilder.add(ret, BooleanClause.Occur.SHOULD);
+                queryBuilder.add(subQuery, BooleanClause.Occur.SHOULD);
+                ret = queryBuilder.build();
             }
         }
 
@@ -1770,7 +1844,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         private LuceneIndexNode findIndexNode() {
             checkNotReleased();
             LuceneIndexNode n = indexNode;
-            // double checked locking implemented in the correct way for Java 5
+            // double-checked locking implemented in the correct way for Java 5
             // and newer (actually I don't think this is ever called
             // concurrently right now, but better be save)
             if (n == null) {
