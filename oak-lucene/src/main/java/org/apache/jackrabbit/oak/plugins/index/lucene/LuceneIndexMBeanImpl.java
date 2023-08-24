@@ -642,12 +642,12 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
         public Iterable<LuceneDoc> getChildren() {
             //Perform a query for immediate child nodes at given path
-            BooleanQuery bq = new BooleanQuery();
+            BooleanQuery.Builder bq = new BooleanQuery.Builder();
             bq.add(new BooleanClause(new TermQuery(newAncestorTerm(path)), BooleanClause.Occur.MUST));
             bq.add(new BooleanClause(newDepthQuery(path), BooleanClause.Occur.MUST));
 
             try {
-                TopDocs docs = sc.searcher.search(bq, Integer.MAX_VALUE);
+                TopDocs docs = sc.searcher.search(bq.build(), Integer.MAX_VALUE);
                 return getLuceneDocs(docs, sc);
             } catch (IOException e) {
                 throw new RuntimeException(e);
