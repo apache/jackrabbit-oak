@@ -254,7 +254,11 @@ public class LuceneIndexNodeManager {
         for (LuceneIndexReader r : Iterables.concat(readers, nrtReaders)){
             readerArr[i++] = r.getReader();
         }
-        return new MultiReader(readerArr, false);
+        try {
+            return new MultiReader(readerArr, false);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private List<LuceneIndexReader> getNRTReaders() {
