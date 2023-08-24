@@ -417,18 +417,19 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                                 break;
                             }
                         }
-                    } else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
+                    } 
+                    else if (luceneRequestFacade.getLuceneRequest() instanceof SpellcheckHelper.SpellcheckQuery) {
                         SpellcheckHelper.SpellcheckQuery spellcheckQuery = (SpellcheckHelper.SpellcheckQuery) luceneRequestFacade.getLuceneRequest();
                         noDocs = true;
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
                         Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(FieldNames.SUGGEST, suggestion.string);
                             TopDocs topDocs = searcher.search(query, 100);
-                            if (topDocs.totalHits > 0) {
+                            if (topDocs.totalHits.value > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
                                     Document retrievedDoc = searcher.doc(doc.doc);
                                     if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
@@ -447,11 +448,11 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                         // ACL filter suggestions
                         Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
                         for (Lookup.LookupResult suggestion : lookupResults) {
                             Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.key.toString());
                             TopDocs topDocs = searcher.search(query, 100);
-                            if (topDocs.totalHits > 0) {
+                            if (topDocs.totalHits.value > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
                                     Document retrievedDoc = searcher.doc(doc.doc);
                                     if (filter.isAccessible(retrievedDoc.get(FieldNames.PATH))) {
@@ -476,7 +477,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                 return !queue.isEmpty();
             }
-
+            
             private void checkForIndexVersionChange(IndexSearcher searcher) {
                 long currentVersion = LucenePropertyIndex.getVersion(searcher);
                 if (currentVersion != lastSearchIndexerVersion && lastDoc != null){
@@ -634,7 +635,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
         if (pr != null) {
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
-            QueryParser queryParser = new QueryParser(VERSION, "", indexDefinition.getAnalyzer());
+            QueryParser queryParser = new QueryParser("", indexDefinition.getAnalyzer());
             if (query.startsWith("mlt?")) {
                 String mltQueryString = query.replace("mlt?", "");
                 if (reader != null) {
