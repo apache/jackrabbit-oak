@@ -487,7 +487,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, aclCheckField, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(aclCheckField, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(aclCheckField, QueryParserBase.escape(suggestion.string));
 
@@ -515,7 +515,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
-                        QueryParser qp = new QueryParser(Version.LUCENE_47, FieldNames.SUGGEST,
+                        QueryParser qp = new QueryParser(FieldNames.SUGGEST,
                                 indexNode.getDefinition().isSuggestAnalyzed() ? indexNode.getDefinition().getAnalyzer() :
                                 SuggestHelper.getAnalyzer());
 
