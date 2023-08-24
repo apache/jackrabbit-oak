@@ -25,9 +25,9 @@ import java.util.Arrays;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
-import org.apache.lucene.analysis.util.CharFilterFactory;
-import org.apache.lucene.analysis.util.TokenFilterFactory;
-import org.apache.lucene.analysis.util.TokenizerFactory;
+import org.apache.lucene.analysis.CharFilterFactory;
+import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.TokenizerFactory;
 
 /**
  * An analyzer that uses a tokenizer and a list of token filters to
@@ -79,8 +79,8 @@ public final class TokenizerChain extends Analyzer {
     }
 
     @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-        Tokenizer tk = tokenizer.create(reader);
+    protected TokenStreamComponents createComponents(String fieldName) {
+        Tokenizer tk = tokenizer.create();
         TokenStream ts = tk;
         for (TokenFilterFactory filter : filters) {
             ts = filter.create(ts);

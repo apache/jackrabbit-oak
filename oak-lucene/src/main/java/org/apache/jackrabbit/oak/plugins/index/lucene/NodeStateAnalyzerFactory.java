@@ -44,16 +44,16 @@ import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
-import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.analysis.util.CharFilterFactory;
-import org.apache.lucene.analysis.util.ClasspathResourceLoader;
-import org.apache.lucene.analysis.util.ResourceLoader;
-import org.apache.lucene.analysis.util.ResourceLoaderAware;
-import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
-import org.apache.lucene.analysis.util.TokenFilterFactory;
-import org.apache.lucene.analysis.util.TokenizerFactory;
-import org.apache.lucene.analysis.util.WordlistLoader;
+import org.apache.lucene.analysis.AbstractAnalysisFactory;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.CharFilterFactory;
+import org.apache.lucene.util.ModuleResourceLoader;
+import org.apache.lucene.util.ResourceLoader;
+import org.apache.lucene.util.ResourceLoaderAware;
+import org.apache.lucene.analysis.StopwordAnalyzerBase;
+import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.TokenizerFactory;
+import org.apache.lucene.analysis.WordlistLoader;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
@@ -84,7 +84,7 @@ final class NodeStateAnalyzerFactory {
     private final Version defaultVersion;
 
     NodeStateAnalyzerFactory(Version defaultVersion){
-        this(new ClasspathResourceLoader(NodeStateAnalyzerFactory.class.getClassLoader()), defaultVersion);
+        this(new ModuleResourceLoader(NodeStateAnalyzerFactory.class.getModule()), defaultVersion);
     }
 
     NodeStateAnalyzerFactory(ResourceLoader defaultLoader, Version defaultVersion) {
