@@ -18,12 +18,12 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.mongodb.BasicDBObject;
 import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
@@ -116,7 +116,7 @@ public class PipelinedStrategy implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = "oak.indexer.pipelined.mongoDocBatchSize";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = 500;
     public static final String OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = "oak.indexer.pipelined.transformThreads";
-    public static final int DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = 3;
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = 2;
     public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
     // 0 means autodetect
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = 0;
@@ -127,8 +127,10 @@ public class PipelinedStrategy implements SortStrategy {
     static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
-    private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 64;
-    private static final int MIN_WORKING_MEMORY_MB = 512;
+    // A MongoDB document is at most 16MB, so the buffer that holds node state entries must be at least that big
+    private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 16;
+    private static final int MIN_AUTODETECT_WORKING_MEMORY_MB = 128;
+    private static final int MAX_AUTODETECT_WORKING_MEMORY_MB = 4000;
 
     private class MonitorTask implements Runnable {
         private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
@@ -219,9 +221,13 @@ public class PipelinedStrategy implements SortStrategy {
         int maxHeapSizeMB = (int) (Runtime.getRuntime().maxMemory() / FileUtils.ONE_MB);
         int workingMemoryMB = maxHeapSizeMB - 2048;
         LOG.info("Auto detecting working memory. Maximum heap size: {} MB, selected working memory: {} MB", maxHeapSizeMB, workingMemoryMB);
-        if (workingMemoryMB < MIN_WORKING_MEMORY_MB) {
-            LOG.warn("Working memory too low. Setting to minimum: {} MB", MIN_WORKING_MEMORY_MB);
-            workingMemoryMB = MIN_WORKING_MEMORY_MB;
+        if (workingMemoryMB > MAX_AUTODETECT_WORKING_MEMORY_MB) {
+            LOG.warn("Auto-detected value for working memory too high, setting to the maximum allowed for auto-detection: {} MB", MAX_AUTODETECT_WORKING_MEMORY_MB);
+            return MAX_AUTODETECT_WORKING_MEMORY_MB;
+        }
+        if (workingMemoryMB < MIN_AUTODETECT_WORKING_MEMORY_MB) {
+            LOG.warn("Auto-detected value for working memory too low, setting to the minimum allowed for auto-detection: {} MB", MIN_AUTODETECT_WORKING_MEMORY_MB);
+            return MIN_AUTODETECT_WORKING_MEMORY_MB;
         }
         return workingMemoryMB;
     }

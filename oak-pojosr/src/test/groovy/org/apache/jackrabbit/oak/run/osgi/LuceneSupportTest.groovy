@@ -37,7 +37,7 @@ import javax.jcr.Node
 import javax.jcr.Session
 import javax.jcr.query.*
 
-import static com.google.common.collect.Lists.newArrayList
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT
 import static org.apache.jackrabbit.JcrConstants.NT_FILE
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME

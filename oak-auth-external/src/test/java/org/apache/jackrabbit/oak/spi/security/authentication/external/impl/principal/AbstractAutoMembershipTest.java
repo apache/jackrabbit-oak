@@ -59,6 +59,12 @@ public abstract class AbstractAutoMembershipTest  extends AbstractExternalAuthTe
     @Before
     public void before() throws Exception {
         super.before();
+
+        // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership 
+        // providers registered.
+        context.registerInjectActivateService(getUserConfiguration());
+        registerSyncHandler(syncConfigAsMap(), idp.getName());
+        
         userManager = getUserManager(root);
         automembershipGroup1 = userManager.createGroup(AUTOMEMBERSHIP_GROUP_ID_1);
         automembershipGroup2 = userManager.createGroup(AUTOMEMBERSHIP_GROUP_ID_2);

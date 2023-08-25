@@ -68,6 +68,11 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String TRACK_TOTAL_HITS = "trackTotalHits";
     public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
 
+    /**
+     * Hidden property for storing the index mapping version.
+     */
+    public static final String PROP_INDEX_MAPPING_VERSION = ":mappingVersion";
+
     public static final String DYNAMIC_MAPPING = "dynamicMapping";
     // possible values are: true, false, runtime, strict. See https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic.html
     public static final String DYNAMIC_MAPPING_DEFAULT = "true";
@@ -98,6 +103,17 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     private static final String SIMILARITY_TAGS_ENABLED = "similarityTagsEnabled";
     private static final boolean SIMILARITY_TAGS_ENABLED_DEFAULT = true;
+
+    private static final String SIMILARITY_TAGS_FIELDS = "similarityTagsFields";
+
+    // MLT queries, when no fields are specified, do not use the entire document but only a maximum of
+    // max_query_terms (default 25). Even increasing this value, the query could produce not so relevant
+    // results (eg: based on the :fulltext content). To work this around, we can specify DYNAMIC_BOOST_FULLTEXT
+    // field as first field since it usually contains relevant terms. This will make sure that the MLT queries
+    // give more priority to the terms in this field while the rest (*) are considered secondary.
+    private static final String[] SIMILARITY_TAGS_FIELDS_DEFAULT = new String[] {
+            DYNAMIC_BOOST_FULLTEXT, "*"
+    };
 
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
     private static final float SIMILARITY_TAGS_BOOST_DEFAULT = 0.5f;
@@ -131,6 +147,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
     private final Map<String, List<PropertyDefinition>> propertiesByName;
     private final List<PropertyDefinition> dynamicBoostProperties;
     private final List<PropertyDefinition> similarityProperties;
+    private final List<PropertyDefinition> similarityTagsProperties;
+    private final String[] similarityTagsFields;
 
     public ElasticIndexDefinition(NodeState root, NodeState defn, String indexPath, String indexPrefix) {
         super(root, defn, determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
@@ -152,6 +170,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.failOnError = getOptionalValue(defn, FAIL_ON_ERROR,
                 Boolean.parseBoolean(System.getProperty(TYPE_ELASTICSEARCH + "." + FAIL_ON_ERROR, Boolean.toString(FAIL_ON_ERROR_DEFAULT)))
         );
+        this.similarityTagsFields = getOptionalValues(defn, SIMILARITY_TAGS_FIELDS, Type.STRINGS, String.class, SIMILARITY_TAGS_FIELDS_DEFAULT);
 
         this.propertiesByName = getDefinedRules()
                 .stream()
@@ -176,6 +195,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
                 .stream()
                 .flatMap(rule -> rule.getSimilarityProperties().stream())
                 .collect(Collectors.toList());
+
+        this.similarityTagsProperties = propertiesByName.values().stream()
+                .flatMap(List::stream)
+                .filter(pd -> pd.similarityTags).collect(Collectors.toList());
     }
 
     @Nullable
@@ -206,6 +229,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
 
     public List<PropertyDefinition> getSimilarityProperties() {
         return similarityProperties;
+    }
+
+    public List<PropertyDefinition> getSimilarityTagsProperties() {
+        return similarityTagsProperties;
+    }
+
+    public String[] getSimilarityTagsFields() {
+        return similarityTagsFields;
     }
 
     public boolean areSimilarityTagsEnabled() {
@@ -267,6 +298,14 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public boolean analyzerConfigSplitOnNumerics() {
         NodeState analyzersTree = definition.getChildNode(FulltextIndexConstants.ANALYZERS);
         return getOptionalValue(analyzersTree, SPLIT_ON_NUMERICS, false);
+    }
+
+    /**
+     * Returns the mapping version for this index definition.
+     * If the version is not specified, the default value is {@code 1.0.0}.
+     */
+    public String getMappingVersion() {
+        return getOptionalValue(definition, PROP_INDEX_MAPPING_VERSION, "1.0.0");
     }
 
     @Override

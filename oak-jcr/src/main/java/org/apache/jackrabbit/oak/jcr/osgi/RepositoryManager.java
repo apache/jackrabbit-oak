@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.jcr.osgi;
 
+import java.util.Hashtable;
 import java.util.Map;
-import java.util.Properties;
 
 import javax.jcr.Repository;
 
@@ -31,23 +31,23 @@ import org.apache.felix.scr.annotations.Property;
 import org.apache.felix.scr.annotations.Reference;
 import org.apache.felix.scr.annotations.ReferenceStrategy;
 import org.apache.felix.scr.annotations.References;
+import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.commit.JcrConflictHandler;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
-import org.apache.jackrabbit.oak.InitialContent;
+import org.apache.jackrabbit.oak.plugins.index.WhiteboardIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.version.VersionHook;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
+import org.apache.jackrabbit.oak.spi.commit.WhiteboardEditorProvider;
 import org.apache.jackrabbit.oak.spi.lifecycle.RepositoryInitializer;
+import org.apache.jackrabbit.oak.spi.query.WhiteboardIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.spi.commit.WhiteboardEditorProvider;
-import org.apache.jackrabbit.oak.plugins.index.WhiteboardIndexEditorProvider;
-import org.apache.jackrabbit.oak.spi.query.WhiteboardIndexProvider;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -206,6 +206,6 @@ public class RepositoryManager {
                 fastQueryResultSize
         );
 
-        return bundleContext.registerService(Repository.class.getName(), repository, new Properties());
+        return bundleContext.registerService(Repository.class, repository, new Hashtable<String, Object>());
     }
 }

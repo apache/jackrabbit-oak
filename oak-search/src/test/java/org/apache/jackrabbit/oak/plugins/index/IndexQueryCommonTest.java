@@ -57,7 +57,7 @@ import static org.junit.Assert.fail;
  */
 public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
-    private Tree indexDefn;
+    protected Tree indexDefn;
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
     private LogCustomizer logCustomizer;
@@ -813,7 +813,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
 
     public abstract String getExplainValueForDescendantTestWithIndexTagExplain();
 
-    private Runnable getAssertionForExplain(String query, String language, String expected, boolean matchComplete) {
+    protected Runnable getAssertionForExplain(String query, String language, String expected, boolean matchComplete) {
         return () -> {
             Result result = null;
             try {
@@ -830,7 +830,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         };
     }
 
-    private static void assertEventually(Runnable r) {
+    protected static void assertEventually(Runnable r) {
         TestUtil.assertEventually(r, 3000 * 3);
     }
 }

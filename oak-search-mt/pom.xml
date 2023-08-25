@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.53-SNAPSHOT</version>
+        <version>1.55-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -45,7 +45,6 @@
                         </Export-Package>
                         <Embed-Dependency>*;scope=compile,artifactId=!oak-lucene</Embed-Dependency>
                         <Import-Package>
-                            <!-- OAK-7182 -->${guava.osgi.import},
                             com.ibm.uvm.tools.*;resolution:=optional,
                             com.sun.jdmk.comm.*;resolution:=optional,
                             com.sun.net.httpserver.*;resolution:=optional,
@@ -84,21 +83,6 @@
 
     <dependencies>
         <!-- Optional OSGi dependencies, used only when running within OSGi -->
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.annotation</artifactId>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>org.apache.felix</groupId>
             <artifactId>org.apache.felix.scr.annotations</artifactId>
@@ -164,13 +148,11 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
-            <version>3.5</version>
         </dependency>
 
     </dependencies>
