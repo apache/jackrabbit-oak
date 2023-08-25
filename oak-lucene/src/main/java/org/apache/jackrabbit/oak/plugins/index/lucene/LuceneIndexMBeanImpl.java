@@ -70,10 +70,12 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiTerms;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.BooleanClause;
@@ -87,7 +89,6 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -238,13 +239,13 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     @Override
     public String[] getFieldInfo(String indexPath) throws IOException {
-        TreeSet<String> indexes = new TreeSet<String>();
+        TreeSet<String> indexes = new TreeSet<>();
         if (indexPath == null || indexPath.isEmpty()) {
             indexes.addAll(indexTracker.getIndexNodePaths());
         } else {
             indexes.add(indexPath);
         }
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         for (String path : indexes) {
             LuceneIndexNode indexNode = null;
             try {
@@ -430,6 +431,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         return checker.check(level);
     }
 
+    // TODO: Is this ever used?
     public void dumpIndexContent(String sourcePath, String destPath) throws IOException {
         LuceneIndexNode indexNode = null;
         try {
@@ -455,7 +457,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static ArrayList<String> getFieldInfo(String path, IndexSearcher searcher) throws IOException {
-        ArrayList<String> list = new ArrayList<String>();
+        ArrayList<String> list = new ArrayList<>();
         IndexReader reader = searcher.getIndexReader();
         Collection<String> fields = FieldInfos.getIndexedFields(reader);
         if (fields != null) {
@@ -467,13 +469,13 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static Function<BytesRef, String> getTypeHandler(String type) {
-//        if (type != null) {
-//            if (long.class.getName().equals(type) || Long.class.getName().equals(type)) {
-//                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToLong(bytesRef));
-//            } else if (int.class.getName().equals(type) || Integer.class.getName().equals(type)) {
-//                return bytesRef -> String.valueOf(NumericUtils.prefixCodedToInt(bytesRef));
-//            }
-//        }
+        if (type != null) {
+            if (long.class.getName().equals(type) || Long.class.getName().equals(type)) {
+                return bytesRef -> String.valueOf(LongPoint.decodeDimension(bytesRef.bytes, bytesRef.offset));
+            } else if (int.class.getName().equals(type) || Integer.class.getName().equals(type)) {
+                return bytesRef -> String.valueOf(IntPoint.decodeDimension(bytesRef.bytes, bytesRef.offset));
+            }
+        }
         return BytesRef::utf8ToString;
     }
 
@@ -499,7 +501,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             return result;
         }
         TermsEnum iterator = terms.iterator();
-        BytesRef byteRef = null;
+        BytesRef byteRef;
         class Entry implements Comparable<Entry> {
             String term;
             int count;
@@ -657,7 +659,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
     }
 
     private static List<LuceneDoc> getLuceneDocs(TopDocs docs, SearchContext sc) throws IOException {
-        List<LuceneDoc> result = new ArrayList<LuceneDoc>(docs.scoreDocs.length);
+        List<LuceneDoc> result = new ArrayList<>(docs.scoreDocs.length);
         IndexReader reader = sc.searcher.getIndexReader();
         for (ScoreDoc doc : docs.scoreDocs){
             result.add(new LuceneDoc(getPath(reader, doc), sc));
@@ -667,7 +669,8 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
 
     private static String getPath(IndexReader reader, ScoreDoc doc) throws IOException {
         PathStoredFieldVisitor visitor = new PathStoredFieldVisitor();
-        reader.document(doc.doc, visitor);
+        StoredFields storedFields = reader.storedFields();
+        storedFields.document(doc.doc, visitor);
         return visitor.getPath();
     }
 
