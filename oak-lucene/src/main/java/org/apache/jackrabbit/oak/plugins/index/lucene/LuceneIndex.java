@@ -70,7 +70,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.MultiFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -96,7 +95,6 @@ import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
-import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +107,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper.skipTokenization;
@@ -158,7 +155,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
-    private static double MIN_COST = 2.2;
+    private static final double MIN_COST = 2.2;
 
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
@@ -497,31 +494,28 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 this.lastSearchIndexerVersion = currentVersion;
             }
         };
-        SizeEstimator sizeEstimator = new SizeEstimator() {
-            @Override
-            public long getSize() {
-                LuceneIndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
-                checkState(indexNode != null);
-                try {
-                    IndexSearcher searcher = indexNode.getSearcher();
-                    LuceneRequestFacade luceneRequestFacade = getLuceneRequest(filter, searcher.getIndexReader(),
-                            nonFullTextConstraints, indexNode.getDefinition());
-                    if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
-                        Query query = (Query) luceneRequestFacade.getLuceneRequest();
-                        TotalHitCountCollector collector = new TotalHitCountCollector();
-                        searcher.search(query, collector);
-                        int totalHits =  collector.getTotalHits();
-                        LOG.debug("Estimated size for query {} is {}", query, totalHits);
-                        return totalHits;
-                    }
-                    LOG.debug("Estimated size: not a Query: {}", luceneRequestFacade.getLuceneRequest());
-                } catch (IOException e) {
-                    LOG.warn("query via {} failed.", LuceneIndex.this, e);
-                } finally {
-                    indexNode.release();
+        SizeEstimator sizeEstimator = () -> {
+            LuceneIndexNode indexNode = tracker.acquireIndexNode((String) plan.getAttribute(ATTR_INDEX_PATH));
+            checkState(indexNode != null);
+            try {
+                IndexSearcher searcher = indexNode.getSearcher();
+                LuceneRequestFacade luceneRequestFacade = getLuceneRequest(filter, searcher.getIndexReader(),
+                        nonFullTextConstraints, indexNode.getDefinition());
+                if (luceneRequestFacade.getLuceneRequest() instanceof Query) {
+                    Query query = (Query) luceneRequestFacade.getLuceneRequest();
+                    TotalHitCountCollector collector = new TotalHitCountCollector();
+                    searcher.search(query, collector);
+                    int totalHits =  collector.getTotalHits();
+                    LOG.debug("Estimated size for query {} is {}", query, totalHits);
+                    return totalHits;
                 }
-                return -1;
+                LOG.debug("Estimated size: not a Query: {}", luceneRequestFacade.getLuceneRequest());
+            } catch (IOException e) {
+                LOG.warn("query via {} failed.", LuceneIndex.this, e);
+            } finally {
+                indexNode.release();
             }
+            return -1;
         };
         return new LucenePathCursor(itr, settings, sizeEstimator, filter);
     }
