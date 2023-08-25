@@ -34,7 +34,6 @@ import org.apache.lucene.codecs.lucene90.Lucene90NormsFormat;
 import org.apache.lucene.codecs.lucene90.Lucene90SegmentInfoFormat;
 import org.apache.lucene.codecs.lucene90.Lucene90StoredFieldsFormat;
 import org.apache.lucene.codecs.lucene90.Lucene90TermVectorsFormat;
-import org.apache.lucene.codecs.lucene95.Lucene95Codec;
 
 /**
  * Oak specific {@link org.apache.lucene.codecs.Codec}.
@@ -44,12 +43,13 @@ import org.apache.lucene.codecs.lucene95.Lucene95Codec;
  */
 public class OakCodec extends FilterCodec {
 
+    private static final String OAK_CODEC_NAME = "Lucene90";
     private final TermVectorsFormat vectorsFormat = new Lucene90TermVectorsFormat();
     private final FieldInfosFormat fieldInfosFormat = new Lucene90FieldInfosFormat();
     private final SegmentInfoFormat segmentInfosFormat = new Lucene90SegmentInfoFormat();
     private final LiveDocsFormat liveDocsFormat = new Lucene90LiveDocsFormat();
-    private final PostingsFormat defaultFormat = PostingsFormat.forName("Lucene90");
-    private final DocValuesFormat defaultDVFormat = DocValuesFormat.forName("Lucene90");
+    private final PostingsFormat defaultFormat = PostingsFormat.forName(OAK_CODEC_NAME);
+    private final DocValuesFormat defaultDVFormat = DocValuesFormat.forName(OAK_CODEC_NAME);
     private final NormsFormat normsFormat = new Lucene90NormsFormat();
     private final StoredFieldsFormat fieldsFormat = new Lucene90StoredFieldsFormat();
 

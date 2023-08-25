@@ -189,10 +189,10 @@ public class LuceneIndexDefinition extends IndexDefinition {
         if (codecName != null) {
             // prevent LUCENE-6482
             // (also done in LuceneIndexProviderService, just to be safe)
-            OakCodec ensureLucene46CodecLoaded = new OakCodec();
+            OakCodec oakCodec = new OakCodec();
             // to ensure the JVM doesn't optimize away object creation
             // (probably not really needed; just to be safe)
-            log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
+            log.debug("Oak codec is loaded: {}",  oakCodec);
             codec = Codec.forName(codecName);
             log.debug("Codec is loaded: {}", codecName);
         } else if (fullTextEnabled) {
