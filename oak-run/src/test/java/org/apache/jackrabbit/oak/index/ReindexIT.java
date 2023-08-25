@@ -56,6 +56,7 @@ import java.security.Permission;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static java.lang.System.getSecurityManager;
 import static java.lang.System.setSecurityManager;
@@ -421,6 +422,25 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
             results.add(row.getValue(propertyName).getString());
         }
         return results;
+    }
+
+    @Override
+    protected void createIndex(String nodeType, String propName, boolean asyncIndex) throws IOException,
+            RepositoryException {
+        LuceneIndexDefinitionBuilder idxBuilder = new LuceneIndexDefinitionBuilder();
+        if (!asyncIndex) {
+            idxBuilder.noAsync();
+        }
+        idxBuilder.indexRule(nodeType).property(propName).propertyIndex().useInSuggest().analyzed();
+
+        Session session = fixture.getAdminSession();
+        Node fooIndex = getOrCreateByPath(TEST_INDEX_PATH,
+                "oak:QueryIndexDefinition", session);
+
+        idxBuilder.build(fooIndex);
+        fooIndex.addNode("suggestion").setProperty("suggestUpdateFrequencyMinutes", 0);
+        session.save();
+        session.logout();
     }
 
     public static <E extends Throwable> void assertExits(final int expectedStatus, final ThrowingExecutable<E> executable) throws E {
