@@ -120,6 +120,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
@@ -490,9 +491,10 @@ public class LucenePropertyIndex extends FulltextIndex {
                             query = addDescendantClauseIfRequired(query, plan);
 
                             TopDocs topDocs = searcher.search(query, 100);
+                            StoredFields storedFields = searcher.storedFields();
                             if (topDocs.totalHits.value > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
-                                    Document retrievedDoc = searcher.doc(doc.doc);
+                                    Document retrievedDoc = storedFields.document(doc.doc);
                                     String prefix = filter.getPath();
                                     if (prefix.length() == 1) {
                                         prefix = "";
@@ -522,9 +524,10 @@ public class LucenePropertyIndex extends FulltextIndex {
                             query = addDescendantClauseIfRequired(query, plan);
 
                             TopDocs topDocs = searcher.search(query, 100);
+                            StoredFields storedFields = searcher.storedFields();
                             if (topDocs.totalHits.value > 0) {
                                 for (ScoreDoc doc : topDocs.scoreDocs) {
-                                    Document retrievedDoc = searcher.doc(doc.doc);
+                                    Document retrievedDoc = storedFields.document(doc.doc);
                                     String prefix = filter.getPath();
                                     if (prefix.length() == 1) {
                                         prefix = "";
@@ -1475,26 +1478,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             public boolean visit(FullTextTerm term) {
                 return visitTerm(term.getPropertyName(), term.getText(), term.getBoost(), term.isNot());
             }
-
-//            private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
-//                String p = getLuceneFieldName(propertyName, pr);
-//                Query q = tokenToQuery(text, p, pr, analyzer, augmentor);
-//                if (q == null) {
-//                    return false;
-//                }
-//                if (boost != null) {
-//                    
-//                    q.setBoost(Float.parseFloat(boost));
-//                }
-//                if (not) {
-//                    BooleanQuery bq = new BooleanQuery();
-//                    bq.add(q, MUST_NOT);
-//                    result.set(bq);
-//                } else {
-//                    result.set(q);
-//                }
-//                return true;
-//            }
+            
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
                 String p = getLuceneFieldName(propertyName, pr);
                 Query q = tokenToQuery(text, p, pr, analyzer, augmentor);
@@ -1547,53 +1531,7 @@ public class LucenePropertyIndex extends FulltextIndex {
         }
         return p;
     }
-
-//    private static Query tokenToQuery(String text, String fieldName, PlanResult pr, Analyzer analyzer,
-//                                      FulltextQueryTermsProvider augmentor) {
-//        Query ret;
-//        IndexingRule indexingRule = pr.indexingRule;
-//        //Expand the query on fulltext field
-//        if (FieldNames.FULLTEXT.equals(fieldName) &&
-//                !indexingRule.getNodeScopeAnalyzedProps().isEmpty()) {
-//            BooleanQuery in = new BooleanQuery();
-//            for (PropertyDefinition pd : indexingRule.getNodeScopeAnalyzedProps()) {
-//                Query q = tokenToQuery(text, FieldNames.createAnalyzedFieldName(pd.name), analyzer);
-//                q.setBoost(pd.boost);
-//                in.add(q, BooleanClause.Occur.SHOULD);
-//            }
-//
-//            //Add the query for actual fulltext field also. That query would
-//            //not be boosted
-//            in.add(tokenToQuery(text, fieldName, analyzer), BooleanClause.Occur.SHOULD);
-//            ret = in;
-//        } else {
-//            ret = tokenToQuery(text, fieldName, analyzer);
-//        }
-//
-//        //Augment query terms if available (as a 'SHOULD' clause)
-//        if (FieldNames.FULLTEXT.equals(fieldName)) {
-//            Query subQuery = new BooleanQuery();
-//            if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
-//                subQuery = tokenToQuery(text, FieldNames.SIMILARITY_TAGS, analyzer);
-//                // De-boosting dynamic boost based query so other clauses will have more relevance
-//                subQuery.setBoost(DYNAMIC_BOOST_WEIGHT);
-//            } else if (augmentor != null) {
-//                subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
-//            }
-//
-//            if (subQuery != null) {
-//                BooleanQuery query = new BooleanQuery();
-//
-//                query.add(ret, BooleanClause.Occur.SHOULD);
-//                query.add(subQuery, BooleanClause.Occur.SHOULD);
-//
-//                ret = query;
-//            }
-//        }
-//
-//        return ret;
-//    }
-
+    
     private static Query tokenToQuery(String text, String fieldName, PlanResult pr, Analyzer analyzer, FulltextQueryTermsProvider augmentor) {
         Query ret;
         IndexingRule indexingRule = pr.indexingRule;
@@ -1619,7 +1557,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             } else if (augmentor != null) {
                 subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
             }
-
+            
             if (subQuery != null) {
                 BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
                 queryBuilder.add(ret, BooleanClause.Occur.SHOULD);
@@ -1653,7 +1591,6 @@ public class LucenePropertyIndex extends FulltextIndex {
         return IntPoint.newExactQuery(FieldNames.PATH_DEPTH, depth);
     }
 
-    @SuppressWarnings("Guava")
     private static Iterator<FulltextResultRow> mergePropertyIndexResult(IndexPlan plan, NodeState rootState,
                                                                         Iterator<FulltextResultRow> itr) {
         PlanResult pr = getPlanResult(plan);
