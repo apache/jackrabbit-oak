@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStoreNodeState;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Session;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.Store;
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.StoreLock;
@@ -120,8 +121,8 @@ public class TreeSortPipelinedBuildTreeTask implements Callable<TreeSortPipeline
         long textSizeInCurrentTree = 0;
         for (NodeStateEntryJson entry : nseb) {
             totalEntriesProcessed++;
-            String path = entry.path;
-            String json = entry.json;
+            String path = entry.key;
+            String json = entry.value;
             session.put(path, json);
             textSizeInCurrentTree += path.length() + json.length();
         }

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.tree.nodeStore;
+package org.apache.jackrabbit.oak.index.indexer.document.tree;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +28,6 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitHook;
@@ -44,7 +43,7 @@ public class TreeNodeStore implements NodeStore {
     private final TreeStore treeStore;
     private final BlobStore blobStore;
     
-    private TreeNodeStore(TreeStore treeStore, BlobStore blobStore) {
+    TreeNodeStore(TreeStore treeStore, BlobStore blobStore) {
         this.treeStore = treeStore;
         this.blobStore = blobStore;
     }

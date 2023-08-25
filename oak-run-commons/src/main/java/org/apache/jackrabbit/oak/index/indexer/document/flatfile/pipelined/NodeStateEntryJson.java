@@ -3,16 +3,16 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.jetbrains.annotations.NotNull;
 
 public class NodeStateEntryJson implements Comparable<NodeStateEntryJson> {
-    final String path;
-    final String json;
+    final String key;
+    final String value;
 
-    public NodeStateEntryJson(String path, String json) {
-        this.path = path;
-        this.json = json;
+    public NodeStateEntryJson(String key, String value) {
+        this.key = key;
+        this.value = value;
     }
 
     @Override
     public int compareTo(@NotNull NodeStateEntryJson o) {
-        return this.path.compareTo(o.path);
+        return this.key.compareTo(o.key);
     }
 }

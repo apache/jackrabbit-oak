@@ -26,11 +26,9 @@ public class TreeStoreTest {
 
     @Test
     public void test() {
-        assertEquals("\t", TreeStore.toChildNodeEntry("/"));
-        assertEquals("/\tabc", TreeStore.toChildNodeEntry("/abc"));
-        assertEquals("/hello\tworld", TreeStore.toChildNodeEntry("/hello/world"));
-        
-        assertEquals("/\tabc", TreeStore.toChildNodeEntry("/", "abc"));
-        assertEquals("/hello\tworld", TreeStore.toChildNodeEntry("/hello", "world"));
+        assertEquals("\t", TreeStore.convertPathToKey("/"));
+        assertEquals("\thello\tworld", TreeStore.convertPathToKey("/hello/world"));
+        assertEquals("/", TreeStore.convertKeyToPath("\t"));
+        assertEquals("/hello/world", TreeStore.convertKeyToPath("\thello\tworld"));
     }
 }

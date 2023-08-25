@@ -286,31 +286,77 @@ public class PageFile {
         if (keys.isEmpty()) {
             return -1;
         }
-        if (lastSearchIndex == 1) {
+        if (lastSearchIndex == Integer.MAX_VALUE) {
             if (key.compareTo(keys.get(keys.size() - 1)) > 0) {
                 index = -(keys.size() + 1);
-                // index = Collections.binarySearch(recordKeys, key);
             } else {
                 index = Collections.binarySearch(keys, key);
             }
-        } else if (lastSearchIndex == -1) {
+        } else if (lastSearchIndex == Integer.MIN_VALUE) {
             if (key.compareTo(keys.get(0)) < 0) {
                 index = -1;
-                // index = Collections.binarySearch(recordKeys, key);
             } else {
                 index = Collections.binarySearch(keys, key);
             }
-        } else {
+        } else if (lastSearchIndex == 0 || keys.size() < 8) {
             index = Collections.binarySearch(keys, key);
+        } else {
+            index = binarySearchWithGuess(keys, key, lastSearchIndex);
+            lastSearchIndex = Math.abs(index);
         }
         if (index == -(keys.size() + 1)) {
-            lastSearchIndex = 1;
+            lastSearchIndex = Integer.MAX_VALUE;
         } else if (index == -1) {
-            lastSearchIndex = -1;
+            lastSearchIndex = Integer.MIN_VALUE;
         } else {
-            lastSearchIndex = 0;
+            lastSearchIndex = Math.abs(index);
         }
         return index;
+    }
+
+    private static int binarySearchWithGuess(ArrayList<String> list, String key, int guess) {
+        int x = guess;
+        int low = 0;
+        int high = list.size() - 1;
+        int step = 2;
+        while (low <= high) {
+            x = Math.max(x, low);
+            x = Math.min(x, high);
+            String midVal = list.get(x);
+            int comp = key.compareTo(midVal);
+            if (comp > 0) {
+                low = x + 1;
+                x = low + step;
+            } else if (comp < 0) {
+                high = x - 1;
+                x = high - step;
+            } else {
+                return x;
+            }
+            if (high - low < 8 || step >= 256) {
+                int result = binarySearch(list, key, low, high);
+                return result;
+            }
+            step *= 8;
+        }
+        return -(low + 1);
+    }
+
+    private static int binarySearch(ArrayList<String> list, String key, int low, int high) {
+        int x = (low + high) >>> 1;
+        while (low <= high) {
+            String midVal = list.get(x);
+            int comp = key.compareTo(midVal);
+            if (comp > 0) {
+                low = x + 1;
+            } else if (comp < 0) {
+                high = x - 1;
+            } else {
+                return x;
+            }
+            x = (low + high) >>> 1;
+        }
+        return -(low + 1);
     }
 
     public String getValue(int index) {

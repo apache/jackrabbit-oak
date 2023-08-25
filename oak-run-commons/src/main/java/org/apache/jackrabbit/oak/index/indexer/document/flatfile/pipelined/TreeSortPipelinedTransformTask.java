@@ -177,13 +177,16 @@ class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransf
                                     // Write entry to buffer
                                     String json = entryWriter.asJson(nse.getNodeState());
                                     lastModified = nse.getLastModified();
-                                    sizeEstimateOfBatch += 2 * (json.length() + path.length());
-                                    nseBatch.add(new NodeStateEntryJson(path, json));
-                                    if (!path.equals("/")) {
+                                    sizeEstimateOfBatch += json.length() + path.length();
+                                    String key = TreeStore.convertPathToKey(path);
+                                    nseBatch.add(new NodeStateEntryJson(key, json));
+                                    if (TreeStore.CHILD_ENTRIES && !path.equals("/")) {
                                         String nodeName = PathUtils.getName(path);
                                         String parentPath = PathUtils.getParentPath(path);
-                                        sizeEstimateOfBatch += 2 * (nodeName.length() + parentPath.length() + 1);
-                                        nseBatch.add(new NodeStateEntryJson(parentPath + "\t" + nodeName, ""));
+                                        if (TreeStore.CHILD_ENTRIES) {
+                                            sizeEstimateOfBatch += nodeName.length() + parentPath.length() + 1;
+                                            nseBatch.add(new NodeStateEntryJson(parentPath + "\t" + nodeName, ""));
+                                        }
                                     }
 
                                 } else {

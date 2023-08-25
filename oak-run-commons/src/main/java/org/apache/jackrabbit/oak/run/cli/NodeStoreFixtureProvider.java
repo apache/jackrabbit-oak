@@ -30,7 +30,7 @@ import com.codahale.metrics.Counting;
 import com.codahale.metrics.MetricRegistry;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.nodeStore.TreeNodeStore;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;

@@ -48,7 +48,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -112,7 +111,6 @@ public class IndexCommand implements Command {
         setupLogging(indexOpts);
 
         logCliArgs(args);
-
         boolean success = false;
         try {
             if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
@@ -151,7 +149,6 @@ public class IndexCommand implements Command {
         } finally {
             shutdownLogging();
         }
-
         if (!success) {
             System.exit(1);
         }
