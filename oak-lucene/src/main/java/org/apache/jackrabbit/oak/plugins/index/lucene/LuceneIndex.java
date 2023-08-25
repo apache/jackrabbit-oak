@@ -117,13 +117,13 @@ import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Used to query old (compatVersion 1) Lucene indexes.
- *
+ * <p>
  * Provides a QueryIndex that does lookups against a Lucene-based index
  *
  * <p>
  * To define a lucene index on a subtree you have to add an
  * <code>oak:index</code> node.
- *
+ * <p>
  * Under it follows the index definition node that:
  * <ul>
  * <li>must be of type <code>oak:QueryIndexDefinition</code></li>
@@ -895,7 +895,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     static Query getFullTextQuery(FullTextExpression ft, final Analyzer analyzer, final IndexReader reader) {
         // a reference to the query, so it can be set in the visitor
         // (a "non-local return")
-        final AtomicReference<Query> result = new AtomicReference<Query>();
+        final AtomicReference<Query> result = new AtomicReference<>();
         ft.accept(new FullTextVisitor() {
 
             @Override
