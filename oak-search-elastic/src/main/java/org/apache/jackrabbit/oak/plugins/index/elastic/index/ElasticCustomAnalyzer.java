@@ -173,6 +173,7 @@ public class ElasticCustomAnalyzer {
                                 .map(Map.Entry::getValue)
                                 .findFirst().orElseGet(Collections::emptyList);
                 Map<String, String> luceneArgs = StreamSupport.stream(child.getProperties().spliterator(), false)
+                        .filter(ElasticCustomAnalyzer::isPropertySupported)
                         .filter(ps -> !unsupportedParameters.contains(ps.getName()))
                         .collect(Collectors.toMap(PropertyState::getName, ps -> ps.getValue(Type.STRING)));
 
@@ -267,11 +268,7 @@ public class ElasticCustomAnalyzer {
 
     private static Map<String, Object> convertNodeState(NodeState state, List<ParameterTransformer> transformers, List<String> preloadedContent) {
         Map<String, Object> luceneParams = StreamSupport.stream(Spliterators.spliteratorUnknownSize(state.getProperties().iterator(), Spliterator.ORDERED), false)
-                .filter(ps -> ps.getType() != Type.BINARY &&
-                        !ps.isArray() &&
-                        !NodeStateUtils.isHidden(ps.getName()) &&
-                        !IGNORE_PROP_NAMES.contains(ps.getName())
-                )
+                .filter(ElasticCustomAnalyzer::isPropertySupported)
                 .collect(Collectors.toMap(PropertyState::getName, ps -> {
                     String value = ps.getValue(Type.STRING);
                     List<String> values = Arrays.asList(value.split(","));
@@ -290,6 +287,16 @@ public class ElasticCustomAnalyzer {
             lp1.putAll(lp2);
             return lp1;
         });
+    }
+
+    /*
+     * See org.apache.jackrabbit.oak.plugins.index.lucene.NodeStateAnalyzerFactory#convertNodeState
+     */
+    private static boolean isPropertySupported(PropertyState ps) {
+        return ps.getType() != Type.BINARY &&
+                !ps.isArray() &&
+                !NodeStateUtils.isHidden(ps.getName()) &&
+                !IGNORE_PROP_NAMES.contains(ps.getName());
     }
 
     /**

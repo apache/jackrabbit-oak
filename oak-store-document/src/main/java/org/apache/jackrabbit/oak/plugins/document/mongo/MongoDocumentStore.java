@@ -628,7 +628,7 @@ public class MongoDocumentStore implements DocumentStore {
             } else {
                 return (T) doc;
             }
-        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
+        } catch (UncheckedExecutionException e) {
             t = e.getCause();
         } catch (ExecutionException e) {
             t = e.getCause();
@@ -1774,7 +1774,7 @@ public class MongoDocumentStore implements DocumentStore {
                 }
             }
             return;
-        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException | ExecutionException e) {
+        } catch (UncheckedExecutionException | ExecutionException e) {
             t = e.getCause();
         } catch (RuntimeException e) {
             t = e;

@@ -94,8 +94,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     }
 
     /*
-    Override this to create some other repo initializer if needed
-    // Make sure to call super.initialize(builder)
+     * Override this to create some other repo initializer if needed
+     * Make sure to call super.initialize(builder)
      */
     protected InitialContent getInitialContent() {
         return new InitialContent() {
@@ -255,7 +255,7 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
         }
     }
 
-    private ElasticIndexDefinition getElasticIndexDefinition(Tree index) {
+    protected ElasticIndexDefinition getElasticIndexDefinition(Tree index) {
         return new ElasticIndexDefinition(
                 nodeStore.getRoot(),
                 nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(index.getName()),

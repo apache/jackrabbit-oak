@@ -49,6 +49,7 @@ public class Session {
     static final boolean MULTI_ROOT = true;
 
     private final Store store;
+
     private final Cache<String, PageFile> cache = new Cache<>(DEFAULT_CACHE_SIZE)  {
         private static final long serialVersionUID = 1L;
 
@@ -76,7 +77,23 @@ public class Session {
         this(new MemoryStore(new Properties()));
     }
 
-    public Session(Store store) {
+    /**
+     * Open a new session.
+     *
+     * @param store the store
+     * @return the session
+     */
+    public static Session open(Store store) {
+        PageFile root = store.getIfExists(ROOT_NAME);
+        if (root == null) {
+            root = new PageFile(false);
+            root.setFileName(ROOT_NAME);
+            store.put(ROOT_NAME, root);
+        }
+        return new Session(store);
+    }
+
+    private Session(Store store) {
         this.store = store;
         maxFileSize = Integer.parseInt(store.getConfig().getProperty("maxFileSize", "" + DEFAULT_MAX_FILE_SIZE));
         cacheSizeMB = Integer.parseInt(store.getConfig().getProperty("cacheSizeMB", "" + DEFAULT_CACHE_SIZE_MB));
@@ -150,17 +167,6 @@ public class Session {
         }
     }
 
-    /**
-     * Initialize the storage, creating a new root if needed.
-     */
-    public void init() {
-        PageFile root = store.getIfExists(ROOT_NAME);
-        if (root == null) {
-            root = newPageFile(false);
-            putFile(ROOT_NAME, root);
-        }
-    }
-
     private PageFile copyPageFile(PageFile old) {
         PageFile result = old.copy();
         result.setUpdate(updateId);
@@ -181,7 +187,7 @@ public class Session {
      */
     public String get(String key) {
         if (key == null) {
-            throw new NullPointerException();
+            throw new IllegalArgumentException("key must not be null");
         }
         String fileName = ROOT_NAME;
         do {

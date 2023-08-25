@@ -264,11 +264,14 @@ final class MutableTree extends AbstractMutableTree {
      * @param newName   new name for this tree
      */
     boolean moveTo(@NotNull MutableTree newParent, @NotNull String newName) {
-        name = checkNotNull(newName);
-        parent = checkNotNull(newParent);
+        checkNotNull(newName);
+        checkNotNull(newParent);
+        MutableTree oldParent = parent;
         boolean success = nodeBuilder.moveTo(newParent.nodeBuilder, newName);
         if (success) {
-            parent.updateChildOrder(false);
+            name = newName;
+            parent = newParent;
+            oldParent.updateChildOrder(false);
             newParent.updateChildOrder(false);
         }
         return success;

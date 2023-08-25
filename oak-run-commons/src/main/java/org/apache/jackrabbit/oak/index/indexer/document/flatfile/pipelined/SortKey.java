@@ -19,12 +19,13 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
-public final class SortKey {
+public final class SortKey implements Comparable<SortKey> {
     private static final Set<String> COMMON_PATH_WORDS = Set.of(
             ":index",
             "assets",
@@ -86,4 +87,33 @@ public final class SortKey {
         return pathElements;
     }
 
+    @Override
+    public int compareTo(@NotNull SortKey o) {
+        String[] p1 = this.pathElements;
+        String[] p2 = o.pathElements;
+
+        int i1 = 0;
+        int i2 = 0;
+
+        //Shorter paths come first i.e. first parent then children
+        while (i1 < p1.length || i2 < p2.length) {
+            if (i1 >= p1.length) {
+                return -1;
+            }
+            if (i2 >= p2.length) {
+                return 1;
+            }
+
+            String pe1 = p1[i1];
+            i1++;
+            String pe2 = p2[i2];
+            i2++;
+
+            int compare = pe1.compareTo(pe2);
+            if (compare != 0) {
+                return compare;
+            }
+        }
+        return 0;
+    }
 }

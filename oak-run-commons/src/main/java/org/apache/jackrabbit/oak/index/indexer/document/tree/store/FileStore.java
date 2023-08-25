@@ -23,6 +23,12 @@ import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -32,16 +38,19 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import org.apache.jackrabbit.oak.index.indexer.document.tree.store.utils.Uuid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileStore implements Store {
+    private static final Logger LOG = LoggerFactory.getLogger(FileStore.class);
 
     private final Properties config;
     private final String directory;
     private Compression compression = Compression.NO;
     private long writeCount, readCount;
     private Thread backgroundThread;
-    private ConcurrentHashMap<String, PageFile> pendingWrites = new ConcurrentHashMap<>();
-    private LinkedBlockingQueue<WriteOperation> queue = new LinkedBlockingQueue<>(100);
+    private final ConcurrentHashMap<String, PageFile> pendingWrites = new ConcurrentHashMap<>();
+    private final LinkedBlockingQueue<WriteOperation> queue = new LinkedBlockingQueue<>(100);
 
     private static final WriteOperation STOP = new WriteOperation();
 
@@ -57,7 +66,13 @@ public class FileStore implements Store {
     public FileStore(Properties config) {
         this.config = config;
         this.directory = config.getProperty("dir");
-        new File(directory).mkdirs();
+        if (this.directory == null) {
+            throw new IllegalArgumentException("dir must be set");
+        }
+        boolean dirsCreated = new File(directory).mkdirs();
+        if (!dirsCreated) {
+            LOG.warn("Directory already exists: {}", directory);
+        }
         boolean asyncWrite = Boolean.parseBoolean(config.getProperty("async", "false"));
         if (asyncWrite) {
             startAsyncWriter();
@@ -83,6 +98,8 @@ public class FileStore implements Store {
                     }
                 } catch (InterruptedException e) {
                     // TODO Auto-generated catch block
+                    e.printStackTrace();
+                } catch (Throwable e) {
                     e.printStackTrace();
                 }
             }
@@ -119,14 +136,19 @@ public class FileStore implements Store {
         readCount++;
         File f = getFile(key);
         if (!f.exists()) {
+            LOG.info("File does not exist: {}", f);
             return null;
         }
         try (RandomAccessFile file = new RandomAccessFile(f, "r")) {
             long length = file.length();
             if (length == 0) {
+                LOG.info("File is empty: {}", f);
                 // deleted in the meantime
                 return null;
             }
+            // TODO: decompress while streaming the data from the disk. Avoiding loading the whole file in memory
+            //  before decompressing. Even better, create a PageFile.fromStream(InputStream) method and pass it a
+            //  stream that reads and decompresses. This will cut the amount of intermediate memory buffers needed.
             byte[] data = new byte[(int) length];
             file.readFully(data);
             Compression c = Compression.getCompressionFromData(data[0]);
@@ -144,6 +166,22 @@ public class FileStore implements Store {
             writeFileAsync(key, value.copy());
         } else {
             writeFile(key, value.toBytes());
+        }
+    }
+
+    @Override
+    public boolean putIfAbsent(String key, PageFile value) {
+        writeCount++;
+        File file = getFile(key);
+        byte[] data = value.toBytes();
+        Path path = Paths.get(file.getAbsolutePath());
+        try (FileChannel channel = FileChannel.open(path, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
+            channel.write(ByteBuffer.wrap(data));
+            return true;
+        } catch (FileAlreadyExistsException e) {
+            return false;
+        } catch (IOException e) {
+            throw new IllegalArgumentException(e);
         }
     }
 
@@ -200,22 +238,6 @@ public class FileStore implements Store {
     private void writeFile(String key, byte[] data) {
         data = compression.compress(data);
         putBytes(key, data);
-
-        /*
-        File tempFile = getFile(key, true);
-        File targetFile = getFile(key);
-        // https://stackoverflow.com/questions/595631/how-to-atomically-rename-a-file-in-java-even-if-the-dest-file-already-exists
-        try (RandomAccessFile file = new RandomAccessFile(tempFile, "rw")) {
-            file.write(data);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-        try {
-            Files.move(tempFile.toPath(), targetFile.toPath(), StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException e) {
-            throw new IllegalArgumentException(e);
-        }
-        */
     }
 
     private File getFile(String key) {
@@ -241,6 +263,9 @@ public class FileStore implements Store {
             }
 
         });
+        if (list == null) {
+            throw new IllegalStateException("Failed to list files in " + directory);
+        }
         return new HashSet<>(Arrays.asList(list));
     }
 
@@ -249,7 +274,10 @@ public class FileStore implements Store {
         // TODO keep for some time if the file is relatively new?
         for (String key : set) {
             writeCount++;
-            getFile(key).delete();
+            boolean deleted = getFile(key).delete();
+            if (!deleted) {
+                LOG.debug("Failed to delete file {}", key);
+            }
         }
     }
 
@@ -257,7 +285,10 @@ public class FileStore implements Store {
     public void removeAll() {
         File dir = new File(directory);
         for(File f: dir.listFiles()) {
-            f.delete();
+            boolean deleted = f.delete();
+            if (!deleted) {
+                LOG.debug("Failed to delete file {}", f.getName());
+            }
         }
     }
 

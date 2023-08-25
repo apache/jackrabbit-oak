@@ -85,7 +85,7 @@ public class PipelinedMongoDownloadTaskTest {
 
         int batchSize = 100;
         BlockingQueue<BasicDBObject[]> queue = new ArrayBlockingQueue<>(100);
-        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(dbCollection, batchSize, queue);
+        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(dbCollection, 0L, batchSize, queue);
 
         // Execute
         PipelinedMongoDownloadTask.Result result = task.call();

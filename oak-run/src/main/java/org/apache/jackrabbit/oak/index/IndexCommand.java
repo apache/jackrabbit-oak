@@ -31,7 +31,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
-import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -40,6 +39,7 @@ import org.apache.jackrabbit.oak.run.cli.NodeStoreFixtureProvider;
 import org.apache.jackrabbit.oak.run.cli.Options;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.run.commons.LoggingInitializer;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.util.ISO8601;
 import org.slf4j.Logger;
@@ -111,11 +111,16 @@ public class IndexCommand implements Command {
         setupLogging(indexOpts);
 
         logCliArgs(args);
-
         boolean success = false;
         try {
             if (indexOpts.isReindex() && opts.getCommonOpts().isReadWrite()) {
                 performReindexInReadWriteMode(indexOpts);
+            } else if (indexOpts.isReindexCounter()) {
+                try (NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts)) {
+                    String checkpoint = indexOpts.getCheckpoint();
+                    ReindexCounterIndex.reindexNodeCounter(
+                            fixture.getStore(), checkpoint, indexOpts.getOutDir());
+                }
             } else if (indexOpts.isAsyncIndex()) {
                 Closer closer = Closer.create();
                 NodeStoreFixture fixture = NodeStoreFixtureProvider.create(opts);
@@ -144,7 +149,6 @@ public class IndexCommand implements Command {
         } finally {
             shutdownLogging();
         }
-
         if (!success) {
             System.exit(1);
         }
@@ -245,7 +249,12 @@ public class IndexCommand implements Command {
             log.info("Using Document order traversal to perform reindexing");
             try (DocumentStoreIndexer indexer = new DocumentStoreIndexer(extendedIndexHelper, indexerSupport)) {
                 if (idxOpts.useTreeStore()) {
-                    indexer.reindexUsingTreeStore();
+                    if (idxOpts.buildFlatFileStoreSeparately()) {
+                        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
+                        indexer.buildTreeStore(checkpointedState);
+                    } else {
+                        indexer.reindexUsingTreeStore();
+                    }
                 } else {
                     if (idxOpts.buildFlatFileStoreSeparately()) {
                         FlatFileStore ffs = indexer.buildFlatFileStore();

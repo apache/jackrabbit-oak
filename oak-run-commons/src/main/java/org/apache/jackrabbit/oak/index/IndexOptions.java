@@ -50,6 +50,7 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Void> reindex;
+    private final OptionSpec<Void> reindexCounter;
     private final OptionSpec<Void> ignoreMissingTikaDep;
     private final OptionSpec<Void> asyncIndex;
     private final OptionSpec<Void> importIndex;
@@ -101,6 +102,7 @@ public class IndexOptions implements OptionsBean {
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
+        reindexCounter = parser.accepts("reindex-counter", "Reindex the counter index in read-only mode");
         ignoreMissingTikaDep = parser.accepts("ignore-missing-tika-dep", "Ignore when there are missing tika dependencies and continue to run");
         asyncIndex = parser.accepts("async-index", "Runs async index cycle");
 
@@ -122,7 +124,7 @@ public class IndexOptions implements OptionsBean {
                 .withRequiredArg().ofType(File.class);
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, reindexCounter, importIndex);
         operationNames = collectionOperationNames(actionOpts);
         existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing document store dumps" +
                 " from previous incomplete run")
@@ -210,6 +212,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean isReindex() {
         return options.has(reindex);
+    }
+
+    public boolean isReindexCounter() {
+        return options.has(reindexCounter);
     }
 
     public boolean isIgnoreMissingTikaDep() {

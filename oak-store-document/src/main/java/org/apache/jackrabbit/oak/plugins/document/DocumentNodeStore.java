@@ -1325,7 +1325,7 @@ public final class DocumentNodeStore
                     || node.equals(missing) ? null : node;
             PERFLOG.end(start, 1, "getNode: path={}, rev={}", path, rev);
             return result;
-        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
+        } catch (UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
         } catch (ExecutionException e) {
             throw DocumentStoreException.convert(e.getCause());
@@ -1386,7 +1386,7 @@ public final class DocumentNodeStore
                 nodeChildrenCache.put(key, children);
             }
             return children;
-        } catch (UncheckedExecutionException | com.google.common.util.concurrent.UncheckedExecutionException e) {
+        } catch (UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
                             + path);

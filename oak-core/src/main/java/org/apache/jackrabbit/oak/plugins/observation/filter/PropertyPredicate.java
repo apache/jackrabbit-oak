@@ -24,7 +24,6 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull
 import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
@@ -33,7 +32,7 @@ import org.jetbrains.annotations.NotNull;
  * the node has a property of the given {@code name} and the given
  * {@code propertyPredicate} holds on that property.
  */
-public class PropertyPredicate implements Predicate<NodeState>, com.google.common.base.Predicate<NodeState> {
+public class PropertyPredicate implements Predicate<NodeState> {
     private final String name;
     private final Predicate<PropertyState> propertyPredicate;
 
@@ -51,15 +50,5 @@ public class PropertyPredicate implements Predicate<NodeState>, com.google.commo
     public boolean test(NodeState node) {
         PropertyState property = node.getProperty(name);
         return property != null && propertyPredicate.test(property);
-    }
-
-    /**
-     * @deprecated use {@link #test(NodeState)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
-     */
-    @Deprecated(since = "1.26.0", forRemoval = true)
-    @Override
-    public boolean apply(NodeState node) {
-        GuavaDeprecation.handleCall("OAK-8874");
-        return test(node);
     }
 }

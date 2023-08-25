@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.segment.aws;
 
 import java.io.IOException;
-import java.util.Properties;
+import java.util.Hashtable;
 
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.osgi.framework.ServiceRegistration;
@@ -47,8 +47,8 @@ public class AwsSegmentStoreService {
     @Activate
     public void activate(ComponentContext context, Configuration config) throws IOException {
         persistence = createAwsPersistence(config);
-        registration = context.getBundleContext().registerService(SegmentNodeStorePersistence.class.getName(),
-                persistence, new Properties());
+        registration = context.getBundleContext().registerService(SegmentNodeStorePersistence.class,
+                persistence, new Hashtable<String, Object>());
     }
 
     @Deactivate

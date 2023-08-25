@@ -55,6 +55,7 @@ public final class AvailableModes {
             .put(IndexCommand.NAME, new IndexCommand())
             .put(IOTraceCommand.NAME, new IOTraceCommand())
             .put(JsonIndexCommand.INDEX, new JsonIndexCommand())
+            .put(NodeStoreCopyCommand.NAME, new NodeStoreCopyCommand())
             .put(PersistentCacheCommand.PERSISTENTCACHE, new PersistentCacheCommand())
             .put("rdbddldump", new RDBDDLDumpCommand())
             .put("recovery", new RecoveryCommand())
