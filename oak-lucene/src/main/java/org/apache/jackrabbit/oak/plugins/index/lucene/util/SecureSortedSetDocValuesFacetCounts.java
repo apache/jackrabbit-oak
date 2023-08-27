@@ -37,6 +37,7 @@ import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetCounts;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesReaderState;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.search.DocIdSet;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -55,7 +56,7 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
 
     SecureSortedSetDocValuesFacetCounts(DefaultSortedSetDocValuesReaderState state, FacetsCollector facetsCollector, Filter filter) throws IOException {
         super(state, facetsCollector);
-        this.reader = state.origReader;
+        this.reader = state.getReader();
         this.facetsCollector = facetsCollector;
         this.filter = filter;
         this.state = state;
@@ -134,35 +135,34 @@ class SecureSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCounts 
                 }
             }
         }
-
+        
         private void filterFacet(int docId) throws IOException {
-            Document document = reader.document(docId);
-
+            StoredFields storedFields = reader.storedFields();
+            Document document = storedFields.document(docId);
+        
             // filter using doc values (avoiding requiring stored values)
             if (!filter.isAccessible(document.getField(FieldNames.PATH).stringValue() + "/" + dimension)) {
-
+        
                 SortedSetDocValues docValues = state.getDocValues();
-                docValues.setDocument(docId);
                 TermsEnum termsEnum = docValues.termsEnum();
-
                 long ord = docValues.nextOrd();
-
-                while (ord != SortedSetDocValues.NO_MORE_ORDS) {
+                
+                for (int i = 0; i < docValues.docValueCount(); i++) {
                     termsEnum.seekExact(ord);
                     String facetDVTerm = termsEnum.term().utf8ToString();
-                    String [] facetDVDimPaths = FacetsConfig.stringToPath(facetDVTerm);
+                    String[] facetDVDimPaths = FacetsConfig.stringToPath(facetDVTerm);
 
-                    // first element is dimention name
-                    for (int i = 1; i < facetDVDimPaths.length; i++) {
-                        markInaccessbile(facetDVDimPaths[i]);
+                    // first element is dimension name
+                    for (int j = 1; j < facetDVDimPaths.length; j++) {
+                        markInaccessible(facetDVDimPaths[j]);
                     }
 
                     ord = docValues.nextOrd();
                 }
             }
         }
-
-        void markInaccessbile(@NotNull String label) {
+        
+        void markInaccessible(@NotNull String label) {
             inaccessibleCounts[labelToIndexMap.get(label)]++;
         }
 
