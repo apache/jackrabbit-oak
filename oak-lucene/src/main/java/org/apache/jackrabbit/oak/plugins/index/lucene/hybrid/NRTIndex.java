@@ -223,7 +223,7 @@ public class NRTIndex implements Closeable {
                     indexWriter.deleteAll();
                 }
                 // don't merge, as anyway only keep two generations
-                indexWriter.close(false);
+                indexWriter.close();
             }
             time = System.nanoTime() - time;
             if (time > 100_000_000) {
@@ -314,7 +314,8 @@ public class NRTIndex implements Closeable {
             //applyDeletes is false as layers above would take care of
             //stale result
             if (dirReader == null || dirReader.getRefCount() == 0) {
-                result = DirectoryReader.open(indexWriter, false);
+                // TODO: is this the right replacement? Newest lucene version needs a directory, so just accessing indexWriter.getDirectory() instead of indexWriter directly. 
+                result = DirectoryReader.open(indexWriter.getDirectory());
             } else {
                 DirectoryReader newReader = DirectoryReader.openIfChanged(dirReader, indexWriter, false);
                 if (newReader != null) {
@@ -329,7 +330,7 @@ public class NRTIndex implements Closeable {
 
             return result;
         } catch (IOException e) {
-            log.warn("Error opening index [{}]", e);
+            log.warn(String.format("Error opening index {}", e));
         }
         return null;
     }
