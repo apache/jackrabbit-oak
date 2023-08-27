@@ -19,15 +19,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.slf4j.Logger;
@@ -42,8 +41,8 @@ import org.slf4j.LoggerFactory;
  *  So the bottom line is that with this {@link MergePolicy} we should have less but bigger merges, only after commit rate
  *  is under a certain threshold (in terms of added docs per sec and MBs per sec).
  *
- *  Auto tuning params:
- *  In this merge policy we would like to avoid having to adjust parameters by hand, but rather have them "auto tune".
+ *  Auto-tuning params:
+ *  In this merge policy we would like to avoid having to adjust parameters by hand, but rather have them "auto-tune".
  *  This means that the no. of merges should be mitigated with respect to a max commit rate (docs, mb), but also adapt to
  *  the average commit rate and anyway do not let the no. of segments explode.
  *
@@ -52,7 +51,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    /** Default noCFSRatio.  If a merge's size is &gt;= 10% of
+    /** Default noCFSRatio.  If a merges size is &gt;= 10% of
      *  the index, then we disable compound file for it.
      *  @see MergePolicy#setNoCFSRatio */
     public static final double DEFAULT_NO_CFS_RATIO = 0.1;
@@ -88,7 +87,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     /**
      * length of time series analysis for commit rate and no. of segments
      */
-    private double timeSeriesLength = 50d;
+    private final double timeSeriesLength = 50d;
 
     /**
      * current step in current time series batch
@@ -97,11 +96,11 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
     /**
      * single exponential smoothing ratio (0 < alpha < 1)
-     *
+     * <p>
      * values towards 0 tend to give more weight to past inputs
      * values close to 1 weigh recent values more
      */
-    private double alpha = 0.7;
+    private final double alpha = 0.7;
 
     /** Sole constructor, setting all settings to their
      *  defaults. */
@@ -326,11 +325,17 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     private class SegmentByteSizeDescending implements Comparator<SegmentCommitInfo> {
+        
+        private final MergeContext mergeContext;
+        SegmentByteSizeDescending(MergeContext mergeContext) {
+            this.mergeContext = mergeContext;
+        }
+        
         @Override
         public int compare(SegmentCommitInfo o1, SegmentCommitInfo o2) {
             try {
-                final long sz1 = size(o1);
-                final long sz2 = size(o2);
+                final long sz1 = size(o1, mergeContext);
+                final long sz2 = size(o2, mergeContext);
                 if (sz1 > sz2) {
                     return -1;
                 } else if (sz2 > sz1) {
@@ -356,13 +361,13 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
          *  scores are better. */
         abstract double getScore();
 
-        /** Human readable explanation of how the merge got this
+        /** Human-readable explanation of how the merge got this
          *  score. */
         abstract String getExplanation();
     }
-
+    
     @Override
-    public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos infos) throws IOException {
+    public MergeSpecification findMerges(MergeTrigger mergeTrigger, SegmentInfos infos, MergeContext mergeContext) throws IOException {
         int segmentSize = infos.size();
         timeSeriesCount++;
 
@@ -376,8 +381,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
         log.debug("segments: current {}, average {}", segmentSize, avgSegs);
 
-        if (verbose()) {
-            message("findMerges: " + segmentSize + " segments, " + avgSegs + " average");
+        if (isVerbose(mergeContext)) {
+            tmpMessage("findMerges: " + segmentSize + " segments, " + avgSegs + " average", mergeContext);
         }
         if (segmentSize == 0) {
             return null;
@@ -399,45 +404,46 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
         long now = System.currentTimeMillis();
         double timeDelta = (now / 1000d) - (time / 1000d);
-        double commitRate = Math.abs(docCount - infos.totalDocCount()) / timeDelta;
+        double commitRate = Math.abs(docCount - infos.totalMaxDoc()) / timeDelta;
         time = now;
 
         avgCommitRateDocs = singleExpSmoothing(commitRate, avgCommitRateDocs);
 
         log.debug("commit rate: current {}, average {}, max {} docs/sec", commitRate, avgCommitRateDocs, maxCommitRateDocs);
 
-        docCount = infos.totalDocCount();
+        docCount = infos.totalMaxDoc();
 
-        if (verbose()) {
-            message(commitRate + "doc/s (max: " + maxCommitRateDocs + ", avg: " + avgCommitRateDocs + " doc/s)");
+        if (isVerbose(mergeContext)) {
+            tmpMessage(commitRate + "doc/s (max: " + maxCommitRateDocs + ", avg: " + avgCommitRateDocs + " doc/s)", mergeContext);
         }
 
-        // do not mitigate if there're too many segments to avoid affecting performance
+        // do not mitigate if there are too many segments to avoid affecting performance
         if (commitRate > maxCommitRateDocs && segmentSize < maxNoOfSegsForMitigation) {
             log.debug("mitigation due to {} > {} docs/sec and segments {} < {})", commitRate, maxCommitRateDocs,
                     segmentSize, maxNoOfSegsForMitigation);
             return null;
         }
 
-        final Collection<SegmentCommitInfo> merging = writer.get().getMergingSegments();
-        final Collection<SegmentCommitInfo> toBeMerged = new HashSet<SegmentCommitInfo>();
+        final Collection<SegmentCommitInfo> merging = mergeContext.getMergingSegments();
+        final Collection<SegmentCommitInfo> toBeMerged = new HashSet<>();
 
-        final List<SegmentCommitInfo> infosSorted = new ArrayList<SegmentCommitInfo>(infos.asList());
-        Collections.sort(infosSorted, new SegmentByteSizeDescending());
+        final List<SegmentCommitInfo> infosSorted = new ArrayList<>(infos.asList());
+        infosSorted.sort(new SegmentByteSizeDescending(mergeContext));
 
         // Compute total index bytes & print details about the index
         long totIndexBytes = 0;
         long minSegmentBytes = Long.MAX_VALUE;
         for (SegmentCommitInfo info : infosSorted) {
-            final long segBytes = size(info);
-            if (verbose()) {
+            final long segBytes = size(info, mergeContext);
+            if (isVerbose(mergeContext)) {
                 String extra = merging.contains(info) ? " [merging]" : "";
                 if (segBytes >= maxMergedSegmentBytes / 2.0) {
                     extra += " [skip: too large]";
                 } else if (segBytes < floorSegmentBytes) {
                     extra += " [floored]";
                 }
-                message("  seg=" + writer.get().segString(info) + " size=" + String.format(Locale.ROOT, "%.3f", segBytes / 1024 / 1024.) + " MB" + extra);
+                // TODO: not sure if this is the right way to replace the SegmentCommitInfo logging.  
+                tmpMessage("  seg=" + info.toString() + " size=" + String.format(Locale.ROOT, "%.3f", segBytes / 1024 / 1024.) + " MB" + extra, mergeContext);
             }
 
             minSegmentBytes = Math.min(segBytes, minSegmentBytes);
@@ -448,8 +454,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         // If we have too-large segments, grace them out
         // of the maxSegmentCount:
         int tooBigCount = 0;
-        while (tooBigCount < infosSorted.size() && size(infosSorted.get(tooBigCount)) >= maxMergedSegmentBytes / 2.0) {
-            totIndexBytes -= size(infosSorted.get(tooBigCount));
+        while (tooBigCount < infosSorted.size() && size(infosSorted.get(tooBigCount), mergeContext) >= maxMergedSegmentBytes / 2.0) {
+            totIndexBytes -= size(infosSorted.get(tooBigCount), mergeContext);
             tooBigCount++;
         }
 
@@ -496,8 +502,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             final boolean maxMergeIsRunning = mergingBytes >= maxMergedSegmentBytes;
 
-            if (verbose()) {
-                message("  allowedSegmentCount=" + allowedSegCountInt + " vs count=" + infosSorted.size() + " (eligible count=" + eligible.size() + ") tooBigCount=" + tooBigCount);
+            if (isVerbose(mergeContext)) {
+                tmpMessage("  allowedSegmentCount=" + allowedSegCountInt + " vs count=" + infosSorted.size() + " (eligible count=" + eligible.size() + ") tooBigCount=" + tooBigCount, mergeContext);
             }
 
             if (eligible.size() == 0) {
@@ -511,13 +517,13 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
             log.debug("commit rate: current {}, average {}, max {} MB/sec", mbRate, avgCommitRateMB, maxCommitRateMB);
 
-            if (verbose()) {
-                message(mbRate + "mb/s (max: " + maxCommitRateMB + ", avg: " + avgCommitRateMB + " MB/s)");
+            if (isVerbose(mergeContext)) {
+                tmpMessage(mbRate + "mb/s (max: " + maxCommitRateMB + ", avg: " + avgCommitRateMB + " MB/s)", mergeContext);
             }
 
             this.mb = idxBytes;
 
-            // do not mitigate if there're too many segments to avoid affecting performance
+            // do not mitigate if there are too many segments to avoid affecting performance
             if (mbRate > maxCommitRateMB && segmentSize < maxNoOfSegsForMitigation) {
                 log.debug("mitigation due to {} > {} MB/sec and segments {} < {})", mbRate, maxCommitRateMB,
                         segmentSize, maxNoOfSegsForMitigation);
@@ -537,11 +543,11 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
 
                     long totAfterMergeBytes = 0;
 
-                    final List<SegmentCommitInfo> candidate = new ArrayList<SegmentCommitInfo>();
+                    final List<SegmentCommitInfo> candidate = new ArrayList<>();
                     boolean hitTooLarge = false;
                     for (int idx = startIdx; idx < eligible.size() && candidate.size() < maxMergeAtOnce; idx++) {
                         final SegmentCommitInfo info = eligible.get(idx);
-                        final long segBytes = size(info);
+                        final long segBytes = size(info, mergeContext);
 
                         if (totAfterMergeBytes + segBytes > maxMergedSegmentBytes) {
                             hitTooLarge = true;
@@ -557,9 +563,9 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                         totAfterMergeBytes += segBytes;
                     }
 
-                    final MergeScore score = score(candidate, hitTooLarge, mergingBytes);
-                    if (verbose()) {
-                        message("  maybe=" + writer.get().segString(candidate) + " score=" + score.getScore() + " " + score.getExplanation() + " tooLarge=" + hitTooLarge + " size=" + String.format(Locale.ROOT, "%.3f MB", totAfterMergeBytes / 1024. / 1024.));
+                    final MergeScore score = score(candidate, hitTooLarge, mergingBytes, mergeContext);
+                    if (isVerbose(mergeContext)) {
+                        tmpMessage("  maybe=" + segString(mergeContext, candidate) + " score=" + score.getScore() + " " + score.getExplanation() + " tooLarge=" + hitTooLarge + " size=" + String.format(Locale.ROOT, "%.3f MB", totAfterMergeBytes / 1024. / 1024.), mergeContext);
                     }
 
                     // If we are already running a max sized merge
@@ -579,11 +585,9 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                     }
                     final OneMerge merge = new OneMerge(best);
                     spec.add(merge);
-                    for (SegmentCommitInfo info : merge.segments) {
-                        toBeMerged.add(info);
-                    }
-                    if (verbose()) {
-                        message("  add merge=" + writer.get().segString(merge.segments) + " size=" + String.format(Locale.ROOT, "%.3f MB", bestMergeBytes / 1024. / 1024.) + " score=" + String.format(Locale.ROOT, "%.3f", bestScore.getScore()) + " " + bestScore.getExplanation() + (bestTooLarge ? " [max merge]" : ""));
+                    toBeMerged.addAll(merge.segments);
+                    if (isVerbose(mergeContext)) {
+                        tmpMessage("  add merge=" + merge.segString() + " size=" + String.format(Locale.ROOT, "%.3f MB", bestMergeBytes / 1024. / 1024.) + " score=" + String.format(Locale.ROOT, "%.3f", bestScore.getScore()) + " " + bestScore.getExplanation() + (bestTooLarge ? " [max merge]" : ""), mergeContext);
                     }
                 } else {
                     return spec;
@@ -610,12 +614,12 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
      * @param mergingBytes the bytes to merge
      * @return a merge score
      **/
-    protected MergeScore score(List<SegmentCommitInfo> candidate, boolean hitTooLarge, long mergingBytes) throws IOException {
+    protected MergeScore score(List<SegmentCommitInfo> candidate, boolean hitTooLarge, long mergingBytes, MergeContext mergeContext) throws IOException {
         long totBeforeMergeBytes = 0;
         long totAfterMergeBytes = 0;
         long totAfterMergeBytesFloored = 0;
         for (SegmentCommitInfo info : candidate) {
-            final long segBytes = size(info);
+            final long segBytes = size(info, mergeContext);
             totAfterMergeBytes += segBytes;
             totAfterMergeBytesFloored += floorSize(segBytes);
             totBeforeMergeBytes += info.sizeInBytes();
@@ -635,7 +639,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             // over time:
             skew = 1.0 / maxMergeAtOnce;
         } else {
-            skew = ((double) floorSize(size(candidate.get(0)))) / totAfterMergeBytesFloored;
+            skew = ((double) floorSize(size(candidate.get(0), mergeContext))) / totAfterMergeBytesFloored;
         }
 
         // Strongly favor merges with less skew (smaller
@@ -669,14 +673,14 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
     }
 
     @Override
-    public MergeSpecification findForcedMerges(SegmentInfos infos, int maxSegmentCount, Map<SegmentCommitInfo, Boolean> segmentsToMerge) throws IOException {
-        if (verbose()) {
-            message("findForcedMerges maxSegmentCount=" + maxSegmentCount + " infos=" + writer.get().segString(infos) + " segmentsToMerge=" + segmentsToMerge);
+    public MergeSpecification findForcedMerges(SegmentInfos infos, int maxSegmentCount, Map<SegmentCommitInfo, Boolean> segmentsToMerge, MergeContext mergeContext) throws IOException {
+        if (isVerbose(mergeContext)) {
+            tmpMessage("findForcedMerges maxSegmentCount=" + maxSegmentCount + " infos=" + mergeContext.getMergingSegments() + " segmentsToMerge=" + segmentsToMerge, mergeContext);
         }
 
-        List<SegmentCommitInfo> eligible = new ArrayList<SegmentCommitInfo>();
+        List<SegmentCommitInfo> eligible = new ArrayList<>();
         boolean forceMergeRunning = false;
-        final Collection<SegmentCommitInfo> merging = writer.get().getMergingSegments();
+        final Collection<SegmentCommitInfo> merging = mergeContext.getMergingSegments();
         boolean segmentIsOriginal = false;
         for (SegmentCommitInfo info : infos) {
             final Boolean isOriginal = segmentsToMerge.get(info);
@@ -695,18 +699,18 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         }
 
         if ((maxSegmentCount > 1 && eligible.size() <= maxSegmentCount) ||
-                (maxSegmentCount == 1 && eligible.size() == 1 && (!segmentIsOriginal || isMerged(infos, eligible.get(0))))) {
-            if (verbose()) {
-                message("already merged");
+            (maxSegmentCount == 1 && eligible.size() == 1 && (!segmentIsOriginal || isMerged(infos, eligible.get(0), mergeContext)))) {
+            if (isVerbose(mergeContext)) {
+                tmpMessage("already merged", mergeContext);
             }
             return null;
         }
 
-        Collections.sort(eligible, new SegmentByteSizeDescending());
+        eligible.sort(new SegmentByteSizeDescending(mergeContext));
 
-        if (verbose()) {
-            message("eligible=" + eligible);
-            message("forceMergeRunning=" + forceMergeRunning);
+        if (isVerbose(mergeContext)) {
+            tmpMessage("eligible=" + eligible, mergeContext);
+            tmpMessage("forceMergeRunning=" + forceMergeRunning, mergeContext);
         }
 
         int end = eligible.size();
@@ -719,8 +723,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
                 spec = new MergeSpecification();
             }
             final OneMerge merge = new OneMerge(eligible.subList(end - maxMergeAtOnceExplicit, end));
-            if (verbose()) {
-                message("add merge=" + writer.get().segString(merge.segments));
+            if (isVerbose(mergeContext)) {
+                tmpMessage("add merge=" + mergeContext.getMergingSegments(), mergeContext);
             }
             spec.add(merge);
             end -= maxMergeAtOnceExplicit;
@@ -730,8 +734,8 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             // Do final merge
             final int numToMerge = end - maxSegmentCount + 1;
             final OneMerge merge = new OneMerge(eligible.subList(end - numToMerge, end));
-            if (verbose()) {
-                message("add final merge=" + merge.segString(writer.get().getDirectory()));
+            if (isVerbose(mergeContext)) {
+                tmpMessage("add final merge=" + merge.segString(), mergeContext);
             }
             spec = new MergeSpecification();
             spec.add(merge);
@@ -740,15 +744,16 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         return spec;
     }
 
+
     @Override
-    public MergeSpecification findForcedDeletesMerges(SegmentInfos infos) throws IOException {
-        if (verbose()) {
-            message("findForcedDeletesMerges infos=" + writer.get().segString(infos) + " forceMergeDeletesPctAllowed=" + forceMergeDeletesPctAllowed);
+    public MergeSpecification findForcedDeletesMerges(SegmentInfos infos, MergeContext mergeContext) throws IOException {
+        if (isVerbose(mergeContext)) {
+            tmpMessage("findForcedDeletesMerges infos=" + mergeContext.getMergingSegments() + " forceMergeDeletesPctAllowed=" + forceMergeDeletesPctAllowed, mergeContext);
         }
-        final List<SegmentCommitInfo> eligible = new ArrayList<SegmentCommitInfo>();
-        final Collection<SegmentCommitInfo> merging = writer.get().getMergingSegments();
+        final List<SegmentCommitInfo> eligible = new ArrayList<>();
+        final Collection<SegmentCommitInfo> merging = mergeContext.getMergingSegments();
         for (SegmentCommitInfo info : infos) {
-            double pctDeletes = 100. * ((double) writer.get().numDeletedDocs(info)) / info.info.getDocCount();
+            double pctDeletes = 100. * ((double) mergeContext.numDeletedDocs(info)) / info.info.maxDoc();
             if (pctDeletes > forceMergeDeletesPctAllowed && !merging.contains(info)) {
                 eligible.add(info);
             }
@@ -758,10 +763,10 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             return null;
         }
 
-        Collections.sort(eligible, new SegmentByteSizeDescending());
+        eligible.sort(new SegmentByteSizeDescending(mergeContext));
 
-        if (verbose()) {
-            message("eligible=" + eligible);
+        if (isVerbose(mergeContext)) {
+            tmpMessage("eligible=" + eligible, mergeContext);
         }
 
         int start = 0;
@@ -775,10 +780,9 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             if (spec == null) {
                 spec = new MergeSpecification();
             }
-
             final OneMerge merge = new OneMerge(eligible.subList(start, end));
-            if (verbose()) {
-                message("add merge=" + writer.get().segString(merge.segments));
+            if (verbose(mergeContext)) {
+                tmpMessage("add merge=" + merge.segString(), mergeContext);
             }
             spec.add(merge);
             start = end;
@@ -787,34 +791,27 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         return spec;
     }
 
-    @Override
-    public void close() {
-    }
-
     private long floorSize(long bytes) {
         return Math.max(floorSegmentBytes, bytes);
     }
 
-    private boolean verbose() {
-        final IndexWriter w = writer.get();
-        return w != null && w.getConfig().getInfoStream().isEnabled("TMP");
+    private boolean isVerbose(MergeContext mergeContext) {
+        return mergeContext.getInfoStream().isEnabled("TMP");
     }
-
-    private void message(String message) {
-        writer.get().getConfig().getInfoStream().message("TMP", message);
+    
+    private void tmpMessage(String message, MergeContext mergeContext) {
+        mergeContext.getInfoStream().message("TMP", message);
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("[" + getClass().getSimpleName() + ": ");
-        sb.append("maxMergeAtOnce=").append(maxMergeAtOnce).append(", ");
-        sb.append("maxMergeAtOnceExplicit=").append(maxMergeAtOnceExplicit).append(", ");
-        sb.append("maxMergedSegmentMB=").append(maxMergedSegmentBytes / 1024 / 1024.).append(", ");
-        sb.append("floorSegmentMB=").append(floorSegmentBytes / 1024 / 1024.).append(", ");
-        sb.append("forceMergeDeletesPctAllowed=").append(forceMergeDeletesPctAllowed).append(", ");
-        sb.append("segmentsPerTier=").append(segsPerTier).append(", ");
-        sb.append("maxCFSSegmentSizeMB=").append(getMaxCFSSegmentSizeMB()).append(", ");
-        sb.append("noCFSRatio=").append(noCFSRatio);
-        return sb.toString();
+        return "[" + getClass().getSimpleName() + ": " + "maxMergeAtOnce=" + maxMergeAtOnce + ", "
+            + "maxMergeAtOnceExplicit=" + maxMergeAtOnceExplicit + ", "
+            + "maxMergedSegmentMB=" + maxMergedSegmentBytes / 1024 / 1024. + ", "
+            + "floorSegmentMB=" + floorSegmentBytes / 1024 / 1024. + ", "
+            + "forceMergeDeletesPctAllowed=" + forceMergeDeletesPctAllowed + ", "
+            + "segmentsPerTier=" + segsPerTier + ", "
+            + "maxCFSSegmentSizeMB=" + getMaxCFSSegmentSizeMB() + ", "
+            + "noCFSRatio=" + noCFSRatio;
     }
 }
