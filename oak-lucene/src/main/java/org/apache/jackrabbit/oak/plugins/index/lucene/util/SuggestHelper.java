@@ -142,7 +142,8 @@ public class SuggestHelper {
                     return suggestDirectory; // use oak directory for writing suggest index
                 } else {
                     return FSDirectory.open(
-                        path.toPath()); // use FS for temp index used at build time
+                        path.toPath()
+                    ); // use FS for temp index used at build time
                 }
             }
         };
