@@ -27,12 +27,13 @@ import java.io.IOException;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
-
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
+import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.SuggestHelper;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
@@ -49,8 +50,6 @@ import org.apache.lucene.store.Directory;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import org.apache.jackrabbit.guava.common.io.Closer;
 
 class DefaultIndexWriter implements LuceneIndexWriter {
     private static final Logger log = LoggerFactory.getLogger(DefaultIndexWriter.class);
@@ -191,8 +190,9 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             final Closer closer = Closer.create();
 
             NodeBuilder suggesterStatus = definitionBuilder.child(suggestDirName);
-            DirectoryReader reader = closer.register(DirectoryReader.open(writer, false));
-            final Directory suggestDirectory = directoryFactory.newInstance(definition, definitionBuilder, suggestDirName, false);
+            DirectoryReader reader = closer.register(DirectoryReader.open(writer.getDirectory()));
+            final Directory suggestDirectory = directoryFactory.newInstance(definition,
+                definitionBuilder, suggestDirName, false);
             // updateSuggester would close the directory (directly or via lookup)
             // closer.register(suggestDirectory);
             boolean updated = false;
@@ -272,7 +272,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         checkNotNull(definition);
         checkNotNull(directory);
 
-        int docs = writer.numDocs();
+        int docs = writer.getDocStats().numDocs;
         int ram = writer.numRamDocs();
 
         log.trace("Writer for directory {} - docs: {}, ramDocs: {}", definition, docs, ram);
@@ -282,7 +282,7 @@ class DefaultIndexWriter implements LuceneIndexWriter {
         StringBuilder sb = new StringBuilder();
         for (String f : files) {
             sb.append(f).append(":");
-            if (directory.fileExists(f)) {
+            if (DirectoryUtils.fileExistsInDirectory(directory, f)) {
                 long size = directory.fileLength(f);
                 overallSize += size;
                 sb.append(size);
@@ -292,7 +292,6 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             sb.append(", ");
         }
         log.trace("Directory overall size: {}, files: {}",
-                org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(overallSize),
-                sb.toString());
+            org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(overallSize), sb);
     }
 }
