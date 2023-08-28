@@ -22,7 +22,6 @@ import java.util.List;
 
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.util.Version;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -34,7 +33,7 @@ public class FVTokenizerTest {
 
   @Test
   public void testTokenizeWithSpaces() throws Exception {
-      TokenStream stream = new FVTokenizer(Version.LUCENE_47, new StringReader("0.10 0.20 0.30 0.40"));
+      TokenStream stream = new FVTokenizer();
       stream.reset();
       List<String> expectedTokens = new LinkedList<>();
       expectedTokens.add("0.10");
@@ -53,7 +52,8 @@ public class FVTokenizerTest {
 
   @Test
   public void testTokenizeWithCommas() throws Exception {
-      TokenStream stream = new FVTokenizer(Version.LUCENE_47, new StringReader("0.10,0.20,0.30,0.40"));
+      StringReader sr = new StringReader("0.10,0.20,0.30,0.40");
+      TokenStream stream = new FVTokenizer();
       stream.reset();
       List<String> expectedTokens = new LinkedList<>();
       expectedTokens.add("0.10");
@@ -72,7 +72,8 @@ public class FVTokenizerTest {
 
   @Test
   public void testTokenizeWithCommasAndSpaces() throws Exception {
-      TokenStream stream = new FVTokenizer(Version.LUCENE_47, new StringReader("0.10, 0.20, 0.30, 0.40"));
+      StringReader sr = new StringReader("0.10, 0.20, 0.30, 0.40");
+      TokenStream stream = new FVTokenizer();
       stream.reset();
       List<String> expectedTokens = new LinkedList<>();
       expectedTokens.add("0.10");

@@ -16,9 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 
+import java.io.IOException;
+import java.util.Set;
+import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants;
 import org.apache.lucene.index.MergePolicy;
-import org.apache.lucene.index.MergePolicy.MergeTrigger;
+import org.apache.lucene.index.MergePolicy.MergeContext;
+import org.apache.lucene.index.MergeTrigger;
+import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.util.InfoStream;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNull;
@@ -30,10 +36,33 @@ public class CommitMitigatingTieredMergePolicyTest {
 
     @Test
     public void testMergeWithNoSegments() throws Exception {
+        
         CommitMitigatingTieredMergePolicy mergePolicy = new CommitMitigatingTieredMergePolicy();
+        
+        // TODO: We should verify this is the right way to do the tests 
+        SegmentInfos infos = new SegmentInfos(LuceneIndexConstants.VERSION.major);
+        MergeContext mergeContext = new MergeContext() {
+            @Override
+            public int numDeletesToMerge(SegmentCommitInfo segmentCommitInfo) throws IOException {
+                return 0;
+            }
 
-        SegmentInfos infos = new SegmentInfos();
-        MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, infos);
+            @Override
+            public int numDeletedDocs(SegmentCommitInfo segmentCommitInfo) {
+                return 0;
+            }
+
+            @Override
+            public InfoStream getInfoStream() {
+                return null;
+            }
+
+            @Override
+            public Set<SegmentCommitInfo> getMergingSegments() {
+                return null;
+            }
+        };
+        MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, infos, mergeContext);
         assertNull(merges);
     }
 

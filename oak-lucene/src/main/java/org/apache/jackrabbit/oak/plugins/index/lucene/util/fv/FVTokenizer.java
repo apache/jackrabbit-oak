@@ -16,17 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
-import java.io.Reader;
-
 import org.apache.lucene.analysis.util.CharTokenizer;
-import org.apache.lucene.util.Version;
 
 /**
  * {@link CharTokenizer} which splits at whitespaces and commas
  */
 class FVTokenizer extends CharTokenizer {
-    FVTokenizer(Version matchVersion, Reader input) {
-      super(matchVersion, input);
+    FVTokenizer() {
+      super();
     }
 
     @Override
