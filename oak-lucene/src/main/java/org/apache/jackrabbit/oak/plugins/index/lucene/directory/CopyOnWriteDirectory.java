@@ -430,7 +430,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         private boolean checkIfLocalValid() throws IOException {
-            boolean validLocalCopyPresent = local.fileExists(name);
+            boolean validLocalCopyPresent = DirectoryUtils.fileExistsInDirectory(local, name);
 
             if (validLocalCopyPresent) {
                 long localFileLength = local.fileLength(name);
