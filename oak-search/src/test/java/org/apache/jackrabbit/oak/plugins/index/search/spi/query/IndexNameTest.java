@@ -88,24 +88,23 @@ public class IndexNameTest {
     @Test
     public void recursiveActive() {
         LogCustomizer lc = LogCustomizer.forLogger(IndexName.class)
-                .enable(Level.WARN)
-                .filter(Level.WARN)
+                .enable(Level.ERROR)
+                .filter(Level.ERROR)
                 .create();
 
         NodeBuilder builder = EMPTY_NODE.builder();
-        NodeBuilder luceneOneBuilder = builder.child("lucene-1-custom-1");
-        NodeBuilder luceneTwoBuilder = builder.child("lucene-2-custom-1");
-        luceneOneBuilder.setProperty("merges", "lucene-1-custom-1");
-        luceneTwoBuilder.setProperty("merges", "lucene-2-custom-1");
+        NodeBuilder luceneOneBuilder = builder.child("lucene-1");
+        NodeBuilder luceneTwoBuilder = builder.child("lucene-2");
+        luceneOneBuilder.setProperty("merges", "lucene-1");
+        luceneTwoBuilder.setProperty("merges", "lucene-2");
         NodeState base = builder.getNodeState();
         ArrayList<String> indexPaths = new ArrayList<>();
-        indexPaths.add("lucene-1-custom-1");
+        indexPaths.add("lucene-1");
 
         try {
             lc.starting();
             IndexName.filterReplacedIndexes(indexPaths, base, true);
-            assertTrue("High recursion depth should be detected", lc.getLogs().contains(
-                    "Fail to check index activeness for lucene-1-custom-1 due to high recursion depth"));
+            assertTrue("StackOverflowError should be caught", lc.getLogs().contains("Fail to check index activeness for lucene-1 due to StackOverflowError"));
         } catch (StackOverflowError e) {
             fail("should not run into StackOverflowError exception");
         } finally {
