@@ -116,7 +116,10 @@ public class IndexComparator {
                         }
                     }
                 }
-                result.key(path + "/" + k).object().key("v1").encodedValue(v1).key("v2").encodedValue(v2).endObject();
+                result.key(path + "/" + k).object().
+                    key("v1").encodedValue(v1).
+                    key("v2").encodedValue(v2).
+                    endObject();
             }
         }
         both = new HashSet<>(o1.getChildren().keySet());
@@ -125,7 +128,10 @@ public class IndexComparator {
             JsonObject v1 = o1.getChildren().get(k);
             JsonObject v2 = o2.getChildren().get(k);
             if (v1 == null || v2 == null) {
-                result.key(path + "/" + k).object().key("v1").encodedValue(v1.toString()).key("v2").encodedValue(v2.toString()).endObject();
+                result.key(path + "/" + k).object().
+                    key("v1").encodedValue("" + v1).
+                    key("v2").encodedValue("" + v2).
+                    endObject();
             } else {
                 diff(v1, v2, path + "/" + k, result);
             }
@@ -150,43 +156,39 @@ public class IndexComparator {
         builder.endObject();
         builder.key("luceneIndex").object();
         builder.key("jcrPath").value(dir.getJcrPath());
-        SimpleFSDirectory luceneDir = new SimpleFSDirectory(new File(directory, "data"));
-        SimpleFSDirectory suggestDir = null;
-        if (new File(directory, "suggest-data").exists()) {
-            suggestDir = new SimpleFSDirectory(new File(directory, "suggest-data"));
-        }
-        try (LuceneIndexReader luceneReader = new DefaultIndexReader(luceneDir, suggestDir, null)) {
-            IndexReader reader = luceneReader.getReader();
-            builder.key("numDocs").value(reader.numDocs());
-            builder.key("maxDoc").value(reader.maxDoc());
-            builder.key("numDeletedDocs").value(reader.numDeletedDocs());
-
-            Fields fields = MultiFields.getFields(reader);
-            if (fields != null) {
-                builder.key("fields").object();
-                for (String f : fields) {
-                    builder.key(f).object();
-                    builder.key("docCount").value(reader.getDocCount(f));
-                    Terms terms = MultiFields.getTerms(reader, f);
-                    TermsEnum iterator = terms.iterator(null);
-                    BytesRef byteRef = null;
-                    Function<BytesRef, String> handler = BytesRef::utf8ToString;
-                    int termCount = 0;
-                    int termHash = 0;
-                    long docFreqSum = 0;
-                    while ((byteRef = iterator.next()) != null) {
-                        termCount++;
-                        String term = handler.apply(byteRef);
-                        termHash ^= term.hashCode();
-                        int docFreq = iterator.docFreq();
-                        docFreqSum += docFreq;
+        try (SimpleFSDirectory luceneDir = new SimpleFSDirectory(new File(directory, "data"))) {
+            try (LuceneIndexReader luceneReader = new DefaultIndexReader(luceneDir, null, null)) {
+                IndexReader reader = luceneReader.getReader();
+                builder.key("numDocs").value(reader.numDocs());
+                builder.key("maxDoc").value(reader.maxDoc());
+                builder.key("numDeletedDocs").value(reader.numDeletedDocs());
+                Fields fields = MultiFields.getFields(reader);
+                if (fields != null) {
+                    builder.key("fields").object();
+                    for (String f : fields) {
+                        builder.key(f).object();
+                        builder.key("docCount").value(reader.getDocCount(f));
+                        Terms terms = MultiFields.getTerms(reader, f);
+                        TermsEnum iterator = terms.iterator(null);
+                        BytesRef byteRef = null;
+                        Function<BytesRef, String> handler = BytesRef::utf8ToString;
+                        int termCount = 0;
+                        int termHash = 0;
+                        long docFreqSum = 0;
+                        while ((byteRef = iterator.next()) != null) {
+                            termCount++;
+                            String term = handler.apply(byteRef);
+                            termHash ^= term.hashCode();
+                            int docFreq = iterator.docFreq();
+                            docFreqSum += docFreq;
+                        }
+                        builder.key("termCount").value(termCount);
+                        builder.key("termHash").value(termHash);
+                        builder.key("docFreqSum").value(docFreqSum);
+                        builder.endObject();
                     }
-                    builder.key("termCount").value(termCount);
-                    builder.key("termHash").value(termHash);
-                    builder.key("docFreqSum").value(docFreqSum);
                     builder.endObject();
                 }
-                builder.endObject();
             }
         }
         builder.endObject();
