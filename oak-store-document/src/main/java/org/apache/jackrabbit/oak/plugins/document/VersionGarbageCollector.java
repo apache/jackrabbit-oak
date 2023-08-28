@@ -825,6 +825,7 @@ public class VersionGarbageCollector {
         private final AtomicBoolean cancel;
         private final Stopwatch timer;
         private final List<UpdateOp> updateOpList;
+        private final Revision revisionForModified;
 
         private final Map<String, Integer> deletedPropsCountMap;
         private int garbageDocsCount;
@@ -837,6 +838,8 @@ public class VersionGarbageCollector {
             this.updateOpList = new ArrayList<>();
             this.deletedPropsCountMap = new HashMap<>();
             this.timer = createUnstarted();
+            // clusterId for revisionForModified is unused - hence set to 0 below:
+            this.revisionForModified = Revision.newRevision(0);
         }
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
@@ -844,13 +847,14 @@ public class VersionGarbageCollector {
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
 
             final UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
-            op.equals(MODIFIED_IN_SECS, doc.getModified());
 
             collectDeletedProperties(doc, phases, op);
             collectUnmergedBranchCommitDocument(doc, phases, op);
             collectOldRevisions(doc, phases, op);
             // only add if there are changes for this doc
             if (op.hasChanges()) {
+                op.equals(MODIFIED_IN_SECS, doc.getModified());
+                NodeDocument.setModified(op, revisionForModified);
                 garbageDocsCount++;
                 totalGarbageDocsCount++;
                 monitor.info("Collected [{}] garbage for doc [{}]", op.getChanges().size(), doc.getId());
