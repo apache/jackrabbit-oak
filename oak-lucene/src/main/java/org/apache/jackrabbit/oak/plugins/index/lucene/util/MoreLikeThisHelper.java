@@ -16,17 +16,18 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.MoreLikeThisHelperUtil;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.mlt.MoreLikeThis;
 import org.apache.lucene.search.IndexSearcher;
@@ -42,10 +43,11 @@ public class MoreLikeThisHelper {
 
     public static Query getMoreLikeThis(IndexReader reader, Analyzer analyzer, String mltQueryString) {
         Query moreLikeThisQuery = null;
-        MoreLikeThis mlt = new MoreLikeThis(reader);
-        mlt.setAnalyzer(analyzer);
         try {
-            Map<String, String> paramMap = MoreLikeThisHelperUtil.getParamMapFromMltQuery(mltQueryString);
+            MoreLikeThis mlt = new MoreLikeThis(reader);
+            mlt.setAnalyzer(analyzer);
+            Map<String, String> paramMap = MoreLikeThisHelperUtil.getParamMapFromMltQuery(
+                mltQueryString);
             String text = null;
             String[] fields = {};
             for (String key : paramMap.keySet()) {
@@ -82,13 +84,15 @@ public class MoreLikeThisHelper {
                     IndexSearcher searcher = new IndexSearcher(reader);
                     TermQuery q = new TermQuery(new Term(FieldNames.PATH, text));
                     TopDocs top = searcher.search(q, 1);
-                    if (top.totalHits == 0) {
+                    StoredFields storedFields = searcher.storedFields();
+                    if (top.totalHits.value == 0) {
                         mlt.setFieldNames(fields);
-                        moreLikeThisQuery = mlt.like(new StringReader(text), mlt.getFieldNames()[0]);
-                    } else{
+                        moreLikeThisQuery = mlt.like(mlt.getFieldNames()[0],
+                            new StringReader(text));
+                    } else {
                         ScoreDoc d = top.scoreDocs[0];
-                        Document doc = reader.document(d.doc);
-                        List<String> fieldNames = new ArrayList<String>();
+                        Document doc = storedFields.document(top.scoreDocs[0].doc);
+                        List<String> fieldNames = new ArrayList<>();
                         for (IndexableField f : doc.getFields()) {
                             if (!FieldNames.PATH.equals(f.name())) {
                                 fieldNames.add(f.name());
@@ -100,10 +104,13 @@ public class MoreLikeThisHelper {
                     }
                 } else {
                     mlt.setFieldNames(fields);
-                    moreLikeThisQuery = mlt.like(new StringReader(text), mlt.getFieldNames()[0]);
+                    moreLikeThisQuery = mlt.like(mlt.getFieldNames()[0], new StringReader(text));
                 }
             }
             return moreLikeThisQuery;
+        } catch (IOException e) {
+            // TODO: Is this the right way to catch the IOException from new MoreLikeThis(reader) above?
+            throw new RuntimeException("Error in creating MoreLikeThis " + e.getMessage());
         } catch (Exception e) {
             throw new RuntimeException("could not handle MLT query " + mltQueryString);
         }

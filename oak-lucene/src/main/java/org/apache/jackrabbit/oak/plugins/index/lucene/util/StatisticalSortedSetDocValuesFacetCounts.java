@@ -60,7 +60,7 @@ class StatisticalSortedSetDocValuesFacetCounts extends SortedSetDocValuesFacetCo
                                                     SecureFacetConfiguration secureFacetConfiguration) throws IOException {
         super(state, facetsCollector);
         this.state = state;
-        this.reader = state.origReader;
+        this.reader = state.getReader();
         this.facetsCollector = facetsCollector;
         this.filter = filter;
         this.secureFacetConfiguration = secureFacetConfiguration;
