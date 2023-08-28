@@ -279,7 +279,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         long size = 0;
         for (String name : skippedFiles){
             try{
-                if (local.fileExists(name)){
+                if (DirectoryUtils.fileExistsInDirectory(local, name)){
                     size += local.fileLength(name);
                 }
             } catch (Exception ignore){
@@ -319,7 +319,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 long perfStart = PERF_LOGGER.start();
                 long start = indexCopier.startCopy(file);
 
-                local.copy(remote, name, name, IOContext.DEFAULT);
+                local.copyFrom(remote, name, name, IOContext.DEFAULT);
 
                 indexCopier.doneCopy(file, start);
                 PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} -- size: {}",
