@@ -241,29 +241,24 @@ public class IndexName implements Comparable<IndexName> {
             LOG.warn("Fail to check index activeness for {} due to high recursion depth", indexPath);
             return true;
         }
-        try {
-            NodeState indexNode = rootState;
-            for (String e : PathUtils.elements(indexPath)) {
-                indexNode = indexNode.getChildNode(e);
-            }
-            for (String c : indexNode.getChildNodeNames()) {
-                if (c.startsWith(":oak:mount-")) {
-                    return true;
-                }
-            }
-            if (recursionDepth >= 2) {
-                // special case OAK-10399: the _previous_ base index
-                // is always considered active
-                IndexName n = IndexName.parse(PathUtils.getName(indexPath));
-                if (n.getCustomerVersion() == 0) {
-                    return true;
-                }
-            }
-            return isIndexActiveMerged(indexNode, rootState, recursionDepth);
-        } catch (StackOverflowError e) {
-            LOG.error("Fail to check index activeness for {} due to StackOverflowError", indexPath, e);
-            return true;
+        NodeState indexNode = rootState;
+        for (String e : PathUtils.elements(indexPath)) {
+            indexNode = indexNode.getChildNode(e);
         }
+        for (String c : indexNode.getChildNodeNames()) {
+            if (c.startsWith(":oak:mount-")) {
+                return true;
+            }
+        }
+        if (recursionDepth >= 2) {
+            // special case OAK-10399: the _previous_ base index
+            // is always considered active
+            IndexName n = IndexName.parse(PathUtils.getName(indexPath));
+            if (n.getCustomerVersion() == 0) {
+                return true;
+            }
+        }
+        return isIndexActiveMerged(indexNode, rootState, recursionDepth);
     }
 
     private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState, int recursionDepth) {
