@@ -151,7 +151,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         return Iterables.toArray(fileMap.keySet(), String.class);
     }
 
-    @Override
     public boolean fileExists(String name) throws IOException {
         return fileMap.containsKey(name);
     }
@@ -490,12 +489,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             private final IndexOutput delegate;
 
             public CopyOnCloseIndexOutput(IndexOutput delegate) {
+                super(delegate.toString(), delegate.getName());
                 this.delegate = delegate;
-            }
-
-            @Override
-            public void flush() throws IOException {
-                delegate.flush();
             }
 
             @Override
@@ -510,17 +505,11 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 return delegate.getFilePointer();
             }
 
-            @SuppressWarnings("deprecation")
             @Override
-            public void seek(long pos) throws IOException {
-                delegate.seek(pos);
+            public long getChecksum() throws IOException {
+                return delegate.getChecksum();
             }
-
-            @Override
-            public long length() throws IOException {
-                return delegate.length();
-            }
-
+            
             @Override
             public void writeByte(byte b) throws IOException {
                 delegate.writeByte(b);
@@ -529,11 +518,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             @Override
             public void writeBytes(byte[] b, int offset, int length) throws IOException {
                 delegate.writeBytes(b, offset, length);
-            }
-
-            @Override
-            public void setLength(long length) throws IOException {
-                delegate.setLength(length);
             }
         }
     }
