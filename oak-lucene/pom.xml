@@ -220,7 +220,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analysis-common</artifactId>
+      <artifactId>lucene-analyzers-common</artifactId>
       <version>${lucene.version}</version>
     </dependency>
     <dependency>
@@ -471,22 +471,5 @@
       <version>1.19.0</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-codecs</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-backward-codecs</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
-  </dependencies> 
-  <repositories>
-    <repository>
-      <id>repo-central</id>
-      <name>Maven Central</name>
-      <url>https://repo1.maven.org/maven2</url>
-    </repository>
-  </repositories>
+  </dependencies>
 </project>
