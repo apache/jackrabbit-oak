@@ -68,7 +68,7 @@ class TextPopulator {
         try (Closer closer = Closer.create()) {
             Iterable<CSVRecord> csvRecords = closer.register(CSVParser.parse(dataFile, UTF_8, FORMAT));
 
-            final FSDirectory dir = closer.register(FSDirectory.open(indexDir));
+            final FSDirectory dir = closer.register(FSDirectory.open(indexDir.toPath()));
             final DirectoryReader reader = closer.register(DirectoryReader.open(dir));
             final IndexSearcher searcher = new IndexSearcher(reader);
 
