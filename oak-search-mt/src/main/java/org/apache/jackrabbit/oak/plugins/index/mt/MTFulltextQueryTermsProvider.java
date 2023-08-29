@@ -61,18 +61,18 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
         this.decoder = decoder;
         this.nodeTypes = nodeTypes;
         this.minScore = minScore;
-        this.qp = new SimpleQueryParser(new OakAnalyzer(Version.LUCENE_47), FieldNames.FULLTEXT);
+        this.qp = new SimpleQueryParser(new OakAnalyzer(Version.LATEST), FieldNames.FULLTEXT);
     }
 
     @Override
     public Query getQueryTerm(String text, Analyzer analyzer, NodeState indexDefinition) {
 
-        BooleanQuery query = new BooleanQuery();
+        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         try {
             Sentence sentence = new Sentence(text, text.hashCode(), decoder.getJoshuaConfiguration());
             Translation translation = decoder.decode(sentence);
             log.debug("{} decoded into {}", text, translation);
-            query.add(new BooleanClause(new TermQuery(new Term(FieldNames.FULLTEXT, translation.toString())), BooleanClause.Occur.SHOULD));
+            queryBuilder.add(new BooleanClause(new TermQuery(new Term(FieldNames.FULLTEXT, translation.toString())), BooleanClause.Occur.SHOULD));
 
 
             // try phrase translation first
@@ -80,7 +80,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
             log.debug("found {} structured translations", structuredTranslations.size());
             if (!structuredTranslations.isEmpty()) {
                 log.debug("phrase translation");
-                addTranslations(query, structuredTranslations);
+                addTranslations(queryBuilder, structuredTranslations);
             } else {
                 // if phrase cannot be translated, perform token by token translation
                 log.debug("per token translation");
@@ -93,7 +93,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
                     String source = attribute.toString();
                     Translation translatedToken = decoder.decode(new Sentence(source, source.hashCode(),
                             decoder.getJoshuaConfiguration()));
-                    addTranslations(query, translatedToken.getStructuredTranslations());
+                    addTranslations(queryBuilder, translatedToken.getStructuredTranslations());
                 }
                 tokenStream.end();
             }
@@ -101,17 +101,19 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
         } catch (Exception e) {
             log.error("could not translate query", e);
         }
+        
+        BooleanQuery query = queryBuilder.build();
         return query.clauses().size() > 0 ? query : null;
     }
 
-    private void addTranslations(BooleanQuery query, List<StructuredTranslation> structuredTranslations) {
+    private void addTranslations(BooleanQuery.Builder queryBuilder, List<StructuredTranslation> structuredTranslations) {
         for (StructuredTranslation st : structuredTranslations) {
             String translationString = st.getTranslationString();
             float translationScore = st.getTranslationScore();
             log.debug("translation {} has score {}", translationString, translationScore);
             if (translationScore > minScore) {
                 log.debug("translation score for {} is {}", translationString, translationScore);
-                query.add(new BooleanClause(qp.createPhraseQuery(FieldNames.FULLTEXT, translationString),
+                queryBuilder.add(new BooleanClause(qp.createPhraseQuery(FieldNames.FULLTEXT, translationString),
                         BooleanClause.Occur.SHOULD));
                 log.debug("added query for translated phrase {}", translationString);
                 List<String> translationTokens = st.getTranslationTokens();
@@ -121,7 +123,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
                     if (!wa.isEmpty()) {
                         String translatedTerm = translationTokens.get(i);
                         Query termQuery = qp.parse(translatedTerm);
-                        query.add(new BooleanClause(termQuery, BooleanClause.Occur.SHOULD));
+                        queryBuilder.add(new BooleanClause(termQuery, BooleanClause.Occur.SHOULD));
                         log.debug("added query for translated token {}", translatedTerm);
                     }
                     i++;
