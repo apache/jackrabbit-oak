@@ -60,6 +60,11 @@ class OakIndexInput extends IndexInput {
     }
 
     @Override
+    public IndexInput slice(String s, long l, long l1) throws IOException {
+        return null;
+    }
+
+    @Override
     public void readBytes(byte[] b, int o, int n) throws IOException {
         checkNotClosed();
         file.readBytes(b, o, n);

@@ -134,7 +134,6 @@ public final class BufferedOakDirectory extends Directory {
         return all.toArray(new String[all.size()]);
     }
 
-    @Override
     public boolean fileExists(String name) throws IOException {
         LOG.debug("[{}]fileExists({})", definition.getIndexPath(), name);
         if (bufferedForDelete.contains(name)) {
@@ -179,10 +178,26 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     @Override
+    public IndexOutput createTempOutput(String s, String s1, IOContext ioContext)
+        throws IOException {
+        return null;
+    }
+
+    @Override
     public void sync(Collection<String> names) throws IOException {
         LOG.debug("[{}]sync({})", definition.getIndexPath(), names);
         buffered.sync(names);
         base.sync(names);
+    }
+
+    @Override
+    public void syncMetaData() throws IOException {
+        
+    }
+
+    @Override
+    public void rename(String s, String s1) throws IOException {
+        
     }
 
     @Override
@@ -202,13 +217,8 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     @Override
-    public Lock makeLock(String name) {
-        return base.makeLock(name);
-    }
-
-    @Override
-    public void clearLock(String name) throws IOException {
-        base.clearLock(name);
+    public Lock obtainLock(String s) throws IOException {
+        return null;
     }
 
     @Override
@@ -227,17 +237,20 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     @Override
+    public Set<String> getPendingDeletions() throws IOException {
+        return null;
+    }
+
     public void setLockFactory(LockFactory lockFactory) throws IOException {
         base.setLockFactory(lockFactory);
     }
 
-    @Override
     public LockFactory getLockFactory() {
         return base.getLockFactory();
     }
 
     private void fileDeleted() throws IOException {
-        // get rid of non existing files once in a while
+        // get rid of non-existing files once in a while
         if (++deleteCount >= DELETE_THRESHOLD_UNTIL_REOPEN) {
             if (LOG.isDebugEnabled()) {
                 LOG.debug("Reopen buffered OakDirectory. Current list of files: {}",

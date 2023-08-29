@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.IOException;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.IndexOutput;
@@ -27,14 +29,15 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexF
 final class OakIndexOutput extends IndexOutput {
     private final String dirDetails;
     final OakIndexFile file;
-
+    
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
                           BlobFactory blobFactory, boolean streamingWriteEnabled) throws IOException {
+        // TODO: verify that these are actually the right parameters. ResourceDescription and name. 
+        super(dirDetails, name);
         this.dirDetails = dirDetails;
         this.file = getOakIndexFile(name, file, dirDetails, blobFactory, streamingWriteEnabled);
     }
 
-    @Override
     public long length() {
         return file.length();
     }
@@ -45,6 +48,26 @@ final class OakIndexOutput extends IndexOutput {
     }
 
     @Override
+    public long getChecksum() throws IOException {
+        try {
+            // Create an MD5 instance
+            MessageDigest md = MessageDigest.getInstance("MD5");
+
+            // Compute the checksum
+            byte[] digest = md.digest(file.toString().getBytes());
+
+            // Convert the byte array to a hexadecimal representation
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+
+            return Long.parseLong(sb.toString());
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void seek(long pos) throws IOException {
         file.seek(pos);
     }
@@ -74,7 +97,6 @@ final class OakIndexOutput extends IndexOutput {
         }
     }
 
-    @Override
     public void flush() throws IOException {
         try {
             file.flush();

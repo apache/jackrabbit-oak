@@ -80,7 +80,7 @@ public class LuceneIndexImporter implements IndexImporterProvider {
     private void copyDirectory(LuceneIndexDefinition definition, NodeBuilder definitionBuilder, String jcrName, File dir)
             throws IOException {
         try (Closer closer = Closer.create()) {
-            Directory sourceDir = FSDirectory.open(dir);
+            Directory sourceDir = FSDirectory.open(dir.toPath());
             closer.register(sourceDir);
 
             //Remove any existing directory as in import case
@@ -93,7 +93,7 @@ public class LuceneIndexImporter implements IndexImporterProvider {
             closer.register(targetDir);
 
             for (String file : sourceDir.listAll()) {
-                sourceDir.copy(targetDir, file, file, IOContext.DEFAULT);
+                sourceDir.copyFrom(targetDir, file, file, IOContext.DEFAULT);
             }
         }
     }
