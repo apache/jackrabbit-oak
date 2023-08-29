@@ -18,7 +18,6 @@
 */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
-import org.apache.lucene.backward_codecs.lucene50.Lucene50TermVectorsFormat;
 import org.apache.lucene.backward_codecs.lucene70.Lucene70SegmentInfoFormat;
 import org.apache.lucene.backward_codecs.lucene90.Lucene90Codec;
 import org.apache.lucene.backward_codecs.lucene90.Lucene90FieldInfosFormat;
@@ -37,7 +36,6 @@ import org.apache.lucene.codecs.lucene90.Lucene90NormsFormat;
 import org.apache.lucene.codecs.lucene90.Lucene90SegmentInfoFormat;
 import org.apache.lucene.codecs.lucene90.Lucene90TermVectorsFormat;
 import org.apache.lucene.codecs.lucene90.compressing.Lucene90CompressingStoredFieldsFormat;
-import org.apache.lucene.codecs.lucene94.Lucene94FieldInfosFormat;
 
 /**
  * Lucene Codec aimed to reduce index size as much as possible by enabling highest possible compression on term vectors and stored fields.
