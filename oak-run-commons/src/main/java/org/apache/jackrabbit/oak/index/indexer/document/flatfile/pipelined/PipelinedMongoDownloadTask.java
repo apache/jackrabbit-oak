@@ -82,13 +82,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = 300;
     /**
-     * Whether to do path filtering on the MongoDB query instead of doing a full traversal of the document store and
-     * filtering in the indexing job. This feature may significantly reduce the amount of documents downloaded from
+     * Whether to do path filtering in the Mongo query instead of doing a full traversal of the document store and
+     * filtering in the indexing job. This feature may significantly reduce the number of documents downloaded from
      * Mongo.
      * The performance gains may not be proportional to the reduction in the number of documents downloaded because Mongo
      * still has to traverse all the documents. This is the case because the regex expression used for path filtering
      * starts with a wildcard (because the _id starts with the depth of the path, so the regex expression must ignore
-     * this part). Because of the wildcard at the start, Mongo cannot make use of the index on _id.
+     * this part). Because of the wildcard at the start, Mongo cannot use of the index on _id.
      */
     public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = "oak.indexer.pipelined.mongoRegexPathFiltering";
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = false;
@@ -198,6 +198,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         Bson childrenFilter = null;
         String regexBasePath = getPathForRegexFiltering();
         if (regexBasePath != null) {
+            // Regex path filtering is enabled
             // Download the ancestors in a separate query. No retrials done on this query, as it will take only a few
             // seconds and is done at the start of the job, so if it fails, the job can be retried without losing much work
             LOG.info("Using regex filtering with path {}", regexBasePath);
@@ -208,6 +209,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .withReadPreference(readPreference)
                     .find(ancestorsQuery);
             download(mongoIterable);
+            // Filter to apply to the main query
             childrenFilter = childrenFilter(regexBasePath);
         }
 
@@ -322,6 +324,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     // Package private for testing
     static String getSingleIncludedPath(List<PathFilter> pathFilters) {
+        // For the time being, we only enable path filtering if there is a single include path across all indexes and no
+        // exclude paths. This is the case for most of the larger indexes. We can consider generalizing this in the future.
         LOG.info("Creating regex filter from pathFilters: " + pathFilters);
         if (pathFilters == null) {
             return null;
@@ -358,6 +362,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static Bson ancestorsFilter(String path) {
         ArrayList<Bson> parentFilters = new ArrayList<>();
         int depth = PathUtils.getDepth(path);
+        // Explicitly list all ancestors in a or query.
         while (true) {
             parentFilters.add(Filters.eq(NodeDocument.ID, depth + ":" + path));
             if (depth == 0) {
