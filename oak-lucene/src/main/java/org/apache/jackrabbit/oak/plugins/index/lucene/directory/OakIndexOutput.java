@@ -47,6 +47,7 @@ final class OakIndexOutput extends IndexOutput {
         return file.position();
     }
 
+    // TODO: This is not the right way to get the checksum. It is like this right now to make it compile.  
     @Override
     public long getChecksum() throws IOException {
         try {
