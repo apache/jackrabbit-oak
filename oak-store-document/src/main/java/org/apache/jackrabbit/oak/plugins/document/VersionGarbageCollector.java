@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -45,6 +47,9 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
@@ -79,6 +84,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
 import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 public class VersionGarbageCollector {
@@ -667,7 +673,7 @@ public class VersionGarbageCollector {
             boolean foundDoc = true;
             long oldModifiedMs = oldestModifiedMs;
 
-            try (DetailedGC gc = new DetailedGC(headRevision, monitor, cancel)) {
+            try (DetailedGC gc = new DetailedGC(headRevision, toModifiedMs, monitor, cancel)) {
                 long fromModifiedMs = oldestModifiedMs;
                 String fromId = ofNullable(oldestModifiedDocId).orElse(MIN_ID_VALUE);
                 NodeDocument lastDoc;
@@ -837,6 +843,7 @@ public class VersionGarbageCollector {
     private class DetailedGC implements Closeable {
 
         private final RevisionVector headRevision;
+        private final long toModifiedMs;
         private final GCMonitor monitor;
         private final AtomicBoolean cancel;
         private final Stopwatch timer;
@@ -855,14 +862,18 @@ public class VersionGarbageCollector {
         private final Map<String, Integer> deletedPropsCountMap;
         private int garbageDocsCount;
         private int totalGarbageDocsCount;
+        private final Revision revisionForModified;
 
-        public DetailedGC(@NotNull RevisionVector headRevision, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
+        public DetailedGC(@NotNull RevisionVector headRevision, long toModifiedMs, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
             this.headRevision = requireNonNull(headRevision);
+            this.toModifiedMs = toModifiedMs;
             this.monitor = monitor;
             this.cancel = cancel;
             this.updateOpList = new ArrayList<>();
             this.deletedPropsCountMap = new HashMap<>();
             this.timer = createUnstarted();
+            // clusterId is not used
+            this.revisionForModified = Revision.newRevision(0);
         }
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
@@ -874,7 +885,7 @@ public class VersionGarbageCollector {
             op.equals(MODIFIED_IN_SECS, doc.getModified());
 
             collectDeletedProperties(doc, phases, op);
-            collectUnmergedBranchCommitDocument(doc, phases, op);
+            collectUnmergedBranchCommitDocument(doc, toModifiedMs, phases, op);
             collectOldRevisions(doc, phases, op);
             // only add if there are changes for this doc
             if (op.hasChanges()) {
@@ -887,14 +898,6 @@ public class VersionGarbageCollector {
 
         private boolean hasGarbage() {
             return garbageDocsCount > 0;
-        }
-
-        private void collectUnmergedBranchCommitDocument(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
-            if (phases.start(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC)){
-                // TODO add unmerged BC collection logic
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
-            }
-
         }
 
         private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
@@ -926,6 +929,206 @@ public class VersionGarbageCollector {
                     log.debug("Collected {} deleted properties for document {}", deletedPropsGCCount, doc.getId());
                 }
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_PROPS);
+            }
+        }
+
+        private void collectUnmergedBranchCommitDocument(final NodeDocument doc,
+                long toModifiedMillis, final GCPhases phases, final UpdateOp updateOp) {
+            if (!phases.start(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC)) {
+                // GC was cancelled, stop
+                return;
+            }
+
+            // from
+            // https://jackrabbit.apache.org/oak/docs/nodestore/documentmk.html#previous-documents
+            // "branch commits are not moved to previous documents until the branch is
+            // merged."
+            // i.e. if we're looking for unmerged branch commits, they cannot be in
+            // previous documents, they have to be in the main one - hence we have to use
+            // getLocalBranchCommits here
+            final Set<Revision> localBranchCommits = doc.getLocalBranchCommits();
+            if (localBranchCommits.isEmpty()) {
+                // nothing to do then
+                phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
+                return;
+            }
+
+            // !Note, the _bc sub-document was introduced with Oak 1.8 and is not present
+            // in older versions. The branch commit revision is added to _bc whenever a
+            // change is done on a document with a branch commit. This helps the
+            // DocumentNodeStore to more easily identify branch commit changes."
+            // The current implementation of "collectUnmergedBranchCommitDocument" only
+            // supports branch commits that are created after Oak 1.8
+            for (Revision bcRevision : localBranchCommits) {
+                if (!isRevisionOlderThan(bcRevision, toModifiedMillis)) {
+                    // only even consider revisions that are older than the provided
+                    // timestamp - otherwise skip this
+                    continue;
+                }
+                final String commitValue = nodeStore.getCommitValue(bcRevision, doc);
+                if (isCommitted(commitValue)) {
+                    // obviously don't do anything with merged (committed) branch commits
+                    continue;
+                }
+                removeUnmergedBCRevision(bcRevision, doc, updateOp);
+            }
+            // now for any of the handled system properties (the normal properties would
+            // already be cleaned up by cleanupDeletedProperties), the resulting
+            // subdocument could in theory become empty after removing all unmerged branch
+            // commit revisions is done later.
+            // so we need to go through all of them and check if we'd have removed
+            // the entirety - and then, instead of individually remove revisions, just
+            // delete the entire property.
+            if (updateOp.hasChanges()) {
+                for (Entry<String, Integer> e : getSystemRemoveMapEntryCounts(updateOp)
+                        .entrySet()) {
+                    final String prop = e.getKey();
+                    final Object d = doc.data.get(prop);
+                    if (!(d instanceof Map)) {
+                        // unexpected and would likely indicate a bug, hence log.error
+                        log.error(
+                                "collectUnmergedBranchCommitDocument: property without subdocument as expected. id={}, prop={}",
+                                doc.getId(), prop);
+                        continue;
+                    }
+                    @SuppressWarnings("rawtypes")
+                    final Map m = (Map) d;
+                    if (m.size() != e.getValue()) {
+                        // then we're not removing all revisions - so cannot cleanup
+                        continue;
+                    }
+                    // then we're removing all revisions - so replace those REMOVE_MAP_ENTRY
+                    // with one whole remove(prop)
+                    final Iterator<Entry<Key, Operation>> it = updateOp.getChanges().entrySet()
+                            .iterator();
+                    while (it.hasNext()) {
+                        if (it.next().getKey().getName().equals(prop)) {
+                            it.remove();
+                        }
+                    }
+                    updateOp.remove(prop);
+                }
+            }
+            phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
+        }
+
+        /** small helper to count number of REMOVE_MAP_ENTRY per system property */
+        private Map<String, Integer> getSystemRemoveMapEntryCounts(final UpdateOp updateOp) {
+            final Map<String, Integer> propMap = new HashMap<>();
+            for (Entry<Key, Operation> e : updateOp.getChanges().entrySet()) {
+                if (e.getValue().type != Type.REMOVE_MAP_ENTRY) {
+                    // only count REMOVE_MAP_ENTRY types, skip the rest
+                    continue;
+                }
+                final String propName = e.getKey().getName();
+                if (!propName.startsWith("_")) {
+                    // only count system properties, skip the rest
+                    continue;
+                }
+                Integer count = propMap.getOrDefault(propName, 0);
+                propMap.put(propName, count + 1);
+            }
+            return propMap;
+        }
+
+        /** small helper to check if the revision is older than the timestamp */
+        private boolean isRevisionOlderThan(Revision revision, long toModifiedMillis) {
+            long time = revision.getTimestamp();
+            return time <= toModifiedMillis;
+        }
+
+        /**
+         * Clean up one uncommitted branch commit in the provided document. The caller
+         * establishes whether a branch commit revision is committed or not - this is no
+         * longer checked in this method. The resulting operations are added to the
+         * provided updateOp.
+         * <p/>
+         * The actions depend on the exacty property key - here's the comprehensive list
+         * of system properties and how they are handled:
+         * <ul>
+         * <li>"_id" and "_path" are not affected</li>
+         * <li>"_prev" and "stalePrev" are not affected</li>
+         * <li>"_lastRev" and "_sweepRev" are not affected</li>
+         * <li>"_bc" is cleaned up</li>
+         * <li>"_revisions" is cleaned up</li>
+         * <li>"_commitRoot" is cleaned up</li>
+         * <li>"_collisions" might be a special case but is also cleaned up</li>
+         * <li>"_modified" and "_deletedOnce" are just single values and thus not
+         * generally affected, but they are updated when "_deleted" is cleaned up</li>
+         * <li>"_deleted" is cleaned up - plus "_modified" and "_deletedOnce" are also
+         * updated for this, to have classic GC later potentially delete the
+         * document</li>
+         * <li>"_children" is only ever set to true, never back - hence no need for
+         * cleanup/modification by DetailedGC</li>
+         * <li>"_bin" is only ever set to 1, never back - hence no need for
+         * cleanup/modification by DetailedGC</li>
+         * </ul>
+         *
+         * @param unmergedBCRevision the unmerged branch commit revision - the caller
+         *                           makes sure this revision is indeed not merged and
+         *                           old enough to be removed
+         * @param doc                the document from which the uncommittedBCRevision
+         *                           should be removed
+         * @param updateOp           the resulting operations yet to be applied
+         * @param propMap
+         */
+        private void removeUnmergedBCRevision(Revision unmergedBCRevision,
+                NodeDocument doc, UpdateOp updateOp) {
+            // caller ensures the provided revision is an unmerged branch commit
+            NodeDocument.removeBranchCommit(updateOp, unmergedBCRevision);
+
+            // phase 1 : remove unmerged bc revisions from _deleted - unmerged branch
+            // commits can only be in the local set
+            final String unmergedDeleted = doc.getLocalDeleted().get(unmergedBCRevision);
+            if (unmergedDeleted != null) {
+                NodeDocument.removeDeleted(updateOp, unmergedBCRevision);
+
+                // phase 2: the document could now effectively be "deleted" the actual
+                // removal from the document from the store is left to DeletedDocsGC (to
+                // avoid code duplication)
+
+                // if unmergedDeleted is "false", then it was created with this branch
+                // commit, but that was never merged. when we now remove that, it could be
+                // that it is then deleted.
+
+                // to know whether or not the node is actually deleted, would potentially
+                // require several commit value lookups.
+                // in order to keep the execution time of detailGC in this regard small,
+                // the code here stops with any further checks and just sets
+                // "_deletedOnce" to true and updates "_modified" - the DeletedDocsGC
+                // later would either resurrect or delete the document properly (eg
+                // including previous docs)
+                if ("false".equals(unmergedDeleted)) {
+                    if (!doc.wasDeletedOnce()) {
+                        NodeDocument.setDeletedOnce(updateOp);
+                    }
+                    NodeDocument.setModified(updateOp, revisionForModified);
+                }
+            }
+            // phase 3 : go through other system properties
+            if (doc.getLocalCommitRoot().containsKey(unmergedBCRevision)) {
+                NodeDocument.removeCommitRoot(updateOp, unmergedBCRevision);
+            }
+            if (doc.getLocalRevisions().containsKey(unmergedBCRevision)) {
+                NodeDocument.removeRevision(updateOp, unmergedBCRevision);
+            }
+            if (doc.getLocalMap(NodeDocument.COLLISIONS)
+                    .containsKey(unmergedBCRevision)) {
+                NodeDocument.removeCollision(updateOp, unmergedBCRevision);
+            }
+            // phase 4 : go through normal properties
+            for (String propName : doc.getPropertyNames()) {
+                // first check if this property might have been (flagged to be)
+                // entirely removed by the collectDeletedProperties - in which case
+                // there is a corresponding UpdateOp
+                final Operation op = updateOp.getChanges().get(new Key(propName, null));
+                if (op != null && op.type == Type.REMOVE) {
+                    // ignore this property then, it will be removed entirely
+                    continue;
+                }
+                if (doc.getLocalMap(propName).containsKey(unmergedBCRevision)) {
+                    updateOp.removeMapEntry(propName, unmergedBCRevision);
+                }
             }
         }
 
@@ -1019,6 +1222,7 @@ public class VersionGarbageCollector {
         private final Set<String> exclude = Sets.newHashSet();
         private boolean sorted = false;
         private final Stopwatch timer;
+        @SuppressWarnings("unused")
         private final VersionGCOptions options;
         private final GCMonitor monitor;
 
