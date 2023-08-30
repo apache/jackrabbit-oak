@@ -48,6 +48,15 @@ public class IndexName implements Comparable<IndexName> {
 
     private final static Logger LOG = LoggerFactory.getLogger(IndexName.class);
 
+    /**
+     * The maximum number of recursion levels when checking whether an index is
+     * active or not. We stop at a certain point, because there is a risk that the
+     * configuration contains a loop. If we use a very high value (e.g. 1000), then
+     * Java will throw a StackOverflowError. So using a maximum depth of 50 seems
+     * save.
+     */
+    private static final int MAX_ACTIVE_CHECK_RECURSION_DEPTH = 50;
+
     // already logged index names
     private static final HashSet<String> LOGGED_WARN = new HashSet<>();
     // when LOGGED_WARN will be cleared
@@ -237,8 +246,9 @@ public class IndexName implements Comparable<IndexName> {
     private static boolean isIndexActive(String indexPath, NodeState rootState, int recursionDepth) {
         // An index is active if it has a hidden child node that starts with ":oak:mount-",
         // OR if it is an active merged index
-        if (recursionDepth > 50) {
-            LOG.warn("Fail to check index activeness for {} due to high recursion depth", indexPath);
+        if (recursionDepth > MAX_ACTIVE_CHECK_RECURSION_DEPTH) {
+            LOG.warn("Fail to check index activeness for {} due to high recursion depth: {}", indexPath,
+                    recursionDepth);
             return true;
         }
         NodeState indexNode = rootState;
@@ -253,6 +263,7 @@ public class IndexName implements Comparable<IndexName> {
         if (recursionDepth >= 2) {
             // special case OAK-10399: the _previous_ base index
             // is always considered active
+            // level 1 (the first lookup) we still need to check.
             IndexName n = IndexName.parse(PathUtils.getName(indexPath));
             if (n.getCustomerVersion() == 0) {
                 return true;
