@@ -105,7 +105,7 @@ public class IndexNameTest {
             lc.starting();
             IndexName.filterReplacedIndexes(indexPaths, base, true);
             assertTrue("High recursion depth should be detected", lc.getLogs().contains(
-                    "Fail to check index activeness for lucene-1-custom-1 due to high recursion depth"));
+                    "Fail to check index activeness for lucene-1-custom-1 due to high recursion depth: 51"));
         } catch (StackOverflowError e) {
             fail("should not run into StackOverflowError exception");
         } finally {
