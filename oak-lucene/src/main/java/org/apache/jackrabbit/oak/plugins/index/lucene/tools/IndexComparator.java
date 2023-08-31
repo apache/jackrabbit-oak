@@ -51,6 +51,12 @@ public class IndexComparator {
         if (args.length < 1) {
             System.out.println("Usage: java " + IndexComparator.class.getName() +
                     " <lucene index directory> [<second lucene index directory>]");
+            System.out.println(
+                    "If only one directory is specified, then the output is json " +
+                    "that contains the statistics of the index.");
+            System.out.println(
+                    "Instead of a directory, each argument can be a json file " +
+                    "that contains the statistics of a previous run.");
             return;
         }
         String stats1 = getStats(new File(args[0]));
@@ -86,11 +92,10 @@ public class IndexComparator {
             } else if (path.endsWith(".si")) {
                 // ".si" files contain a timestamp
                 ignoreChecksums = true;
-            } else if (path.endsWith(".cfs")) {
-                // ".cfs" files depends on the aggregation order
-                ignoreChecksums = true;
-            } else if (path.endsWith(".cfe")) {
-                // ".cfs" files depends on the aggregation order
+            } else if (path.endsWith(".cfs")
+                    || path.endsWith(".cfe")) {
+                // ".cfs" and ".cfe files depends on
+                // the aggregation order
                 ignoreChecksums = true;
             }
         }
@@ -108,10 +113,12 @@ public class IndexComparator {
                         long x1 = Long.parseLong(v1);
                         long x2 = Long.parseLong(v2);
                         if (Math.abs(x1 - x2) < 1000) {
-                            // less than 0.1% difference if aggregation order is different
+                            // less than 100 bytes difference
+                            // if aggregation order is different
                             continue;
                         } else if (Math.abs((double) x1 / x2 - 1.0) < 0.001) {
-                            // less than 0.1% difference if aggregation order is different
+                            // less than 0.1% difference
+                            // if aggregation order is different
                             continue;
                         }
                     }
@@ -138,10 +145,20 @@ public class IndexComparator {
         }
     }
 
+    /**
+     * Create or load a string that contains the JSON representation of the
+     * statistics of an index.
+     *
+     * @param file the Lucene directory, or JSON file
+     * @return the statistics in JSON form
+     */
     private static String getStats(File file) throws Exception {
         if (file.isDirectory()) {
+            // comparing the directory
             return getStatsFromLucene(file);
         } else {
+            // reading a pre-existing (json) file that contains
+            // the statistics
             return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
         }
     }
