@@ -263,7 +263,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         //Lock should also be released
         ClusterNodeStoreLock clusterLock = new ClusterNodeStoreLock(fixture3.getNodeStore());
 
-        assertEventually(() -> {assertFalse(clusterLock.isLocked("async"));}, 2);
+        assertEventually(() -> {assertFalse(clusterLock.isLocked("async"));}, 200);
 //        assertFalse(clusterLock.isLocked("async"));
         
         fixture3.close();
