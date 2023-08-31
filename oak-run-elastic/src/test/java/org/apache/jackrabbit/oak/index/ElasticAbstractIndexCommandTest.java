@@ -65,11 +65,7 @@ public class ElasticAbstractIndexCommandTest extends AbstractIndexTestCommand {
                 "oak:QueryIndexDefinition", session);
 
         idxBuilder.build(fooIndex);
-        if (fooIndex.hasNode("suggestion")) {
-            fooIndex.getNode("suggestion").setProperty("suggestUpdateFrequencyMinutes", 0);
-        } else {
-            fooIndex.addNode("suggestion").setProperty("suggestUpdateFrequencyMinutes", 0);
-        }
+        fooIndex.addNode("suggestion").setProperty("suggestUpdateFrequencyMinutes", 0);
         session.save();
         session.logout();
     }
