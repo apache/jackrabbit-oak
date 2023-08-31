@@ -289,12 +289,14 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
                 if (elapsedTime >= timeoutMillis) {
                     String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
                             elapsedTime / 1000d, attempts);
+                    LOG.error(msg, attempts, e.getMessage());
                     throw new AssertionError(msg, e);
                 }
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException ex) {
-                    ex.printStackTrace();
+                    LOG.error("Thread interrupted", ex);
+                    throw new AssertionError("Thread interrupted", e);
                 }
 
             }
