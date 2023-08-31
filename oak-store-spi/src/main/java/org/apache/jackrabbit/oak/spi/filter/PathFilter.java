@@ -107,8 +107,8 @@ public class PathFilter {
      *
      * If both are empty then all paths would be considered to be included
      *
-     * @param includes list of paths which should not be included
-     * @param excludes list of paths which should be included
+     * @param includes list of paths which should be included
+     * @param excludes list of paths which should not be included
      */
     public PathFilter(Iterable<String> includes, Iterable<String> excludes) {
         Set<String> includeCopy = newHashSet(includes);
