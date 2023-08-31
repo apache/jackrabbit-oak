@@ -721,15 +721,7 @@ public class VersionGarbageCollector {
                         } finally {
                             Utils.closeIfCloseable(itr);
                             phases.stats.oldestModifiedDocTimeStamp = fromModifiedMs;
-                            if (fromModifiedMs > oldModifiedMs) {
-                                // we have moved ahead, now we can reset oldestModifiedId to min value
-                                fromId = MIN_ID_VALUE;
-                                phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
-                            } else {
-                                // there are still documents pending at oldest Modified timestamp,
-                                // save the last _id traversed to avoid re-fetching of ids
-                                phases.stats.oldestModifiedDocId = fromId;
-                            }
+                            phases.stats.oldestModifiedDocId = fromId;
                             oldModifiedMs = fromModifiedMs;
                         }
                         // if we didn't find any document i.e. either we are already at last document
@@ -929,7 +921,6 @@ public class VersionGarbageCollector {
                         .sum();
 
                 deletedPropsCountMap.put(doc.getId(), deletedPropsGCCount);
-                detailedGCStats.deletedPropertiesRead(deletedPropsGCCount);
 
                 if (log.isDebugEnabled()) {
                     log.debug("Collected {} deleted properties for document {}", deletedPropsGCCount, doc.getId());
@@ -995,6 +986,7 @@ public class VersionGarbageCollector {
                 // save stats
                 detailedGCStats.propertiesDeleted(deletedProps);
                 detailedGCStats.documentsUpdated(updatedDocs);
+                detailedGCStats.documentsSkippedUpdation(oldDocs.size() - updatedDocs);
             } finally {
                 delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel);
             }

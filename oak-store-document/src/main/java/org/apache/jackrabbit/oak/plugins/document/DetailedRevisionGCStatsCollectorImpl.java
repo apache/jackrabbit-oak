@@ -35,9 +35,9 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
 
     static final String DETAILED_GC = "DetailedGC";
     static final String READ_DOC = "READ_DOC";
-    static final String READ_DELETED_PROPERTY = "READ_DELETED_PROPERTY";
     static final String DELETED_PROPERTY = "DELETED_PROPERTY";
     static final String UPDATED_DOC = "UPDATED_DOC";
+    static final String SKIPPED_DOC = "SKIPPED_DOC";
     static final String DETAILED_GC_ACTIVE_TIMER = "DETAILED_GC_ACTIVE_TIMER";
     static final String DETAILED_GC_TIMER = "DETAILED_GC_TIMER";
     static final String COLLECT_DETAILED_GARBAGE_TIMER = "COLLECT_DETAILED_GARBAGE_TIMER";
@@ -50,9 +50,9 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     static final String FAILURE_COUNTER = "FAILURE";
 
     private final MeterStats readDoc;
-    private final MeterStats readDeletedProperty;
     private final MeterStats deletedProperty;
     private final MeterStats updatedDoc;
+    private final MeterStats skippedDoc;
     private final TimerStats detailedGCActiveTimer;
     private final TimerStats detailedGCTimer;
     private final TimerStats collectDetailedGarbageTimer;
@@ -67,9 +67,9 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     DetailedRevisionGCStatsCollectorImpl(StatisticsProvider provider) {
 
         readDoc = meter(provider, READ_DOC);
-        readDeletedProperty = meter(provider, READ_DELETED_PROPERTY);
         deletedProperty = meter(provider, DELETED_PROPERTY);
         updatedDoc = meter(provider, UPDATED_DOC);
+        skippedDoc = meter(provider, SKIPPED_DOC);
 
         detailedGCActiveTimer = timer(provider, DETAILED_GC_ACTIVE_TIMER);
         detailedGCTimer = timer(provider, DETAILED_GC_TIMER);
@@ -91,11 +91,6 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     }
 
     @Override
-    public void deletedPropertiesRead(long numProps) {
-        readDeletedProperty.mark(numProps);
-    }
-
-    @Override
     public void propertiesDeleted(long numProps) {
         deletedProperty.mark(numProps);
     }
@@ -103,6 +98,11 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     @Override
     public void documentsUpdated(long numDocs) {
         updatedDoc.mark(numDocs);
+    }
+
+    @Override
+    public void documentsSkippedUpdation(long numDocs) {
+        skippedDoc.mark(numDocs);
     }
 
     @Override

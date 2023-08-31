@@ -45,10 +45,10 @@ import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStats
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DETAILED_GC_ACTIVE_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DETAILED_GC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.FAILURE_COUNTER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.READ_DELETED_PROPERTY;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.READ_DOC;
+import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.SKIPPED_DOC;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.UPDATED_DOC;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Unit Cases for {@link DetailedRevisionGCStatsCollectorImpl}
@@ -75,12 +75,12 @@ public class DetailedRevisionGCStatsCollectorImplTest {
     }
 
     @Test
-    public void getDeletedPropertiesReadCount() throws IllegalAccessException {
-        Meter m = getMeter(READ_DELETED_PROPERTY);
+    public void getDocumentsSkippedUpdationCount() throws IllegalAccessException {
+        Meter m = getMeter(SKIPPED_DOC);
         long count = m.getCount();
-        stats.deletedPropertiesRead(17);
+        stats.documentsSkippedUpdation(17);
         assertEquals(count + 17, m.getCount());
-        assertEquals(count + 17, ((MeterStats) readField(stats, "readDeletedProperty", true)).getCount());
+        assertEquals(count + 17, ((MeterStats) readField(stats, "skippedDoc", true)).getCount());
     }
 
     @Test

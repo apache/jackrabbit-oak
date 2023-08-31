@@ -28,11 +28,11 @@ public interface DetailedRevisionGCStatsCollector {
 
     void documentRead();
 
-    void deletedPropertiesRead(long numProps);
-
     void propertiesDeleted(long numProps);
 
     void documentsUpdated(long numDocs);
+
+    void documentsSkippedUpdation(long numDocs);
 
     void started();
 
