@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 
 import java.util.concurrent.atomic.LongAdder;
 
@@ -141,23 +142,24 @@ public class TransformStageStatistics {
                 String.format("%2.1f%%", (100.0 * documentsAcceptedTotal) / mongoDocumentsTraversedSum);
         String entriesAcceptedPercentage = totalEntries == 0 ? "N/A" :
                 String.format("%1.1f%%", (100.0 * entriesAcceptedSum) / totalEntries);
-        String avgEntrySize = entriesAcceptedSum == 0 ? "N/A" :
-                Long.toString(extractedEntriesTotalSizeSum / entriesAcceptedSum);
-        return "{documentsTraversed:" + mongoDocumentsTraversedSum +
-                ", documentsAccepted:" + documentsAcceptedTotal +
-                ", documentsRejected:" + documentsRejectedTotal +
-                ", documentsAcceptedPercentage:" + documentsAcceptedPercentage +
-                ", documentsRejectedSplit:" + documentsRejectedSplitSum +
-                ", documentsRejectedEmptyNodeState:" + documentsRejectedEmptyNodeStateSum +
-                ", entriesTraversed:" + totalEntries +
-                ", entriesAccepted:" + entriesAcceptedSum +
-                ", entriesRejected:" + entriesRejectedSum +
-                ", entriesAcceptedPercentage:" + entriesAcceptedPercentage +
-                ", entriesRejectedHiddenPaths:" + entriesRejectedHiddenPaths +
-                ", entriesRejectedPathFiltered:" + entriesRejectedPathFiltered +
-                ", extractedEntriesTotalSize:" + extractedEntriesTotalSizeSum +
-                ", avgEntrySize:" + avgEntrySize +
-                "}";
+        long avgEntrySize = entriesAcceptedSum == 0 ? -1 :
+                extractedEntriesTotalSizeSum / entriesAcceptedSum;
+        return MetricsFormatter.newBuilder()
+                .add("documentsTraversed", mongoDocumentsTraversedSum)
+                .add("documentsAccepted", documentsAcceptedTotal)
+                .add("documentsRejected", documentsRejectedTotal)
+                .add("documentsAcceptedPercentage", documentsAcceptedPercentage)
+                .add("documentsRejectedSplit", documentsRejectedSplitSum)
+                .add("documentsRejectedEmptyNodeState", documentsRejectedEmptyNodeStateSum)
+                .add("entriesTraversed", totalEntries)
+                .add("entriesAccepted", entriesAcceptedSum)
+                .add("entriesRejected", entriesRejectedSum)
+                .add("entriesAcceptedPercentage", entriesAcceptedPercentage)
+                .add("entriesRejectedHiddenPaths", entriesRejectedHiddenPaths.sum())
+                .add("entriesRejectedPathFiltered", entriesRejectedPathFiltered.sum())
+                .add("extractedEntriesTotalSize", extractedEntriesTotalSizeSum)
+                .add("avgEntrySize", avgEntrySize)
+                .build();
     }
 
     private static String getPathPrefix(String path, int depth) {

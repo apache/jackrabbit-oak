@@ -92,7 +92,7 @@ public class PipelinedIT {
 
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
-        assertEquals(Arrays.asList(new String[] {"/content/dam|{}",
+        assertEquals(Arrays.asList("/content/dam|{}",
                         "/content/dam/1000|{}",
                         "/content/dam/1000/12|{\"p1\":\"v100012\"}",
                         "/content/dam/2022|{}",
@@ -100,7 +100,7 @@ public class PipelinedIT {
                         "/content/dam/2023|{\"p2\":\"v2023\"}",
                         "/content/dam/2023/01|{\"p1\":\"v202301\"}",
                         "/content/dam/2023/02|{}",
-                        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"}),
+                        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"),
                 Files.readAllLines(file.toPath()));
     }
 

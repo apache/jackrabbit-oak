@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 
@@ -55,6 +57,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedSortBatchTask.class);
 
+    private static final String THREAD_NAME = "mongo-sort-batch";
+
     private final Comparator<SortKey> pathComparator;
     private final Compression algorithm;
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
@@ -63,6 +67,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private final File sortWorkDir;
     private final byte[] copyBuffer = new byte[4096];
     private long entriesProcessed = 0;
+    private long batchesProcessed = 0;
 
     public PipelinedSortBatchTask(File storeDir,
                                   PathElementComparator pathComparator,
@@ -81,14 +86,18 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     @Override
     public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
-        Thread.currentThread().setName("mongo-sort-batch");
+        Thread.currentThread().setName(THREAD_NAME);
         try {
-            LOG.info("Starting sort-and-save task");
+            LOG.info("[TASK:{}:START] Starting sort-and-save task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
-                    LOG.info("Terminating thread, processed {} entries", entriesProcessed);
+                    String metrics = MetricsFormatter.newBuilder()
+                            .add("batchesProcessed", batchesProcessed)
+                            .add("entriesProcessed", entriesProcessed)
+                            .build();
+                    LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
                     return new Result(entriesProcessed);
                 }
                 sortAndSaveBatch(nseBuffer);
@@ -111,7 +120,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         ByteBuffer buffer = nseb.getBuffer();
         LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
                 sortBuffer.size(), humanReadableByteCountBin(buffer.remaining()));
-        if (sortBuffer.size() == 0) {
+        if (sortBuffer.isEmpty()) {
             return;
         }
         Stopwatch sortClock = Stopwatch.createStarted();
@@ -120,6 +129,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Stopwatch saveClock = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
+        batchesProcessed++;
         try (BufferedOutputStream writer = createOutputStream(newtmpfile, algorithm)) {
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;

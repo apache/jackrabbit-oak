@@ -28,6 +28,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.bson.BsonDocument;
@@ -38,6 +40,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -81,6 +84,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(30);
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
 
+    private static final String THREAD_NAME = "mongo-dump";
+
     private final int batchSize;
     private final BlockingQueue<BasicDBObject[]> mongoDocQueue;
     private final int retryDuringSeconds;
@@ -122,15 +127,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     @Override
     public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
-        Thread.currentThread().setName("mongo-dump");
+        Thread.currentThread().setName(THREAD_NAME);
+        LOG.info("[TASK:{}:START] Starting to download from MongoDB.", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
-            LOG.info("Starting to download from MongoDB.");
-            //TODO This may lead to reads being routed to secondary depending on MongoURI
-            //So caller must ensure that its safe to read from secondary
-
             this.nextLastModified = 0;
             this.lastIdDownloaded = null;
-
 
             downloadStartWatch.start();
             if (!retryOnConnectionErrors) {
@@ -189,10 +190,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     }
                 }
             }
-            LOG.info("Terminating task. Downloaded {} Mongo documents in {}. Total enqueuing delay: {} ms ({}%)",
-                    documentsRead, downloadStartWatch,
-                    totalEnqueueWaitTimeMillis,
-                    String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS)));
+
+            String enqueueingDelayPercentage = String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS));
+            String metrics = MetricsFormatter.newBuilder()
+                    .add("duration", FormatingUtils.formatToSeconds(downloadStartWatch))
+                    .add("durationSeconds", downloadStartWatch.elapsed(TimeUnit.SECONDS))
+                    .add("documentsDownloaded", documentsRead)
+                    .add("enqueueingDelayMs", totalEnqueueWaitTimeMillis)
+                    .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
+                    .build();
+
+            LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
             return new Result(documentsRead);
         } catch (InterruptedException t) {
             LOG.warn("Thread interrupted", t);
@@ -286,11 +294,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     private void tryEnqueue(BasicDBObject[] block) throws TimeoutException, InterruptedException {
-        Stopwatch stopwatch = Stopwatch.createStarted();
+        Stopwatch enqueueDelayStopwatch = Stopwatch.createStarted();
         if (!mongoDocQueue.offer(block, MONGO_QUEUE_OFFER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
             throw new TimeoutException("Timeout trying to enqueue batch of MongoDB documents. Waited " + MONGO_QUEUE_OFFER_TIMEOUT);
         }
-        long enqueueDelay = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        long enqueueDelay = enqueueDelayStopwatch.elapsed(TimeUnit.MILLISECONDS);
         totalEnqueueWaitTimeMillis += enqueueDelay;
         if (enqueueDelay > 1) {
             logWithRateLimit(() ->

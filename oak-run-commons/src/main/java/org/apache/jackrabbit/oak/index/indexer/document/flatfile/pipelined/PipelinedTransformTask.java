@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import com.mongodb.BasicDBObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -41,6 +43,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -71,9 +74,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             return transformThreadId;
         }
     }
-
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedTransformTask.class);
     private static final AtomicInteger threadIdGenerator = new AtomicInteger();
+    private static final String THREAD_NAME_PREFIX = "mongo-transform-";
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
@@ -89,7 +92,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
     private final TransformStageStatistics statistics;
     private final int threadId = threadIdGenerator.getAndIncrement();
-    private long totalEnqueueWaitTimeMillis = 0;
+    private long totalEnqueueDelayMillis = 0;
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
@@ -116,26 +119,33 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     @Override
     public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
-        Thread.currentThread().setName("mongo-transform-" + threadId);
+        String threadName = THREAD_NAME_PREFIX + threadId;
+        Thread.currentThread().setName(threadName);
         try {
-            LOG.info("Starting transform task");
+            LOG.info("[TASK:{}:START] Starting transform task", threadName.toUpperCase(Locale.ROOT));
             NodeDocumentCache nodeCache = MongoDocumentStoreHelper.getNodeDocumentCache(mongoStore);
             Stopwatch taskStartWatch = Stopwatch.createStarted();
             long totalEntryCount = 0;
             long mongoObjectsProcessed = 0;
-            LOG.info("Waiting for an empty buffer");
+            LOG.debug("Waiting for an empty buffer");
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
 
             // Used to serialize a node state entry before writing it to the buffer
             ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
             OutputStreamWriter writer = new OutputStreamWriter(baos, PipelinedStrategy.FLATFILESTORE_CHARSET);
-            LOG.info("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
+            LOG.debug("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
             while (true) {
                 BasicDBObject[] dbObjectBatch = mongoDocQueue.take();
                 if (dbObjectBatch == SENTINEL_MONGO_DOCUMENT) {
-                    LOG.info("Task terminating. Dumped {} nodestates in json format in {}. Total enqueue delay: {} ms ({}%)",
-                            totalEntryCount, taskStartWatch, totalEnqueueWaitTimeMillis,
-                            String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS)));
+
+                    String totalEnqueueDelayPercentage =  String.format("%1.2f", (100.0 * totalEnqueueDelayMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
+                    String metrics = MetricsFormatter.newBuilder()
+                            .add("duration", FormatingUtils.formatToSeconds(taskStartWatch))
+                            .add("nodeStateEntriesGenerated", totalEntryCount)
+                            .add("enqueueDelayMillis", totalEnqueueDelayMillis)
+                            .add("enqueueDelayPercentage", totalEnqueueDelayPercentage)
+                            .build();
+                    LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);
@@ -210,10 +220,10 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     }
 
     private void tryEnqueue(NodeStateEntryBatch nseBatch) throws InterruptedException {
-        Stopwatch stopwatch = Stopwatch.createStarted();
+        Stopwatch enqueueDelayStopwatch = Stopwatch.createStarted();
         nonEmptyBatchesQueue.put(nseBatch);
-        long enqueueDelay = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-        totalEnqueueWaitTimeMillis += enqueueDelay;
+        long enqueueDelay = enqueueDelayStopwatch.elapsed(TimeUnit.MILLISECONDS);
+        totalEnqueueDelayMillis += enqueueDelay;
         if (enqueueDelay > 1) {
             LOG.info("Enqueuing of node state entries batch was delayed, took {} ms. nonEmptyBatchesQueue size {}. ",
                     enqueueDelay, nonEmptyBatchesQueue.size());

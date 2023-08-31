@@ -25,6 +25,8 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -167,9 +169,16 @@ public class PipelinedStrategy implements SortStrategy {
                                  ArrayBlockingQueue<File> sortedFilesQueue,
                                  TransformStageStatistics transformStageStatistics,
                                  boolean printHistogramsAtInfo) {
-        // Summary stats
-        LOG.info("Queue sizes: {mongoDocQueue:{}, emptyBuffersQueue:{}, nonEmptyBuffersQueue:{}, sortedFilesQueue:{}}; Transform Stats: {}",
-                mongoDocQueue.size(), emptyBuffersQueue.size(), nonEmptyBuffersQueue.size(), sortedFilesQueue.size(), transformStageStatistics.formatStats());
+
+        String queueSizeStats = MetricsFormatter.newBuilder()
+                .add("mongoDocQueue", mongoDocQueue.size())
+                .add("emptyBuffersQueue", emptyBuffersQueue.size())
+                .add("nonEmptyBuffersQueue", nonEmptyBuffersQueue.size())
+                .add("sortedFilesQueue", sortedFilesQueue.size())
+                .build();
+
+        LOG.info("Queue sizes: {}", queueSizeStats);
+        LOG.info("Transform stats: {}", transformStageStatistics.formatStats());
         prettyPrintTransformStatisticsHistograms(transformStageStatistics, printHistogramsAtInfo);
     }
 
@@ -309,6 +318,7 @@ public class PipelinedStrategy implements SortStrategy {
                 emptyBatchesQueue.add(NodeStateEntryBatch.createNodeStateEntryBatch(bufferSizeBytes, maxNumberOfEntriesPerBuffer));
             }
 
+            LOG.info("[TASK:PIPELINED-DUMP:START] Starting to download from MongoDB.");
             Stopwatch start = Stopwatch.createStarted();
             MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
             PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue);
@@ -362,10 +372,10 @@ public class PipelinedStrategy implements SortStrategy {
                             PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
                             transformTasksFinished++;
                             entryCount += transformResult.getEntryCount();
-                            LOG.info("Transform thread {} finished. Entries processed: {}",
+                            LOG.info("Transform task {} finished. Entries processed: {}",
                                     transformResult.getThreadId(), transformResult.getEntryCount());
                             if (transformTasksFinished == transformThreads) {
-                                LOG.info("All transform tasks finished. Node states retrieved: {}", entryCount);
+                                LOG.info("All transform tasks finished. Total entries processed: {}", entryCount);
                                 // No need to keep monitoring the queues, the download and transform threads are done.
                                 monitorFuture.cancel(false);
                                 // Terminate the sort thread.
@@ -374,14 +384,14 @@ public class PipelinedStrategy implements SortStrategy {
 
                         } else if (result instanceof PipelinedSortBatchTask.Result) {
                             PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
-                            LOG.info("Sort task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
+                            LOG.info("Sort batch task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
                             printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
                             sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
 
                         } else if (result instanceof PipelinedMergeSortTask.Result) {
                             PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
                             File ffs = mergeSortedFilesTask.getFlatFileStoreFile();
-                            LOG.info("Sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(ffs.length()));
+                            LOG.info("Merge-sort sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(ffs.length()));
                             flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
 
                         } else {
@@ -406,7 +416,10 @@ public class PipelinedStrategy implements SortStrategy {
                         throw new RuntimeException(ex);
                     }
                 }
-                LOG.info("Dumped {} nodestates in json format in {}", entryCount, start);
+                LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
+                        .add("duration", FormatingUtils.formatToSeconds(start))
+                        .add("entryCount", entryCount)
+                        .build());
                 printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
