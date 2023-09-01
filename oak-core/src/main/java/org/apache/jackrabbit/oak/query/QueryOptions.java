@@ -40,6 +40,7 @@ public class QueryOptions {
     public Optional<Long> offset = Optional.empty();
     public List<String> prefetch = Collections.emptyList();
     public Optional<Integer> prefetchCount = Optional.empty();
+    public boolean fastSize;
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
@@ -63,6 +64,7 @@ public class QueryOptions {
         offset = defaultValues.offset;
         prefetch = defaultValues.prefetch;
         prefetchCount = defaultValues.prefetchCount;
+        fastSize = defaultValues.fastSize;
     }
 
     QueryOptions(JsonObject json) {
@@ -105,6 +107,10 @@ public class QueryOptions {
             } while (t.matches(','));
             t.read(']');
             prefetch = list;
+        }
+        x = map.get("fastSize");
+        if (x != null) {
+            fastSize = "true".equals(x);
         }
     }
 

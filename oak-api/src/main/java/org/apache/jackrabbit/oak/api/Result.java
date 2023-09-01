@@ -74,6 +74,15 @@ public interface Result {
      *         count is higher than max, it returns Long.MAX_VALUE.
      */
     long getSize(SizePrecision precision, long max);
+
+    /**
+     * Indicates whether the query specified the FASTSIZE option.
+     *
+     * @return true if the FASTSIZE query option was set
+     */
+    default boolean hasFastSizeOption() {
+        return false;
+    }
     
     enum SizePrecision {
    

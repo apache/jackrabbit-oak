@@ -81,6 +81,15 @@ public interface Query {
      */
     long getSize(Result.SizePrecision precision, long max);
 
+    /**
+     * Indicates whether the query specified the FASTSIZE option.
+     *
+     * @return true if the FASTSIZE query option was set
+     */
+    default boolean hasFastSizeOption() {
+        return false;
+    }
+
     void setExplain(boolean explain);
 
     void setMeasure(boolean measure);

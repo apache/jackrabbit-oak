@@ -58,6 +58,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
     private static final long PRIVILEGE_MNGMT = NAMESPACE_MNGMT << 1;
     private static final long USER_MNGMT = PRIVILEGE_MNGMT << 1;
     private static final long INDEX_DEFINITION_MNGMT = USER_MNGMT << 1;
+    private static final long QUERY_OPTION_FAST_SIZE = INDEX_DEFINITION_MNGMT << 1;
 
     private static final long READ = READ_NODES | READ_PROPERTIES;
     private static final long MODIFY_PROPERTIES = ADD_PROPERTIES | ALTER_PROPERTIES | REMOVE_PROPERTIES;
@@ -92,6 +93,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         privs.put(REP_PRIVILEGE_MANAGEMENT, getInstance(PRIVILEGE_MNGMT));
         privs.put(REP_USER_MANAGEMENT, getInstance(USER_MNGMT));
         privs.put(REP_INDEX_DEFINITION_MANAGEMENT, getInstance(INDEX_DEFINITION_MNGMT));
+        privs.put(REP_QUERY_OPTION_FAST_SIZE, getInstance(QUERY_OPTION_FAST_SIZE));
 
         privs.put(JCR_READ, getInstance(READ));
         privs.put(JCR_MODIFY_PROPERTIES, getInstance(MODIFY_PROPERTIES));
@@ -122,6 +124,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         bits.put(PRIVILEGE_MNGMT, REP_PRIVILEGE_MANAGEMENT);
         bits.put(USER_MNGMT, REP_USER_MANAGEMENT);
         bits.put(INDEX_DEFINITION_MNGMT, REP_INDEX_DEFINITION_MANAGEMENT);
+        bits.put(QUERY_OPTION_FAST_SIZE, REP_QUERY_OPTION_FAST_SIZE);
 
         bits.put(READ, JCR_READ);
         bits.put(MODIFY_PROPERTIES, JCR_MODIFY_PROPERTIES);
@@ -131,7 +134,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         BUILT_IN_BITS = Collections.unmodifiableMap(bits);
     }
 
-    public static final PrivilegeBits NEXT_AFTER_BUILT_INS = getInstance(INDEX_DEFINITION_MNGMT).nextBits();
+    public static final PrivilegeBits NEXT_AFTER_BUILT_INS = getInstance(QUERY_OPTION_FAST_SIZE).nextBits();
 
     private final Data d;
 

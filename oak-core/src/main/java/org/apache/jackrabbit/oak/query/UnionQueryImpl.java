@@ -195,7 +195,12 @@ public class UnionQueryImpl implements Query {
         long total = QueryImpl.saturatedAdd(a, b);
         return Math.min(localLimit, total);
     }
-    
+
+    @Override
+    public boolean hasFastSizeOption() {
+        return right.hasFastSizeOption() || left.hasFastSizeOption();
+    }
+
     @Override
     public void setExplain(boolean explain) {
         this.explain = explain;

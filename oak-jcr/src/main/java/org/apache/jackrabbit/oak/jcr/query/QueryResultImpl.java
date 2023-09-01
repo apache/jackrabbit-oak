@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
+import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -224,7 +225,7 @@ public class QueryResultImpl implements QueryResult {
                     sessionDelegate.sync(nodeIterator),
                     new PrefetchOptions() { {
                         size = result.getSize();
-                        fastSize = sessionContext.getFastQueryResultSize();
+                        fastSize = determineFastSizeEnabled(sessionContext, result);
                         fastSizeCallback = result;
                     } });
         return new NodeIteratorAdapter(prefIt) {
@@ -233,6 +234,19 @@ public class QueryResultImpl implements QueryResult {
                 return prefIt.size();
             }
         };
+    }
+
+    protected static boolean determineFastSizeEnabled(SessionContext sessionContext, Result result) {
+        boolean fastSizeEnabled = sessionContext.getFastQueryResultSize();
+        if (!fastSizeEnabled && result.hasFastSizeOption()) {
+            if (sessionContext.getAccessManager().hasPermissions("/", PrivilegeConstants.REP_QUERY_OPTION_FAST_SIZE)) {
+                fastSizeEnabled = true;
+            } else {
+                LOG.warn("Query option FASTSIZE was set, but the executing JCR principal lacks the permission.");
+                return false;
+            }
+        }
+        return fastSizeEnabled;
     }
 
     Value createValue(PropertyValue value) {

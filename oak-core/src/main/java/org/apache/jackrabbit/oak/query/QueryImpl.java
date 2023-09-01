@@ -1422,6 +1422,11 @@ public class QueryImpl implements Query {
     }
 
     @Override
+    public boolean hasFastSizeOption() {
+        return this.queryOptions.fastSize;
+    }
+
+    @Override
     public String getStatement() {
         return Strings.isNullOrEmpty(statement) ? toString() : statement;
     }

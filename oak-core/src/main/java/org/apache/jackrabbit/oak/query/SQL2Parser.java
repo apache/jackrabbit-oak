@@ -206,6 +206,8 @@ public class SQL2Parser {
                     } while (readIf(","));
                     read(")");
                     options.prefetch = list;
+                } else if (readIf("FASTSIZE")) {
+                    options.fastSize = true;
                 } else {
                     break;
                 }

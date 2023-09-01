@@ -30,9 +30,11 @@ import org.apache.jackrabbit.oak.query.ast.SelectorImpl;
 public class ResultImpl implements Result {
 
     protected final Query query;
+    protected final boolean fastSizeOption;
 
     ResultImpl(Query query) {
         this.query = query;
+        this.fastSizeOption = query.hasFastSizeOption();
     }
 
     @Override
@@ -85,4 +87,8 @@ public class ResultImpl implements Result {
         return query.getSize(precision, max);
     }
 
+    @Override
+    public boolean hasFastSizeOption() {
+        return fastSizeOption;
+    }
 }

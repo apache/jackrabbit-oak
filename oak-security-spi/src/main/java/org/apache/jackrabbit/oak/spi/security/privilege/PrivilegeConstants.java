@@ -227,6 +227,13 @@ public interface PrivilegeConstants {
     String REP_INDEX_DEFINITION_MANAGEMENT = "rep:indexDefinitionManagement";
 
     /**
+     * Internal (oak) name of the rep:queryOptionFastSize privilege
+     *
+     * @since OAK 1.60
+     */
+    String REP_QUERY_OPTION_FAST_SIZE = "rep:queryOptionFastSize";
+
+    /**
      * The internal names of all built-in privileges that are not aggregates.
      */
     Set<String> NON_AGGREGATE_PRIVILEGES = ImmutableSet.of(
@@ -236,7 +243,8 @@ public interface PrivilegeConstants {
                         JCR_READ_ACCESS_CONTROL, JCR_MODIFY_ACCESS_CONTROL, JCR_NODE_TYPE_MANAGEMENT,
                         JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
                         JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
-                        JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT, REP_INDEX_DEFINITION_MANAGEMENT
+                        JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
+                        REP_INDEX_DEFINITION_MANAGEMENT, REP_QUERY_OPTION_FAST_SIZE
 
     );
 
