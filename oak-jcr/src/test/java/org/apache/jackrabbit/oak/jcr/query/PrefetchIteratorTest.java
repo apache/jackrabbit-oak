@@ -74,11 +74,7 @@ public class PrefetchIteratorTest {
                         public long getSize(SizePrecision precision, long max) {
                             return 100;
                         }
-
-                        @Override
-                        public boolean isQueryOptionFastSize() {
-                            return false;
-                        }
+                        
                     };
                 } });
         assertEquals(21, it.size());
