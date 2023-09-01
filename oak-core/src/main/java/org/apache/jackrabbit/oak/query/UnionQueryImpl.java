@@ -197,8 +197,9 @@ public class UnionQueryImpl implements Query {
     }
 
     @Override
-    public boolean hasFastSizeOption() {
-        return right.hasFastSizeOption() || left.hasFastSizeOption();
+    public boolean isOptionFastSize() {
+        // assumes that the same queryOptions are passed to both left and right queries in setQueryOptions()
+        return right.isOptionFastSize();
     }
 
     @Override

@@ -86,7 +86,7 @@ public interface Query {
      *
      * @return true if the FASTSIZE query option was set
      */
-    default boolean hasFastSizeOption() {
+    default boolean isOptionFastSize() {
         return false;
     }
 

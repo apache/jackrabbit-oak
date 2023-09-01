@@ -93,7 +93,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         privs.put(REP_PRIVILEGE_MANAGEMENT, getInstance(PRIVILEGE_MNGMT));
         privs.put(REP_USER_MANAGEMENT, getInstance(USER_MNGMT));
         privs.put(REP_INDEX_DEFINITION_MANAGEMENT, getInstance(INDEX_DEFINITION_MNGMT));
-        privs.put(REP_QUERY_OPTION_FAST_SIZE, getInstance(QUERY_OPTION_FAST_SIZE));
+        privs.put(REP_QUERY_OPTIONS_RELAXED_SECURITY, getInstance(QUERY_OPTION_FAST_SIZE));
 
         privs.put(JCR_READ, getInstance(READ));
         privs.put(JCR_MODIFY_PROPERTIES, getInstance(MODIFY_PROPERTIES));
@@ -124,7 +124,7 @@ public final class PrivilegeBits implements PrivilegeConstants {
         bits.put(PRIVILEGE_MNGMT, REP_PRIVILEGE_MANAGEMENT);
         bits.put(USER_MNGMT, REP_USER_MANAGEMENT);
         bits.put(INDEX_DEFINITION_MNGMT, REP_INDEX_DEFINITION_MANAGEMENT);
-        bits.put(QUERY_OPTION_FAST_SIZE, REP_QUERY_OPTION_FAST_SIZE);
+        bits.put(QUERY_OPTION_FAST_SIZE, REP_QUERY_OPTIONS_RELAXED_SECURITY);
 
         bits.put(READ, JCR_READ);
         bits.put(MODIFY_PROPERTIES, JCR_MODIFY_PROPERTIES);

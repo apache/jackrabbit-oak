@@ -76,7 +76,7 @@ public class PrefetchIteratorTest {
                         }
 
                         @Override
-                        public boolean hasFastSizeOption() {
+                        public boolean isQueryOptionFastSize() {
                             return false;
                         }
                     };

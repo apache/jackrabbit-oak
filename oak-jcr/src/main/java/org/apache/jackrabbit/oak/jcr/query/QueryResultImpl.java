@@ -18,9 +18,11 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -238,11 +240,21 @@ public class QueryResultImpl implements QueryResult {
 
     protected static boolean determineFastSizeEnabled(SessionContext sessionContext, Result result) {
         boolean fastSizeEnabled = sessionContext.getFastQueryResultSize();
-        if (!fastSizeEnabled && result.hasFastSizeOption()) {
-            if (sessionContext.getAccessManager().hasPermissions("/", PrivilegeConstants.REP_QUERY_OPTION_FAST_SIZE)) {
+        if (!fastSizeEnabled && result.isQueryOptionFastSize()) {
+            if (sessionContext.getAccessManager().hasPermissions("/",
+                    PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY)) {
                 fastSizeEnabled = true;
             } else {
-                LOG.warn("Query option FASTSIZE was set, but the executing JCR principal lacks the permission.");
+                final String executingPrincipals = sessionContext.getSessionDelegate().getAuthInfo().getPrincipals()
+                        .stream().map(Principal::toString).collect(Collectors.joining(","));
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug(String.format("Query option FASTSIZE was set, but the executing principal [%s] lacks the %s privilege.",
+                            executingPrincipals, PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY),
+                            new IllegalArgumentException("Ignored query option FASTSIZE"));
+                } else {
+                    LOG.warn("Query option FASTSIZE was set, but the executing principal [{}] lacks the {} privilege.",
+                            executingPrincipals, PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY);
+                }
                 return false;
             }
         }

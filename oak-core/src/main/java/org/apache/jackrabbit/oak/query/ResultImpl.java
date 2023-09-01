@@ -34,7 +34,7 @@ public class ResultImpl implements Result {
 
     ResultImpl(Query query) {
         this.query = query;
-        this.fastSizeOption = query.hasFastSizeOption();
+        this.fastSizeOption = query.isOptionFastSize();
     }
 
     @Override
@@ -88,7 +88,7 @@ public class ResultImpl implements Result {
     }
 
     @Override
-    public boolean hasFastSizeOption() {
+    public boolean isQueryOptionFastSize() {
         return fastSizeOption;
     }
 }

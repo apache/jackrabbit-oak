@@ -1422,7 +1422,7 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public boolean hasFastSizeOption() {
+    public boolean isOptionFastSize() {
         return this.queryOptions.fastSize;
     }
 
