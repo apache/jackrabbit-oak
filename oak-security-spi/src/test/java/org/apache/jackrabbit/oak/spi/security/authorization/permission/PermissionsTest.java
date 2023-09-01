@@ -256,7 +256,7 @@ public class PermissionsTest {
 
     @Test
     public void testIsRepositoryPermission() {
-        Set<Long> repoPermissions = ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT, Permissions.NODE_TYPE_DEFINITION_MANAGEMENT, Permissions.PRIVILEGE_MANAGEMENT, Permissions.WORKSPACE_MANAGEMENT);
+        Set<Long> repoPermissions = ImmutableSet.of(Permissions.NAMESPACE_MANAGEMENT, Permissions.NODE_TYPE_DEFINITION_MANAGEMENT, Permissions.PRIVILEGE_MANAGEMENT, Permissions.WORKSPACE_MANAGEMENT, Permissions.QUERY_OPTIONS_RELAXED_SECURITY);
         for (long permission : Permissions.aggregates(Permissions.ALL)) {
             assertEquals(repoPermissions.contains(permission), Permissions.isRepositoryPermission(permission));
         }
@@ -327,6 +327,7 @@ public class PermissionsTest {
                 | Permissions.PRIVILEGE_MANAGEMENT
                 | Permissions.USER_MANAGEMENT
                 | Permissions.INDEX_DEFINITION_MANAGEMENT
+                | Permissions.QUERY_OPTIONS_RELAXED_SECURITY
         );
         assertEquals(expected, Permissions.diff(Permissions.ALL, Permissions.READ|Permissions.WRITE));
     }

@@ -29,6 +29,8 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
+import javax.jcr.security.AccessControlManager;
+import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
@@ -238,11 +240,12 @@ public class QueryResultImpl implements QueryResult {
         };
     }
 
-    protected static boolean determineFastSizeEnabled(SessionContext sessionContext, Result result) {
+    protected static boolean determineFastSizeEnabled(SessionContext sessionContext, Result result) throws RepositoryException {
         boolean fastSizeEnabled = sessionContext.getFastQueryResultSize();
         if (!fastSizeEnabled && result.isQueryOptionFastSize()) {
-            if (sessionContext.getAccessManager().hasPermissions("/",
-                    PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY)) {
+            AccessControlManager accessControlManager = sessionContext.getSession().getAccessControlManager();
+            if (sessionContext.getSession().getAccessControlManager().hasPrivileges(null, new Privilege[] {
+                    accessControlManager.privilegeFromName(PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY)})) {
                 fastSizeEnabled = true;
             } else {
                 final String executingPrincipals = sessionContext.getSessionDelegate().getAuthInfo().getPrincipals()

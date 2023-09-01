@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
+import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -155,12 +156,22 @@ public class ResultSizeTest extends AbstractQueryTest {
         createData();
         int expectedForUnion = 400;
         int expectedForTwoConditions = aggregateAtQueryTime ? 400 : 200;
-        doTestResultSizeOption(false, expectedForTwoConditions);
-        doTestResultSizeOption(true, expectedForUnion);
+        doTestResultSizeOption(superuser, false, expectedForTwoConditions);
+        doTestResultSizeOption(superuser, true, expectedForUnion);
+        Session readOnlySession = null;
+        try {
+            readOnlySession = superuser.getRepository().login(new GuestCredentials());
+            assertNotNull(readOnlySession);
+            doTestResultSizeOption(readOnlySession, false, -1);
+            doTestResultSizeOption(readOnlySession, true, -1);
+        } finally {
+            if (readOnlySession != null) {
+                readOnlySession.logout();
+            }
+        }
     }
 
-    private void doTestResultSizeOption(boolean union, int expected) throws RepositoryException {
-        Session session = superuser;
+    private void doTestResultSizeOption(Session session, boolean union, int expected) throws RepositoryException {
         QueryManager qm = session.getWorkspace().getQueryManager();
 
         String statement;
