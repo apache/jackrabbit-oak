@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import javax.jcr.GuestCredentials;
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
@@ -160,7 +159,7 @@ public class ResultSizeTest extends AbstractQueryTest {
         doTestResultSizeOption(superuser, true, expectedForUnion);
         Session readOnlySession = null;
         try {
-            readOnlySession = superuser.getRepository().login(new GuestCredentials());
+            readOnlySession = getHelper().getReadOnlySession();
             assertNotNull(readOnlySession);
             doTestResultSizeOption(readOnlySession, false, -1);
             doTestResultSizeOption(readOnlySession, true, -1);
