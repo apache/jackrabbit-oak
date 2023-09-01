@@ -31,21 +31,11 @@ import static org.junit.Assert.assertEquals;
 
 public class VersionGCStatsTest {
 
-    private static final Callable START = new Callable() {
-        @Override
-        public void call(Stopwatch watch) {
-            watch.start();
-        }
-    };
+    private static final Callable START = Stopwatch::start;
 
-    private static final Callable STOP = new Callable() {
-        @Override
-        public void call(Stopwatch watch) {
-            watch.stop();
-        }
-    };
+    private static final Callable STOP = Stopwatch::stop;
 
-    private VersionGCStats stats = new VersionGCStats();
+    private final VersionGCStats stats = new VersionGCStats();
     
     @Before
     public void before() throws Exception {
@@ -61,6 +51,7 @@ public class VersionGCStatsTest {
         VersionGCStats cumulative = new VersionGCStats();
         cumulative.addRun(stats);
         assertEquals(stats.active.elapsed(MICROSECONDS), cumulative.activeElapsed);
+        assertEquals(stats.detailedGCActive.elapsed(MICROSECONDS), cumulative.detailedGCActiveElapsed);
         assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS), cumulative.collectDeletedDocsElapsed);
         assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS), cumulative.checkDeletedDocsElapsed);
         assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS), cumulative.deleteDeletedDocsElapsed);
@@ -69,6 +60,7 @@ public class VersionGCStatsTest {
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS), cumulative.updateResurrectedDocumentsElapsed);
         assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS), cumulative.detailedGCDocsElapsed);
         assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS), cumulative.deleteDetailedGCDocsElapsed);
+        assertEquals(stats.collectDetailedGarbage.elapsed(MICROSECONDS), cumulative.collectDetailedGarbageElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS), cumulative.collectDeletedPropsElapsed);
         assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS), cumulative.collectDeletedOldRevsElapsed);
         assertEquals(stats.collectUnmergedBC.elapsed(MICROSECONDS), cumulative.collectUnmergedBCElapsed);
@@ -82,6 +74,7 @@ public class VersionGCStatsTest {
         cumulative.addRun(cumulative);
         // now the stats must have doubled
         assertEquals(stats.active.elapsed(MICROSECONDS) * 2, cumulative.activeElapsed);
+        assertEquals(stats.detailedGCActive.elapsed(MICROSECONDS) * 2, cumulative.detailedGCActiveElapsed);
         assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedDocsElapsed);
         assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.checkDeletedDocsElapsed);
         assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDeletedDocsElapsed);
@@ -90,6 +83,7 @@ public class VersionGCStatsTest {
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS) * 2, cumulative.updateResurrectedDocumentsElapsed);
         assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.detailedGCDocsElapsed);
         assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDetailedGCDocsElapsed);
+        assertEquals(stats.collectDetailedGarbage.elapsed(MICROSECONDS) * 2, cumulative.collectDetailedGarbageElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedPropsElapsed);
         assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedOldRevsElapsed);
         assertEquals(stats.collectUnmergedBC.elapsed(MICROSECONDS) * 2, cumulative.collectUnmergedBCElapsed);
@@ -97,6 +91,7 @@ public class VersionGCStatsTest {
 
     private void forEachStopwatch(VersionGCStats stats, Callable c) {
         c.call(stats.active);
+        c.call(stats.detailedGCActive);
         c.call(stats.collectDeletedDocs);
         c.call(stats.checkDeletedDocs);
         c.call(stats.deleteDeletedDocs);
@@ -105,6 +100,7 @@ public class VersionGCStatsTest {
         c.call(stats.updateResurrectedDocuments);
         c.call(stats.detailedGCDocs);
         c.call(stats.deleteDetailedGCDocs);
+        c.call(stats.collectDetailedGarbage);
         c.call(stats.collectDeletedProps);
         c.call(stats.collectDeletedOldRevs);
         c.call(stats.collectUnmergedBC);

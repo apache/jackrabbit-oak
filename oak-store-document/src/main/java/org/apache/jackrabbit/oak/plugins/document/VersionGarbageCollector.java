@@ -78,6 +78,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
+import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 public class VersionGarbageCollector {
@@ -129,7 +130,8 @@ public class VersionGarbageCollector {
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
-    private RevisionGCStats gcStats = new RevisionGCStats(StatisticsProvider.NOOP);
+    private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
+    private DetailedRevisionGCStatsCollector detailedGCStats = new DetailedRevisionGCStatsCollectorImpl(NOOP);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
@@ -143,6 +145,7 @@ public class VersionGarbageCollector {
 
     void setStatisticsProvider(StatisticsProvider provider) {
         this.gcStats = new RevisionGCStats(provider);
+        this.detailedGCStats = new DetailedRevisionGCStatsCollectorImpl(provider);
     }
 
     @NotNull
@@ -161,6 +164,9 @@ public class VersionGarbageCollector {
             VersionGCStats overall = new VersionGCStats();
             overall.active.start();
             gcStats.started();
+            if (detailedGCEnabled) {
+                detailedGCStats.started();
+            }
             boolean success = false;
             try {
                 long averageDurationMs = 0;
@@ -186,6 +192,9 @@ public class VersionGarbageCollector {
                 collector.set(null);
                 overall.success = success;
                 gcStats.finished(overall);
+                if (detailedGCEnabled) {
+                    detailedGCStats.finished(overall);
+                }
                 if (overall.iterationCount > 1) {
                     gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
                             overall.iterationCount, overall);
@@ -289,6 +298,7 @@ public class VersionGarbageCollector {
         int deletedPropsGCCount;
         final TimeDurationFormatter df = TimeDurationFormatter.forLogging();
         final Stopwatch active = Stopwatch.createUnstarted();
+        final Stopwatch detailedGCActive = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch checkDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch detailedGCDocs = Stopwatch.createUnstarted();
@@ -298,12 +308,14 @@ public class VersionGarbageCollector {
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
+        final Stopwatch collectDetailedGarbage = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedProps = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedOldRevs = Stopwatch.createUnstarted();
         final Stopwatch collectUnmergedBC = Stopwatch.createUnstarted();
-        long activeElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed, collectAndDeleteSplitDocsElapsed,
-                deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed, detailedGCDocsElapsed, collectDeletedPropsElapsed,
-                deleteDetailedGCDocsElapsed, collectDeletedOldRevsElapsed, collectUnmergedBCElapsed;
+        long activeElapsed, detailedGCActiveElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed,
+                collectAndDeleteSplitDocsElapsed, deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed,
+                detailedGCDocsElapsed, collectDetailedGarbageElapsed, collectDeletedPropsElapsed, deleteDetailedGCDocsElapsed,
+                collectDeletedOldRevsElapsed, collectUnmergedBCElapsed;
 
         @Override
         public String toString() {
@@ -342,6 +354,7 @@ public class VersionGarbageCollector {
                         df.format(collectAndDeleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(detailedGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(deleteDetailedGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                        df.format(collectDetailedGarbage.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDeletedProps.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDeletedOldRevs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectUnmergedBC.elapsed(MICROSECONDS), MICROSECONDS),
@@ -361,6 +374,7 @@ public class VersionGarbageCollector {
                     ", updatedDetailedGCDocsCount=" + updatedDetailedGCDocsCount +
                     ", deletedPropsGCCount=" + deletedPropsGCCount +
                     ", iterationCount=" + iterationCount +
+                    ", timeDetailedGCActive=" + df.format(detailedGCActiveElapsed, MICROSECONDS) +
                     ", timeActive=" + df.format(activeElapsed, MICROSECONDS) +
                     ", " + timings + "}";
         }
@@ -385,6 +399,7 @@ public class VersionGarbageCollector {
             if (run.iterationCount > 0) {
                 // run is cumulative with times in elapsed fields
                 this.activeElapsed += run.activeElapsed;
+                this.detailedGCActiveElapsed += run.detailedGCActiveElapsed;
                 this.collectDeletedDocsElapsed += run.collectDeletedDocsElapsed;
                 this.checkDeletedDocsElapsed += run.checkDeletedDocsElapsed;
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocsElapsed;
@@ -394,12 +409,14 @@ public class VersionGarbageCollector {
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocumentsElapsed;
                 this.detailedGCDocsElapsed += run.detailedGCDocsElapsed;
                 this.deleteDetailedGCDocsElapsed += run.deleteDetailedGCDocsElapsed;
+                this.collectDetailedGarbageElapsed += run.collectDetailedGarbageElapsed;
                 this.collectDeletedPropsElapsed += run.collectDeletedPropsElapsed;
                 this.collectDeletedOldRevsElapsed += run.collectDeletedOldRevsElapsed;
                 this.collectUnmergedBCElapsed += run.collectUnmergedBCElapsed;
             } else {
                 // single run -> read from stop watches
                 this.activeElapsed += run.active.elapsed(MICROSECONDS);
+                this.detailedGCActiveElapsed += run.detailedGCActive.elapsed(MICROSECONDS);
                 this.collectDeletedDocsElapsed += run.collectDeletedDocs.elapsed(MICROSECONDS);
                 this.checkDeletedDocsElapsed += run.checkDeletedDocs.elapsed(MICROSECONDS);
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocs.elapsed(MICROSECONDS);
@@ -409,6 +426,7 @@ public class VersionGarbageCollector {
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
                 this.detailedGCDocsElapsed += run.detailedGCDocs.elapsed(MICROSECONDS);
                 this.deleteDetailedGCDocsElapsed += run.deleteDetailedGCDocs.elapsed(MICROSECONDS);
+                this.collectDetailedGarbageElapsed += run.collectDetailedGarbage.elapsed(MICROSECONDS);
                 this.collectDeletedPropsElapsed += run.collectDeletedProps.elapsed(MICROSECONDS);
                 this.collectDeletedOldRevsElapsed += run.collectDeletedOldRevs.elapsed(MICROSECONDS);
                 this.collectUnmergedBCElapsed += run.collectUnmergedBC.elapsed(MICROSECONDS);
@@ -424,6 +442,7 @@ public class VersionGarbageCollector {
         SORTING,
         SPLITS_CLEANUP,
         DETAILED_GC,
+        DETAILED_GC_COLLECT_GARBAGE,
         DETAILED_GC_COLLECT_PROPS,
         DETAILED_GC_COLLECT_OLD_REVS,
         DETAILED_GC_COLLECT_UNMERGED_BC,
@@ -457,6 +476,7 @@ public class VersionGarbageCollector {
             this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
             this.watches.put(GCPhase.UPDATING, stats.updateResurrectedDocuments);
             this.watches.put(GCPhase.DETAILED_GC, stats.detailedGCDocs);
+            this.watches.put(GCPhase.DETAILED_GC_COLLECT_GARBAGE, stats.collectDetailedGarbage);
             this.watches.put(GCPhase.DETAILED_GC_COLLECT_PROPS, stats.collectDeletedProps);
             this.watches.put(GCPhase.DETAILED_GC_COLLECT_OLD_REVS, stats.collectDeletedOldRevs);
             this.watches.put(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC, stats.collectUnmergedBC);
@@ -586,6 +606,7 @@ public class VersionGarbageCollector {
 
                 // now run detailed GC if enabled
                 if (detailedGCEnabled) {
+                    stats.detailedGCActive.start();
                     if (rec.ignoreDetailedGCDueToCheckPoint) {
                         phases.stats.ignoredDetailedGCDueToCheckPoint = true;
                         monitor.skipped("Checkpoint prevented detailed revision garbage collection");
@@ -610,6 +631,9 @@ public class VersionGarbageCollector {
             rec.evaluate(stats);
             monitor.info("Revision garbage collection finished in {}. {}",
                     TimeDurationFormatter.forLogging().format(phases.elapsed.elapsed(MICROSECONDS), MICROSECONDS), stats);
+            if (detailedGCEnabled) {
+                stats.detailedGCActive.stop();
+            }
             stats.active.stop();
             return stats;
         }
@@ -670,9 +694,9 @@ public class VersionGarbageCollector {
 
                                 lastDoc = doc;
                                 // collect the data to delete in next step
-                                if (phases.start(GCPhase.COLLECTING)) {
+                                if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
                                     gc.collectGarbage(doc, phases);
-                                    phases.stop(GCPhase.COLLECTING);
+                                    phases.stop(GCPhase.DETAILED_GC_COLLECT_GARBAGE);
                                 }
 
                                 final Long modified = lastDoc.getModified();
@@ -697,15 +721,7 @@ public class VersionGarbageCollector {
                         } finally {
                             Utils.closeIfCloseable(itr);
                             phases.stats.oldestModifiedDocTimeStamp = fromModifiedMs;
-                            if (fromModifiedMs > oldModifiedMs) {
-                                // we have moved ahead, now we can reset oldestModifiedId to min value
-                                fromId = MIN_ID_VALUE;
-                                phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
-                            } else {
-                                // there are still documents pending at oldest Modified timestamp,
-                                // save the last _id traversed to avoid re-fetching of ids
-                                phases.stats.oldestModifiedDocId = fromId;
-                            }
+                            phases.stats.oldestModifiedDocId = fromId;
                             oldModifiedMs = fromModifiedMs;
                         }
                         // if we didn't find any document i.e. either we are already at last document
@@ -826,6 +842,16 @@ public class VersionGarbageCollector {
         private final Stopwatch timer;
         private final List<UpdateOp> updateOpList;
 
+        /**
+         * Map of documentId => total no. of deleted properties.
+         * <p>
+         *
+         * The document can be updated or property might get recreated between collecting and deletion phases.
+         * This would lead to document not getting deleted (since now modified date & mod count would have changed)
+         * SO the Bulk API wouldn't update this doc.
+         * <p>
+         * In order to calculate the correct no. of updated documents & deleted properties, we save them in a map
+         */
         private final Map<String, Integer> deletedPropsCountMap;
         private int garbageDocsCount;
         private int totalGarbageDocsCount;
@@ -841,6 +867,7 @@ public class VersionGarbageCollector {
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
 
+            detailedGCStats.documentRead();
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
 
             final UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
@@ -955,6 +982,11 @@ public class VersionGarbageCollector {
                 updateOpList.clear();
                 deletedPropsCountMap.clear();
                 garbageDocsCount = 0;
+
+                // save stats
+                detailedGCStats.propertiesDeleted(deletedProps);
+                detailedGCStats.documentsUpdated(updatedDocs);
+                detailedGCStats.documentsSkippedUpdation(oldDocs.size() - updatedDocs);
             } finally {
                 delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel);
             }
