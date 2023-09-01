@@ -152,6 +152,8 @@ By default, the source repository replaces the destination repository (if there'
 
 Please notice that in the last example it's necessary to narrow the migration scope using `--include-paths` parameter.
 
+A merge might fail with an `OakConstraint0030` message if an already existing node has been renamed at the source or destination repository. This can be observed for nodes with an UUID property. The merging node would be copied into the destination repository which already contains the node under a different name with the same UUID.
+
 ### Version history copying
 
 ![Version copy chart](img/migration-version.png)
