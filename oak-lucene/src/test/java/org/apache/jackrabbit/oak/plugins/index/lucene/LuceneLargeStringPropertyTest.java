@@ -57,6 +57,7 @@ import org.slf4j.event.Level;
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -67,6 +68,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker.checkTruncateLength;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
 import static org.junit.Assert.assertTrue;
 
@@ -228,21 +230,57 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         root.commit();
 
         Tree test = root.getTree("/").addChild("test");
-        int length = LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH + 2;
+        int length = LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH;
         String generatedString = RandomStringUtils.random(length, true, true);
         String aVal ="abcd Mình nói tiếng Việt" + generatedString.substring(0, length);
-        String bVal = "abcd æ œ" + generatedString.substring(0, length);
+        String bVal = "abcd " + generatedString.substring(0, length - 6) + "\uD800\uDF48";
 
         test.addChild("a").setProperty("propa", aVal);
         test.addChild("b").setProperty("propa", bVal);
         root.commit();
 
         assertTruncation("propa", aVal, "/test/a", customizer);
-        assertExtendedTruncation("propa", aVal, "/test/b", customizer);
-        assertTruncation("propb", bVal, "/test/b", customizer);
-        assertExtendedTruncation("propb", bVal, "/test/b", customizer);
+        assertExtendedTruncation("propa", aVal, "/test/a", customizer);
+        assertTruncation("propa", bVal, "/test/b", customizer);
+        assertExtendedTruncation("propa", bVal, "/test/b", customizer);
         // order of result should be first b and then a i.e. sorted on propa
         assertQuery("select [jcr:path] from [nt:base] where contains(@propa, 'abcd') order by propa", asList("/test/b", "/test/a"));
+    }
+
+    @Test
+    public void randomStringTruncation() {
+        Random r = new Random(1);
+        for (int i = 0; i < 100; i++) {
+            String x = randomUnicodeString(r, 5);
+            BytesRef ref = checkTruncateLength("x", x, "/x", 5);
+            assertTrue(ref.length > 0 && ref.length <= 5);
+        }
+    }
+
+    private String randomUnicodeString(Random r, int len) {
+        StringBuilder buff = new StringBuilder();
+        for(int i=0; i<len; i++) {
+            // see https://en.wikipedia.org/wiki/UTF-8
+            switch (r.nextInt(6)) {
+                case 2:
+                    // 2 UTF-8 bytes
+                    buff.append('£');
+                    break;
+                case 3:
+                    // 3 UTF-8 bytes
+                    buff.append('€');
+                    break;
+                case 4:
+                    // 4 UTF-8 bytes
+                    buff.append("\uD800\uDF48");
+                    break;
+                default:
+                    // most cases:
+                    // 1 UTF-8 byte (ASCII)
+                    buff.append('$');
+            }
+        }
+        return buff.toString();
     }
     
     private static boolean assertTruncation(String prop, String val, String path, LogCustomizer customizer) {

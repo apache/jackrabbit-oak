@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -313,26 +314,35 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         return fieldAdded;
     }
     
-    private static BytesRef checkTruncateLength(String prop, String value, String path, int maxLength) {
-        String truncated = value;
-        if (value.length() > maxLength) {
-            log.warn("Truncating property {} having length {} at path:[{}] as it is > {}", prop, value.length(), path, maxLength);
-            truncated = value.substring(0, maxLength);
+    protected static BytesRef checkTruncateLength(String prop, String value, String path, int maxLength) {
+        log.trace("Property {} at path:[{}] has value {}", prop, path, value);
+
+        BytesRef ref = new BytesRef(value);
+        if (ref.length <= maxLength) {
+            return ref;
         }
-        BytesRef ref = new BytesRef(truncated);
-
-        // Adjust if over limit
-        int estimatedSafeLength = maxLength;
-        if (ref.length > maxLength) {
-            int overLimit = ref.length - maxLength;
-            log.info("Further truncating property {} at path:[{}] as length after encoding {} is > {} ", prop,
-                path, ref.length, maxLength);
-            estimatedSafeLength -= overLimit;
-            truncated = value.substring(0, estimatedSafeLength);
-
+        log.info("Truncating property {} at path:[{}] as length after encoding {} is > {} ",
+            prop, path, ref.length, maxLength);
+        int end = maxLength - 1;
+        // skip over tails of utf-8 multi-byte sequences (up to 3 bytes)
+        while ((ref.bytes[end] & 0b11000000) == 0b10000000) {
+            end--;
+        }
+        // remove one head of a utf-8 multi-byte sequence (at most 1)
+        if ((ref.bytes[end] & 0b11000000) == 0b11000000) {
+            end--;
+        }
+        byte[] bytes2 = Arrays.copyOf(ref.bytes, end + 1);
+        String truncated = new String(bytes2, StandardCharsets.UTF_8);
+        ref = new BytesRef(truncated);
+        log.trace("Truncated property {} at path:[{}] to {}", prop, path, ref.utf8ToString());
+        while (ref.length > maxLength) {
+            log.error("Truncation did not work: still {} bytes", ref.length);
+            // this may not properly work with unicode surrogates:
+            // it is an "emergency" procedure and should never happen
+            truncated = truncated.substring(0, truncated.length() - 10);
             ref = new BytesRef(truncated);
         }
-
         return ref;
     }
 
