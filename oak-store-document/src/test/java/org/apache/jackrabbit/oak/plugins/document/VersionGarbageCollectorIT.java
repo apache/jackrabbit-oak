@@ -40,6 +40,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -62,6 +63,7 @@ import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_PATTERN;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PATH_LONG;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -73,7 +75,6 @@ import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
-import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -250,7 +251,7 @@ public class VersionGarbageCollectorIT {
     
     @Test
     public void gcLongPathSplitDocs() throws Exception {
-        gcSplitDocsInternal(Strings.repeat("sub", 120));
+        gcSplitDocsInternal(repeat("sub", 120));
     }
 
     // OAK-10199
@@ -692,6 +693,64 @@ public class VersionGarbageCollectorIT {
         NodeBuilder b4 = store.getRoot().builder();
         for (int i = 0; i < 10; i++) {
             b4.child("x").setProperty("test."+i, "t", STRING);
+        }
+        store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+    }
+
+    @Test
+    public void testGCDeletedLongPathProps() throws Exception {
+        //1. Create nodes with properties
+        NodeBuilder b1 = store.getRoot().builder();
+        String longPath = repeat("p", PATH_LONG + 1);
+        b1.child(longPath);
+
+        // Add property to node & save
+        for (int i = 0; i < 10; i++) {
+            b1.child(longPath).child("foo").setProperty("test"+i, "t", STRING);
+        }
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+        long maxAge = 1; //hours
+        long delta = MINUTES.toMillis(10);
+        //1. Go past GC age and check no GC done as nothing deleted
+        clock.waitUntil(getCurrentTimestamp() + maxAge);
+        VersionGCStats stats = gc.gc(maxAge, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+
+        //Remove property
+        NodeBuilder b2 = store.getRoot().builder();
+        for (int i = 0; i < 10; i++) {
+            b2.child(longPath).child("foo").removeProperty("test"+i);
+        }
+        store.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store.runBackgroundOperations();
+
+        //2. Check that a deleted property is not collected before maxAge
+        //Clock cannot move back (it moved forward in #1) so double the maxAge
+        clock.waitUntil(clock.getTime() + delta);
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(0, stats.deletedPropsGCCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(10, stats.deletedPropsGCCount);
+
+        //4. Check that a revived property (deleted and created again) does not get gc
+        NodeBuilder b4 = store.getRoot().builder();
+        for (int i = 0; i < 10; i++) {
+            b4.child(longPath).child("foo").setProperty("test"+i, "t", STRING);
         }
         store.merge(b4, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
