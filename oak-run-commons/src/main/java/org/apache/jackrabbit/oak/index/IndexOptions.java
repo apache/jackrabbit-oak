@@ -50,12 +50,14 @@ public class IndexOptions implements OptionsBean {
     private final OptionSpec<Void> definitions;
     private final OptionSpec<Void> dumpIndex;
     private final OptionSpec<Void> reindex;
+    private final OptionSpec<Void> reindexCounter;
     private final OptionSpec<Void> ignoreMissingTikaDep;
     private final OptionSpec<Void> asyncIndex;
     private final OptionSpec<Void> importIndex;
     private final OptionSpec<Void> docTraversal;
     private final OptionSpec<Void> enableCowCor;
     private final OptionSpec<Void> buildFlatFileStoreSeparately;
+    private final OptionSpec<Void> useTreeStore;
     private final OptionSpec<Integer> consistencyCheck;
     private final OptionSpec<Long> asyncDelay;
     protected OptionSet options;
@@ -100,6 +102,7 @@ public class IndexOptions implements OptionsBean {
 
         dumpIndex = parser.accepts("index-dump", "Dumps index content");
         reindex = parser.accepts("reindex", "Reindex the indexes specified by --index-paths or --index-definitions-file");
+        reindexCounter = parser.accepts("reindex-counter", "Reindex the counter index in read-only mode");
         ignoreMissingTikaDep = parser.accepts("ignore-missing-tika-dep", "Ignore when there are missing tika dependencies and continue to run");
         asyncIndex = parser.accepts("async-index", "Runs async index cycle");
 
@@ -113,13 +116,15 @@ public class IndexOptions implements OptionsBean {
         enableCowCor = parser.accepts("enable-cow-cor", "Enables COW/COR during async indexing using oak-run");
         buildFlatFileStoreSeparately = parser.accepts("build-flatfilestore-separately", "Builds FlatFileStore as a separate step and then uses it as part of the doc-traversal-mode for reindexing");
 
+        useTreeStore = parser.accepts("use-tree-store", "Use a pre-built tree store");
+
         indexImportDir = parser.accepts("index-import-dir", "Directory containing index files. This " +
                 "is required when --index-import operation is selected")
                 .requiredIf(importIndex)
                 .withRequiredArg().ofType(File.class);
 
         //Set of options which define action
-        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, importIndex);
+        actionOpts = ImmutableSet.of(stats, definitions, consistencyCheck, dumpIndex, reindex, reindexCounter, importIndex);
         operationNames = collectionOperationNames(actionOpts);
         existingDataDumpDirOpt = parser.accepts("existing-data-dump-dir", "Directory containing document store dumps" +
                 " from previous incomplete run")
@@ -209,6 +214,10 @@ public class IndexOptions implements OptionsBean {
         return options.has(reindex);
     }
 
+    public boolean isReindexCounter() {
+        return options.has(reindexCounter);
+    }
+
     public boolean isIgnoreMissingTikaDep() {
         return options.has(ignoreMissingTikaDep);
     }
@@ -231,6 +240,10 @@ public class IndexOptions implements OptionsBean {
 
     public boolean buildFlatFileStoreSeparately() {
         return options.has(buildFlatFileStoreSeparately);
+    }
+
+    public boolean useTreeStore() {
+        return options.has(useTreeStore);
     }
 
     public String getCheckpoint(){
@@ -272,4 +285,5 @@ public class IndexOptions implements OptionsBean {
         }
         return result;
     }
+
 }

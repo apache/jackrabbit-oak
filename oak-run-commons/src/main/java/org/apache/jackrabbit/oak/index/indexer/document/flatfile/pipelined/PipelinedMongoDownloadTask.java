@@ -90,16 +90,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final ReadPreference readPreference;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
 
-    private long totalEnqueueWaitTimeMillis = 0;
+    private long totalEnqueueWaitTimeMillis;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
-    private long documentsRead = 0;
-    private long nextLastModified = 0;
-    private String lastIdDownloaded = null;
+    private long documentsRead;
+    private long nextLastModified;
+    private String lastIdDownloaded;
 
     public PipelinedMongoDownloadTask(MongoCollection<BasicDBObject> dbCollection,
-                                      int batchSize,
+                                      long nextLastModified, int batchSize,
                                       BlockingQueue<BasicDBObject[]> queue) {
         this.dbCollection = dbCollection;
+        this.nextLastModified = nextLastModified;
         this.batchSize = batchSize;
         this.mongoDocQueue = queue;
         // Default retries for 5 minutes.
@@ -128,9 +129,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             //TODO This may lead to reads being routed to secondary depending on MongoURI
             //So caller must ensure that its safe to read from secondary
 
-            this.nextLastModified = 0;
             this.lastIdDownloaded = null;
-
 
             downloadStartWatch.start();
             if (!retryOnConnectionErrors) {
@@ -233,7 +232,24 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         download(mongoIterable);
     }
 
+    private int downloadLimit = getDownloadLimit();
+
+    private static int getDownloadLimit() {
+        String tmp = System.getenv("DOWNLOAD_LIMIT");
+        if (tmp == null) {
+            return Integer.MAX_VALUE;
+        } else {
+            try {
+                return Integer.parseInt(tmp);
+            } catch (NumberFormatException e) {
+                LOG.warn("Invalid DOWNLOAD_LIMIT value: {}", tmp);
+                return Integer.MAX_VALUE;
+            }
+        }
+    }
+
     private void download(FindIterable<BasicDBObject> mongoIterable) throws InterruptedException, TimeoutException {
+        LOG.info("Downloading up to {} documents", downloadLimit);
         try (MongoCursor<BasicDBObject> cursor = mongoIterable.iterator()) {
             BasicDBObject[] block = new BasicDBObject[batchSize];
             int nextIndex = 0;
@@ -254,7 +270,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         tryEnqueue(block);
                         block = new BasicDBObject[batchSize];
                         nextIndex = 0;
+                        if (downloadLimit < 0) {
+                            LOG.info("Download limit reached. Stopping download.");
+                            break;
+                        }
                     }
+                    downloadLimit--;
                 }
                 if (nextIndex > 0) {
                     LOG.info("Enqueueing last block of size: {}", nextIndex);

@@ -21,8 +21,10 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import com.mongodb.BasicDBObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.tree.TreeStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -37,9 +39,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Callable;
@@ -53,7 +54,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
  * Receives batches of Mongo documents, converts them to node state entries, batches them in a {@link NodeStateEntryBatch}
  * buffer and when the buffer is full, passes the buffer to the sort-and-save task.
  */
-class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> {
+class TreeSortPipelinedTransformTask implements Callable<TreeSortPipelinedTransformTask.Result> {
     public static class Result {
         private final int transformThreadId;
         private final long entryCount;
@@ -72,8 +73,13 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         }
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedTransformTask.class);
+    private static final Logger LOG = LoggerFactory.getLogger(TreeSortPipelinedTransformTask.class);
     private static final AtomicInteger threadIdGenerator = new AtomicInteger();
+
+    // TODO: Reuse the nse entries buffer or find other way of reducing object creation
+    // TODO: Make these configurable
+    private static final int MAX_NSE_BATCH_SIZE_ENTRIES = 1048 * 1024; // ~ 1 million entries
+    private static final long MAX_NSE_BATCH_SIZE_MB = FileUtils.ONE_MB * 512;
 
     private final MongoDocumentStore mongoStore;
     private final DocumentNodeStore documentNodeStore;
@@ -84,23 +90,20 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     // Input queue
     private final ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue;
     // Output queue
-    private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
-    // Queue with empty (recycled) buffers
-    private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
+    private final ArrayBlockingQueue<List<NodeStateEntryJson>> nseBatchQueue;
     private final TransformStageStatistics statistics;
     private final int threadId = threadIdGenerator.getAndIncrement();
     private long totalEnqueueWaitTimeMillis = 0;
 
-    public PipelinedTransformTask(MongoDocumentStore mongoStore,
-                                  DocumentNodeStore documentNodeStore,
-                                  Collection<NodeDocument> collection,
-                                  RevisionVector rootRevision,
-                                  Predicate<String> pathPredicate,
-                                  NodeStateEntryWriter entryWriter,
-                                  ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue,
-                                  ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
-                                  ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
-                                  TransformStageStatistics statsCollector) {
+    public TreeSortPipelinedTransformTask(MongoDocumentStore mongoStore,
+                                          DocumentNodeStore documentNodeStore,
+                                          Collection<NodeDocument> collection,
+                                          RevisionVector rootRevision,
+                                          Predicate<String> pathPredicate,
+                                          NodeStateEntryWriter entryWriter,
+                                          ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue,
+                                          ArrayBlockingQueue<List<NodeStateEntryJson>> nseBatchQueue,
+                                          TransformStageStatistics statsCollector) {
         this.mongoStore = mongoStore;
         this.documentNodeStore = documentNodeStore;
         this.collection = collection;
@@ -108,10 +111,10 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         this.pathPredicate = pathPredicate;
         this.entryWriter = entryWriter;
         this.mongoDocQueue = mongoDocQueue;
-        this.emptyBatchesQueue = emptyBatchesQueue;
-        this.nonEmptyBatchesQueue = nonEmptyBatchesQueue;
+        this.nseBatchQueue = nseBatchQueue;
         this.statistics = statsCollector;
     }
+
 
     @Override
     public Result call() throws Exception {
@@ -123,12 +126,10 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             Stopwatch taskStartWatch = Stopwatch.createStarted();
             long totalEntryCount = 0;
             long mongoObjectsProcessed = 0;
-            LOG.info("Waiting for an empty buffer");
-            NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
 
-            // Used to serialize a node state entry before writing it to the buffer
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
-            OutputStreamWriter writer = new OutputStreamWriter(baos, PipelinedStrategy.FLATFILESTORE_CHARSET);
+            int sizeEstimateOfBatch = 0;
+            ArrayList<NodeStateEntryJson> nseBatch = new ArrayList<>(MAX_NSE_BATCH_SIZE_ENTRIES);
+
             LOG.info("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
             while (true) {
                 BasicDBObject[] dbObjectBatch = mongoDocQueue.take();
@@ -137,19 +138,15 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             totalEntryCount, taskStartWatch, totalEnqueueWaitTimeMillis,
                             String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS)));
                     //Save the last batch
-                    nseBatch.getBuffer().flip();
-                    tryEnqueue(nseBatch);
+                    tryEnqueue(nseBatch, sizeEstimateOfBatch);
                     return new Result(threadId, totalEntryCount);
                 } else {
                     for (BasicDBObject dbObject : dbObjectBatch) {
                         statistics.incrementMongoDocumentsProcessed();
                         mongoObjectsProcessed++;
                         if (mongoObjectsProcessed % 50000 == 0) {
-                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
-                                    mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
-                                    nseBatch.sizeOfEntries() / FileUtils.ONE_MB,
-                                    nseBatch.capacity() / FileUtils.ONE_MB
-                            );
+                            LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, estimated size: {}",
+                                    mongoObjectsProcessed, totalEntryCount, nseBatch.size(), FileUtils.byteCountToDisplaySize(sizeEstimateOfBatch));
                         }
                         //TODO Review the cache update approach where tracker has to track *all* docs
                         NodeDocument nodeDoc = MongoDocumentStoreHelper.convertFromDBObject(mongoStore, collection, dbObject);
@@ -162,28 +159,36 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             if (entries.isEmpty()) {
                                 statistics.addEmptyNodeStateEntry(dbObject.getString(Document.ID));
                             }
+                            long lastModified = 0;
                             for (NodeStateEntry nse : entries) {
                                 String path = nse.getPath();
                                 if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
                                     statistics.incrementEntriesAccepted();
                                     totalEntryCount++;
-                                    // Serialize entry
-                                    entryWriter.writeTo(writer, nse);
-                                    writer.flush();
-                                    byte[] entryData = baos.toByteArray();
-                                    baos.reset();
-                                    statistics.incrementTotalExtractedEntriesSize(entryData.length);
 
-                                    if (!nseBatch.hasSpaceForEntry(entryData)) {
-                                        LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
-                                                totalEntryCount, nseBatch.numberOfEntries(), nseBatch.sizeOfEntries());
-                                        nseBatch.flip();
-                                        tryEnqueue(nseBatch);
-                                        // Get an empty buffer
-                                        nseBatch = emptyBatchesQueue.take();
+                                    // Must have space for 2 entries
+                                    if (nseBatch.size() >= MAX_NSE_BATCH_SIZE_ENTRIES - 1 || sizeEstimateOfBatch >= MAX_NSE_BATCH_SIZE_MB) {
+                                        LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, Size of buffer: {}",
+                                                totalEntryCount, nseBatch.size(), FileUtils.byteCountToDisplaySize(sizeEstimateOfBatch));
+                                        tryEnqueue(nseBatch, sizeEstimateOfBatch);
+                                        sizeEstimateOfBatch = 0;
+                                        nseBatch = new ArrayList<>(MAX_NSE_BATCH_SIZE_ENTRIES);
                                     }
                                     // Write entry to buffer
-                                    nseBatch.addEntry(nse.getPath(), entryData);
+                                    String json = entryWriter.asJson(nse.getNodeState());
+                                    lastModified = nse.getLastModified();
+                                    sizeEstimateOfBatch += json.length() + path.length();
+                                    String key = TreeStore.convertPathToKey(path);
+                                    nseBatch.add(new NodeStateEntryJson(key, json));
+                                    if (TreeStore.CHILD_ENTRIES && !path.equals("/")) {
+                                        String nodeName = PathUtils.getName(path);
+                                        String parentPath = PathUtils.getParentPath(path);
+                                        if (TreeStore.CHILD_ENTRIES) {
+                                            sizeEstimateOfBatch += nodeName.length() + parentPath.length() + 1;
+                                            nseBatch.add(new NodeStateEntryJson(parentPath + "\t" + nodeName, ""));
+                                        }
+                                    }
+
                                 } else {
                                     statistics.incrementEntriesRejected();
                                     if (NodeStateUtils.isHiddenPath(path)) {
@@ -193,6 +198,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                         statistics.addRejectedFilteredPath(path);
                                     }
                                 }
+                            }
+                            if (lastModified != 0) {
+                                nseBatch.add(new NodeStateEntryJson(TreeStore.LAST_MODIFIED, "" + lastModified));
                             }
                         }
                     }
@@ -209,15 +217,16 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         }
     }
 
-    private void tryEnqueue(NodeStateEntryBatch nseBatch) throws InterruptedException {
-        LOG.info("Enqueuing batch of {} entries", nseBatch.numberOfEntries());
+    private void tryEnqueue(ArrayList<NodeStateEntryJson> nseBatch, int sizeEstimateOfBatch) throws InterruptedException {
+        LOG.info("Enqueuing batch of {} entries, size: {}", nseBatch.size(), FileUtils.byteCountToDisplaySize(sizeEstimateOfBatch));
+        Collections.sort(nseBatch);
         Stopwatch stopwatch = Stopwatch.createStarted();
-        nonEmptyBatchesQueue.put(nseBatch);
+        nseBatchQueue.put(nseBatch);
         long enqueueDelay = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-        totalEnqueueWaitTimeMillis += enqueueDelay;
         if (enqueueDelay > 1) {
+            totalEnqueueWaitTimeMillis += enqueueDelay;
             LOG.info("Enqueuing of node state entries batch was delayed, took {} ms. nonEmptyBatchesQueue size {}. ",
-                    enqueueDelay, nonEmptyBatchesQueue.size());
+                    enqueueDelay, nseBatchQueue.size());
         }
     }
 

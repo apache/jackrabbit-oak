@@ -311,7 +311,7 @@ public class PipelinedStrategy implements SortStrategy {
 
             Stopwatch start = Stopwatch.createStarted();
             MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
-            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue);
+            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, 0L, mongoBatchSize, mongoDocQueue);
             ecs.submit(downloadTask);
 
             File flatFileStore = null;
@@ -370,6 +370,17 @@ public class PipelinedStrategy implements SortStrategy {
                                 monitorFuture.cancel(false);
                                 // Terminate the sort thread.
                                 nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
+                                // All transform tasks are done, so we can release the buffers.
+                                LOG.info("Releasing node state entry buffers.");
+                                for (int i = 0; i < numberOfBuffers; i++) {
+                                    // Remove the buffers from the queue, so they can be garbage collected to free
+                                    // up memory.
+                                    NodeStateEntryBatch buffer = emptyBatchesQueue.take();
+                                    buffer.reset();
+                                    LOG.info("Released buffer {}.", i);
+                                }
+                                System.gc();
+                                LOG.info("Released all node state entry buffers.");
                             }
 
                         } else if (result instanceof PipelinedSortBatchTask.Result) {

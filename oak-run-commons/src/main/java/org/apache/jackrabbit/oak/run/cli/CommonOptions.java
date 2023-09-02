@@ -83,6 +83,10 @@ public class CommonOptions implements OptionsBean {
         return getStoreArg().equalsIgnoreCase("memory");
     }
 
+    public boolean isTreeNodeStore() {
+        return getStoreArg().startsWith("tree:");
+    }
+
     public boolean isMetricsEnabled() {
         return options.has(metrics);
     }
