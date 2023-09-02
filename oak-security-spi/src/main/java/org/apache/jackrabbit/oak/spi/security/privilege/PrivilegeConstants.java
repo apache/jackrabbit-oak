@@ -227,11 +227,11 @@ public interface PrivilegeConstants {
     String REP_INDEX_DEFINITION_MANAGEMENT = "rep:indexDefinitionManagement";
 
     /**
-     * Internal (oak) name of the rep:queryOptionsRelaxedSecurity privilege
+     * Internal (oak) name of the rep:insecureQueryOptions privilege
      *
      * @since OAK 1.60
      */
-    String REP_QUERY_OPTIONS_RELAXED_SECURITY = "rep:queryOptionsRelaxedSecurity";
+    String REP_INSECURE_QUERY_OPTIONS = "rep:insecureQueryOptions";
 
     /**
      * The internal names of all built-in privileges that are not aggregates.
@@ -244,7 +244,7 @@ public interface PrivilegeConstants {
                         JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
                         JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
                         JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-                        REP_INDEX_DEFINITION_MANAGEMENT, REP_QUERY_OPTIONS_RELAXED_SECURITY
+                        REP_INDEX_DEFINITION_MANAGEMENT, REP_INSECURE_QUERY_OPTIONS
 
     );
 

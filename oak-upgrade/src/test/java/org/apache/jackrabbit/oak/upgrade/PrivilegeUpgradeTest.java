@@ -62,7 +62,7 @@ import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstant
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_ALTER_PROPERTIES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_INDEX_DEFINITION_MANAGEMENT;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_PRIVILEGE_MANAGEMENT;
-import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY;
+import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_INSECURE_QUERY_OPTIONS;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_NODES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_READ_PROPERTIES;
 import static org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants.REP_REMOVE_PROPERTIES;
@@ -99,7 +99,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
             JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
             JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
             JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-            REP_INDEX_DEFINITION_MANAGEMENT, REP_QUERY_OPTIONS_RELAXED_SECURITY, "test:privilege", "test:privilege2");
+            REP_INDEX_DEFINITION_MANAGEMENT, REP_INSECURE_QUERY_OPTIONS, "test:privilege", "test:privilege2");
 
         Map<String, Set<String>> aggregatePrivileges = Maps.newHashMap();
         aggregatePrivileges.put(JCR_READ,
@@ -121,7 +121,7 @@ public class PrivilegeUpgradeTest extends AbstractRepositoryUpgradeTest {
                         JCR_VERSION_MANAGEMENT, JCR_LOCK_MANAGEMENT, JCR_LIFECYCLE_MANAGEMENT,
                         JCR_RETENTION_MANAGEMENT, JCR_WORKSPACE_MANAGEMENT, JCR_NODE_TYPE_DEFINITION_MANAGEMENT,
                         JCR_NAMESPACE_MANAGEMENT, REP_PRIVILEGE_MANAGEMENT, REP_USER_MANAGEMENT,
-                        REP_INDEX_DEFINITION_MANAGEMENT, REP_QUERY_OPTIONS_RELAXED_SECURITY, JCR_READ, JCR_MODIFY_PROPERTIES,
+                        REP_INDEX_DEFINITION_MANAGEMENT, REP_INSECURE_QUERY_OPTIONS, JCR_READ, JCR_MODIFY_PROPERTIES,
                         JCR_WRITE, REP_WRITE,
                         "test:privilege", "test:privilege2", "test:aggregate", "test:aggregate2"));
         aggregatePrivileges.put("test:aggregate",

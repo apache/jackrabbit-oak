@@ -109,7 +109,7 @@ public final class Permissions {
     /**
      * @since OAK 1.60
      */
-    public static final long QUERY_OPTIONS_RELAXED_SECURITY = INDEX_DEFINITION_MANAGEMENT << 1;
+    public static final long INSECURE_QUERY_OPTIONS = INDEX_DEFINITION_MANAGEMENT << 1;
 
     public static final long READ = READ_NODE | READ_PROPERTY;
 
@@ -138,7 +138,7 @@ public final class Permissions {
             | PRIVILEGE_MANAGEMENT
             | USER_MANAGEMENT
             | INDEX_DEFINITION_MANAGEMENT
-            | QUERY_OPTIONS_RELAXED_SECURITY
+            | INSECURE_QUERY_OPTIONS
     );
 
     private static final Set<Long> NON_AGGREGATES = ImmutableSet.of(
@@ -163,7 +163,7 @@ public final class Permissions {
             PRIVILEGE_MANAGEMENT,
             USER_MANAGEMENT,
             INDEX_DEFINITION_MANAGEMENT,
-            QUERY_OPTIONS_RELAXED_SECURITY);
+            INSECURE_QUERY_OPTIONS);
 
     public static final Map<Long, String> PERMISSION_NAMES = new LinkedHashMap<>();
     static {
@@ -193,7 +193,7 @@ public final class Permissions {
         PERMISSION_NAMES.put(PRIVILEGE_MANAGEMENT, "PRIVILEGE_MANAGEMENT");
         PERMISSION_NAMES.put(USER_MANAGEMENT, "USER_MANAGEMENT");
         PERMISSION_NAMES.put(INDEX_DEFINITION_MANAGEMENT, "INDEX_DEFINITION_MANAGEMENT");
-        PERMISSION_NAMES.put(QUERY_OPTIONS_RELAXED_SECURITY, "QUERY_OPTIONS_RELAXED_SECURITY");
+        PERMISSION_NAMES.put(INSECURE_QUERY_OPTIONS, "INSECURE_QUERY_OPTIONS");
     }
 
     private static final Map<String, Long> PERMISSION_LOOKUP = new LinkedHashMap<>();
@@ -224,7 +224,7 @@ public final class Permissions {
         PERMISSION_LOOKUP.put("PRIVILEGE_MANAGEMENT", PRIVILEGE_MANAGEMENT);
         PERMISSION_LOOKUP.put("USER_MANAGEMENT", USER_MANAGEMENT);
         PERMISSION_LOOKUP.put("INDEX_DEFINITION_MANAGEMENT", INDEX_DEFINITION_MANAGEMENT);
-        PERMISSION_LOOKUP.put("QUERY_OPTIONS_RELAXED_SECURITY", QUERY_OPTIONS_RELAXED_SECURITY);
+        PERMISSION_LOOKUP.put("INSECURE_QUERY_OPTIONS", INSECURE_QUERY_OPTIONS);
     }
 
     private static final Set<String> WRITE_ACTIONS = ImmutableSet.of(
@@ -306,7 +306,7 @@ public final class Permissions {
                 permission == NODE_TYPE_DEFINITION_MANAGEMENT ||
                 permission == PRIVILEGE_MANAGEMENT ||
                 permission == WORKSPACE_MANAGEMENT ||
-                permission == QUERY_OPTIONS_RELAXED_SECURITY;
+                permission == INSECURE_QUERY_OPTIONS;
     }
 
     public static boolean isAggregate(long permission) {

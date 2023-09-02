@@ -18,19 +18,15 @@
  */
 package org.apache.jackrabbit.oak.jcr.query;
 
-import java.security.Principal;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import java.util.stream.Collectors;
 
 import javax.jcr.NodeIterator;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.RowIterator;
-import javax.jcr.security.AccessControlManager;
-import javax.jcr.security.Privilege;
 
 import org.apache.jackrabbit.commons.iterator.NodeIteratorAdapter;
 import org.apache.jackrabbit.commons.iterator.RowIteratorAdapter;
@@ -46,7 +42,6 @@ import org.apache.jackrabbit.oak.jcr.delegate.NodeDelegate;
 import org.apache.jackrabbit.oak.jcr.delegate.SessionDelegate;
 import org.apache.jackrabbit.oak.plugins.memory.PropertyValues;
 import org.apache.jackrabbit.oak.plugins.value.jcr.PartialValueFactory;
-import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -144,7 +139,7 @@ public class QueryResultImpl implements QueryResult {
                 sessionDelegate.sync(rowIterator),
                 new PrefetchOptions() { {
                     size = result.getSize();
-                    fastSize = sessionContext.getFastQueryResultSize();
+                    fastSize = sessionContext.getFastQueryResultSize() || result.isQueryOptionFastSize();
                     fastSizeCallback = result;
                 } });
         return new RowIteratorAdapter(prefIt) {
@@ -229,7 +224,7 @@ public class QueryResultImpl implements QueryResult {
                     sessionDelegate.sync(nodeIterator),
                     new PrefetchOptions() { {
                         size = result.getSize();
-                        fastSize = determineFastSizeEnabled(sessionContext, result);
+                        fastSize = sessionContext.getFastQueryResultSize() || result.isQueryOptionFastSize();
                         fastSizeCallback = result;
                     } });
         return new NodeIteratorAdapter(prefIt) {
@@ -238,30 +233,6 @@ public class QueryResultImpl implements QueryResult {
                 return prefIt.size();
             }
         };
-    }
-
-    protected static boolean determineFastSizeEnabled(SessionContext sessionContext, Result result) throws RepositoryException {
-        boolean fastSizeEnabled = sessionContext.getFastQueryResultSize();
-        if (!fastSizeEnabled && result.isQueryOptionFastSize()) {
-            AccessControlManager accessControlManager = sessionContext.getSession().getAccessControlManager();
-            if (sessionContext.getSession().getAccessControlManager().hasPrivileges(null, new Privilege[] {
-                    accessControlManager.privilegeFromName(PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY)})) {
-                fastSizeEnabled = true;
-            } else {
-                final String executingPrincipals = sessionContext.getSessionDelegate().getAuthInfo().getPrincipals()
-                        .stream().map(Principal::toString).collect(Collectors.joining(","));
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format("Query option FASTSIZE was set, but the executing principal [%s] lacks the %s privilege.",
-                            executingPrincipals, PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY),
-                            new IllegalArgumentException("Ignored query option FASTSIZE"));
-                } else {
-                    LOG.warn("Query option FASTSIZE was set, but the executing principal [{}] lacks the {} privilege.",
-                            executingPrincipals, PrivilegeConstants.REP_QUERY_OPTIONS_RELAXED_SECURITY);
-                }
-                return false;
-            }
-        }
-        return fastSizeEnabled;
     }
 
     Value createValue(PropertyValue value) {

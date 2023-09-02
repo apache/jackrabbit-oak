@@ -41,6 +41,7 @@ public class QueryOptions {
     public List<String> prefetch = Collections.emptyList();
     public Optional<Integer> prefetchCount = Optional.empty();
     public boolean fastSize;
+    public boolean insecureFacets;
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
@@ -65,6 +66,7 @@ public class QueryOptions {
         prefetch = defaultValues.prefetch;
         prefetchCount = defaultValues.prefetchCount;
         fastSize = defaultValues.fastSize;
+        insecureFacets = defaultValues.insecureFacets;
     }
 
     QueryOptions(JsonObject json) {
@@ -111,6 +113,10 @@ public class QueryOptions {
         x = map.get("fastSize");
         if (x != null) {
             fastSize = "true".equals(x);
+        }
+        x = map.get("insecureFacets");
+        if (x != null) {
+            insecureFacets = "true".equals(x);
         }
     }
 

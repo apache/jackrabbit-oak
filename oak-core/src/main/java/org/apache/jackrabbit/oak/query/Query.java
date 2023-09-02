@@ -82,7 +82,7 @@ public interface Query {
     long getSize(Result.SizePrecision precision, long max);
 
     /**
-     * Indicates whether the query specified the FASTSIZE option.
+     * Indicates whether the query specified the insecure FASTSIZE option.
      *
      * @return true if the FASTSIZE query option was set
      */

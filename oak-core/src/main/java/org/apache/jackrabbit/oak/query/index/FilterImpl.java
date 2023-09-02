@@ -110,6 +110,8 @@ public class FilterImpl implements Filter {
      */
     private boolean preparing;
 
+    private boolean queryOptionInsecureFacets;
+
     // TODO support "order by"
 
     /**
@@ -251,6 +253,15 @@ public class FilterImpl implements Filter {
     @Override
     public boolean isAlwaysFalse() {
         return alwaysFalse;
+    }
+
+    @Override
+    public boolean isQueryOptionInsecureFacets() {
+        return queryOptionInsecureFacets;
+    }
+
+    public void setQueryOptionInsecureFacets(boolean queryOptionInsecureFacets) {
+        this.queryOptionInsecureFacets = queryOptionInsecureFacets;
     }
 
     public SelectorImpl getSelector() {

@@ -95,6 +95,8 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
@@ -1071,6 +1073,7 @@ public class QueryImpl implements Query {
     }
 
     public SelectorExecutionPlan getBestSelectorExecutionPlan(FilterImpl filter) {
+        filter.setQueryOptionInsecureFacets(queryOptions.insecureFacets && isAllowedInsecureOptions());
         return getBestSelectorExecutionPlan(context.getBaseState(), filter,
                 context.getIndexProvider(), traversalEnabled);
     }
@@ -1421,10 +1424,19 @@ public class QueryImpl implements Query {
         return Math.min(limit.orElse(Long.MAX_VALUE), source.getSize(context.getBaseState(), precision, max));
     }
 
+    private boolean isAllowedInsecureOptions() {
+        return Optional.ofNullable(context)
+                .map(ExecutionContext::getPermissionProvider)
+                .map(PermissionProvider::getRepositoryPermission)
+                .map(repoPerms -> repoPerms.isGranted(Permissions.INSECURE_QUERY_OPTIONS))
+                .orElse(false);
+    }
+
     @Override
     public boolean isOptionFastSize() {
-        return this.queryOptions.fastSize;
+        return this.queryOptions.fastSize && isAllowedInsecureOptions();
     }
+
 
     @Override
     public String getStatement() {

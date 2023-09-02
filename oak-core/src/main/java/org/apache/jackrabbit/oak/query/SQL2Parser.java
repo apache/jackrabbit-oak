@@ -117,6 +117,8 @@ public class SQL2Parser {
 
     private final QueryExecutionStats stats;
 
+    private InsecureQueryOptionsMode insecureOptionsMode;
+
     /**
      * Create a new parser. A parser can be re-used, but it is not thread safe.
      * 
@@ -207,7 +209,13 @@ public class SQL2Parser {
                     read(")");
                     options.prefetch = list;
                 } else if (readIf("FASTSIZE")) {
-                    options.fastSize = true;
+                    if (allowsInsecureOption("FASTSIZE")) {
+                        options.fastSize = true;
+                    }
+                } else if (readIf("INSECUREFACETS")) {
+                    if (allowsInsecureOption("INSECUREFACETS")) {
+                        options.insecureFacets = true;
+                    }
                 } else {
                     break;
                 }
@@ -235,6 +243,29 @@ public class SQL2Parser {
         }
 
         return q;
+    }
+
+    /**
+     * Checks the InsecureQueryOptionsMode for the values ALLOW or DENY. If allowed, the method returns true,
+     * indicating that the option should be returned by the parser. If denied, a ParseException is thrown.
+     * For all other modes, the method returns false, indicating that this option should be ignored.
+     *
+     * @param insecureOption the option being checked
+     * @return true if the mode is ALLOW, false otherwise
+     * @throws ParseException if the mode is DENY
+     */
+    private boolean allowsInsecureOption(String insecureOption) throws ParseException {
+        if (insecureOptionsMode == InsecureQueryOptionsMode.ALLOW) {
+            return true;
+        }
+        if (insecureOptionsMode == InsecureQueryOptionsMode.DENY) {
+            ParseException syntaxError = getSyntaxError();
+            ParseException wrapped = new ParseException("Insecure query option " + insecureOption + " is not allowed.",
+                    syntaxError.getErrorOffset());
+            wrapped.initCause(syntaxError);
+            throw wrapped;
+        }
+        return false;
     }
     
     /**
@@ -1493,6 +1524,10 @@ public class SQL2Parser {
 
     public void setIncludeSelectorNameInWildcardColumns(boolean value) {
         this.includeSelectorNameInWildcardColumns = value;
+    }
+
+    public void setInsecureOptionsMode(InsecureQueryOptionsMode insecureOptionsMode) {
+        this.insecureOptionsMode = insecureOptionsMode;
     }
 
     /**

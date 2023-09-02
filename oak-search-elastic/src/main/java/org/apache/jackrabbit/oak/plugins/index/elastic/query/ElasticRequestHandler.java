@@ -272,10 +272,15 @@ public class ElasticRequestHandler {
     }
 
     public ElasticFacetProvider getAsyncFacetProvider(ElasticResponseHandler responseHandler) {
-        return requiresFacets()
-                ? ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), this,
-                        responseHandler, filter::isAccessible)
-                : null;
+        if (requiresFacets()) {
+            if (filter.isQueryOptionInsecureFacets()) {
+                return ElasticFacetProvider.getInsecureFacetProvider();
+            } else {
+                return ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), this,
+                    responseHandler, filter::isAccessible);
+            }
+        }
+        return null;
     }
 
     private boolean requiresFacets() {

@@ -38,6 +38,8 @@ import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,7 +130,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
     public List<String> getBindVariableNames(
             String statement, String language, Map<String, String> mappings)
             throws ParseException {
-        List<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings);
+        List<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings,
+                InsecureQueryOptionsMode.IGNORE);
         
         return qs.iterator().next().getBindVariableNames();
     }
@@ -145,7 +148,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
      */
     private static List<Query> parseQuery(
             String statement, String language, ExecutionContext context,
-            Map<String, String> mappings) throws ParseException {
+            Map<String, String> mappings, InsecureQueryOptionsMode insecureOptionsMode) throws ParseException {
         
         boolean isInternal = SQL2Parser.isInternal(statement);
         if (isInternal) {
@@ -171,6 +174,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
 
         SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings, stats);
+        parser.setInsecureOptionsMode(insecureOptionsMode);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);
@@ -261,7 +265,13 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
 
         ExecutionContext context = getExecutionContext();
-        List<Query> queries = parseQuery(statement, language, context, mappings);
+        boolean hasInsecureQueryOptionsPermission = Optional.ofNullable(context.getPermissionProvider())
+                .map(PermissionProvider::getRepositoryPermission)
+                .map(repoPerms -> repoPerms.isGranted(Permissions.INSECURE_QUERY_OPTIONS))
+                .orElse(false);
+        InsecureQueryOptionsMode insecureQueryOptionsMode = hasInsecureQueryOptionsPermission
+                ? InsecureQueryOptionsMode.ALLOW : InsecureQueryOptionsMode.DENY;
+        List<Query> queries = parseQuery(statement, language, context, mappings, insecureQueryOptionsMode);
 
         long actualLimit = getValue(queries, limit, Query::getLimit, Long.MAX_VALUE);
         long actualOffset = getValue(queries, offset, Query::getOffset, 0L);

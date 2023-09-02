@@ -179,6 +179,10 @@ public interface Filter {
      */
     boolean isAlwaysFalse();
 
+    default boolean isQueryOptionInsecureFacets() {
+        return false;
+    }
+
     /**
      * A restriction for a property.
      */
