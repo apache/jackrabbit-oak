@@ -1437,7 +1437,6 @@ public class QueryImpl implements Query {
         return this.queryOptions.insecureResultSize && isAllowedInsecureOptions();
     }
 
-
     @Override
     public String getStatement() {
         return Strings.isNullOrEmpty(statement) ? toString() : statement;
