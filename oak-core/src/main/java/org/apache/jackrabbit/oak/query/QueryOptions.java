@@ -40,7 +40,7 @@ public class QueryOptions {
     public Optional<Long> offset = Optional.empty();
     public List<String> prefetch = Collections.emptyList();
     public Optional<Integer> prefetchCount = Optional.empty();
-    public boolean fastSize;
+    public boolean insecureResultSize;
     public boolean insecureFacets;
     
     public enum Traversal {
@@ -65,7 +65,7 @@ public class QueryOptions {
         offset = defaultValues.offset;
         prefetch = defaultValues.prefetch;
         prefetchCount = defaultValues.prefetchCount;
-        fastSize = defaultValues.fastSize;
+        insecureResultSize = defaultValues.insecureResultSize;
         insecureFacets = defaultValues.insecureFacets;
     }
 
@@ -110,14 +110,24 @@ public class QueryOptions {
             t.read(']');
             prefetch = list;
         }
-        x = map.get("fastSize");
+        x = map.get("insecure");
         if (x != null) {
-            fastSize = "true".equals(x);
+            JsopTokenizer t = new JsopTokenizer(x);
+            t.read('[');
+            do {
+                String opt = t.readString();
+                if ("resultSize".equals(opt)) {
+                    insecureResultSize = true;
+                } else if ("facets".equals(opt)) {
+                    insecureFacets = true;
+                }
+            } while (t.matches(','));
+            t.read(']');
         }
-        x = map.get("insecureFacets");
-        if (x != null) {
-            insecureFacets = "true".equals(x);
-        }
+    }
+
+    public boolean hasInsecureOptions() {
+        return insecureResultSize || insecureFacets;
     }
 
     public static class AutomaticQueryOptionsMapping {

@@ -86,7 +86,7 @@ public class ResultImpl implements Result {
     }
 
     @Override
-    public boolean isQueryOptionFastSize() {
-        return query.isOptionFastSize();
+    public boolean isInsecureResultSize() {
+        return query.isInsecureResultSize();
     }
 }

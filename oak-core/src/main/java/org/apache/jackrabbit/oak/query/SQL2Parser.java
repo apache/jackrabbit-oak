@@ -208,13 +208,16 @@ public class SQL2Parser {
                     } while (readIf(","));
                     read(")");
                     options.prefetch = list;
-                } else if (readIf("FASTSIZE")) {
-                    if (allowsInsecureOption("FASTSIZE")) {
-                        options.fastSize = true;
-                    }
-                } else if (readIf("INSECUREFACETS")) {
-                    if (allowsInsecureOption("INSECUREFACETS")) {
-                        options.insecureFacets = true;
+                } else if (readIf("INSECURE")) {
+                    final boolean saveOptions = allowsInsecureOptions();
+                    while (true) {
+                        if (readIf("RESULTSIZE")) {
+                            options.insecureResultSize = saveOptions;
+                        } else if (readIf("FACETS")) {
+                            options.insecureFacets = saveOptions;
+                        } else {
+                            break;
+                        }
                     }
                 } else {
                     break;
@@ -247,20 +250,19 @@ public class SQL2Parser {
 
     /**
      * Checks the InsecureQueryOptionsMode for the values ALLOW or DENY. If allowed, the method returns true,
-     * indicating that the option should be returned by the parser. If denied, a ParseException is thrown.
+     * indicating that insecure options should be returned by the parser. If denied, a ParseException is thrown.
      * For all other modes, the method returns false, indicating that this option should be ignored.
      *
-     * @param insecureOption the option being checked
      * @return true if the mode is ALLOW, false otherwise
      * @throws ParseException if the mode is DENY
      */
-    private boolean allowsInsecureOption(String insecureOption) throws ParseException {
+    private boolean allowsInsecureOptions() throws ParseException {
         if (insecureOptionsMode == InsecureQueryOptionsMode.ALLOW) {
             return true;
         }
         if (insecureOptionsMode == InsecureQueryOptionsMode.DENY) {
             ParseException syntaxError = getSyntaxError();
-            ParseException wrapped = new ParseException("Insecure query option " + insecureOption + " is not allowed.",
+            ParseException wrapped = new ParseException("Insecure query options are not allowed.",
                     syntaxError.getErrorOffset());
             wrapped.initCause(syntaxError);
             throw wrapped;

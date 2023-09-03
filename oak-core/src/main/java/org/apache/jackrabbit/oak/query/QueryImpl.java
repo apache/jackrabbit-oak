@@ -1433,8 +1433,8 @@ public class QueryImpl implements Query {
     }
 
     @Override
-    public boolean isOptionFastSize() {
-        return this.queryOptions.fastSize && isAllowedInsecureOptions();
+    public boolean isInsecureResultSize() {
+        return this.queryOptions.insecureResultSize && isAllowedInsecureOptions();
     }
 
 

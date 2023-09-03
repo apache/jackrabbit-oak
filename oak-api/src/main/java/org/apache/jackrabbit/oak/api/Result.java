@@ -76,11 +76,11 @@ public interface Result {
     long getSize(SizePrecision precision, long max);
 
     /**
-     * Indicates whether the query specified the FASTSIZE option.
+     * Indicates whether the query specified the INSECURE RESULTSIZE option.
      *
-     * @return true if the FASTSIZE query option was set
+     * @return true if the INSECURE RESULTSIZE query option was set
      */
-    default boolean isQueryOptionFastSize() {
+    default boolean isInsecureResultSize() {
         return false;
     }
     
