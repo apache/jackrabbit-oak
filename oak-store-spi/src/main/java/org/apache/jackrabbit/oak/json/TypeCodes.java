@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.json;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.HashMap;
 import java.util.Locale;

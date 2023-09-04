@@ -16,7 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -26,6 +27,9 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.principalbased.FilterProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -41,7 +45,11 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.MIX_REP_PRINCIPAL_BASED_MIXIN;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_PRINCIPAL_POLICY;
@@ -84,12 +92,6 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
     private PrincipalPolicyImpl createValidPolicy() throws RepositoryException {
         String oakPath = getNamePathMapper().getOakPath(validPrincipal.getPath());
         return new PrincipalPolicyImpl(validPrincipal, oakPath, getMgrProvider(root));
-    }
-
-    private static void assertEffectivePolicy(@NotNull AccessControlPolicy[] effective, int size) {
-        assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
-        assertEquals(size, ((ImmutablePrincipalPolicy) effective[0]).size());
     }
 
     @Test(expected = AccessControlException.class)
@@ -160,7 +162,8 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     @Test
     public void testGetEffectivePoliciesNothingSet() throws Exception {
-        assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+        assertEffectivePolicies(effective, 1, -1, true);
     }
 
     @Test
@@ -171,12 +174,12 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
         // transient changes => no effective policy
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
-        assertEquals(0, effective.length);
+        assertEffectivePolicies(effective, 1, -1, true);
 
         // after commit => effective policy present
         root.commit();
         effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
-        assertEffectivePolicy(effective, 1);
+        assertEffectivePolicies(effective, 2, 1, true);
     }
 
     @Test
@@ -184,7 +187,8 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         JackrabbitAccessControlPolicy emptyPolicy = acMgr.getApplicablePolicies(validPrincipal)[0];
         acMgr.setPolicy(emptyPolicy.getPath(), emptyPolicy);
         root.commit();
-        assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
+        assertEffectivePolicies(effective, 1, -1, true);
     }
 
     @Test
@@ -197,7 +201,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         getUserManager(latestRoot).getAuthorizable(validPrincipal).remove();
         latestRoot.commit();
         try {
-            assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+            assertEffectivePolicies(acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)), 1, -1, true);
         } finally {
             root.refresh();
             getUserManager(root).createSystemUser(id, INTERMEDIATE_PATH);
@@ -227,7 +231,7 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         latestRoot.getTree(getNamePathMapper().getOakPath(validPrincipal.getPath())).getChild(REP_PRINCIPAL_POLICY).remove();
         latestRoot.commit();
 
-        assertEquals(0, acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)).length);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal)), 1, -1, true);
     }
 
     @Test(expected = AccessControlException.class)
@@ -445,9 +449,9 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
         addPrincipalBasedEntry(policy, PathUtils.ROOT_PATH, JCR_READ);
         root.commit();
 
-        assertEffectivePolicy(acMgr.getEffectivePolicies(testJcrPath), 2);
-        assertEffectivePolicy(acMgr.getEffectivePolicies(testContentJcrPath), 2);
-        assertEffectivePolicy(acMgr.getEffectivePolicies(PathUtils.ROOT_PATH), 1);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(testJcrPath), 1,2, false);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(testContentJcrPath), 1, 2, false);
+        assertEffectivePolicies(acMgr.getEffectivePolicies(PathUtils.ROOT_PATH), 1,1, false);
     }
 
     @Test
@@ -517,5 +521,57 @@ public class PrincipalBasedAccessControlManagerTest extends AbstractPrincipalBas
 
     private void assertPrivileges(@NotNull Privilege[] privs, @NotNull String... expectedOakPrivNames) throws Exception {
         assertEquals(ImmutableSet.copyOf(privilegesFromNames(expectedOakPrivNames)), ImmutableSet.copyOf(privs));
+    }
+    
+    @Test
+    public void testGetEffectivePrincipalsPaths() throws Exception {
+        setupContentTrees(TEST_OAK_PATH);
+        setupPrincipalBasedAccessControl(validPrincipal, testJcrPath, JCR_READ);
+        root.commit();
+
+        // unsupported principal
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(Collections.singleton(getTestUser().getPrincipal()), testJcrPath);
+        assertFalse(effective.hasNext());
+
+        // non-matching paths
+        effective = acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), 
+                PathUtils.ROOT_PATH, null, testContentJcrPath);
+        assertFalse(effective.hasNext());
+        
+        // matching paths
+        effective = acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), testJcrPath);
+        assertTrue(effective.hasNext());
+
+        effective = acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), testJcrPath + "/non/existing/child");
+        assertTrue(effective.hasNext());
+    }
+    
+    @Test
+    public void testGetEffectivePrincipalsEmptyPaths() throws Exception {
+        setupContentTrees(TEST_OAK_PATH);
+        setupPrincipalBasedAccessControl(validPrincipal, testJcrPath, JCR_READ);
+        root.commit();
+
+        Set<Principal> principals = Collections.singleton(validPrincipal); 
+        Iterator<AccessControlPolicy> effective = acMgr.getEffectivePolicies(principals, new String[0]);
+        AccessControlPolicy[] expected = acMgr.getEffectivePolicies(principals);
+        
+        assertArrayEquals(expected, ImmutableList.copyOf(effective).toArray(new AccessControlPolicy[0]));
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsReadablePaths() throws Exception {
+        setupContentTrees(TEST_OAK_PATH);
+        setupPrincipalBasedAccessControl(validPrincipal, testJcrPath, JCR_READ);
+        root.commit();
+
+        Set<String> readablePaths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        String[] paths = readablePaths.stream().map(oakPath -> namePathMapper.getJcrPath(oakPath)).distinct().toArray(String[]::new);
+        assertEquals(3, paths.length);
+        
+        List<AccessControlPolicy> effective = ImmutableList.copyOf(acMgr.getEffectivePolicies(Collections.singleton(validPrincipal), paths));
+
+        assertEquals(1, effective.size());
+        assertEquals(ReadPolicy.INSTANCE, effective.get(0));
     }
 }

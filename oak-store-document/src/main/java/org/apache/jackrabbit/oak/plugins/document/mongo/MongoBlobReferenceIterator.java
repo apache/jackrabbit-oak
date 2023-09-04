@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import static com.google.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 import java.util.Iterator;

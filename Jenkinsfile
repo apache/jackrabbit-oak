@@ -38,12 +38,12 @@ def buildModule(moduleSpec) {
             testOptions = '' 
         } else if (flags == 'it') {
             // integration tests only
-            testOptions = '-PintegrationTesting -Dsurefire.skip.ut=true' 
+            testOptions = '-PintegrationTesting -Dsurefire.skip.ut=true -Dskip.coverage=true' 
         }
     }
     stage(moduleSpec) {
         node(label: 'ubuntu') {
-            def JAVA_JDK_8=tool name: 'jdk_1.8_latest', type: 'hudson.model.JDK'
+            def JAVA_JDK_11=tool name: 'jdk_11_latest', type: 'hudson.model.JDK'
             def MAVEN_3_LATEST=tool name: 'maven_3_latest', type: 'hudson.tasks.Maven$MavenInstallation'
             def MAVEN_CMD = "mvn --batch-mode -Dmaven.repo.local=${env.HOME}/maven-repositories/${env.EXECUTOR_NUMBER}"
             def MONGODB_SUFFIX = sh(script: 'openssl rand -hex 4', returnStdout: true).trim()
@@ -56,7 +56,7 @@ def buildModule(moduleSpec) {
             '''
             timeout(70) {
                 checkout scm
-                withEnv(["Path+JDK=$JAVA_JDK_8/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_8","MAVEN_OPTS=-Xmx1536M"]) {
+                withEnv(["Path+JDK=$JAVA_JDK_11/bin","Path+MAVEN=$MAVEN_3_LATEST/bin","JAVA_HOME=$JAVA_JDK_11","MAVEN_OPTS=-Xmx1536M"]) {
                     sh '''
                     echo "MAVEN_OPTS is ${MAVEN_OPTS}"
                     '''

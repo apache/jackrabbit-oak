@@ -37,13 +37,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
-import com.google.common.io.Closer;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Closeables;
+import org.apache.jackrabbit.guava.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Files;
 import joptsimple.OptionParser;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
@@ -86,10 +86,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.StandardSystemProperty.FILE_SEPARATOR;
-import static com.google.common.base.Stopwatch.createStarted;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.FILE_SEPARATOR;
+import static org.apache.jackrabbit.guava.common.base.Stopwatch.createStarted;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
 import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeAsLine;
@@ -269,7 +269,7 @@ public class DataStoreCommand implements Command {
             } else {
                 MarkSweepGarbageCollector collector = getCollector(fixture, dataStoreOpts, opts, closer);
                 if (dataStoreOpts.checkConsistency()) {
-                    long missing = collector.checkConsistency();
+                    long missing = collector.checkConsistency(dataStoreOpts.consistencyCheckMarkOnly());
                     log.warn("Found {} missing blobs", missing);
 
                     if (dataStoreOpts.isVerbose()) {

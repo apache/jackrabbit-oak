@@ -19,13 +19,13 @@ package org.apache.jackrabbit.oak.security.user.query;
 import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.security.user.Authorizable;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
+
+import static org.apache.jackrabbit.oak.security.user.Utils.canImpersonateAllUsers;
 
 /**
  * XPATH based condition visitor.
@@ -98,14 +98,7 @@ class XPathConditionVisitor implements ConditionVisitor {
     @Override
     public void visit(@NotNull Condition.Impersonation condition) {
         String principalName = condition.getName();
-        boolean isAdmin = false;
-        try {
-            Authorizable authorizable = userMgr.getAuthorizable(new PrincipalImpl(principalName));
-            isAdmin = authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
-        } catch (RepositoryException e) {
-            // unable to retrieve authorizable
-        }
-        if (isAdmin) {
+        if (canImpersonateAllUsers(new PrincipalImpl(principalName), userMgr)) {
             statement.append('@')
                     .append(QueryUtil.escapeForQuery(JcrConstants.JCR_PRIMARYTYPE, namePathMapper))
                     .append("='")

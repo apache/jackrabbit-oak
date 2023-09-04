@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.compress.utils.Lists;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
@@ -44,7 +44,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.WAIT_OTHER_COPY_SYSPROP_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.junit.Assert.assertFalse;
@@ -98,7 +98,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
         IndexInput remoteInput = remote.openInput("file", IOContext.READ);
         assertTrue(remoteInput.length() > 1);
 
-        copier = new IndexCopier(sameThreadExecutor(), temporaryFolder.newFolder(), true);
+        copier = new IndexCopier(newDirectExecutorService(), temporaryFolder.newFolder(), true);
 
         NodeState root = InitialContentHelper.INITIAL_CONTENT;
         defn = new LuceneIndexDefinition(root, root, "/foo");

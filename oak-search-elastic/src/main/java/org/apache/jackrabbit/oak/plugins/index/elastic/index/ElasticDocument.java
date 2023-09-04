@@ -28,11 +28,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Set;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils.toDoubles;
@@ -44,7 +42,7 @@ public class ElasticDocument {
     private final Set<String> fulltext;
     private final Set<String> suggest;
     private final Set<String> spellcheck;
-    private final Map<String, List<Object>> properties;
+    private final Map<String, Set<Object>> properties;
     private final Map<String, Object> similarityFields;
     private final Map<String, Map<String, Double>> dynamicBoostFields;
     private final Set<String> similarityTags;
@@ -81,7 +79,7 @@ public class ElasticDocument {
     // ref: https://www.elastic.co/blog/strings-are-dead-long-live-strings
     // (interpretation of date etc: https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-field-mapping.html)
     void addProperty(String fieldName, Object value) {
-        properties.computeIfAbsent(fieldName, s -> new ArrayList<>()).add(value);
+        properties.computeIfAbsent(fieldName, s -> new LinkedHashSet<>()).add(value);
     }
 
     void addSimilarityField(String name, Blob value) throws IOException {
@@ -113,6 +111,7 @@ public class ElasticDocument {
             builder.startObject();
             {
                 builder.field(FieldNames.PATH, path);
+                Set<String> dbFullText = new LinkedHashSet<>();
                 for (Map.Entry<String, Map<String, Double>> f : dynamicBoostFields.entrySet()) {
                     builder.startArray(f.getKey());
                     for (Map.Entry<String, Double> v : f.getValue().entrySet()) {
@@ -120,10 +119,14 @@ public class ElasticDocument {
                         builder.field("value", v.getKey());
                         builder.field("boost", v.getValue());
                         builder.endObject();
-                        // also add into fulltext field
-                        addFulltext(v.getKey());
+                        // add value into the dynamic boost specific fulltext field. We cannot add this in the standard
+                        // field since dynamic boosted terms require lower weight compared to standard terms
+                        dbFullText.add(v.getKey());
                     }
                     builder.endArray();
+                }
+                if (dbFullText.size() > 0) {
+                    builder.field(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT, dbFullText);
                 }
                 if (fulltext.size() > 0) {
                     builder.field(FieldNames.FULLTEXT, fulltext);
@@ -141,8 +144,8 @@ public class ElasticDocument {
                 for (Map.Entry<String, Object> simProp: similarityFields.entrySet()) {
                     builder.field(simProp.getKey(), simProp.getValue());
                 }
-                for (Map.Entry<String, List<Object>> prop : properties.entrySet()) {
-                    builder.field(prop.getKey(), prop.getValue().size() == 1 ? prop.getValue().get(0) : prop.getValue());
+                for (Map.Entry<String, Set<Object>> prop : properties.entrySet()) {
+                    builder.field(prop.getKey(), prop.getValue().size() == 1 ? prop.getValue().iterator().next() : prop.getValue());
                 }
                 if (!similarityTags.isEmpty()) {
                     builder.field(ElasticIndexDefinition.SIMILARITY_TAGS, similarityTags);

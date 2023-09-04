@@ -16,9 +16,6 @@
  */
 package org.apache.jackrabbit.api;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.RepositoryException;
@@ -27,10 +24,15 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.version.VersionException;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * The Jackrabbit Node interface. This interface contains the
  * Jackrabbit-specific extensions to the JCR {@link javax.jcr.Node} interface.
  */
+@ProviderType
 public interface JackrabbitNode extends Node {
 
     /**

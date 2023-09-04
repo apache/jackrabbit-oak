@@ -23,19 +23,18 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>27</version>
+    <version>29</version>
     <relativePath />
   </parent>
 
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.45-SNAPSHOT</version>
+  <version>1.57-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
     <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
-    <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
     <skip.deployment>false</skip.deployment>
@@ -46,7 +45,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.6</jackrabbit.version>
+    <jackrabbit.version>2.20.11</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -57,19 +56,22 @@
     <lucene.version>4.7.1</lucene.version>
     <solr.version>8.11.1</solr.version>
     <mongo.driver.version>3.12.11</mongo.driver.version>
-    <slf4j.api.version>1.7.32</slf4j.api.version>
-    <slf4j.version>1.7.32</slf4j.version> <!-- sync with logback version -->
+    <slf4j.api.version>1.7.36</slf4j.api.version>
+    <slf4j.version>1.7.36</slf4j.version> <!-- sync with logback version -->
     <logback.version>1.2.10</logback.version>
     <h2.version>2.1.214</h2.version>
-    <tika.version>1.26</tika.version>
-    <guava.version>15.0</guava.version>
-    <guava.osgi.import>com.google.common.*;version="[15.0,21)"</guava.osgi.import>
-    <derby.version>10.14.2.0</derby.version>
-    <jackson.version>2.13.4</jackson.version>
-    <testcontainers.version>1.17.5</testcontainers.version>
+    <tika.version>1.28.5</tika.version>
+    <!-- OAK-10369 --><guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
+    <derby.version>10.15.2.0</derby.version>
+    <jackson.version>2.13.5</jackson.version>
+    <testcontainers.version>1.18.3</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
-    <java.version>1.8</java.version>
-    <java.version.signature>java18</java.version.signature>
+    <groovy.version>2.5.22</groovy.version>
+
+    <java.version>11</java.version>
+    <maven.compiler.release>${java.version}</maven.compiler.release>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
+    <minimalJavaBuildVersion>${java.version}</minimalJavaBuildVersion>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -84,6 +86,11 @@
     <!-- refresh interval in seconds for elastic stats cache (default is 60 seconds).
      Lower interval is needed for tests to execute faster. So setting to 10 seconds using a system property-->
     <oak.elastic.statsRefreshSeconds>10</oak.elastic.statsRefreshSeconds>
+    <sonar.coverage.jacoco.xmlReportPaths>
+      ${project.reporting.outputDirectory}/jacoco-ut/jacoco.xml
+    </sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.organization>apache</sonar.organization>
+    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
   </properties>
 
   <issueManagement>
@@ -113,18 +120,6 @@
           </configuration>
         </plugin>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>animal-sniffer-maven-plugin</artifactId>
-          <version>1.21</version>
-          <configuration>
-            <signature>
-              <groupId>org.codehaus.mojo.signature</groupId>
-              <artifactId>${java.version.signature}</artifactId>
-              <version>1.0</version>
-            </signature>
-          </configuration>
-        </plugin>
-        <plugin>
           <artifactId>maven-javadoc-plugin</artifactId>
           <configuration>
             <doclint>none</doclint>
@@ -133,7 +128,6 @@
             <links>
               <link>https://s.apache.org/jcr-2.0-javadoc/</link>
               <link>https://jackrabbit.apache.org/api/2.20/</link>
-              <link>https://google.github.io/guava/releases/${guava.version}/api/docs/</link>
               <link>http://www.slf4j.org/apidocs/</link>
             </links>
             <!-- workaround for https://issues.apache.org/jira/browse/OAK-8517 -->
@@ -326,19 +320,20 @@
             </systemPropertyVariables>
           </configuration>
         </plugin>
-        <plugin>
-          <artifactId>maven-checkstyle-plugin</artifactId>
-          <version>3.1.2</version>
-        </plugin>
+          <plugin>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <version>3.1.2</version>
+          </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
           <version>4.7.1.0</version>
         </plugin>
+        
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.11.0</version>
+          <version>2.14.1</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -469,19 +464,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>animal-sniffer-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>animal-sniffer</id>
-            <phase>compile</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
 
@@ -500,34 +482,60 @@
     <dependencies>
       <dependency>
         <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.core</artifactId>
-        <version>4.2.0</version>
+        <artifactId>osgi.core</artifactId>
+        <version>7.0.0</version>
+      </dependency>
+      <!-- OSGi R7 Compendium Specs -->
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.component</artifactId>
+        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.compendium</artifactId>
-        <version>4.2.0</version>
+        <artifactId>org.osgi.service.metatype</artifactId>
+        <version>1.4.1</version>
       </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.cm</artifactId>
+        <version>1.6.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.log</artifactId>
+        <version>1.4.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.service.event</artifactId>
+        <version>1.4.1</version>
+      </dependency>
+      <!-- OSGi R7 annotations -->
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.component.annotations</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.0</version>
       </dependency>
       <dependency>
         <groupId>org.osgi</groupId>
         <artifactId>org.osgi.service.metatype.annotations</artifactId>
-        <version>1.3.0</version>
+        <version>1.4.0</version>
       </dependency>
-
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.annotation.bundle</artifactId>
+        <version>1.0.0</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/bundle/package-summary.html -->
+      </dependency>
+      <dependency>
+        <groupId>org.osgi</groupId>
+        <artifactId>org.osgi.annotation.versioning</artifactId>
+        <version>1.1.2</version><!-- R7 version, https://docs.osgi.org/javadoc/osgi.annotation/7.0.0/org/osgi/annotation/versioning/package-summary.html -->
+      </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
         <artifactId>org.apache.felix.scr.annotations</artifactId>
         <version>1.9.6</version>
-      </dependency>
-      <dependency>
-        <groupId>org.osgi</groupId>
-        <artifactId>org.osgi.annotation</artifactId>
-        <version>6.0.0</version>
       </dependency>
       <dependency>
         <groupId>org.jetbrains</groupId>
@@ -546,11 +554,6 @@
         <version>${mongo.driver.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.google.guava</groupId>
-        <artifactId>guava</artifactId>
-        <version>${guava.version}</version>
-      </dependency>
-      <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
         <version>3.6</version>
@@ -558,7 +561,7 @@
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>3.12.4</version>
+        <version>4.11.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -602,29 +605,30 @@
       </dependency>
       <dependency>
         <groupId>org.apache.sling</groupId>
-        <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
-        <version>2.3.10</version>
+        <artifactId>org.apache.sling.testing.osgi-mock.junit4</artifactId>
+        <version>2.4.18</version>
         <scope>test</scope>
       </dependency>
       <dependency>
-        <groupId>commons-lang</groupId>
-        <artifactId>commons-lang</artifactId>
-        <version>2.6</version>
+        <groupId>org.apache.sling</groupId>
+        <artifactId>org.apache.sling.testing.osgi-mock.core</artifactId>
+        <version>2.4.18</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.12.0</version>
+        <version>3.13.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.11.0</version>
+        <version>2.13.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.14</version>
+        <version>1.16.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -634,12 +638,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.51</version>
+        <version>8.5.92</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>8.5.51</version>
+        <version>8.5.92</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -679,27 +683,27 @@
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient</artifactId>
-        <version>4.5.13</version>
+        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpclient-osgi</artifactId>
-        <version>4.5.13</version>
+        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore</artifactId>
-        <version>4.4.14</version>
+        <version>4.4.16</version>
       </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpcore-osgi</artifactId>
-        <version>4.4.14</version>
+        <version>4.4.16</version>
      </dependency>
       <dependency>
         <groupId>org.apache.httpcomponents</groupId>
         <artifactId>httpmime</artifactId>
-        <version>4.5.13</version>
+        <version>4.5.14</version>
       </dependency>
       <dependency>
         <groupId>com.arakelian</groupId>
@@ -945,48 +949,6 @@
       </build>
    </profile>
     
-   <profile>
-      <id>guavabetachecks</id>
-      <build>
-         <plugins>
-            <plugin>
-              <artifactId>maven-compiler-plugin</artifactId>
-              <configuration>
-                <compilerId>javac-with-errorprone</compilerId>
-                <forceJavacCompilerUse>true</forceJavacCompilerUse>
-                <target>${java.version}</target>
-                <source>${java.version}</source>
-                <annotationProcessorPaths>
-                  <path>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava-beta-checker</artifactId>
-                    <version>1.0</version>
-                  </path>
-                </annotationProcessorPaths>
-                <compilerArgs>
-                  <!-- OAK-7310 -->
-                  <arg>-Xpkginfo:always</arg>
-                  <arg>-XepDisableAllChecks</arg>
-                  <arg>-Xep:BetaApi:ERROR</arg>
-                </compilerArgs>
-              </configuration>
-              <dependencies>
-                <dependency>
-                  <groupId>org.codehaus.plexus</groupId>
-                  <artifactId>plexus-compiler-javac-errorprone</artifactId>
-                  <version>2.5</version>
-                </dependency>
-                <dependency>
-                  <groupId>com.google.errorprone</groupId>
-                  <artifactId>error_prone_core</artifactId>
-                  <version>2.3.1</version>
-                </dependency>
-              </dependencies>
-            </plugin>
-         </plugins>
-      </build>
-   </profile>
-
     <profile>
       <id>rat</id>
       <build>
@@ -1092,12 +1054,6 @@
         </plugins>
       </build>
     </profile>
-    <profile>
-      <id>guava-latest</id>
-      <properties>
-        <guava.version>20.0</guava.version>
-      </properties>
-	  </profile>
     <profile>
       <id>rdb-derby</id>
       <dependencies>
@@ -1351,4 +1307,8 @@
       </build>
     </profile>
   </profiles>
+
+  <scm>
+    <tag>jackrabbit-oak-1.54.0</tag>
+  </scm>
 </project>

@@ -18,15 +18,15 @@
  */
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.file.FileStoreUtil.findPersistedRecordId;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.oak.segment.RecordId;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentIdProvider;
@@ -50,7 +50,7 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
 
     /**
      * Bind this instance to a store.
-     * 
+     *
      * @param store store to bind to
      * @param idProvider  {@code SegmentIdProvider} of the {@code store}
      * @throws IOException
@@ -77,7 +77,7 @@ public class ReadOnlyRevisions implements Revisions, Closeable {
         checkBound();
         return head.get();
     }
-    
+
     @NotNull
     @Override
     public RecordId getPersistedHead() {

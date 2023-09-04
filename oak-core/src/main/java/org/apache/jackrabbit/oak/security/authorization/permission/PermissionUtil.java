@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization.permission;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.Set;
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;

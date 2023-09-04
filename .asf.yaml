@@ -23,3 +23,9 @@ github:
     - jcr
     - repository
     - database
+  autolink_jira:
+    - OAK
+    - JCR
+    - JCRVLT
+    - SLING
+    - FELIX

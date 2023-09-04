@@ -17,10 +17,17 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.InitialContentHelper;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.IndexQueryCommonTest;
+import org.apache.jackrabbit.oak.plugins.index.TestUtil;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.junit.ClassRule;
+import org.junit.Test;
+
+import javax.jcr.query.Query;
 
 public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
 
@@ -38,6 +45,41 @@ public class ElasticIndexQueryCommonTest extends IndexQueryCommonTest {
         elasticTestRepositoryBuilder.setNodeStore(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT));
         repositoryOptionsUtil = elasticTestRepositoryBuilder.build();
         return repositoryOptionsUtil.getOak().createContentRepository();
+    }
+
+    @Test
+    public void similarityQueryShouldCorrectlyHandleSimilarityTags() throws CommitFailedException {
+        String query = "explain select [jcr:path] from [nt:base] where " +
+                "native('lucene', 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0')";
+
+        String explainWithoutSimilarityTags = "[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) {\"bool\":{\"must\":[{\"more_like_this\":{\"fields\":[\":dynamic-boost-ft\",\"*\"],\"include\":true,\"like\":[{\"_id\":\"/test/a\",\"per_field_analyzer\":{\"_ignored\":\"keyword\"}}],\"min_doc_freq\":0,\"min_term_freq\":0}}]}}" +
+                " where native([nt:base], [lucene], 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0') */";
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("text", "Hello World");
+        test.addChild("b").setProperty("text", "He said Hello and then the world said Hello as well.");
+        test.addChild("c").setProperty("text", "He said Hi.");
+
+        indexDefn.setProperty("similarityTagsEnabled", false);
+        root.commit();
+
+        // similarity tags disabled, should not be present in the explain
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithoutSimilarityTags, true));
+
+        indexDefn.setProperty("similarityTagsEnabled", true);
+        root.commit();
+
+        // similarity tags enabled, but no similarity tags properties configured, should not be present in the explain
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithoutSimilarityTags, true));
+
+        String explainWithSimilarityTags = "[nt:base] as [nt:base] /* elasticsearch:test-index(/oak:index/test-index) {\"bool\":{\"must\":[{\"more_like_this\":{\"fields\":[\":dynamic-boost-ft\",\"*\"],\"include\":true,\"like\":[{\"_id\":\"/test/a\",\"per_field_analyzer\":{\"_ignored\":\"keyword\"}}],\"min_doc_freq\":0,\"min_term_freq\":0}}],\"should\":[{\"more_like_this\":{\"boost\":0.5,\"fields\":[\":simTags\"],\"like\":[{\"_id\":\"/test/a\"}],\"min_doc_freq\":1,\"min_term_freq\":1}}]}}" +
+                " where native([nt:base], [lucene], 'mlt?stream.body=/test/a&mlt.fl=:path&mlt.mindf=0&mlt.mintf=0') */";
+        Tree properties = indexDefn.getChild(FulltextIndexConstants.INDEX_RULES).getChild("nt:base").getChild("properties");
+        Tree simProp = TestUtil.enableForFullText(properties, "simProp", false);
+        simProp.setProperty(FulltextIndexConstants.PROP_SIMILARITY_TAGS, true);
+        root.commit();
+
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, explainWithSimilarityTags, true));
     }
 
     @Override

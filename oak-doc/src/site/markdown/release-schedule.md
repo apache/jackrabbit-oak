@@ -24,7 +24,6 @@ according to needs
 
 - trunk: every 8 weeks (~6 / year)
 - 1.22: every 13 weeks (~4 / year)
-- 1.8: every 26 weeks (~2 / year)
 
 ## Strategies
 

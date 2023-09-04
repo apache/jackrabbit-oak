@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
@@ -59,6 +59,12 @@ public abstract class AbstractAutoMembershipTest  extends AbstractExternalAuthTe
     @Before
     public void before() throws Exception {
         super.before();
+
+        // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership 
+        // providers registered.
+        context.registerInjectActivateService(getUserConfiguration());
+        registerSyncHandler(syncConfigAsMap(), idp.getName());
+        
         userManager = getUserManager(root);
         automembershipGroup1 = userManager.createGroup(AUTOMEMBERSHIP_GROUP_ID_1);
         automembershipGroup2 = userManager.createGroup(AUTOMEMBERSHIP_GROUP_ID_2);

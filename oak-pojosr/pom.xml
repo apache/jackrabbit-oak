@@ -23,16 +23,12 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.57-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
   <artifactId>oak-pojosr</artifactId>
   <name>Oak PojoSR</name>
-
-  <properties>
-    <groovy.version>2.4.12</groovy.version>
-  </properties>
 
   <build>
     <plugins>
@@ -108,6 +104,11 @@
       </exclusions>
     </dependency>
     
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-shaded-guava</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-segment-tar</artifactId>
@@ -318,7 +319,19 @@
     </dependency>
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
-      <artifactId>groovy-all</artifactId>
+      <artifactId>groovy</artifactId>
+      <version>${groovy.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-json</artifactId>
+      <version>${groovy.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-sql</artifactId>
       <version>${groovy.version}</version>
       <scope>test</scope>
     </dependency>

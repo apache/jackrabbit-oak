@@ -27,9 +27,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.sql.DataSource;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
 import org.apache.jackrabbit.oak.fixture.SegmentTarFixture.SegmentTarFixtureBuilder;

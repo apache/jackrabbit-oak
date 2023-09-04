@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.57-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -40,6 +40,7 @@
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionSrc               <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveConstraintViolationExceptionDest              <!-- OAK-132 -->
       org.apache.jackrabbit.test.api.SessionTest#testMoveLockException
+      org.apache.jackrabbit.test.api.NodeTest#testAddNodeLackingMandatoryChildNode                     <!-- OAK-9621 -->
       org.apache.jackrabbit.test.api.NodeTest#testRemoveNodeParentLocked
       org.apache.jackrabbit.test.api.NodeSetPrimaryTypeTest#testLocked
       org.apache.jackrabbit.test.api.WorkspaceCopyVersionableTest#testCopyNodesVersionableAndCheckedIn <!-- OAK-118 -->
@@ -158,10 +159,6 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Import-Package>
-              <!-- OAK-7182 -->${guava.osgi.import},
-              *
-            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.jcr,
               org.apache.jackrabbit.oak.jcr.observation.filter
@@ -192,22 +189,16 @@
   </build>
 
   <dependencies>
-    <!-- Optional OSGi dependencies, used only when running within OSGi -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
+      <artifactId>org.osgi.annotation.versioning</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
+      <artifactId>osgi.core</artifactId>
       <scope>provided</scope>
     </dependency>
-      <dependency>
-          <groupId>org.osgi</groupId>
-          <artifactId>org.osgi.annotation</artifactId>
-          <scope>provided</scope>
-      </dependency>
       <dependency>
           <!-- somehow the 1.6.0_65 compiler crashes on osx without this. -->
           <groupId>org.apache.felix</groupId>
@@ -221,6 +212,11 @@
       <version>2.0</version>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-shaded-guava</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-jackrabbit-api</artifactId>
@@ -367,10 +363,6 @@
     </dependency>
 
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
@@ -418,6 +410,7 @@
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>jackrabbit-jcr-tests</artifactId>
       <version>${jackrabbit.version}</version>
+      <scope>test</scope>
       <optional>true</optional>
     </dependency>
     <dependency>
@@ -470,18 +463,31 @@
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
-      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
-      <version>2.0.2</version>
+      <artifactId>org.apache.sling.testing.osgi-mock.junit4</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.event</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.log</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.cm</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.component</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>net.lingala.zip4j</groupId>
-      <artifactId>zip4j</artifactId>
-      <version>1.3.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>

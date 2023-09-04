@@ -20,10 +20,9 @@ package org.apache.jackrabbit.oak.segment;
 
 import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.segment.ReaderCache.CacheKey;
 import org.jetbrains.annotations.NotNull;
-
-import com.google.common.cache.Weigher;
 
 public final class CacheWeights {
 

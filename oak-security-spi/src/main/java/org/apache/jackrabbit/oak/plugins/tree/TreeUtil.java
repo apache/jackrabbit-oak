@@ -19,16 +19,17 @@ package org.apache.jackrabbit.oak.plugins.tree;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -43,8 +44,8 @@ import org.apache.jackrabbit.util.ISO8601;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.collect.Iterables.contains;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.JcrConstants.JCR_AUTOCREATED;
 import static org.apache.jackrabbit.JcrConstants.JCR_CREATED;
@@ -310,7 +311,47 @@ public final class TreeUtil {
         return (child.exists()) ? child : addChild(tree, childName, primaryTypeName);
     }
 
+    /**
+     * Add a mixin type to the given {@code tree}. The implementation checks
+     * the effective type of the tree and will not add the mixin if it
+     * determines the tree is already of type {@code mixinName} through the
+     * currently set primary or mixin types, directly or indirectly by type
+     * inheritance.
+     *
+     * @param tree tree where the mixin type is to be added.
+     * @param mixinName name of the mixin to add.
+     * @param typeRoot tree where type information is stored.
+     * @param userID user id or {@code null} if unknown.
+     * @throws RepositoryException if {@code mixinName} does not refer to an
+     *      existing type or the type it refers to is abstract or the type it
+     *      refers to is a primary type.
+     */
     public static void addMixin(@NotNull Tree tree, @NotNull String mixinName, @NotNull Tree typeRoot, @Nullable String userID) throws RepositoryException {
+        addMixin(tree, t -> getNames(t, JCR_MIXINTYPES), mixinName, typeRoot, userID);
+    }
+
+    /**
+     * Add a mixin type to the given {@code tree}. The implementation checks
+     * the effective type of the tree and will not add the mixin if it
+     * determines the tree is already of type {@code mixinName} through the
+     * currently set primary or mixin types, directly or indirectly by type
+     * inheritance.
+     *
+     * @param tree tree where the mixin type is to be added.
+     * @param existingMixins function to get the currently set mixin types from
+     *      a tree.
+     * @param mixinName name of the mixin to add.
+     * @param typeRoot tree where type information is stored.
+     * @param userID user id or {@code null} if unknown.
+     * @throws RepositoryException if {@code mixinName} does not refer to an
+     *      existing type or the type it refers to is abstract or the type it
+     *      refers to is a primary type.
+     */
+    public static void addMixin(@NotNull Tree tree,
+                                @NotNull Function<Tree, Iterable<String>> existingMixins,
+                                @NotNull String mixinName,
+                                @NotNull Tree typeRoot,
+                                @Nullable String userID) throws RepositoryException {
         Tree type = typeRoot.getChild(mixinName);
         if (!type.exists()) {
             throw noSuchNodeTypeException(mixinName);
@@ -327,7 +368,7 @@ public final class TreeUtil {
         }
 
         Set<String> subMixins = Sets.newHashSet(getNames(type, NodeTypeConstants.REP_MIXIN_SUBTYPES));
-        for (String mixin : getNames(tree, JCR_MIXINTYPES)) {
+        for (String mixin : existingMixins.apply(tree)) {
             if (mixinName.equals(mixin) || subMixins.contains(mixin)) {
                 return;
             }

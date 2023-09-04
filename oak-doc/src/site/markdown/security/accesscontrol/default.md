@@ -18,6 +18,8 @@
 Access Control Management : The Default Implementation
 --------------------------------------------------------------------------------
 
+<!-- MACRO{toc|fromDepth=2} -->
+
 ### General
 
 In general the authorization related code in Oak clearly separates between access
@@ -128,6 +130,13 @@ found in section [Restriction Management](../authorization/restriction.html).
 
 <a name="representation"></a>
 
+#### Unknown Principals and Non-Existing Paths
+
+Access control policies (or their entries) are bound to principals and JCR item paths. However, both must not necessarily exist: You can have policies for non-existing paths and/or unknown principals (i.e. referential integrity is not ensured). Deleting the referenced node or authorizable representing the principal won't have any effect in general.
+On the other hand, as the actual policies are persisted in the repository, they are removed whenever any of the parent nodes is removed (like any other regular child node).
+
+While importing access control policies via [JCR XML import](#xml-import) the behaviour for unknown principals can be configured.
+
 ### Representation in the Repository
 
 Access control policies created and modified using the default authorization model are stored as child of
@@ -167,9 +176,9 @@ the node they are bound to with name `rep:policy` or as node with path `/rep:rep
       - * (UNDEFINED) protected
       - * (UNDEFINED) protected multiple
 
-##### Examples
+#### Examples
 
-###### Regular ACL at /content
+##### Regular ACL at /content
 
     "": {
         "jcr:primaryType": "rep:root",
@@ -196,7 +205,7 @@ the node they are bound to with name `rep:policy` or as node with path `/rep:rep
         }
     }
 
-###### Repo-Level Policy
+##### Repo-Level Policy
 
     "": {
         "jcr:primaryType": "rep:root",
@@ -212,9 +221,10 @@ the node they are bound to with name `rep:policy` or as node with path `/rep:rep
     }
 
 <a name="xml_import"></a>
+
 ### XML Import
 
-As of OAK 1.0 access control content can be imported both with Session and
+As of Oak 1.0 access control content can be imported both with Session and
 Workspace import.
 
 In addition the JCR XML import behavior has been extended to respect the
@@ -239,6 +249,7 @@ the following entry:
 See also ([OAK-1350](https://issues.apache.org/jira/browse/OAK-1350)))
 
 <a name="validation"></a>
+
 ### Validation
 
 The consistency of this content structure is asserted by a dedicated `AccessControlValidator`.
@@ -262,6 +273,7 @@ The corresponding errors are all of type `AccessControl` with the following code
 
 
 <a name="configuration"></a>
+
 ### Configuration
 
 #### Configuration Parameters
@@ -275,7 +287,7 @@ The default implementation supports the following configuration parameters:
 | `PARAM_IMPORT_BEHAVIOR`      | String ("abort", "ignore", "besteffort") | "abort" |
 | | | |
 
-Differences to Jackrabbit 2.x:
+##### Differences to Jackrabbit 2.x:
 
 - The "omit-default-permission" configuration option present with the Jackrabbit's AccessControlProvider implementations is no longer supported with Oak.
 - As of OAK no extra access control content is installed by default which renders that flag superfluous.

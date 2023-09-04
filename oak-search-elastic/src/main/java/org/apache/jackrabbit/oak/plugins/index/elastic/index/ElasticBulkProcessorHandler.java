@@ -18,10 +18,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
-import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -45,6 +43,7 @@ import java.io.IOException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Phaser;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -60,15 +59,17 @@ class ElasticBulkProcessorHandler {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticBulkProcessorHandler.class);
     private final int FAILED_DOC_COUNT_FOR_STATUS_NODE = Integer.getInteger("oak.failedDocStatusLimit", 10000);
 
+    private static final int BULK_PROCESSOR_CONCURRENCY =
+        Integer.getInteger("oak.indexer.elastic.bulkProcessorConcurrency", 1);
     private static final String SYNC_MODE_PROPERTY = "sync-mode";
     private static final String SYNC_RT_MODE = "rt";
-    private static boolean waitForESAcknowledgement = true;
 
     protected final ElasticConnection elasticConnection;
     protected final String indexName;
     protected final ElasticIndexDefinition indexDefinition;
     private final NodeBuilder definitionBuilder;
     protected final BulkProcessor bulkProcessor;
+    private final boolean waitForESAcknowledgement;
 
     /**
      * Coordinates communication between bulk processes. It has a main controller registered at creation time and
@@ -79,9 +80,9 @@ class ElasticBulkProcessorHandler {
     private final Phaser phaser = new Phaser(1); // register main controller
 
     /**
-     * IOException object wrapping any error/exception which occurred while trying to update index in elasticsearch.
+     * Exceptions occurred while trying to update index in elasticsearch
      */
-    private volatile IOException ioException;
+    private final ConcurrentLinkedQueue<Throwable> suppressedExceptions = new ConcurrentLinkedQueue<>();
 
     /**
      * Key-value structure to keep the history of bulk requests. Keys are the bulk execution ids, the boolean
@@ -94,11 +95,13 @@ class ElasticBulkProcessorHandler {
     private ElasticBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                         @NotNull String indexName,
                                         @NotNull ElasticIndexDefinition indexDefinition,
-                                        @NotNull NodeBuilder definitionBuilder) {
+                                        @NotNull NodeBuilder definitionBuilder,
+                                        boolean waitForESAcknowledgement) {
         this.elasticConnection = elasticConnection;
         this.indexName = indexName;
         this.indexDefinition = indexDefinition;
         this.definitionBuilder = definitionBuilder;
+        this.waitForESAcknowledgement = waitForESAcknowledgement;
         this.bulkProcessor = initBulkProcessor();
     }
 
@@ -111,20 +114,12 @@ class ElasticBulkProcessorHandler {
     public static ElasticBulkProcessorHandler getBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                                                       @NotNull String indexName,
                                                                       @NotNull ElasticIndexDefinition indexDefinition,
-                                                                      @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo) {
+                                                                      @NotNull NodeBuilder definitionBuilder, CommitInfo commitInfo,
+                                                                      boolean waitForESAcknowledgement) {
         PropertyState async = indexDefinition.getDefinitionNodeState().getProperty("async");
 
         if (async != null) {
-            // Check if this indexing call is a part of async cycle or a commit hook or called from oak-run for offline reindex
-            // In case it's from async cycle - commit info will have a indexingCheckpointTime key.
-            // Otherwise, it's part of commit hook based indexing due to async property having a value nrt
-            // If the IndexDefinition has a property async-previous set, this implies it's being called from oak-run for offline-reindex.
-            // we need to set waitForESAcknowledgement = false only in the second case i.e.
-            // when this is a part of commit hook due to async property having a value nrt
-            if (!(commitInfo.getInfo().containsKey(IndexConstants.CHECKPOINT_CREATION_TIME) || AsyncLaneSwitcher.isLaneSwitched(definitionBuilder))) {
-                waitForESAcknowledgement = false;
-            }
-            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
+            return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
         }
 
         // commit-info has priority over configuration in index definition
@@ -141,16 +136,17 @@ class ElasticBulkProcessorHandler {
         }
 
         if (SYNC_RT_MODE.equals(syncMode)) {
-            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
+            return new RealTimeBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
         }
 
-        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder);
+        return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
     }
 
     private BulkProcessor initBulkProcessor() {
         return BulkProcessor.builder(requestConsumer(),
                 new OakBulkProcessorListener(), this.indexName + "-bulk-processor")
                 .setBulkActions(indexDefinition.bulkActions)
+                .setConcurrentRequests(BULK_PROCESSOR_CONCURRENCY)
                 .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
                 .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
                 .setBackoffPolicy(BackoffPolicy.exponentialBackoff(
@@ -159,12 +155,23 @@ class ElasticBulkProcessorHandler {
                 .build();
     }
 
+    private void checkFailures() throws IOException {
+        if (suppressedExceptions.size() > 0) {
+            IOException ioe = new IOException("Exception while indexing. See suppressed for details");
+            suppressedExceptions.forEach(ioe::addSuppressed);
+            throw ioe;
+        }
+    }
+
     protected BiConsumer<BulkRequest, ActionListener<BulkResponse>> requestConsumer() {
         // TODO: migrate to ES Java client https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/current/indexing-bulk.html
         return (request, bulkListener) -> elasticConnection.getOldClient().bulkAsync(request, RequestOptions.DEFAULT, bulkListener);
     }
 
-    public void add(DocWriteRequest<?> request) {
+    public void add(DocWriteRequest<?> request) throws IOException {
+        // fail fast: we don't want to wait until the processor gets closed to fail
+        checkFailures();
+
         bulkProcessor.add(request);
         totalOperations++;
     }
@@ -190,9 +197,7 @@ class ElasticBulkProcessorHandler {
             }
         }
 
-        if (ioException != null) {
-            throw ioException;
-        }
+        checkFailures();
 
         if (LOG.isTraceEnabled()) {
             LOG.trace("Bulk identifier -> update status = {}", updatesMap);
@@ -209,6 +214,8 @@ class ElasticBulkProcessorHandler {
 
             // init update status
             updatesMap.put(executionId, Boolean.FALSE);
+
+            bulkRequest.timeout(TimeValue.timeValueMinutes(2));
 
             LOG.debug("Sending bulk with id {} -> {}", executionId, bulkRequest.getDescription());
             if (LOG.isTraceEnabled()) {
@@ -247,6 +254,9 @@ class ElasticBulkProcessorHandler {
                 for (BulkItemResponse bulkItemResponse : bulkResponse) {
                     if (bulkItemResponse.isFailed()) {
                         BulkItemResponse.Failure failure = bulkItemResponse.getFailure();
+                        if (indexDefinition.failOnError && failure.getCause() != null) {
+                            suppressedExceptions.add(failure.getCause());
+                        }
                         if (!isFailedDocSetFull && failedDocSet.size() < FAILED_DOC_COUNT_FOR_STATUS_NODE) {
                             failedDocSet.add(bulkItemResponse.getId());
                         } else {
@@ -277,7 +287,7 @@ class ElasticBulkProcessorHandler {
         @Override
         public void afterBulk(long executionId, BulkRequest bulkRequest, Throwable throwable) {
             LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, throwable);
-            ElasticBulkProcessorHandler.this.ioException = new IOException(throwable);
+            suppressedExceptions.add(throwable);
             phaser.arriveAndDeregister();
         }
     }
@@ -295,8 +305,9 @@ class ElasticBulkProcessorHandler {
         private RealTimeBulkProcessorHandler(@NotNull ElasticConnection elasticConnection,
                                              @NotNull String indexName,
                                              @NotNull ElasticIndexDefinition indexDefinition,
-                                             @NotNull NodeBuilder definitionBuilder) {
-            super(elasticConnection, indexName, indexDefinition, definitionBuilder);
+                                             @NotNull NodeBuilder definitionBuilder,
+                                             boolean waitForESAcknowledgement) {
+            super(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
         }
 
         @Override

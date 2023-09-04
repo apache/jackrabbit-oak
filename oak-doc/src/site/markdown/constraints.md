@@ -37,9 +37,8 @@ On top of that, Oak implements several *additional* restrictions (as per
 a (local) name (see [JCR v2.0 Specification, Section 5.2.2.1](https://s.apache.org/jcr-2.0-spec/5_Reading.html#5.2.2.1%20Name%20Patterns) for motivation).
 - Other ASCII whitespace characters (CR, LF, TAB) are always disallowed (before OAK 1.10, more were disallowed, see [OAK-4857](https://issues.apache.org/jira/browse/OAK-4857)).
 
-Finally, the chosen persistence implementation might restrict node names even further, for instance:
-
-- in the "Document NodeStore", the UTF-8 representation of local names can not exceed ~150 bytes.
+Finally, the chosen persistence implementation might restrict node names even further.
+See [Node Name Length Limit](./differences.md#node-name-length-limit).
 
 The namespace for prefix `rep` (`internal`) is not a valid URI therefore you can only use the qualified names but not the expanded names ([JCR v2.0 Specification, Section 3.2.5](https://s.apache.org/jcr-2.0-spec/3_Repository_Model.html#3.2.5%20Lexical%20Form%20of%20JCR%20Names)) when addressing items in that namespace([OAK-74](https://issues.apache.org/jira/browse/OAK-74)).
 

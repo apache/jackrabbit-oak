@@ -22,7 +22,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 public class GlobbingPathHelper {
 

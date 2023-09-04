@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.property.strategy;
 
-import static com.google.common.collect.Queues.newArrayDeque;
+import static org.apache.jackrabbit.guava.common.collect.Queues.newArrayDeque;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ENTRY_COUNT_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_CONTENT_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.KEY_COUNT_PROPERTY_NAME;
@@ -45,10 +45,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Supplier;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Queues;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An IndexStoreStrategy implementation that saves the nodes under a hierarchy
@@ -457,9 +457,15 @@ public class ContentMirrorStoreStrategy implements IndexStoreStrategy {
                         readCount++;
                         if (readCount % TRAVERSING_WARN == 0) {
                             FilterIterators.checkReadLimit(readCount, settings);
-                            String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
-                            LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}, caller {}", 
-                                    readCount, intermediateNodeReadCount, indexName, filter, caller);
+                            if (readCount == 2 * TRAVERSING_WARN) {
+                                LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}",
+                                        readCount, intermediateNodeReadCount, indexName, filter,
+                                        new Exception("call stack"));
+                            } else {
+                                String caller = IndexUtils.getCaller(settings.getIgnoredClassNamesInCallTrace());
+                                LOG.warn("Index-Traversed {} nodes ({} index entries) using index {} with filter {}, caller {}",
+                                        readCount, intermediateNodeReadCount, indexName, filter, caller);
+                            }
                         }
                         return;
                     } else {

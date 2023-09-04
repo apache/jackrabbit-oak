@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.CountRequest;
 import co.elastic.clients.elasticsearch.core.CountResponse;
-import com.google.common.base.Ticker;
-import com.google.common.cache.LoadingCache;
+import org.apache.jackrabbit.guava.common.base.Ticker;
+import org.apache.jackrabbit.guava.common.cache.LoadingCache;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -105,7 +105,7 @@ public class ElasticIndexStatisticsTest {
             }
             // cache hit, latest value returned
             assertEquals(1000, indexStatistics.numDocs());
-        }, 500);
+        }, 1000);
         verifyNoMoreInteractions(elasticClientMock);
 
         // index count changes in elastic

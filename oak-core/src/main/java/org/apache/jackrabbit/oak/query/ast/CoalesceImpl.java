@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
@@ -62,8 +62,8 @@ public class CoalesceImpl extends DynamicOperandImpl {
 
     @Override
     public PropertyExistenceImpl getPropertyExistence() {
-        PropertyExistenceImpl pe = operand1.getPropertyExistence();
-        return pe != null ? pe : operand2.getPropertyExistence();
+        // we could support "<function> is not null", but right now we don't
+        return null;
     }
 
     @Override

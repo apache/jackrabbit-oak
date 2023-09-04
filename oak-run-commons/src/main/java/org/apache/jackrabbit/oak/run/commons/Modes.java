@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.run.commons;
 
 import java.util.Map;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * represent an individual Mode for running a COMMAND. It's a substitution for the old Mode enum we

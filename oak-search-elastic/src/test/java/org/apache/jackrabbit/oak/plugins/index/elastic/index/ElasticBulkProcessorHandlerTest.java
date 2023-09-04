@@ -65,7 +65,7 @@ public class ElasticBulkProcessorHandlerTest {
         when(definitionNodeStateMock.getProperty(eq("async"))).thenReturn(null);
 
         ElasticBulkProcessorHandler bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo);
+                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
 
         assertThat(bulkProcessorHandler, instanceOf(ElasticBulkProcessorHandler.class));
     }
@@ -77,7 +77,7 @@ public class ElasticBulkProcessorHandlerTest {
                 .thenReturn(new MultiStringPropertyState("sync-mode", Arrays.asList("nrt", "rt")));
 
         ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo);
+                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
     }
 
     @Test
@@ -87,7 +87,7 @@ public class ElasticBulkProcessorHandlerTest {
                 .thenReturn(new StringPropertyState("sync-mode", "rt"));
 
         ElasticBulkProcessorHandler bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo);
+                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
 
         assertThat(bulkProcessorHandler, instanceOf(ElasticBulkProcessorHandler.RealTimeBulkProcessorHandler.class));
     }
@@ -98,7 +98,7 @@ public class ElasticBulkProcessorHandlerTest {
         when(commitInfo.getInfo()).thenReturn(Collections.singletonMap("sync-mode", "rt"));
 
         ElasticBulkProcessorHandler bulkProcessorHandler = ElasticBulkProcessorHandler
-                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo);
+                .getBulkProcessorHandler(elasticConnectionMock, "index", indexDefinitionMock, definitionBuilder, commitInfo, true);
 
         assertThat(bulkProcessorHandler, instanceOf(ElasticBulkProcessorHandler.RealTimeBulkProcessorHandler.class));
     }

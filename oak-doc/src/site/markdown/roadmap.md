@@ -25,19 +25,20 @@ releases directly from [trunk](https://github.com/apache/jackrabbit-oak/tree/tru
 
 * [download](https://jackrabbit.apache.org/jcr/downloads.html#latest)
 
+Starting with 1.50.0, these require Java 11.
 
 Maintenance branches
 --------------------
-We currently support the following maintenance branches:
+We currently support one maintenance branch:
 
 * [Oak 1.22](https://github.com/apache/jackrabbit-oak/tree/1.22/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.22)) - from Java 8 up to Java 13
-* [Oak 1.8](https://github.com/apache/jackrabbit-oak/tree/1.8/) ([download](https://jackrabbit.apache.org/jcr/downloads.html#oak1.8)) - from Java 8 up to Java 13
 
 End of life
 -----------
 The following branches have reached "end of life":
 
 * [Oak 1.10](https://github.com/apache/jackrabbit-oak/tree/1.10/)
+* [Oak 1.8](https://github.com/apache/jackrabbit-oak/tree/1.8/)
 * [Oak 1.6](https://github.com/apache/jackrabbit-oak/tree/1.6/)
 * [Oak 1.4](https://github.com/apache/jackrabbit-oak/tree/1.4/)
 * [Oak 1.2](https://github.com/apache/jackrabbit-oak/tree/1.2/)

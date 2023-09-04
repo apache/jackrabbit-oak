@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -27,6 +27,7 @@ import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
+import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -80,7 +81,7 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         super.before();
         provider = createAutoMembershipProvider(root, userManager);
     }
-    
+
     private void setExternalId(@NotNull String id, @NotNull String idpName) throws Exception {
         Root sr = getSystemRoot();
         sr.refresh();
@@ -89,7 +90,17 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         sr.commit();
         root.refresh();
     }
-    
+
+    @Override
+    protected @NotNull DefaultSyncConfig createSyncConfig() {
+        DefaultSyncConfig dsc = super.createSyncConfig();
+        dsc.user().setDynamicMembership(true).setAutoMembership(MAPPING.get(IDP_VALID_AM));
+        if (dynamicGroupsEnabled) {
+            dsc.group().setDynamicGroups(true).setAutoMembership(MAPPING_GROUP.get(IDP_VALID_AM));
+        }
+        return dsc;
+    }
+
     @NotNull
     private AutoMembershipProvider createAutoMembershipProvider(@NotNull Root root, @NotNull UserManager userManager) {
         Map<String, String[]> groupMapping = (dynamicGroupsEnabled) ? MAPPING_GROUP : null;
@@ -303,13 +314,15 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         Group testGroup = getTestGroup();
         Group base = userManager.createGroup("baseGroup");
         base.addMember(testGroup);
+        root.commit();
 
         assertFalse(provider.isMember(base, testUser, false));
         assertFalse(provider.isMember(base, testUser, true));
         
         // add 'automembership-group' as nested members
         testGroup.addMember(automembershipGroup1);
-        
+        root.commit();
+
         assertFalse(provider.isMember(base, testUser, false));
         assertTrue(provider.isMember(base, testUser, true));
     }
@@ -415,10 +428,10 @@ public class AutoMembershipProviderTest extends AbstractAutoMembershipTest {
         assertTrue(groups.contains(automembershipGroup2));
 
         groups = ImmutableSet.copyOf(provider.getMembership(getTestUser(), true));
-        assertEquals(3, groups.size()); // all duplicates must be properly filtered
+        assertEquals(2, groups.size()); // all duplicates must be properly filtered and everyone must be omitted
         assertTrue(groups.contains(automembershipGroup1));
         assertTrue(groups.contains(automembershipGroup2));
-        assertTrue(groups.contains(everyone));
+        assertFalse(groups.contains(everyone));
     }
 
     @Test

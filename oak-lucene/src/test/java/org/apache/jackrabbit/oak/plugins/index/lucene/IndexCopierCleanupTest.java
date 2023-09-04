@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import com.google.common.collect.Sets;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -44,7 +44,7 @@ import java.util.Random;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
@@ -97,7 +97,7 @@ public class IndexCopierCleanupTest {
 
         localFSDir = temporaryFolder.newFolder();
 
-        copier = new RAMIndexCopier(localFSDir, sameThreadExecutor(), temporaryFolder.getRoot(), true);
+        copier = new RAMIndexCopier(localFSDir, newDirectExecutorService(), temporaryFolder.getRoot(), true);
 
         // convince copier that local FS dir is ok (avoid integrity check doing the cleanup)
         copier.getCoRDir().close();

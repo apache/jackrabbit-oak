@@ -30,11 +30,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Represents the index metadata file content as present in index-details.txt
@@ -137,4 +137,4 @@ final class IndexMeta implements Comparable<IndexMeta> {
         }
     }
 }
-    
+

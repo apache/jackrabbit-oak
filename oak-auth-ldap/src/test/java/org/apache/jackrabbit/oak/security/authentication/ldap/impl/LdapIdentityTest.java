@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.authentication.ldap.impl;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;

@@ -1,0 +1,246 @@
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Syntax:
+#   "source" => "target"
+#     "source".length() > 0 (source cannot be empty.)
+#     "target".length() >= 0 (target can be empty.)
+
+# example:
+#   "Ã€" => "A"
+#   "\u00C0" => "A"
+#   "\u00C0" => "\u0041"
+#   "ÃŸ" => "ss"
+#   "\t" => " "
+#   "\n" => ""
+
+# Ã€ => A
+"\u00C0" => "A"
+
+# Ã => A
+"\u00C1" => "A"
+
+# Ã‚ => A
+"\u00C2" => "A"
+
+# Ãƒ => A
+"\u00C3" => "A"
+
+# Ã„ => A
+"\u00C4" => "A"
+
+# Ã… => A
+"\u00C5" => "A"
+
+# Ã† => AE
+"\u00C6" => "AE"
+
+# Ã‡ => C
+"\u00C7" => "C"
+
+# Ãˆ => E
+"\u00C8" => "E"
+
+# Ã‰ => E
+"\u00C9" => "E"
+
+# ÃŠ => E
+"\u00CA" => "E"
+
+# Ã‹ => E
+"\u00CB" => "E"
+
+# ÃŒ => I
+"\u00CC" => "I"
+
+# Ã => I
+"\u00CD" => "I"
+
+# ÃŽ => I
+"\u00CE" => "I"
+
+# Ã => I
+"\u00CF" => "I"
+
+# Ä² => IJ
+"\u0132" => "IJ"
+
+# Ã => D
+"\u00D0" => "D"
+
+# Ã‘ => N
+"\u00D1" => "N"
+
+# Ã’ => O
+"\u00D2" => "O"
+
+# Ã“ => O
+"\u00D3" => "O"
+
+# Ã” => O
+"\u00D4" => "O"
+
+# Ã• => O
+"\u00D5" => "O"
+
+# Ã– => O
+"\u00D6" => "O"
+
+# Ã˜ => O
+"\u00D8" => "O"
+
+# Å’ => OE
+"\u0152" => "OE"
+
+# Ãž
+"\u00DE" => "TH"
+
+# Ã™ => U
+"\u00D9" => "U"
+
+# Ãš => U
+"\u00DA" => "U"
+
+# Ã› => U
+"\u00DB" => "U"
+
+# Ãœ => U
+"\u00DC" => "U"
+
+# Ã => Y
+"\u00DD" => "Y"
+
+# Å¸ => Y
+"\u0178" => "Y"
+
+# Ã  => a
+"\u00E0" => "a"
+
+# Ã¡ => a
+"\u00E1" => "a"
+
+# Ã¢ => a
+"\u00E2" => "a"
+
+# Ã£ => a
+"\u00E3" => "a"
+
+# Ã¤ => a
+"\u00E4" => "a"
+
+# Ã¥ => a
+"\u00E5" => "a"
+
+# Ã¦ => ae
+"\u00E6" => "ae"
+
+# Ã§ => c
+"\u00E7" => "c"
+
+# Ã¨ => e
+"\u00E8" => "e"
+
+# Ã© => e
+"\u00E9" => "e"
+
+# Ãª => e
+"\u00EA" => "e"
+
+# Ã« => e
+"\u00EB" => "e"
+
+# Ã¬ => i
+"\u00EC" => "i"
+
+# Ã­ => i
+"\u00ED" => "i"
+
+# Ã® => i
+"\u00EE" => "i"
+
+# Ã¯ => i
+"\u00EF" => "i"
+
+# Ä³ => ij
+"\u0133" => "ij"
+
+# Ã° => d
+"\u00F0" => "d"
+
+# Ã± => n
+"\u00F1" => "n"
+
+# Ã² => o
+"\u00F2" => "o"
+
+# Ã³ => o
+"\u00F3" => "o"
+
+# Ã´ => o
+"\u00F4" => "o"
+
+# Ãµ => o
+"\u00F5" => "o"
+
+# Ã¶ => o
+"\u00F6" => "o"
+
+# Ã¸ => o
+"\u00F8" => "o"
+
+# Å“ => oe
+"\u0153" => "oe"
+
+# ÃŸ => ss
+"\u00DF" => "ss"
+
+# Ã¾ => th
+"\u00FE" => "th"
+
+# Ã¹ => u
+"\u00F9" => "u"
+
+# Ãº => u
+"\u00FA" => "u"
+
+# Ã» => u
+"\u00FB" => "u"
+
+# Ã¼ => u
+"\u00FC" => "u"
+
+# Ã½ => y
+"\u00FD" => "y"
+
+# Ã¿ => y
+"\u00FF" => "y"
+
+# ï¬€ => ff
+"\uFB00" => "ff"
+
+# ï¬ => fi
+"\uFB01" => "fi"
+
+# ï¬‚ => fl
+"\uFB02" => "fl"
+
+# ï¬ƒ => ffi
+"\uFB03" => "ffi"
+
+# ï¬„ => ffl
+"\uFB04" => "ffl"
+
+# ï¬… => ft
+"\uFB05" => "ft"
+
+# ï¬† => st
+"\uFB06" => "st"

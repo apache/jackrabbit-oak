@@ -87,6 +87,15 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @NotNull
+    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
+                                              final String indexedProperty, final long startValue, final int limit,
+                                              final List<String> projection) {
+        performLeaseCheck();
+        return delegate.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+    }
+
+    @Override
     public final <T extends Document> void remove(Collection<T> collection, String key) {
         performLeaseCheck();
         delegate.remove(collection, key);
@@ -140,6 +149,13 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
             UpdateOp update) {
         performLeaseCheck();
         return delegate.findAndUpdate(collection, update);
+    }
+
+    @Override
+    @NotNull
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        performLeaseCheck();
+        return delegate.findAndUpdate(collection, updateOps);
     }
 
     @Override

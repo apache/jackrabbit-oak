@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.oak.query.ast.AstElementFactory.copyElementAndCheckReference;
 import static org.apache.jackrabbit.oak.query.ast.Operator.EQUAL;
 
@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextExpression;
 import org.apache.jackrabbit.oak.spi.query.fulltext.FullTextOr;
 import org.apache.jackrabbit.oak.query.index.FilterImpl;
 
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * An "or" condition.
@@ -144,7 +144,7 @@ public class OrImpl extends ConstraintImpl {
     @Override
     public Set<PropertyExistenceImpl> getPropertyExistenceConditions() {
         // for the condition "x=1 or x=2", the existence condition
-        // "x is not null" be be derived
+        // "x is not null" can be derived
         Set<PropertyExistenceImpl> result = null;
         for (ConstraintImpl constraint : constraints) {
             if (result == null) {

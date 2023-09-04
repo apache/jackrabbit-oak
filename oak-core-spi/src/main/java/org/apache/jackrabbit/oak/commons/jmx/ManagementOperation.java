@@ -19,8 +19,7 @@
 
 package org.apache.jackrabbit.oak.commons.jmx;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 import static java.lang.Thread.currentThread;
 import static javax.management.openmbean.SimpleType.INTEGER;
 import static javax.management.openmbean.SimpleType.STRING;
@@ -36,6 +35,7 @@ import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.n
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.running;
 import static org.apache.jackrabbit.oak.commons.jmx.ManagementOperation.Status.succeeded;
 
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
@@ -53,7 +53,6 @@ import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
-import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -108,17 +107,6 @@ public class ManagementOperation<R> extends FutureTask<R> {
     }
 
     /**
-     * @deprecated use {@link #newManagementOperation(String, Supplier, Callable)} instead
-     */
-    @Deprecated public static <R> ManagementOperation<R> newManagementOperation(
-            @NotNull String name,
-            @NotNull com.google.common.base.Supplier<String> statusMessage,
-            @NotNull Callable<R> task) {
-        GuavaDeprecation.handleCall("OAK-8687");
-        return new ManagementOperation<R>(name, () -> statusMessage.get(), task);
-    }
-
-    /**
      * An operation that is already done with the given {@code value}.
      *
      * @param name   name of the operation
@@ -170,8 +158,8 @@ public class ManagementOperation<R> extends FutureTask<R> {
             @NotNull Callable<R> task) {
         super(task);
         this.id = idGen.incrementAndGet();
-        this.name = checkNotNull(name);
-        this.statusMessage = checkNotNull(statusMessage);
+        this.name = Objects.requireNonNull(name);
+        this.statusMessage = Objects.requireNonNull(statusMessage);
     }
 
     /**

@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.45-SNAPSHOT</version>
+        <version>1.57-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -40,7 +40,6 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                            <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.lucene.*;resolution:=optional,
                             com.googlecode.*;resolution:=optional,
                             com.vividsolutions.jts.*;resolution:=optional,
@@ -90,15 +89,8 @@
     <dependencies>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
+            <artifactId>osgi.core</artifactId>
             <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
-            <scope>provided</scope>
-            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -184,7 +176,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
-            <version>3.6.1</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>

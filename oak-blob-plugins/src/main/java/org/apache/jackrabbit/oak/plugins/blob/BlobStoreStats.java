@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 import java.util.concurrent.TimeUnit;

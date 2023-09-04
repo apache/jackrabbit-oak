@@ -36,6 +36,8 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static java.util.stream.Collectors.toList;
+
 /**
  * A DocumentStore wrapper that can be used to log and also time DocumentStore
  * calls.
@@ -187,6 +189,24 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @NotNull
+    public <T extends Document> List<T> query(final Collection<T> collection, final String fromKey, final String toKey,
+                                              final String indexedProperty, final long startValue, final int limit,
+                                              final List<String> projection) throws DocumentStoreException {
+        try {
+            long start = now();
+            List<T> result = base.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+            updateAndLogTimes("query3", start, 0, size(result));
+            if (logCommonCall()) {
+                logCommonCall(start, "query3 " + collection + " " + fromKey + " " + toKey + " " + indexedProperty + " " + startValue + " " + limit + " " + projection.toString());
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
     public <T extends Document> void remove(Collection<T> collection, String key) {
         try {
             long start = now();
@@ -308,6 +328,23 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
             updateAndLogTimes("findAndUpdate", start, 0, size(result));
             if (logCommonCall()) {
                 logCommonCall(start, "findAndUpdate " + collection + " " + update.getId());
+            }
+            return result;
+        } catch (Exception e) {
+            throw convert(e);
+        }
+    }
+
+    @Override
+    @NotNull
+    public <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        try {
+            long start = now();
+            List<T> result = base.findAndUpdate(collection, updateOps);
+            updateAndLogTimes("findAndUpdate2", start, 0, size(result));
+            if (logCommonCall()) {
+                final List<String> ids = updateOps.stream().map(UpdateOp::getId).collect(toList());
+                logCommonCall(start, "findAndUpdate2 " + collection + " " + updateOps + " " + ids);
             }
             return result;
         } catch (Exception e) {

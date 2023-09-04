@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.junit.Test;
 
 import static org.junit.Assert.assertFalse;

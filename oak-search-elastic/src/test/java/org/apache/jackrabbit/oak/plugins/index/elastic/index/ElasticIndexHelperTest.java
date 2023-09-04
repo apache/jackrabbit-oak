@@ -26,10 +26,10 @@ import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
-import jakarta.json.JsonValue;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexDefinitionBuilder;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -94,7 +94,7 @@ public class ElasticIndexHelperTest {
         final boolean expectedSplitOnNumerics = true;
 
         Tree analyzer = builder.getBuilderTree().addChild("analyzers");
-        analyzer.setProperty(ElasticIndexDefinition.INDEX_ORIGINAL_TERM, expectedIndexOriginalTerm);
+        analyzer.setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, expectedIndexOriginalTerm);
         analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_CASE_CHANGE, expectedSplitOnCaseChange);
         analyzer.setProperty(ElasticIndexDefinition.SPLIT_ON_NUMERICS, expectedSplitOnNumerics);
 
@@ -121,7 +121,7 @@ public class ElasticIndexHelperTest {
         assertThat(wdgfDef.splitOnNumerics(), is(expectedSplitOnNumerics));
 
         Map<String, JsonData> otherSettings = req.settings().otherSettings();
-        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).toJson(), is(JsonValue.TRUE));
+        assertThat(otherSettings.get(ElasticIndexDefinition.ELASTIKNN).to(Boolean.class), is(true));
     }
 
     @Test
@@ -161,7 +161,7 @@ public class ElasticIndexHelperTest {
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule("type");
         indexRule.property("foo").type("String").analyzed();
         Tree analyzer = builder.getBuilderTree().addChild("analyzers");
-        analyzer.setProperty(ElasticIndexDefinition.INDEX_ORIGINAL_TERM, "true");
+        analyzer.setProperty(FulltextIndexConstants.INDEX_ORIGINAL_TERM, "true");
 
         NodeState nodeState = builder.build();
 

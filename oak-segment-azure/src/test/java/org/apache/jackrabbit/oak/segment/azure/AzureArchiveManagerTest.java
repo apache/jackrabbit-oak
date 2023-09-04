@@ -23,6 +23,7 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.SegmentNodeStore;
@@ -61,11 +62,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -400,6 +402,69 @@ public class AzureArchiveManagerTest {
         assertFalse(container.getDirectoryReference("oak/data00000a.tar.ro.bak").listBlobs().iterator().hasNext());
     }
 
+    @Test
+    public void testCollectBlobReferencesForReadOnlyFileStore() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
+        AzurePersistence rwPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        try (FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build()) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            rwFileStore.flush();
+
+            // file with binary references is not created yet
+            assertFalse("brf file should not be present", container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
+
+            // create read-only FS, while the rw FS is still open
+            AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+            try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
+
+                PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
+                        .getRoot()
+                        .getProperty("foo");
+
+                assertThat(fooProperty, not(nullValue()));
+                assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
+
+                assertDoesNotThrow(() -> roFileStore.collectBlobReferences(s -> {
+                }));
+            }
+        }
+    }
+
+    @Test
+    public void testCollectBlobReferencesDoesNotFailWhenFileIsMissing() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException {
+        AzurePersistence rwPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        try (FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(rwPersistence).build()) {
+            SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+            NodeBuilder builder = segmentNodeStore.getRoot().builder();
+            builder.setProperty("foo", "bar");
+            segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            rwFileStore.flush();
+
+            // file with binary references is not created yet
+            assertFalse("brf file should not be present", container.getDirectoryReference("oak/data00000a.tar").getBlockBlobReference("data00000a.tar.brf").exists());
+
+            // create read-only FS, while the rw FS is still open
+            AzurePersistence roPersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+            try (ReadOnlyFileStore roFileStore = FileStoreBuilder.fileStoreBuilder(new File("target")).withCustomPersistence(roPersistence).buildReadOnly()) {
+
+                PropertyState fooProperty = SegmentNodeStoreBuilders.builder(roFileStore).build()
+                        .getRoot()
+                        .getProperty("foo");
+
+                assertThat(fooProperty, not(nullValue()));
+                assertThat(fooProperty.getValue(Type.STRING), equalTo("bar"));
+
+                HashSet<String> references = new HashSet<>();
+                assertDoesNotThrow(() ->
+                        roFileStore.collectBlobReferences(references::add));
+
+                assertTrue("No references should have been collected since reference file has not been created", references.isEmpty());
+            }
+        }
+    }
+
     private PersistentCache createPersistenceCache() {
         return new AbstractPersistentCache() {
             @Override
@@ -424,4 +489,15 @@ public class AzureArchiveManagerTest {
         };
     }
 
+    private static void assertDoesNotThrow(Executable executable) {
+        try {
+            executable.execute();
+        } catch (Exception e) {
+            fail("No Exception expected, but got: " + e.getMessage());
+        }
+    }
+
+    interface Executable {
+        void execute() throws Exception;
+    }
 }

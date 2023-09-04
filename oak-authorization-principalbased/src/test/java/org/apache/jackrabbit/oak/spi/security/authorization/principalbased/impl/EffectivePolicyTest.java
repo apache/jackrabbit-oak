@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlEntry;
 import org.apache.jackrabbit.api.security.authorization.PrincipalAccessControlList;
@@ -96,8 +96,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEffectivePolicyByPrincipal() throws Exception {
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal));
-        assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+        assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
         assertEquals(2, entries.size());
@@ -113,8 +112,7 @@ public class EffectivePolicyTest extends AbstractPrincipalBasedTest {
     @Test
     public void testEffectivePolicyByPrincipal2() throws Exception {
         AccessControlPolicy[] effective = acMgr.getEffectivePolicies(ImmutableSet.of(validPrincipal2));
-        assertEquals(1, effective.length);
-        assertTrue(effective[0] instanceof ImmutablePrincipalPolicy);
+        assertEffectivePolicies(effective, 2, 2, true);
 
         List<JackrabbitAccessControlEntry> entries = ((ImmutablePrincipalPolicy)effective[0]).getEntries();
         assertEquals(2, entries.size());

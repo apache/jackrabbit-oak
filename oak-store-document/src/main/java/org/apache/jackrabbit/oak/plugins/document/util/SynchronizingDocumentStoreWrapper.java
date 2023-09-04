@@ -66,6 +66,15 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    @NotNull
+    public synchronized <T extends Document> List<T> query(final Collection<T> collection, final String fromKey,
+                                                           final String toKey, final String indexedProperty,
+                                                           final long startValue, final int limit,
+                                                           final List<String> projection) throws DocumentStoreException {
+        return store.query(collection, fromKey, toKey, indexedProperty, startValue, limit, projection);
+    }
+
+    @Override
     public synchronized <T extends Document> void remove(Collection<T> collection, String key) {
         store.remove(collection, key);
     }
@@ -106,6 +115,12 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     @Override
     public synchronized <T extends Document> T findAndUpdate(final Collection<T> collection, final UpdateOp update) {
         return store.findAndUpdate(collection, update);
+    }
+
+    @Override
+    @NotNull
+    public synchronized <T extends Document> List<T> findAndUpdate(@NotNull Collection<T> collection, @NotNull List<UpdateOp> updateOps) {
+        return store.findAndUpdate(collection, updateOps);
     }
 
     @Override

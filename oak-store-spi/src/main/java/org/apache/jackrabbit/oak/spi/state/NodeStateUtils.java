@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.state;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Strings.repeat;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;

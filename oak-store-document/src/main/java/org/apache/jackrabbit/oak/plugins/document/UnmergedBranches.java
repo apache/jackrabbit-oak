@@ -22,6 +22,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Predicate;
 
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchReference;
@@ -31,8 +32,8 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * <code>UnmergedBranches</code> contains all un-merged branches of a DocumentMK
@@ -66,20 +67,37 @@ class UnmergedBranches {
      *
      * @param store the document store.
      * @param context the revision context.
+     * @param batchSize the batch size to purge uncommitted revisions & collisions
      */
-    void init(DocumentStore store, RevisionContext context) {
+    void init(DocumentStore store, RevisionContext context, int batchSize) {
         if (!initialized.compareAndSet(false, true)) {
             throw new IllegalStateException("already initialized");
         }
+        // since this is called only to bootup, no need to check for lastWrittenRootRev
+        purgeUnmergedBranchCommitAndCollisionMarkers(store, context.getClusterId(), batchSize, c -> true);
+    }
+
+    /**
+     * purge un-merged branch commits and collision markers for
+     * <code>clusterId</code>.
+     *
+     * @param store the document store.
+     * @param clusterId the clusterId of document store.
+     * @param batchSize the batch size to purge uncommitted revisions & collisions
+     * @param olderThanLastWrittenRootRevPredicate {@link java.util.function.Predicate} to filter revisions older than lastWrittenRootRev
+     */
+    void purgeUnmergedBranchCommitAndCollisionMarkers(final DocumentStore store, final int clusterId, final int batchSize,
+                                                      final Predicate<Revision> olderThanLastWrittenRootRevPredicate) {
+
         NodeDocument doc = store.find(Collection.NODES, Utils.getIdFromPath(Path.ROOT));
         if (doc == null) {
             return;
         }
-        int purgeCount = doc.purgeUncommittedRevisions(context);
+        int purgeCount = doc.purgeUncommittedRevisions(clusterId, batchSize, olderThanLastWrittenRootRevPredicate);
         if (purgeCount > 0) {
             log.info("Purged [{}] uncommitted branch revision entries", purgeCount);
         }
-        purgeCount = doc.purgeCollisionMarkers(context);
+        purgeCount = doc.purgeCollisionMarkers(clusterId, batchSize, olderThanLastWrittenRootRevPredicate);
         if (purgeCount > 0) {
             log.info("Purged [{}] collision markers", purgeCount);
         }

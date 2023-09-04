@@ -18,11 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.event.Level;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
@@ -39,7 +42,7 @@ import java.util.concurrent.Phaser;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -48,6 +51,8 @@ public class MergeRunnerTest {
             .filter(Level.INFO)
             .enable(Level.INFO)
             .create();
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
     private final String newline = System.lineSeparator();
     private final List<File> testFiles = Lists.newArrayList();
     private final int threadPoolSize = 1,
@@ -71,7 +76,7 @@ public class MergeRunnerTest {
     public void test() throws Exception {
         lc.starting();
 
-        File tmpDir = new File(FileUtils.getTempDirectory(), Long.toString(System.nanoTime())),
+        File tmpDir = temporaryFolder.newFolder(),
                 mergeDir = new File(tmpDir, "merge-reverse"),
                 sortedFile = new File(tmpDir, "sorted-file.json");
         List<String> expectedLogOutput = Lists.newArrayList(),
@@ -83,7 +88,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, Compression.NONE);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 
@@ -159,7 +164,7 @@ public class MergeRunnerTest {
     public void testReverse() throws Exception {
         lc.starting();
 
-        File tmpDir = new File(FileUtils.getTempDirectory(), Long.toString(System.nanoTime())),
+        File tmpDir = temporaryFolder.newFolder(),
              mergeDir = new File(tmpDir, "merge"),
              sortedFile = new File(tmpDir, "sorted-file.json");
         List<String> expectedLogOutput = Lists.newArrayList(),
@@ -171,7 +176,7 @@ public class MergeRunnerTest {
 
         BlockingQueue<File> sortedFiles = new LinkedBlockingQueue<>();
         Phaser mergePhaser = new Phaser(1);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, false);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, Compression.NONE);
         Thread merger = new Thread(mergeRunner, "test-merger");
         merger.setDaemon(true);
 

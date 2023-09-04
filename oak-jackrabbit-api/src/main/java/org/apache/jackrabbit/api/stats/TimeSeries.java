@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.api.stats;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Interface for a time series of the measured values per
  * second, minute, hour and day. The type of the value is arbitrary; it
@@ -24,6 +26,7 @@ package org.apache.jackrabbit.api.stats;
  *
  * @since Apache Jackrabbit 2.3.2
  */
+@ProviderType
 public interface TimeSeries {
 
     /**

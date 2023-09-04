@@ -78,7 +78,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.STATISTICAL_FACET_SAMPLE_SIZE_DEFAULT;
 import static org.apache.jackrabbit.oak.spi.mount.Mounts.defaultMountInfoProvider;
@@ -138,7 +138,7 @@ public class DelayedFacetReadTest extends AbstractQueryTest {
         LuceneIndexReaderFactory indexReaderFactory = new DefaultIndexReaderFactory(mip, copier);
         IndexTracker tracker = new IndexTracker(indexReaderFactory, nrtIndexFactory);
         luceneIndexProvider = new LuceneIndexProvider(tracker);
-        queue = new DocumentQueue(100, tracker, sameThreadExecutor());
+        queue = new DocumentQueue(100, tracker, newDirectExecutorService());
         LuceneIndexEditorProvider editorProvider = new LuceneIndexEditorProvider(copier,
                 tracker,
                 null,

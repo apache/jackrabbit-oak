@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import static com.google.common.collect.Iterators.concat;
-import static com.google.common.collect.Iterators.singletonIterator;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.concat;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
 
 import java.io.Closeable;
 import java.util.Iterator;
@@ -36,7 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 
 class FlatFileStoreIterator extends AbstractIterator<NodeStateEntry> implements Iterator<NodeStateEntry>, Closeable {
     private final Logger log = LoggerFactory.getLogger(getClass());

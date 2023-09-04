@@ -43,8 +43,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -190,6 +194,19 @@ public abstract class AbstractAccessControlManager implements JackrabbitAccessCo
                 throw new RepositoryException("Failed to resolve JCR path " + jcrPath);
             }
             return oakPath;
+        }
+    }
+
+    @NotNull
+    protected Collection<String> getOakPaths(@Nullable String... jcrPaths) throws RepositoryException {
+        if (jcrPaths == null) {
+            return Collections.emptyList();
+        } else {
+            List<String> oakPaths = new ArrayList<>();
+            for (String jcrPath : jcrPaths) {
+                oakPaths.add(getOakPath(jcrPath));
+            }
+            return oakPaths;
         }
     }
 

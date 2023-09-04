@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.explorer;
 
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;

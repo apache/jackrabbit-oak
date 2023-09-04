@@ -18,10 +18,9 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 
 public interface NodeStateEntryTraverserFactory {
 
-    NodeStateEntryTraverser create(MongoDocumentTraverser.TraversingRange range);
-
+    NodeStateEntryTraverser create(TraversingRange range);
 }

@@ -25,7 +25,7 @@ content repository. In contrast to Jackrabbit 2.x, which by default used a singl
 dedicated workspace for user/group data, this data will as of Oak 1.0 be stored
 separately for each JCR workspace.
 
-Consequently the `UserManager` associated with the editing sessions, performs
+Consequently, the `UserManager` associated with the editing sessions, performs
 all actions with this editing session. This corresponds to the behavior as defined
 the alternative implementation present with Jackrabbit 2.x ((see Jackrabbit 2.x `UserPerWorkspaceUserManager`).
 
@@ -139,15 +139,23 @@ import. Other differences compared to Jackrabbit 2.x:
 Since Oak 1.1.0 the default user management and authentication implementation
 provides password expiry and initial password change.
 
-By default these features are disabled. See section [Password Expiry and Force Initial Password Change](expiry.html)
+By default, these features are disabled. See section [Password Expiry and Force Initial Password Change](expiry.html)
 for details.
 
 #### Password History
 
 Since Oak 1.3.3 the default user management implementation provides password
-history support. By default this feature is disabled.
+history support. By default, this feature is disabled.
 
 See section [Password History](history.html) for details.
+
+#### Impersonation
+The default implementation of the [Impersonation] interface comes with the following limitations and features:
+ 
+- only user principals can be granted impersonation
+- every user can impersonate itself
+- the admin user always can impersonate all users (and therefore cannot be granted impersonation)
+- the [Configuration](#configuration) allows to define a list of user or group principals that can impersonate all users (since Oak 1.54.0, see [OAK-10173])
 
 <a name="representation"></a>
 ### Representation in the Repository
@@ -234,27 +242,27 @@ as of OAK 1.0:
 
 #### Configuration Parameters supported by the default implementation
 
-| Parameter                           | Type    | Default                                      |
-|-------------------------------------|---------|----------------------------------------------|
-| `PARAM_ADMIN_ID`                    | String  | "admin"                                      |
-| `PARAM_OMIT_ADMIN_PW`               | boolean | false                                        |
-| `PARAM_ANONYMOUS_ID`                | String  | "anonymous" (nullable)                       |
-| `PARAM_USER_PATH`                   | String  | "/rep:security/rep:authorizables/rep:users"  |
-| `PARAM_GROUP_PATH`                  | String  | "/rep:security/rep:authorizables/rep:groups" |
-| `PARAM_DEFAULT_DEPTH`               | int     | 2                                            |
-| `PARAM_PASSWORD_HASH_ALGORITHM`     | String  | "SHA-256"                                    |
-| `PARAM_PASSWORD_HASH_ITERATIONS`    | int     | 1000                                         |
-| `PARAM_PASSWORD_SALT_SIZE`          | int     | 8                                            |
-| `PARAM_AUTHORIZABLE_NODE_NAME`      | AuthorizableNodeName | AuthorizableNodeName#DEFAULT    |
-| `PARAM_AUTHORIZABLE_ACTION_PROVIDER`| AuthorizableActionProvider | DefaultAuthorizableActionProvider |
-| `PARAM_SUPPORT_AUTOSAVE`            | boolean | false                                        |
-| `PARAM_IMPORT_BEHAVIOR`             | String ("abort", "ignore", "besteffort") | "ignore"    |
-| `PARAM_PASSWORD_MAX_AGE`            | int     | 0                                            |
-| `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        |
-| `PARAM_PASSWORD_HISTORY_SIZE`       | int (upper limit: 1000) | 0                            |
-| `PARAM_CACHE_EXPIRATION`            | long    | 0                                            |
-| `PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE`| boolean | false                              |
-| | | |
+| Parameter                           | Type    | Default                                      | Description |
+|-------------------------------------|---------|----------------------------------------------|-------------|
+| `PARAM_ADMIN_ID`                    | String  | "admin"                                      ||
+| `PARAM_OMIT_ADMIN_PW`               | boolean | false                                        ||
+| `PARAM_ANONYMOUS_ID`                | String  | "anonymous" (nullable)                       ||
+| `PARAM_USER_PATH`                   | String  | "/rep:security/rep:authorizables/rep:users"  ||
+| `PARAM_GROUP_PATH`                  | String  | "/rep:security/rep:authorizables/rep:groups" ||
+| `PARAM_DEFAULT_DEPTH`               | int     | 2                                            ||
+| `PARAM_PASSWORD_HASH_ALGORITHM`     | String  | "SHA-256"                                    ||
+| `PARAM_PASSWORD_HASH_ITERATIONS`    | int     | 1000                                         ||
+| `PARAM_PASSWORD_SALT_SIZE`          | int     | 8                                            ||
+| `PARAM_AUTHORIZABLE_NODE_NAME`      | AuthorizableNodeName | AuthorizableNodeName#DEFAULT    ||
+| `PARAM_AUTHORIZABLE_ACTION_PROVIDER`| AuthorizableActionProvider | DefaultAuthorizableActionProvider ||
+| `PARAM_SUPPORT_AUTOSAVE`            | boolean | false                                        ||
+| `PARAM_IMPORT_BEHAVIOR`             | String ("abort", "ignore", "besteffort") | "ignore"    ||
+| `PARAM_PASSWORD_MAX_AGE`            | int     | 0                                            ||
+| `PARAM_PASSWORD_INITIAL_CHANGE`     | boolean | false                                        ||
+| `PARAM_PASSWORD_HISTORY_SIZE`       | int (upper limit: 1000) | 0                            ||
+| `PARAM_CACHE_EXPIRATION`            | long    | 0                                           | Number of milliseconds until the internal [principal cache](../principal/cache.html) expires. If not set or equal/lower than zero no cache is created/evaluated. |
+| `PARAM_ENABLE_RFC7613_USERCASE_MAPPED_PROFILE`| boolean | false                              ||
+| `PARAM_IMPERSONATOR_PRINCIPAL_NAMES` | String | {}                                          | List of users who can impersonate and groups whose members can impersonate any user (since Oak 1.54.0, [OAK-10173]).                                             |
 
 The following configuration parameters present with the default implementation in Jackrabbit 2.x are no longer supported and will be ignored:
 
@@ -328,3 +336,6 @@ implementation.
 [UserAuthenticationFactory]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/user/UserAuthenticationFactory.html
 [Authentication]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/authentication/Authentication.html
 [OAK-6072]: https://issues.apache.org/jira/browse/OAK-6072
+[OAK-10173]: https://issues.apache.org/jira/browse/OAK-10173
+[Impersonation]: /oak/docs/apidocs/org/apache/jackrabbit/api/security/user/Impersonation.html
+

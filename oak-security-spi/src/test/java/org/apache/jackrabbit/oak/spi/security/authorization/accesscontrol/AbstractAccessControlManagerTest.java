@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeCollection;
 import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -50,6 +50,7 @@ import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -67,6 +68,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -220,6 +222,33 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
             }
         };
         createAccessControlManager(root, np).getOakPath("/any/abs/path");
+    }
+    
+    @Test
+    public void testGetOakPathsNull() throws Exception {
+        assertTrue(createAccessControlManager(root, NamePathMapper.DEFAULT).getOakPaths(null).isEmpty());
+    }
+
+    @Test
+    public void testGetOakPathsEmpty() throws Exception {
+        assertTrue(createAccessControlManager(root, NamePathMapper.DEFAULT).getOakPaths(new String[0]).isEmpty());
+    }
+
+    @Test
+    public void testGetOakPaths() throws Exception {
+        Collection<String> oakPaths = createAccessControlManager(root, NamePathMapper.DEFAULT).getOakPaths("/path", null, "/path/2");
+        assertEquals(Arrays.asList("/path", null, "/path/2"), oakPaths);
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testGetOakPathsRelative() throws Exception {
+        createAccessControlManager(root, NamePathMapper.DEFAULT).getOakPaths("/valid", "rel/path");
+    }
+
+    @Test(expected = RepositoryException.class)
+    public void testGetOakPathsMapsToNull() throws Exception {
+        NamePathMapper np = when(mock(NamePathMapper.class).getOakPath(anyString())).thenReturn(null).getMock();
+        createAccessControlManager(root, np).getOakPaths("/path");
     }
 
     @Test

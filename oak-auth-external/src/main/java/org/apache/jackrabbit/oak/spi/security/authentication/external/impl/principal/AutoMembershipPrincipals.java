@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig;
 import org.apache.jackrabbit.oak.spi.security.principal.GroupPrincipals;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -103,7 +104,7 @@ final class AutoMembershipPrincipals {
      * 
      * @param idpName The name of an IDP
      * @param groupId The target group id
-     * @param authorizable The authorizable for which to evaluation if it is a automatic member of the group identified by {@code groupId}.
+     * @param authorizable The authorizable for which to evaluation if it is an automatic member of the group identified by {@code groupId}.
      * @return {@code true} if the given authorizable is an automatic member of the group identified by {@code groupId}; {@code false} otherwise.
      * @see AutoMembershipProvider#isMember(Group, Authorizable, boolean) 
      */
@@ -129,13 +130,54 @@ final class AutoMembershipPrincipals {
     boolean isInheritedMember(@NotNull String idpName, @NotNull Group group, @NotNull Authorizable authorizable) throws RepositoryException {
         String groupId = group.getID();
         if (isMember(idpName, groupId, authorizable)) {
+            // groupId is listed in auto-membership configuration
             return true;
         }
-        
-        Iterator<Authorizable> declaredGroupMembers = Iterators.filter(group.getDeclaredMembers(), Authorizable::isGroup);
-        while (declaredGroupMembers.hasNext()) {
-            Group grMember = (Group) declaredGroupMembers.next();
-            if (isInheritedMember(idpName, grMember, authorizable)) {
+
+        // to test for inherited membership collect automembership-ids and loop auto-membership groups
+        Set<String> automembershipIds = new HashSet<>(Arrays.asList(autoMembershipMapping.get(idpName)));
+        AutoMembershipConfig config = autoMembershipConfigMap.get(idpName);
+        if (config != null) {
+            automembershipIds.addAll(config.getAutoMembership(authorizable));
+        }
+
+        // keep track of processed ids over all 'automembership' ids to avoid repeated evaluation 
+        Set<String> processed = new HashSet<>();
+        for (String automembershipId : automembershipIds) {
+            Authorizable gr = userManager.getAuthorizable(automembershipId);
+            if (gr == null || !gr.isGroup()) {
+                log.warn("Configured automembership id '{}' is not a valid group", automembershipId);
+            } else if (hasInheritedMembership(gr.declaredMemberOf(), groupId, automembershipId, processed, "> ")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasInheritedMembership(@NotNull Iterator<Group> declared, @NotNull String groupId, 
+                                                  @NotNull String memberId, @NotNull Set<String> processed, 
+                                                  @NotNull String trace) throws RepositoryException {
+        List<Group> groups = new ArrayList<>();
+        while (declared.hasNext()) {
+            Group gr = declared.next();
+            String grId = gr.getID();
+            if (groupId.equals(grId)) {
+                // the specified groupId defines inherited membership of a configured auto-membership group
+                return true;
+            }
+            if (memberId.equals(grId)) {
+                log.error("Cyclic group membership detected for group id {} via {}{}", memberId, trace, grId);
+                continue;
+            }
+            if (processed.add(grId)) {
+                // remember group for traversing up the membership hierarchy if it has not already been 
+                // processed before (shared membership e.g. for the 'everyone' group)
+                groups.add(gr);
+            }
+        }
+        // recursively call to search for inherited membership
+        for (Group group : groups) {
+            if (hasInheritedMembership(group.declaredMemberOf(), groupId, memberId, processed, String.format("%s %s > ", trace, group.getID()))) {
                 return true;
             }
         }
@@ -144,7 +186,7 @@ final class AutoMembershipPrincipals {
 
     /**
      * Returns the group principal that given authorizable is an automatic member of. This method evaluates both the 
-     * global auto-membership settings as well as {@link AutoMembershipConfig} if they exist for the given IDP name.
+     * global auto-membership settings and {@link AutoMembershipConfig} if they exist for the given IDP name.
      * 
      * @param idpName The name of an IDP
      * @param authorizable The target user/group

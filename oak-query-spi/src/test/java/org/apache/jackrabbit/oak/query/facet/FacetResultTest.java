@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.query.facet;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.query.facet.FacetResult.Facet;
 import org.apache.jackrabbit.oak.query.facet.FacetResult.FacetResultRow;

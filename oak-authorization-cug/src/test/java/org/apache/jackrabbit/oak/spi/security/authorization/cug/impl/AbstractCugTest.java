@@ -28,9 +28,9 @@ import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -297,5 +297,18 @@ public abstract class AbstractCugTest extends AbstractSecurityTest implements Cu
             tp = pp.getTreePermission(t, tp);
         }
         return tp;
+    }
+    
+    static void assertEquivalentCugs(@NotNull AccessControlPolicy[] expected, @NotNull AccessControlPolicy[] result) {
+        assertEquals(expected.length, result.length);
+        for (int i = 0; i<expected.length; i++) {
+            assertTrue(expected[i] instanceof CugPolicyImpl);
+            assertTrue(result[i] instanceof CugPolicyImpl);
+            
+            CugPolicyImpl exp = (CugPolicyImpl) expected[i];
+            CugPolicyImpl res = (CugPolicyImpl) result[i];
+            assertEquals(exp.getPath(), res.getPath());
+            assertEquals(exp.getPrincipals(), res.getPrincipals());
+        }
     }
 }

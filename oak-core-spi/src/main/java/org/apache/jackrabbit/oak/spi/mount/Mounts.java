@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.spi.mount;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import java.util.Collection;
 import java.util.Collections;

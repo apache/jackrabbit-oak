@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.run.cli;
 
-import com.google.common.collect.ClassToInstanceMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.MutableClassToInstanceMap;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ClassToInstanceMap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.MutableClassToInstanceMap;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.Set;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
 
 public class Options {

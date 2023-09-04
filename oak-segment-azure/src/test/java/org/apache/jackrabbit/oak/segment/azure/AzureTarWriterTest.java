@@ -16,17 +16,18 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
-import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarWriterTest;
-import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
+import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.ClassRule;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 
 public class AzureTarWriterTest extends TarWriterTest {
 
@@ -36,14 +37,29 @@ public class AzureTarWriterTest extends TarWriterTest {
     private CloudBlobContainer container;
 
     @Before
+    public void setUp() throws Exception {
+        container = azurite.getContainer("oak-test");
+    }
+
+    @NotNull
     @Override
-    public void setUp() throws IOException {
-        try {
-            monitor = new TestFileStoreMonitor();
-            container = azurite.getContainer("oak-test");
-            archiveManager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(true, false, new IOMonitorAdapter(), monitor, new RemoteStoreMonitorAdapter());
-        } catch (StorageException | InvalidKeyException | URISyntaxException e) {
-            throw new IOException(e);
-        }
+    protected SegmentArchiveManager getSegmentArchiveManager() throws Exception {
+        return new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor);
+    }
+
+    @NotNull
+    @Override
+    protected SegmentArchiveManager getFailingSegmentArchiveManager() throws Exception {
+        return new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor) {
+            @Override
+            public SegmentArchiveWriter create(String archiveName) throws IOException {
+                return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor) {
+                    @Override
+                    public void writeGraph(@NotNull byte[] data) throws IOException {
+                        throw new IOException("test");
+                    }
+                };
+            }
+        };
     }
 }

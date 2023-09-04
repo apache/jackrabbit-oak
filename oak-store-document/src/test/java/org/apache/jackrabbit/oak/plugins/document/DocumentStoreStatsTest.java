@@ -35,7 +35,7 @@ import org.junit.After;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.JOURNAL_CREATE;
@@ -46,6 +46,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODE
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_UPSERT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_CREATE_UPSERT_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE_FAILURE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE_RETRY_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreStats.NODES_UPDATE_TIMER;
 import static org.junit.Assert.assertEquals;
@@ -192,6 +193,43 @@ public class DocumentStoreStatsTest {
         stats.doneFindAndModify(100, Collection.NODES, "foo", false, true, 0);
         assertEquals(1, getMeter(NODES_UPDATE).getCount());
         assertEquals(100, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
+    }
+
+    @Test
+    public void doneBulkFindAndModify() {
+
+        // no node had been updated i.e. empty list of Ids
+        stats.doneFindAndModify(100, NODES, of(), true, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE).getCount());
+        assertEquals(0, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
+
+        // 2 nodes had been updated
+        stats.doneFindAndModify(100, NODES, of("foo", "bar"), true, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+        assertEquals(2, getMeter(NODES_UPDATE).getCount());
+        assertEquals(50, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
+
+        // fails to update 2 nodes without retrying
+        stats.doneFindAndModify(100, NODES, of("foo", "bar"), false, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+        assertEquals(2, getMeter(NODES_UPDATE).getCount());
+        assertEquals(50, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
+        assertEquals(1, getMeter(NODES_UPDATE_FAILURE).getCount());
+
+        // update is done on Journal collection
+        stats.doneFindAndModify(100, JOURNAL, of("foo", "bar"), true, 0);
+        assertEquals(0, getMeter(NODES_CREATE_UPSERT).getCount());
+        assertEquals(0, getTimer(NODES_CREATE_UPSERT_TIMER).getSnapshot().getMax());
+        assertEquals(2, getMeter(NODES_UPDATE).getCount());
+        assertEquals(50, getTimer(NODES_UPDATE_TIMER).getSnapshot().getMax());
+        assertEquals(0, getMeter(NODES_UPDATE_RETRY_COUNT).getCount());
+        assertEquals(1, getMeter(NODES_UPDATE_FAILURE).getCount());
+
     }
 
     @Test

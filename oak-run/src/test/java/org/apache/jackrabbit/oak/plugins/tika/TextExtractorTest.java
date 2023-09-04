@@ -23,8 +23,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
-import com.google.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TextWriter;
 import org.junit.Test;
 

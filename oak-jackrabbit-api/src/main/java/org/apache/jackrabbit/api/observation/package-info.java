@@ -18,5 +18,5 @@
 /**
  * Jackrabbit extensions for JCR observation.
  */
-@org.osgi.annotation.versioning.Version("2.3.1")
+@org.osgi.annotation.versioning.Version("2.3.2")
 package org.apache.jackrabbit.api.observation;

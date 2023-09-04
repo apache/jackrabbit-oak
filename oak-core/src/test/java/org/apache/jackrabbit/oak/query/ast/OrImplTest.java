@@ -16,16 +16,17 @@
  */
 package org.apache.jackrabbit.oak.query.ast;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Set;
 
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class OrImplTest {
+
     @Test
     public void simplifyForUnion() {
         ConstraintImpl op1, op2, op3, op4, or;
@@ -35,14 +36,14 @@ public class OrImplTest {
         op2 = mock(ComparisonImpl.class);
         or = new OrImpl(op1, op2);
         expected = of(op1, op2);
-        assertThat(or.convertToUnion(), is(expected));
+        assertThat(or.convertToUnion(), Matchers.is(expected));
         
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
         op3 = mock(ComparisonImpl.class);
         or = new OrImpl(new OrImpl(op1, op2), op3);
         expected = of(op1, op2, op3);
-        assertThat(or.convertToUnion(), is(expected));
+        assertThat(or.convertToUnion(), Matchers.is(expected));
 
         op1 = mock(ComparisonImpl.class);
         op2 = mock(ComparisonImpl.class);
@@ -50,6 +51,7 @@ public class OrImplTest {
         op4 = mock(ComparisonImpl.class);
         or = new OrImpl(new OrImpl(new OrImpl(op1, op4), op2), op3);
         expected = of(op1, op2, op3, op4);
-        assertThat(or.convertToUnion(), is(expected));
+        assertThat(or.convertToUnion(), Matchers.is(expected));
     }
+
 }

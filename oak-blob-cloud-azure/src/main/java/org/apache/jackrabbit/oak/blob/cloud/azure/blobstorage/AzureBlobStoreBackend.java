@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static com.google.common.base.Strings.nullToEmpty;
+import static org.apache.jackrabbit.guava.common.base.Strings.nullToEmpty;
 import static java.lang.Thread.currentThread;
 
 import java.io.BufferedInputStream;
@@ -46,15 +46,16 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Strings;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.AccessCondition;
+import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.ResultContinuation;
 import com.microsoft.azure.storage.ResultSegment;
 import com.microsoft.azure.storage.RetryPolicy;
@@ -123,6 +124,7 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     private String downloadDomainOverride = null;
     private boolean createBlobContainer = true;
     private boolean presignedDownloadURIVerifyExists = true;
+    private boolean enableSecondaryLocation = AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT;
 
     private Cache<String, URI> httpDownloadURICache;
 
@@ -141,6 +143,9 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
             requestOptions.setTimeoutIntervalInMs(requestTimeout);
         }
         requestOptions.setConcurrentRequestCount(concurrentRequestCount);
+        if (enableSecondaryLocation) {
+            requestOptions.setLocationMode(LocationMode.PRIMARY_THEN_SECONDARY);
+        }
 
         return Utils.getBlobContainer(connectionString, containerName, requestOptions);
     }
@@ -192,9 +197,15 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                 presignedDownloadURIVerifyExists = PropertiesUtil.toBoolean(
                     Strings.emptyToNull(properties.getProperty(AzureConstants.PRESIGNED_HTTP_DOWNLOAD_URI_VERIFY_EXISTS)), true);
 
+                enableSecondaryLocation = PropertiesUtil.toBoolean(
+                        properties.getProperty(AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_NAME),
+                        AzureConstants.AZURE_BLOB_ENABLE_SECONDARY_LOCATION_DEFAULT
+                );
+
                 CloudBlobContainer azureContainer = getAzureContainer();
 
-                if (createBlobContainer && azureContainer.createIfNotExists()) {
+                if (createBlobContainer && !azureContainer.exists()) {
+                    azureContainer.create();
                     LOG.info("New container created. containerName={}", containerName);
                 } else {
                     LOG.info("Reusing existing container. containerName={}", containerName);

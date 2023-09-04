@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -72,7 +72,7 @@ public class PrefetchDispatcherTest {
         DocumentNodeState after = ns2.getRoot().fromExternalChange();
 
         PrefetchDispatcher dispatcher = new PrefetchDispatcher(
-                before, MoreExecutors.sameThreadExecutor());
+                before, MoreExecutors.newDirectExecutorService());
         numQueries.set(0);
         dispatcher.contentChanged(after, CommitInfo.EMPTY_EXTERNAL);
         // expect two queries for children: below /foo and /foo/bar

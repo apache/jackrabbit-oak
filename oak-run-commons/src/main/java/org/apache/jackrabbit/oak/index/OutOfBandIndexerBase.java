@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.*;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
@@ -39,7 +39,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public abstract class OutOfBandIndexerBase implements Closeable, IndexUpdateCallback, NodeTraversalCallback{
 

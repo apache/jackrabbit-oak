@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 /**
  * Contains one particular reference to an nt:frozenNode.

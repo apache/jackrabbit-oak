@@ -21,9 +21,7 @@ package org.apache.jackrabbit.oak.plugins.blob;
 
 import java.io.File;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.ImmutableList;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.BlobTracker;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
@@ -31,7 +29,6 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -111,13 +108,10 @@ public abstract class AbstractBlobTrackerRegistrationTest {
 
     private void assertTrackerReinitialized() {
         File blobIdFiles = new File(repoHome, "blobids");
-        ImmutableList<File> files =
-                Files.fileTreeTraverser().postOrderTraversal(blobIdFiles).filter(new Predicate<File>() {
-                    @Override public boolean apply(@Nullable File input) {
-                        return input.getAbsolutePath().endsWith(".process");
-                    }
-                }).toList();
-        assertEquals(1, files.size());
+        long fileCount = FileTreeTraverser.depthFirstPostOrder(blobIdFiles)
+                .filter(input -> input.getAbsolutePath().endsWith(".process"))
+                .count();
+        assertEquals(1, fileCount);
     }
 
     private void assertServiceNotActivated() {

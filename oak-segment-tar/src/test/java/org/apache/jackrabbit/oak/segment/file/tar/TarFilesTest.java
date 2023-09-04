@@ -17,7 +17,7 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
@@ -268,13 +268,17 @@ public class TarFilesTest {
 
     @Test
     public void testCollectBlobReferences() throws Exception {
-        writeSegmentWithBinaryReferences(randomUUID());
-        writeSegmentWithBinaryReferences(randomUUID(), "a");
-        writeSegmentWithBinaryReferences(randomUUID(), "b", "c");
+        UUID u1 = randomUUID();
+        writeSegmentWithBinaryReferences(u1);
+        UUID u2 = randomUUID();
+        writeSegmentWithBinaryReferences(u2, "a");
+        UUID u3 = randomUUID();
+        writeSegmentWithBinaryReferences(u3, "b", "c");
 
         Set<String> references = new HashSet<>();
         tarFiles.collectBlobReferences(references::add, gen -> false);
-        assertEquals(references, new HashSet<>(asList("a", "b", "c")));
+        assertEquals("unexpected results for collectBlobReferences, UUIDs were " + u1 + ", " + u2 + " and " + u3,
+                new HashSet<>(asList("a", "b", "c")), references);
     }
 
     @Test
@@ -282,12 +286,14 @@ public class TarFilesTest {
         GCGeneration ok = newGCGeneration(1, 1, false);
         GCGeneration ko = newGCGeneration(2, 2, false);
 
-        writeSegmentWithBinaryReferences(randomUUID(), ok, "ok");
-        writeSegmentWithBinaryReferences(randomUUID(), ko, "ko");
+        UUID u1 = randomUUID();
+        writeSegmentWithBinaryReferences(u1, ok, "ok");
+        UUID u2 = randomUUID();
+        writeSegmentWithBinaryReferences(u2, ko, "ko");
 
         Set<String> references = new HashSet<>();
         tarFiles.collectBlobReferences(references::add, ko::equals);
-        assertEquals(references, singleton("ok"));
+        assertEquals("unexpected results for collectBlobReferences, UUIDs were " + u1 + " and " + u2, singleton("ok"), references);
     }
 
     @Test

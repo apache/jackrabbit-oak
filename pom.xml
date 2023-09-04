@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.57-SNAPSHOT</version>
     <relativePath>oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,11 +33,14 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
+    <sonar.organization>apache</sonar.organization>
+    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
   </properties>
 
   <modules>
     <module>oak-parent</module>
     <module>oak-jackrabbit-api</module>
+    <module>oak-shaded-guava</module>
     <module>oak-commons</module>
     <module>oak-api</module>
     <module>oak-core-spi</module>
@@ -88,7 +91,7 @@
     <connection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</connection>
     <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/jackrabbit-oak.git</developerConnection>
     <url>https://github.com/apache/jackrabbit-oak/tree/${project.scm.tag}</url>
-    <tag>HEAD</tag>
+    <tag>jackrabbit-oak-1.54.0</tag>
   </scm>
 
   <build>
@@ -176,7 +179,6 @@
               </execution>
             </executions>
           </plugin>
-          <!-- JCR-2455: Automatic staging of non-Maven release artifacts -->
           <plugin>
             <artifactId>maven-antrun-plugin</artifactId>
             <executions>
@@ -186,7 +188,7 @@
                 </goals>
                 <phase>deploy</phase>
                 <configuration>
-                  <tasks>
+                  <target>
                     <mkdir dir="${basedir}/target/${project.version}" />
                     <copy todir="${basedir}/target/${project.version}" flatten="true">
                       <fileset dir="${basedir}">
@@ -275,7 +277,7 @@ An announcement mail template can be found at:
     file://${basedir}/target/announcement.txt
                     </echo>
                     <echo />
-                  </tasks>
+                  </target>
                 </configuration>
               </execution>
             </executions>

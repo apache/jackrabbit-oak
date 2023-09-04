@@ -18,14 +18,14 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.segment.MapRecord.HASH_MASK;
 
 import java.util.Map;
 
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Ordering;
+import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
+import org.apache.jackrabbit.guava.common.collect.Ordering;
 import org.apache.jackrabbit.oak.spi.state.AbstractChildNodeEntry;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

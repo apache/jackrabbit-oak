@@ -24,9 +24,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.function.Supplier;
 
-import com.google.common.io.ByteSource;
 import org.apache.commons.io.input.ClosedInputStream;
-import org.apache.jackrabbit.oak.commons.GuavaDeprecation;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 
 /**
  * * This input stream delays accessing the {@link InputStream} until the first byte is read
@@ -42,16 +41,6 @@ public class LazyInputStream extends FilterInputStream {
         super(null);
         this.byteSource = null;
         this.inputStreamSupplier = inputStreamSupplier;
-    }
-
-    /**
-     * @deprecated Use {@link #LazyInputStream(Supplier)} instead
-     */
-    @Deprecated public LazyInputStream(ByteSource byteSource) {
-        super(null);
-        this.byteSource = byteSource;
-        this.inputStreamSupplier = null;
-        GuavaDeprecation.handleCall("OAK-8661");
     }
 
     @Override

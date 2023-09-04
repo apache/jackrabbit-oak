@@ -31,8 +31,8 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.UUID;
 
-import com.google.common.base.Charsets;
-import com.google.common.hash.Hashing;
+import org.apache.jackrabbit.guava.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -68,7 +68,7 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     }
 
     private final File spoolFolder;
-    
+
     private int blobChunkSize;
 
     public ResponseDecoder(File spoolFolder) {
@@ -130,13 +130,13 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     private void decodeGetBlobResponse(int length, ByteBuf in, List<Object> out) throws IOException {
         byte mask = in.readByte();
         long blobLength = in.readLong();
-        
+
         int blobIdLength = in.readInt();
         byte[] blobIdBytes = new byte[blobIdLength];
         in.readBytes(blobIdBytes);
         String blobId = new String(blobIdBytes, Charsets.UTF_8);
         File tempFile = new File(spoolFolder, blobId + ".tmp");
-        
+
         // START_CHUNK flag enabled
         if ((mask & (1 << 0)) != 0) {
             blobChunkSize = in.readableBytes() - 8;
@@ -209,5 +209,5 @@ public class ResponseDecoder extends ByteToMessageDecoder {
     private static long hash(byte mask, long blobLength, byte[] data) {
         return Hashing.murmur3_32().newHasher().putByte(mask).putLong(blobLength).putBytes(data).hash().padToLong();
     }
-    
+
 }

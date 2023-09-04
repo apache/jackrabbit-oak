@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
@@ -202,7 +202,7 @@ class MembershipProvider extends AuthorizableBaseProvider {
             @Override
             protected boolean hasProcessedReference(@NotNull String value) {
                 if (groupContentId.equals(value)) {
-                    log.warn("Cyclic group membership detected for contentId {}", groupContentId);
+                    log.error("Cyclic group membership detected for contentId {}", groupContentId);
                     return false;
                 }
                 return processedRefs.add(value);

@@ -17,9 +17,7 @@
 package org.apache.jackrabbit.oak.cache;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -33,17 +31,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.LongAdder;
 
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.CacheStats;
-import com.google.common.cache.LoadingCache;
-import com.google.common.cache.RemovalCause;
-import com.google.common.cache.Weigher;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.UncheckedExecutionException;
-
+import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import org.apache.jackrabbit.guava.common.cache.LoadingCache;
+import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.commons.annotations.Internal;
-import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -87,11 +83,6 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
     static final ThreadLocal<Integer> CURRENTLY_LOADING = new ThreadLocal<Integer>();
     private static final AtomicInteger NEXT_CACHE_ID = new AtomicInteger();
     private static final boolean PUT_HOT = Boolean.parseBoolean(System.getProperty("oak.cacheLIRS.putHot", "true"));
-
-    // see OAK-8702
-    private static final List<String> ALLOWED_USERS = Collections.unmodifiableList(
-            Arrays.asList(new String[] { "org.apache.jackrabbit.oak.plugins.blob.", "org.apache.jackrabbit.oak.plugins.document.",
-                    "org.apache.jackrabbit.oak.segment.", "org.apache.jackrabbit.oak.plugins.segment." }));
 
     /**
      * Listener for items that are evicted from the cache. The listener
@@ -177,11 +168,11 @@ public class CacheLIRS<K, V> implements LoadingCache<K, V> {
      *        of the stack before the current item is moved
      * @param  evicted the eviction listener of this segment or {@code null} if none.
      */
+    @Deprecated(since = "1.20.0", forRemoval = true)
     @SuppressWarnings("unchecked")
     CacheLIRS(Weigher<K, V> weigher, long maxMemory, int averageMemory,
             int segmentCount, int stackMoveDistance, final CacheLoader<K, V> loader,
             EvictionCallback<K, V> evicted, String module) {
-        GuavaDeprecation.handleCall("OAK-8702", CacheLIRS.class.getName(), ALLOWED_USERS);
         LOG.debug("Init #{}, module={}, maxMemory={}, segmentCount={}, stackMoveDistance={}",
                 cacheId, module, maxMemory, segmentCount, segmentCount);
         this.weigher = weigher;

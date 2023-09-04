@@ -30,7 +30,6 @@
       <includes>
         <include>javax.jcr:jcr</include>
         <include>javax.servlet:javax.servlet-api</include>
-        <include>com.google.guava:guava</include>
         <include>org.slf4j:slf4j-api</include>
         <include>ch.qos.logback:logback-core</include>
         <include>ch.qos.logback:logback-classic</include>
@@ -45,6 +44,7 @@
         <include>org.apache.jackrabbit:jackrabbit-data</include>
         <include>org.apache.jackrabbit:oak-api</include>
         <include>org.apache.jackrabbit:oak-jackrabbit-api</include>
+        <include>org.apache.jackrabbit:oak-shaded-guava</include>
         <include>org.apache.jackrabbit:oak-commons</include>
         <include>org.apache.jackrabbit:oak-core</include>
         <include>org.apache.jackrabbit:oak-store-composite</include>

@@ -29,7 +29,7 @@ public interface Whiteboard {
      *
      * @param type type of the service
      * @param service service instance
-     * @param properties service properties
+     * @param properties service properties. Those need to use {@link String} keys, but for backwards compatibility reasons this is not enforced via generics.
      * @return service registration
      */
     <T> Registration register(Class<T> type, T service, Map<?, ?> properties);

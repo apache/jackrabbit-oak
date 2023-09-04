@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite.checks;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.Set;
 
@@ -37,7 +37,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 @Component(configurationFactory=true, 
     policy = ConfigurationPolicy.REQUIRE)

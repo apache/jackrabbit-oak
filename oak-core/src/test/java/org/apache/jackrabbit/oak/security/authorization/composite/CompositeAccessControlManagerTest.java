@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
@@ -60,7 +61,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
@@ -194,6 +195,16 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
     }
 
     @Test
+    public void testGetEffectivePoliciesFiltersDuplicates() throws Exception {
+        TestAcMgr test = new TestAcMgr();
+        test.hasPolicy = true;
+        
+        // create a composite that would result in duplicate effective policies
+        AccessControlManager composite = createComposite(test, test);
+        assertEquals(1, composite.getEffectivePolicies(TEST_PATH).length);
+    }
+
+    @Test
     public void testSetPolicyAtRoot() throws Exception {
         AccessControlPolicyIterator it = acMgr.getApplicablePolicies("/");
         int cnt = 0;
@@ -317,7 +328,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         JackrabbitAccessControlPolicy[] applicable = composite.getApplicablePolicies(EveryonePrincipal.getInstance());
         assertEquals(0, applicable.length);
 
-        verifyZeroInteractions(mgr);
+        verifyNoInteractions(mgr);
     }
 
     @Test
@@ -340,7 +351,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         CompositeAccessControlManager composite = createComposite(mgr);
         assertEquals(0, composite.getPolicies(EveryonePrincipal.getInstance()).length);
 
-        verifyZeroInteractions(mgr);
+        verifyNoInteractions(mgr);
     }
 
     @Test
@@ -375,7 +386,7 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         CompositeAccessControlManager composite = createComposite(mgr);
         assertEquals(0, composite.getEffectivePolicies(principalSet).length);
 
-        verifyZeroInteractions(mgr);
+        verifyNoInteractions(mgr);
     }
 
     @Test
@@ -389,6 +400,32 @@ public class CompositeAccessControlManagerTest extends AbstractSecurityTest {
         assertArrayEquals(new JackrabbitAccessControlPolicy[] {policy}, composite.getEffectivePolicies(principalSet));
 
         verify(mgr, times(1)).getEffectivePolicies(principalSet);
+    }
+
+    @Test
+    public void testEffectivePoliciesByPrincipalAndPathsNotJackrabbitAcMgr() throws Exception {
+        AccessControlManager mgr = mock(AccessControlManager.class);
+
+        Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+        CompositeAccessControlManager composite = createComposite(mgr);
+        assertFalse(composite.getEffectivePolicies(principalSet, ROOT_PATH).hasNext());
+
+        verifyNoInteractions(mgr);
+    }
+
+    @Test
+    public void testEffectivePoliciesByPrincipalAndPaths() throws Exception {
+        JackrabbitAccessControlPolicy policy = mock(JackrabbitAccessControlPolicy.class);
+        JackrabbitAccessControlManager mgr = mock(JackrabbitAccessControlManager.class, withSettings().extraInterfaces(PolicyOwner.class));
+        when(mgr.getEffectivePolicies(any(Set.class), anyString())).thenReturn(Iterators.singletonIterator(policy));
+
+        Set<Principal> principalSet = ImmutableSet.of(EveryonePrincipal.getInstance());
+        CompositeAccessControlManager composite = createComposite(mgr);
+        
+        assertTrue(Iterators.elementsEqual(Iterators.singletonIterator(policy), composite.getEffectivePolicies(principalSet, ROOT_PATH)));
+
+        verify(mgr, times(0)).getEffectivePolicies(principalSet);
+        verify(mgr, times(1)).getEffectivePolicies(principalSet, ROOT_PATH);
     }
 
     @Test

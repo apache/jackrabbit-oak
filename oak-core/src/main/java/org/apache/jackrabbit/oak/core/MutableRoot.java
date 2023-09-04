@@ -18,8 +18,9 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.commons.PathUtils.concat;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
@@ -33,7 +34,7 @@ import java.util.Map;
 
 import javax.security.auth.Subject;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.api.QueryEngine;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.LazyValue;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.index.diffindex.UUIDDiffIndexProviderWrapper;
 import org.apache.jackrabbit.oak.query.ExecutionContext;
 import org.apache.jackrabbit.oak.query.QueryEngineImpl;
@@ -67,7 +69,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 class MutableRoot implements Root, PermissionAware {
 
@@ -106,9 +110,9 @@ class MutableRoot implements Root, PermissionAware {
     private final SecureNodeBuilder secureBuilder;
 
     /**
-     * Sentinel for the next move operation to take place on the this root
+     * Sentinel for the next move operation to take place on this root
      */
-    private Move lastMove = new Move();
+    private Move lastMove;
 
     /**
      * Simple info object used to collect all move operations (source + dest)
@@ -136,6 +140,9 @@ class MutableRoot implements Root, PermissionAware {
         }
     };
 
+    private static final boolean CLASSIC_MOVE =
+            SystemPropertySupplier.create("oak.classicMove", false).get();
+
     /**
      * New instance bases on a given {@link NodeStore} and a workspace
      *
@@ -153,6 +160,7 @@ class MutableRoot implements Root, PermissionAware {
                  SecurityProvider securityProvider,
                  QueryEngineSettings queryEngineSettings,
                  QueryIndexProvider indexProvider,
+                 Feature classicMove,
                  ContentSessionImpl session) {
         this.store = checkNotNull(store);
         this.hook = checkNotNull(hook);
@@ -162,6 +170,7 @@ class MutableRoot implements Root, PermissionAware {
         this.queryEngineSettings = queryEngineSettings;
         this.indexProvider = indexProvider;
         this.session = checkNotNull(session);
+        this.lastMove = createMove(classicMove);
 
         builder = store.getRoot().builder();
         secureBuilder = new SecureNodeBuilder(builder, permissionProvider);
@@ -394,7 +403,7 @@ class MutableRoot implements Root, PermissionAware {
     //---------------------------------------------------------< MoveRecord >---
 
     /**
-     * Instances of this class record move operations which took place on this root.
+     * Instances implementing this interface record move operations which took place on this root.
      * They form a singly linked list where each move instance points to the next one.
      * The last entry in the list is always an empty slot to be filled in by calling
      * {@code setMove()}. This fills the slot with the source and destination of the move
@@ -403,7 +412,31 @@ class MutableRoot implements Root, PermissionAware {
      * Moves can be applied to {@code MutableTree} instances by calling {@code apply()},
      * which will execute all moves in the list on the passed tree instance
      */
-    class Move {
+    interface Move {
+
+        /**
+         * Set this move to the given source and destination. Creates a new empty
+         * slot, sets this as the next move and returns it.
+         */
+        Move setMove(String source, MutableTree destParent, String destName);
+
+        /**
+         * Apply this and all subsequent moves to the passed tree instance.
+         */
+        Move apply(MutableTree tree);
+    }
+
+    Move createMove(@Nullable Feature classicMove) {
+        // default implementation is memory reduced move, unless classic
+        // implementation is enabled by system property or feature toggle
+        if (CLASSIC_MOVE || (classicMove != null && classicMove.isEnabled())) {
+            return new ClassicMove();
+        } else {
+            return new NeoMove();
+        }
+    }
+
+    static class ClassicMove implements Move {
 
         /**
          * source path
@@ -423,24 +456,21 @@ class MutableRoot implements Root, PermissionAware {
         /**
          * Pointer to the next move. {@code null} if this is the last, empty slot
          */
-        private Move next;
+        private ClassicMove next;
 
-        /**
-         * Set this move to the given source and destination. Creates a new empty slot,
-         * sets this as the next move and returns it.
-         */
-        Move setMove(String source, MutableTree destParent, String destName) {
+        @Override
+        public Move setMove(String source,
+                            MutableTree destParent,
+                            String destName) {
             this.source = source;
             this.destParent = destParent;
             this.destName = destName;
-            return next = new Move();
+            return next = new ClassicMove();
         }
 
-        /**
-         * Apply this and all subsequent moves to the passed tree instance.
-         */
-        Move apply(MutableTree tree) {
-            Move move = this;
+        @Override
+        public Move apply(MutableTree tree) {
+            ClassicMove move = this;
             while (move.next != null) {
                 if (move.source.equals(tree.getPathInternal())) {
                     tree.setParentAndName(move.destParent, move.destName);
@@ -455,6 +485,69 @@ class MutableRoot implements Root, PermissionAware {
             return source == null
                     ? "NIL"
                     : '>' + source + ':' + PathUtils.concat(destParent.getPathInternal(), destName);
+        }
+    }
+
+    class NeoMove implements Move {
+
+        /**
+         * Source path
+         */
+        private String source;
+
+        /**
+         * Destination path
+         */
+        private String destination;
+
+        /**
+         * Pointer to the next move. {@code null} if this is the last, empty slot
+         */
+        private NeoMove next;
+
+
+        @Override
+        public Move setMove(String source, MutableTree destParent, String destName) {
+            this.destination = concat(destParent.getPathInternal(), destName);
+            this.source = source;
+            this.next = new NeoMove();
+            return next;
+        }
+
+        @Override
+        public Move apply(MutableTree tree) {
+            NeoMove move = this;
+            String path = null;
+            while (move.next != null) {
+                if (path == null) {
+                    // initialize once with path from tree
+                    path = tree.getPathInternal();
+                }
+                path = move.rewrite(path);
+                move = move.next;
+            }
+            if (path != null && !path.equals(tree.getPathInternal())) {
+                // at least one move was applied
+                tree.setParentAndName(getTree(getParentPath(path)), getName(path));
+            }
+            return move;
+        }
+
+        private String rewrite(String path) {
+            if (path.equals(source)) {
+                return destination;
+            } else if (isAncestor(source, path)) {
+                return destination + path.substring(source.length());
+            } else {
+                return path;
+            }
+        }
+
+        @Override
+        public String toString() {
+            return source == null
+                    ? "NIL"
+                    : '>' + source + ':' + destination;
         }
     }
 

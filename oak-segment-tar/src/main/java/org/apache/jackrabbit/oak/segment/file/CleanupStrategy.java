@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.segment.file;
 import java.io.IOException;
 import java.util.List;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.segment.Revisions;
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.SegmentTracker;

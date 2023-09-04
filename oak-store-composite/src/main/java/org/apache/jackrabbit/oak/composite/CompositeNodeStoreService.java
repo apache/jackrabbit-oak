@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.felix.scr.annotations.Activate;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
@@ -54,7 +54,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import static com.google.common.collect.Sets.newIdentityHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static java.util.stream.Collectors.toSet;
 
 @Component(policy = ConfigurationPolicy.REQUIRE)

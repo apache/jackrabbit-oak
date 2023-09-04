@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import com.google.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.Query;
@@ -27,6 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
 import java.security.Principal;
+import java.util.Collections;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -119,9 +119,9 @@ public class UserManagerDelegatorTest extends AbstractDelegatorTest {
     @Test
     public void testFindAuthorizables() throws Exception {
         Query query = mock(Query.class);
-        doReturn(Iterators.emptyIterator()).when(um).findAuthorizables(query);
-        doReturn(Iterators.emptyIterator()).when(um).findAuthorizables(anyString(), anyString());
-        doReturn(Iterators.emptyIterator()).when(um).findAuthorizables(anyString(), anyString(), anyInt());
+        doReturn(Collections.emptyIterator()).when(um).findAuthorizables(query);
+        doReturn(Collections.emptyIterator()).when(um).findAuthorizables(anyString(), anyString());
+        doReturn(Collections.emptyIterator()).when(um).findAuthorizables(anyString(), anyString(), anyInt());
         
         delegator.findAuthorizables(query);
         delegator.findAuthorizables("rel/path", "value");

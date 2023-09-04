@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
@@ -39,6 +39,7 @@ import org.osgi.service.component.annotations.Reference;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Hashtable;
 import java.util.Properties;
 
 @Component(
@@ -61,7 +62,7 @@ public class RemotePersistentCacheService {
         osgiWhiteboard = new OsgiWhiteboard(context.getBundleContext());
         persistentCache = createPersistentCache(config, closer);
         if (persistentCache != null) {
-            registration = context.getBundleContext().registerService(PersistentCache.class.getName(), persistentCache, new Properties());
+            registration = context.getBundleContext().registerService(PersistentCache.class, persistentCache, new Hashtable<String, Object>());
         }
     }
 

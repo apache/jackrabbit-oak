@@ -26,7 +26,7 @@ import org.junit.Test;
 
 import java.util.Set;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.junit.Assert.assertEquals;
 
 public class ModifiedPathDiffTest {

@@ -22,7 +22,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,7 +57,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.TestRule;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -66,7 +64,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.client.MongoDatabase;
 
 import junitx.util.PrivateAccessor;
@@ -89,7 +87,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         DocumentDiscoveryLiteService service;
         DocumentNodeStore ns;
         private final Descriptors descriptors;
-        private Map<String, Object> registeredServices;
+        private Map<Object, Object> registeredServices;
         private final long lastRevInterval;
         private volatile boolean lastRevStopped = false;
         private volatile boolean writeSimulationStopped = false;
@@ -98,7 +96,7 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         public String workingDir;
 
         SimplifiedInstance(DocumentDiscoveryLiteService service, DocumentNodeStore ns, Descriptors descriptors,
-                Map<String, Object> registeredServices, long lastRevInterval, String workingDir) {
+                Map<Object, Object> registeredServices, long lastRevInterval, String workingDir) {
             this.service = service;
             this.ns = ns;
             this.workingDir = workingDir;
@@ -642,16 +640,13 @@ public abstract class BaseDocumentDiscoveryLiteServiceTest {
         BundleContext bc = mock(BundleContext.class);
         ComponentContext c = mock(ComponentContext.class);
         when(c.getBundleContext()).thenReturn(bc);
-        final Map<String, Object> registeredServices = new HashMap<String, Object>();
-        when(bc.registerService(anyString(), any(), any())).then(new Answer<ServiceRegistration>() {
-            @Override
-            public ServiceRegistration answer(InvocationOnMock invocation) {
-                registeredServices.put((String) invocation.getArguments()[0], invocation.getArguments()[1]);
-                return null;
-            }
+        final Map<Object, Object> registeredServices = new HashMap();
+        when(bc.registerService(any(Class.class), any(Object.class), any())).then((Answer<ServiceRegistration>) invocation -> {
+            registeredServices.put(invocation.getArguments()[0], invocation.getArguments()[1]);
+            return null;
         });
         discoveryLite.activate(c);
-        Descriptors d = (Descriptors) registeredServices.get(Descriptors.class.getName());
+        Descriptors d = (Descriptors) registeredServices.get(Descriptors.class);
         final SimplifiedInstance result = new SimplifiedInstance(discoveryLite, ns, d, registeredServices, 500, workingDir);
         allInstances.add(result);
         logger.info("Created " + result);

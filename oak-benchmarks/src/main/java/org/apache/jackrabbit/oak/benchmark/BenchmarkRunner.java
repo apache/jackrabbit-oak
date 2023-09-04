@@ -22,12 +22,13 @@ import com.codahale.metrics.Counting;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.benchmark.authentication.external.AutoMembershipTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ExternalLoginTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.ListIdentitiesTest;
 import org.apache.jackrabbit.oak.benchmark.authentication.external.PrincipalNameResolutionTest;
@@ -206,6 +207,7 @@ public class BenchmarkRunner {
             new SQL2DescendantSearchTest(),
             new FlatTreeUpdateTest(),
             new CreateManyChildNodesTest(),
+            new CompareManyChildNodesTest(),
             new CreateManyNodesTest(),
                         new UpdateManyChildNodesTest(),
                         new TransientManyChildNodesTest(),
@@ -455,6 +457,8 @@ public class BenchmarkRunner {
                                 benchmarkOptions.getNumberOfGroups().value(options), benchmarkOptions.getExpiration().value(options),
                                 benchmarkOptions.getRoundtripDelay().value(options)),
                         new ListIdentitiesTest(benchmarkOptions.getNumberOfUsers().value(options)),
+                        new AutoMembershipTest(benchmarkOptions.getNumberOfUsers().value(options), benchmarkOptions.getNumberOfGroups().value(options),
+                                benchmarkOptions.getDynamicMembership().value(options), benchmarkOptions.getAutoMembership().values(options)),
                         new BundlingNodeTest(),
                         new PersistentCacheTest(statsProvider),
                         new StringWriteTest(),
@@ -464,7 +468,8 @@ public class BenchmarkRunner {
                         new SetPropertyTransientTest(),
                         new GetURITest(),
                         new ISO8601FormatterTest(),
-                        new ReadBinaryPropertiesTest()
+                        new ReadBinaryPropertiesTest(),
+                        new AccessAfterMoveTest()
                 )
         );
 

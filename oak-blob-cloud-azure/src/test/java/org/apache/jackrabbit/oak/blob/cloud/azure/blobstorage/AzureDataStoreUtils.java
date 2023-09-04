@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import static com.google.common.base.StandardSystemProperty.USER_HOME;
+import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.USER_HOME;
 import static org.junit.Assume.assumeTrue;
 
 import java.io.File;
@@ -34,9 +34,9 @@ import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.core.data.DataStore;

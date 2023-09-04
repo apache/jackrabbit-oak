@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.cache;
 
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.valueOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -41,11 +41,11 @@ import java.util.concurrent.ExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheLIRS.EvictionCallback;
 import org.junit.Test;
 
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.RemovalCause;
-import com.google.common.cache.Weigher;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import org.apache.jackrabbit.guava.common.cache.CacheLoader;
+import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.util.concurrent.ListenableFuture;
+import org.apache.jackrabbit.guava.common.util.concurrent.SettableFuture;
 
 /**
  * Tests the LIRS cache.

@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static com.google.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 
 /**
  * In order to avoid leaking values from the metadataMap, following order should

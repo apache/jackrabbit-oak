@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async;
 
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.SortOptions;
 import co.elastic.clients.elasticsearch.core.SearchRequest;
@@ -30,7 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
-import org.apache.jackrabbit.oak.plugins.index.elastic.util.ElasticIndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
 import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
@@ -76,7 +76,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     private final ElasticRequestHandler elasticRequestHandler;
     private final ElasticResponseHandler elasticResponseHandler;
     private final ElasticFacetProvider elasticFacetProvider;
-    private final AtomicReference<Throwable> errorRef = new AtomicReference();
+    private final AtomicReference<Throwable> errorRef = new AtomicReference<>();
 
     private FulltextResultRow nextRow;
 
@@ -203,7 +203,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private long searchStartTime;
 
         // reference to the last document sort values for search_after queries
-        private List<String> lastHitSortValues;
+        private List<FieldValue> lastHitSortValues;
 
         // Semaphore to guarantee only one in-flight request to Elastic
         private final Semaphore semaphore = new Semaphore(1);
@@ -253,9 +253,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     }
             );
 
-            if (LOG.isTraceEnabled()) {
-                LOG.trace("Kicking initial search for query {}", ElasticIndexUtils.toString(searchReq));
-            }
+            LOG.trace("Kicking initial search for query {}", searchReq);
             semaphore.tryAcquire();
 
             searchStartTime = System.currentTimeMillis();
@@ -343,7 +341,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             }
 
             LOG.error("Error retrieving data for jcr query [{}] :: Corresponding ES query {} : closing scanner, notifying listeners",
-                indexPlan.getFilter(), ElasticIndexUtils.toString(query), t);
+                indexPlan.getFilter(), query, t);
             // closing scanner immediately after a failure avoiding them to hang (potentially) forever
             close();
         }
@@ -363,9 +361,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                         .highlight(highlight)
                         .size(getFetchSize(requests++))
                 );
-                if (LOG.isTraceEnabled()) {
-                    LOG.trace("Kicking new search after query {}", ElasticIndexUtils.toString(searchReq));
-                }
+                LOG.trace("Kicking new search after query {}", searchReq);
 
                 searchStartTime = System.currentTimeMillis();
                 indexNode.getConnection().getAsyncClient()

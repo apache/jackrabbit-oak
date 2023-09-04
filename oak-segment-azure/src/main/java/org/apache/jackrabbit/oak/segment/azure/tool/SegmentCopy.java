@@ -18,8 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.runWithRetry;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printMessage;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.printableStopwatch;
@@ -46,6 +45,7 @@ import java.util.concurrent.Future;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.tool.SegmentStoreMigrator.Segment;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
@@ -55,7 +55,7 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.jackrabbit.oak.segment.tool.Check;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 /**
  * Perform a full-copy of repository data at segment level.
@@ -236,6 +236,8 @@ public class SegmentCopy {
 
     private static final int READ_THREADS = 20;
 
+    private static final Retrier RETRIER = Retrier.withParams(16, 5000);
+
     private final String source;
 
     private final String destination;
@@ -306,11 +308,11 @@ public class SegmentCopy {
 
                     List<Future<Segment>> futures = new ArrayList<>();
                     for (SegmentArchiveEntry entry : reader.listSegments()) {
-                        futures.add(executor.submit(() -> runWithRetry(() -> {
+                        futures.add(executor.submit(() -> RETRIER.execute(() -> {
                             Segment segment = new Segment(entry);
                             segment.read(reader);
                             return segment;
-                        }, 16, 5)));
+                        })));
                     }
 
                     File directory = new File(destination);
@@ -318,7 +320,7 @@ public class SegmentCopy {
 
                     for (Future<Segment> future : futures) {
                         Segment segment = future.get();
-                        runWithRetry(() -> {
+                        RETRIER.execute(() -> {
                             final byte[] array = segment.data.array();
                             String segmentId = new UUID(segment.entry.getMsb(), segment.entry.getLsb()).toString();
                             File segmentFile = new File(directory, segmentId);
@@ -348,8 +350,7 @@ public class SegmentCopy {
                                             segmentId, i);
                                 }
                             }
-                            return null;
-                        }, 16, 5);
+                        });
                     }
 
                     count++;

@@ -19,10 +19,10 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Maps.newTreeMap;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newLinkedHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newTreeMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Collections.singletonList;
 import static org.apache.jackrabbit.oak.segment.file.tar.GCGeneration.newGCGeneration;
 
@@ -40,7 +40,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
@@ -308,7 +308,7 @@ public class TarReader implements Closeable {
      * <p>
      * Whether or not this will read from the file depends on whether memory
      * mapped files are used or not.
-     * 
+     *
      * @param msb the most significant bits of the segment id
      * @param lsb the least significant bits of the segment id
      * @return the byte buffer, or null if not in this file.
@@ -492,7 +492,7 @@ public class TarReader implements Closeable {
                 afterCount += 1;
             }
         }
-      
+
         if (afterCount == 0) {
             log.debug("None of the entries of {} are referenceable.", name);
             return null;
@@ -620,7 +620,16 @@ public class TarReader implements Closeable {
     BinaryReferencesIndex getBinaryReferences() {
         BinaryReferencesIndex index = null;
         try {
-            index = BinaryReferencesIndexLoader.parseBinaryReferencesIndex(archive.getBinaryReferences());
+
+            Buffer binaryReferences = archive.getBinaryReferences();
+            if (binaryReferences == null && archive.isRemote()) {
+
+                // This can happen because segment files and binary references files are flushed one after another in
+                // {@link TarWriter#flush}
+                log.info("The remote archive directory {} still does not have file with binary references written.", archive.getName());
+                return null;
+            }
+            index = BinaryReferencesIndexLoader.parseBinaryReferencesIndex(binaryReferences);
         } catch (InvalidBinaryReferencesIndexException | IOException e) {
             log.warn("Exception while loading binary reference", e);
         }

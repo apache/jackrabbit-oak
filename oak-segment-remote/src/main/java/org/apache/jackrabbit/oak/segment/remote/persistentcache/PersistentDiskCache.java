@@ -17,7 +17,7 @@
  */
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import java.io.UncheckedIOException;
 import java.nio.file.NoSuchFileException;
 import org.apache.commons.io.FileUtils;

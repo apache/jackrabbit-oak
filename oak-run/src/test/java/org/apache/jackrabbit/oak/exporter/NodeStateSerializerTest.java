@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.exporter;
 import java.io.File;
 import java.util.Collections;
 
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.json.BlobDeserializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
@@ -33,7 +33,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.junit.Assert.*;

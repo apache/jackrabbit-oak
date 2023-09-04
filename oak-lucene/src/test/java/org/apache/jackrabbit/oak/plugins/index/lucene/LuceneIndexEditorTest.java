@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.CIHelper;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.CachingFileDataStore;
@@ -87,7 +87,7 @@ import org.junit.rules.TemporaryFolder;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
@@ -233,6 +233,16 @@ public class LuceneIndexEditorTest {
         //Date
         assertEquals("/test", getPath(NumericRangeQuery.newLongRange("creationTime",
                 dateToTime("05/05/2014"), dateToTime("05/07/2014"), true, true)));
+
+        // Call FieldFactory.dateToLong with an unsupported Date format - this should throw a RuntimeException
+        try {
+            getPath(NumericRangeQuery.newLongRange("creationTime",
+                    FieldFactory.dateToLong("05/05/2014"), FieldFactory.dateToLong("05/07/2014"), true, true));
+        } catch (RuntimeException e) {
+            assertEquals("Unable to parse the provided date field : 05/05/2014 to convert to millis." +
+                    " Supported format is ±YYYY-MM-DDThh:mm:ss.SSSTZD", e.getMessage());
+        }
+
     }
 
     @Test

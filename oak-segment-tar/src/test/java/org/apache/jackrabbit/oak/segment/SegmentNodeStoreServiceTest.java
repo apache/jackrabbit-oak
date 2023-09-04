@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.collect.Maps.newHashMap;
 import static org.apache.sling.testing.mock.osgi.MockOsgi.deactivate;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -29,8 +28,9 @@ import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Dictionary;
+import java.util.Hashtable;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.oak.plugins.blob.BlobGCMBean;
@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -195,12 +196,23 @@ public class SegmentNodeStoreServiceTest {
     private SegmentNodeStoreService segmentNodeStoreService;
 
     protected void registerSegmentNodeStoreService(boolean customBlobStore) {
-        Map<String, Object> properties = newHashMap();
+        Hashtable<String, Object> properties = new Hashtable<>();
 
         properties.put(SegmentNodeStoreService.CUSTOM_BLOB_STORE, customBlobStore);
         properties.put(SegmentNodeStoreService.REPOSITORY_HOME_DIRECTORY, folder.getRoot().getAbsolutePath());
 
-        segmentNodeStoreService = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
+        // OAK-10367: The call 
+        // context.registerInjectActivateService(new SegmentNodeStoreService(), properties)
+        // isn't working properly anymore. It calls
+        // context.bundleContext().registerService(null, new SegmentNodeStoreService(), properties).
+        // A service registered this way will not be found by
+        // context.bundleContext().getServiceReferences(SegmentNodeStoreService.class, null).
+        // 
+        //segmentNodeStoreService = context.registerInjectActivateService(new SegmentNodeStoreService(), properties);
+        segmentNodeStoreService = new SegmentNodeStoreService();
+        MockOsgi.injectServices(segmentNodeStoreService, context.bundleContext(), properties);
+        MockOsgi.activate(segmentNodeStoreService, context.bundleContext(), (Dictionary<String, Object>) properties);
+        context.bundleContext().registerService(SegmentNodeStoreService.class, segmentNodeStoreService, properties);
     }
 
     protected void unregisterSegmentNodeStoreService() {

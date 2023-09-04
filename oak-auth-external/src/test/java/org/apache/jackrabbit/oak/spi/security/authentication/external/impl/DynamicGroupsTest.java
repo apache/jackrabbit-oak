@@ -16,13 +16,16 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
+import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
@@ -32,6 +35,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUs
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.DefaultSyncConfig;
+import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
@@ -42,6 +46,7 @@ import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -282,6 +287,65 @@ public class DynamicGroupsTest extends DynamicSyncContextTest {
             assertNotNull(group);
             assertTrue(group.isGroup());
             assertEquals(ref.getId(), group.getID());
+        }
+    }
+    
+    @Test
+    public void testCrossIDPMembership() throws Exception {
+        UserManager um = getUserManager(r);
+        PrincipalManager pm = getPrincipalManager(r);
+        
+        List<ExternalIdentityRef> declaredGroupRefs = ImmutableList.copyOf(previouslySyncedUser.getDeclaredGroups());
+        assertTrue(declaredGroupRefs.size() > 1);
+        
+        String groupId = declaredGroupRefs.get(0).getId();
+        String groupId2 = declaredGroupRefs.get(1).getId();
+        Group local = um.createGroup("localGroup");
+        local.addMembers(groupId, groupId2);
+        um.createGroup(EveryonePrincipal.getInstance());
+        r.commit();
+
+        Authorizable a = um.getAuthorizable(PREVIOUS_SYNCED_ID);
+        assertTrue(getIds(a.memberOf()).contains(local.getID()));
+        
+        // sync again to establish dynamic membership
+        syncContext.setForceUserSync(true);
+        syncContext.setForceGroupSync(true);
+        syncContext.sync(idp.getUser(PREVIOUS_SYNCED_ID));
+
+        a = um.getAuthorizable(PREVIOUS_SYNCED_ID);
+        assertTrue(r.getTree(a.getPath()).hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        
+        // verify membership
+        List<String> groupIds = getIds(a.memberOf());
+        if (membershipNestingDepth == 0) {
+            assertFalse(groupIds.contains("localGroup"));
+            assertFalse(local.isMember(a));
+        } else {
+            assertEquals("Found "+groupIds, (membershipNestingDepth > 1) ? 5 : 4, groupIds.size());
+            assertTrue(groupIds.contains("localGroup"));
+            assertTrue(local.isMember(a));
+            
+            for (String id : new String[] {groupId, groupId2}) {
+                Authorizable extGroup = um.getAuthorizable(id);
+                assertTrue(getIds(extGroup.declaredMemberOf()).contains("localGroup"));
+                assertTrue(local.isMember(extGroup));
+            }
+        }
+        
+        // verify effective principals of external user
+        List<String> principalNames = getPrincipalNames(pm.getGroupMembership(a.getPrincipal()));
+        assertEquals(membershipNestingDepth != 0, principalNames.contains(local.getPrincipal().getName()));
+        for (ExternalIdentityRef ref : declaredGroupRefs) {
+            ExternalIdentity eg = idp.getIdentity(ref);
+            assertEquals(membershipNestingDepth != 0, principalNames.contains(eg.getPrincipalName()));
+        }
+
+        // verify effective principals of dynamic group
+        Authorizable dynamicGroup = userManager.getAuthorizable(groupId);
+        if (dynamicGroup != null) {
+            principalNames = getPrincipalNames(pm.getGroupMembership(dynamicGroup.getPrincipal()));
+            assertTrue(principalNames.contains(local.getPrincipal().getName()));
         }
     }
 }

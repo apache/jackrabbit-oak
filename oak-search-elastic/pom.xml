@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.57-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -33,7 +33,8 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.version>7.17.6</elasticsearch.version>
+    <elasticsearch.hlrc.version>7.17.9</elasticsearch.hlrc.version>
+    <elasticsearch.java.client.version>8.7.0</elasticsearch.java.client.version>
   </properties>
 
   <build>
@@ -93,17 +94,12 @@
     <!-- Optional OSGi dependencies, used only when running within OSGi -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
+      <artifactId>osgi.core</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.annotation</artifactId>
+      <artifactId>org.osgi.service.component</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -111,22 +107,32 @@
       <artifactId>org.apache.felix.scr.annotations</artifactId>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.component.annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.osgi</groupId>
+      <artifactId>org.osgi.service.metatype.annotations</artifactId>
+      <scope>provided</scope>
+    </dependency>
 
     <!-- Elastic/Lucene -->
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-high-level-client</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.hlrc.version}</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch.client</groupId>
       <artifactId>elasticsearch-rest-client</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.hlrc.version}</version>
     </dependency>
 	<dependency>
       <groupId>co.elastic.clients</groupId>
       <artifactId>elasticsearch-java</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.java.client.version}</version>
     </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -136,7 +142,7 @@
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>${elasticsearch.version}</version>
+      <version>${elasticsearch.hlrc.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.elasticsearch</groupId>
@@ -148,10 +154,6 @@
         </exclusion>
 
         <!-- https://github.com/elastic/elasticsearch/issues/29184#issuecomment-662480046 -->
-        <exclusion>
-          <groupId>org.apache.lucene</groupId>
-          <artifactId>lucene-analyzers-common</artifactId>
-        </exclusion>
         <exclusion>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-backward-codecs</artifactId>
@@ -195,11 +197,6 @@
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.elasticsearch</groupId>
-      <artifactId>elasticsearch-x-content</artifactId>
-      <version>${elasticsearch.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.apache.tika</groupId>
       <artifactId>tika-parsers</artifactId>
       <version>${tika.version}</version>
@@ -216,6 +213,12 @@
       </exclusions>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-shaded-guava</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-api</artifactId>
@@ -303,8 +306,23 @@
     </dependency>
     <dependency>
       <groupId>org.apache.sling</groupId>
-      <artifactId>org.apache.sling.testing.osgi-mock</artifactId>
+      <artifactId>org.apache.sling.testing.osgi-mock.junit4</artifactId>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+       <groupId>org.osgi</groupId>
+       <artifactId>org.osgi.service.event</artifactId>
+       <scope>test</scope>
+    </dependency>
+    <dependency>
+       <groupId>org.osgi</groupId>
+       <artifactId>org.osgi.service.log</artifactId>
+       <scope>test</scope>
+    </dependency>
+    <dependency>
+       <groupId>org.osgi</groupId>
+       <artifactId>org.osgi.service.cm</artifactId>
+       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.hamcrest</groupId>
@@ -351,11 +369,5 @@
       <version>1.19.0</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
-      <scope>test</scope>
-    </dependency>
-
   </dependencies>
 </project>

@@ -74,6 +74,7 @@ public abstract class CompositeTestSupport extends TestSupport {
             scr(),
             slingCommonsMetrics(),
             jackrabbit(),
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-shaded-guava").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-commons").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-api").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-blob").versionAsInProject(),
@@ -84,8 +85,7 @@ public abstract class CompositeTestSupport extends TestSupport {
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-query-spi").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-security-spi").versionAsInProject(),
             mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-segment-tar").versionAsInProject(),
-            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-store-spi").versionAsInProject(),
-            mavenBundle().groupId("com.google.guava").artifactId("guava").versionAsInProject()
+            mavenBundle().groupId(JACKRABBIT_GROUP_ID).artifactId("oak-store-spi").versionAsInProject()
         );
     }
 

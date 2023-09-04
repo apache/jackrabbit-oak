@@ -216,6 +216,22 @@ public class RootTest extends OakBaseTest {
     }
 
     @Test
+    public void moveMoved() throws CommitFailedException {
+        Root root = session.getLatestRoot();
+        Tree xx = root.getTree("/x/xx");
+
+        assertTrue(root.move("/x/xx", "/y/xx"));
+        assertTrue(root.move("/y", "/a"));
+
+        assertTrue(xx.exists());
+        assertEquals("/a/xx", xx.getPath());
+
+        root.commit();
+        assertTrue(xx.exists());
+        assertEquals("/a/xx", xx.getPath());
+    }
+
+    @Test
     public void rename() throws CommitFailedException {
         Root root = session.getLatestRoot();
         Tree tree = root.getTree("/");

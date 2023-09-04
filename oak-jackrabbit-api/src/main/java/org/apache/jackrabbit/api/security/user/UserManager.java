@@ -102,7 +102,7 @@ public interface UserManager {
      *
      * @param path The path to an authorizable.
      * @return Authorizable or <code>null</code>, if not present.
-     * @throws UnsupportedRepositoryOperationException If this implementation does
+     * @throws UnsupportedRepositoryOperationException If this implementation does not
      * support to retrieve authorizables by path.
      * @throws RepositoryException If another error occurs.
      * @see org.apache.jackrabbit.api.security.user.Authorizable#getPath()

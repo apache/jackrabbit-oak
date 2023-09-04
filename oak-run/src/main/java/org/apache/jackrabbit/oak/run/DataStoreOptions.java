@@ -25,7 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -40,7 +40,7 @@ public class DataStoreOptions implements OptionsBean {
     private final OptionSpec<File> workDirOpt;
     private final OptionSpec<File> outputDirOpt;
     private final OptionSpec<Boolean> collectGarbage;
-    private final OptionSpec<Void> consistencyCheck;
+    private final OptionSpec<Boolean> consistencyCheck;
     private final OptionSpec<Void> refOp;
     private final OptionSpec<Void> idOp;
     private final OptionSpec<Boolean> checkConsistencyAfterGC;
@@ -74,7 +74,9 @@ public class DataStoreOptions implements OptionsBean {
             .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
         consistencyCheck =
-            parser.accepts("check-consistency", "Performs a consistency check on the repository/datastore defined");
+            parser.accepts("check-consistency", "Performs a consistency check on the repository/datastore defined. An optional boolean specifying "
+                + "'markOnly' required if only collecting references")
+            .withOptionalArg().ofType(Boolean.class).defaultsTo(Boolean.FALSE);
 
         refOp = parser.accepts("dump-ref", "Gets a dump of Blob References");
 
@@ -193,6 +195,10 @@ public class DataStoreOptions implements OptionsBean {
         return collectGarbage.value(options);
     }
 
+    public boolean consistencyCheckMarkOnly() {
+        return consistencyCheck.value(options);
+    }
+    
     public long getBlobGcMaxAgeInSecs() {
         return blobGcMaxAgeInSecs.value(options);
     }

@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static java.util.Arrays.sort;
 import static java.util.Collections.singleton;
 import static org.apache.jackrabbit.oak.segment.MapRecord.SIZE_BITS;

@@ -17,8 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.user;
 
 import java.util.Collection;
-
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 /**
  * User management related constants. Please note that all names and paths
@@ -77,6 +76,13 @@ public interface UserConstants {
      * Configuration option defining the ID of the administrator user.
      */
     String PARAM_ADMIN_ID = "adminId";
+
+    /**
+     * Configuration option defining the names of the impersonatorPrincipals field.
+     * @since Oak 1.54.0
+     * @see <a href="https://issues.apache.org/jira/browse/OAK-10173">OAK-10173</a>
+     */
+    String PARAM_IMPERSONATOR_PRINCIPAL_NAMES = "impersonatorPrincipals";
 
     /**
      * Configuration option defining if the admin password should be omitted

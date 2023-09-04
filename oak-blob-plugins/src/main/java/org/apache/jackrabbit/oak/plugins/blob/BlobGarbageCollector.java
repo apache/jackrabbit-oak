@@ -60,6 +60,15 @@ public interface BlobGarbageCollector {
     long checkConsistency() throws Exception;
 
     /**
+     * Collects the blob references and consolidates references from other repositories if available in the DataStore.
+     * Adds relevant metrics.
+     * 
+     * @return
+     * @throws Exception
+     */
+    long checkConsistency(boolean markOnly) throws Exception;
+
+    /**
      * Returns operation statistics
      *
      * @return stats object

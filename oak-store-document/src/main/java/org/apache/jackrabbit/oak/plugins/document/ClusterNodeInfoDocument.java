@@ -17,11 +17,17 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
+import java.util.function.Predicate;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static java.util.Objects.nonNull;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RecoverLockState;
+import static org.apache.jackrabbit.oak.plugins.document.Revision.fromString;
+import static org.apache.jackrabbit.oak.plugins.document.Revision.getTimestampDifference;
 
+import org.apache.jackrabbit.guava.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -174,5 +180,16 @@ public class ClusterNodeInfoDocument extends Document {
     public boolean isInvisible() {
         Boolean invisible = (Boolean) get(ClusterNodeInfo.INVISIBLE);
         return invisible != null ? invisible : false;
+    }
+
+    /**
+     * Method to create {@link Predicate} to filter revisions
+     *
+     * @return {@link Predicate} to filter revisions older than lastWrittenRootRev
+     */
+    @NotNull
+    @VisibleForTesting
+    Predicate<Revision> isOlderThanLastWrittenRootRevPredicate() {
+        return r -> nonNull(getLastWrittenRootRev()) && getTimestampDifference(r, fromString(getLastWrittenRootRev())) < 0;
     }
 }

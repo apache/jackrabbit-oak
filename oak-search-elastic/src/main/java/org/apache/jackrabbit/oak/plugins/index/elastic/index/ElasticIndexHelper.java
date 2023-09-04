@@ -17,15 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import co.elastic.clients.elasticsearch._types.Time;
+import co.elastic.clients.elasticsearch._types.mapping.DynamicMapping;
 import co.elastic.clients.elasticsearch._types.mapping.Property;
 import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
+import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
-import jakarta.json.Json;
-import jakarta.json.JsonObject;
-import jakarta.json.JsonValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
@@ -35,6 +34,9 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,12 +46,22 @@ import java.util.stream.Collectors;
  */
 class ElasticIndexHelper {
 
-    private static final String ES_DENSE_VECTOR_DIM_PROP = "dims";
+    /**
+     * Mapping version that uses <a href="https://semver.org/">SemVer Specification</a> to allow changes without
+     * breaking existing queries.
+     * Changes breaking compatibility should increment the major version (indicating that a reindex is mandatory).
+     * Changes not breaking compatibility should increment the minor version (old queries still work, but they might not
+     * use the new feature).
+     * Changes that do not affect queries should increment the patch version (eg: bug fixes).
+     */
+    protected static final String MAPPING_VERSION = "1.0.0";
 
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
     private static final Time INITIAL_REFRESH_INTERVAL = Time.of(b -> b.time("-1"));
     private static final String INITIAL_NUMBER_OF_REPLICAS = "0";
+
+    private static final String OAK_WORD_DELIMITER_GRAPH_FILTER = "oak_word_delimiter_graph_filter";
 
     /**
      * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
@@ -71,6 +83,11 @@ class ElasticIndexHelper {
 
     private static ObjectBuilder<TypeMapping> loadMappings(@NotNull TypeMapping.Builder builder,
                                                            @NotNull ElasticIndexDefinition indexDefinition) {
+        builder.dynamic(Arrays
+                .stream(DynamicMapping.values())
+                .filter(dm -> dm.jsonValue().equals(indexDefinition.dynamicMapping))
+                .findFirst().orElse(DynamicMapping.True)
+        );
         mapInternalProperties(builder);
         mapIndexRules(builder, indexDefinition);
         return builder;
@@ -88,6 +105,9 @@ class ElasticIndexHelper {
                         b1 -> b1.integer(
                                 b2 -> b2.docValues(false)))
                 .properties(FieldNames.FULLTEXT,
+                        b1 -> b1.text(
+                                b2 -> b2.analyzer("oak_analyzer")))
+                .properties(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT,
                         b1 -> b1.text(
                                 b2 -> b2.analyzer("oak_analyzer")));
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
@@ -124,43 +144,53 @@ class ElasticIndexHelper {
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
         if (indexDefinition.getSimilarityProperties().size() > 0) {
-            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(JsonValue.TRUE));
+            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
         }
+
+        // collect analyzer settings
+        IndexSettingsAnalysis.Builder analyzerBuilder =
+                ElasticCustomAnalyzer.buildCustomAnalyzers(indexDefinition.getAnalyzersNodeState(), "oak_analyzer");
+        if (analyzerBuilder == null) {
+            analyzerBuilder = new IndexSettingsAnalysis.Builder()
+                    .filter(OAK_WORD_DELIMITER_GRAPH_FILTER,
+                            tokenFilter -> tokenFilter.definition(
+                                    tokenFilterDef -> tokenFilterDef.wordDelimiterGraph(
+                                            wdgBuilder -> wdgBuilder.generateWordParts(true)
+                                                    .stemEnglishPossessive(true)
+                                                    .generateNumberParts(true)
+                                                    .splitOnNumerics(indexDefinition.analyzerConfigSplitOnNumerics())
+                                                    .splitOnCaseChange(indexDefinition.analyzerConfigSplitOnCaseChange())
+                                                    .preserveOriginal(indexDefinition.analyzerConfigIndexOriginalTerms()))
+                            ))
+                    .analyzer("oak_analyzer",
+                            ab -> ab.custom(
+                                    customAnalyzer -> customAnalyzer.tokenizer("standard")
+                                            .filter("lowercase", OAK_WORD_DELIMITER_GRAPH_FILTER)));
+        }
+        // path restrictions support
+        analyzerBuilder.analyzer("ancestor_analyzer",
+                ab -> ab.custom(customAnalyzer -> customAnalyzer.tokenizer("path_hierarchy")));
+
+        // spellcheck support
+        analyzerBuilder.filter("shingle",
+                tokenFilter -> tokenFilter.definition(
+                        tokenFilterDef -> tokenFilterDef.shingle(
+                                shingle -> shingle.minShingleSize("2").maxShingleSize("3"))));
+        analyzerBuilder.analyzer("trigram",
+                ab -> ab.custom(
+                        customAnalyzer -> customAnalyzer.tokenizer("standard").filter("lowercase", "shingle")));
+
+        // set up the index
         builder.index(indexBuilder -> indexBuilder
+                        // Make the index more lenient when a field cannot be converted to the mapped type. Without this setting
+                        // the entire document will fail to update. Instead, only the specific field won't be updated.
+                        .mapping(mf -> mf.ignoreMalformed(true))
                         // static setting: cannot be changed after the index gets created
                         .numberOfShards(Integer.toString(indexDefinition.numberOfShards))
                         // dynamic settings: see #enableIndexRequest
                         .refreshInterval(INITIAL_REFRESH_INTERVAL)
                         .numberOfReplicas(INITIAL_NUMBER_OF_REPLICAS))
-                .analysis(b1 ->
-                        b1.filter("oak_word_delimiter_graph_filter",
-                                        b2 -> b2.definition(
-                                                b3 -> b3.wordDelimiterGraph(
-                                                        wdgBuilder -> wdgBuilder.generateWordParts(true)
-                                                                .stemEnglishPossessive(true)
-                                                                .generateNumberParts(true)
-                                                                .splitOnNumerics(indexDefinition.analyzerConfigSplitOnNumerics())
-                                                                .splitOnCaseChange(indexDefinition.analyzerConfigSplitOnCaseChange())
-                                                                .preserveOriginal(indexDefinition.analyzerConfigIndexOriginalTerms()))
-                                        ))
-                                .filter("shingle",
-                                        b2 -> b2.definition(
-                                                b3 -> b3.shingle(
-                                                        b4 -> b4.minShingleSize("2")
-                                                                .maxShingleSize("3"))))
-                                .analyzer("oak_analyzer",
-                                        b2 -> b2.custom(
-                                                b3 -> b3.tokenizer("standard")
-                                                        .filter("lowercase", "oak_word_delimiter_graph_filter")))
-                                .analyzer("ancestor_analyzer",
-                                        b2 -> b2.custom(
-                                                b3 -> b3.tokenizer("path_hierarchy")))
-                                .analyzer("trigram",
-                                        b2 -> b2.custom(
-                                                b3 -> b3.tokenizer("standard")
-                                                        .filter("lowercase", "shingle")))
-
-                );
+                .analysis(analyzerBuilder.build());
 
         return builder;
     }
@@ -241,20 +271,21 @@ class ElasticIndexHelper {
             for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
                 ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
                 int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
-                JsonObject value = Json.createObjectBuilder()
-                        .add("type", "elastiknn_dense_float_vector")
-                        .add("elastiknn",
-                                Json.createObjectBuilder()
-                                        .add(ES_DENSE_VECTOR_DIM_PROP, denseVectorSize)
-                                        .add("model", "lsh")
-                                        .add("similarity", pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction())
-                                        .add("L", pd.getSimilaritySearchParameters().getL())
-                                        .add("k", pd.getSimilaritySearchParameters().getK())
-                                        .add("w", pd.getSimilaritySearchParameters().getW())
-                                        .build()
-                        ).build();
-                builder.properties(FieldNames.createSimilarityFieldName(pd.name),
-                        b1 -> b1._custom("elastiknn_dense_float_vector", value));
+
+                Reader eknnConfig = new StringReader(
+                        "{" +
+                                "  \"type\": \"elastiknn_dense_float_vector\"," +
+                                "  \"elastiknn\": {" +
+                                "    \"dims\": " + denseVectorSize + "," +
+                                "    \"model\": \"lsh\"," +
+                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
+                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
+                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
+                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
+                                "  }" +
+                                "}");
+
+                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
             }
 
             builder.properties(ElasticIndexDefinition.SIMILARITY_TAGS,

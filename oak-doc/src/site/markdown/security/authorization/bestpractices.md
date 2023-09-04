@@ -158,6 +158,7 @@ Don't specify redundant access control setup just to be on the safe side:
 
 - If access is granted, avoid repeating the same setup down the hierarchy.
 - Avoid setup for principals with administrative access for which permission evaluation is omitted. It might even create a false sense of security.
+- Avoid redundant membership as it will impact performance of permission evaluation
 
 ### Principal by principle
 

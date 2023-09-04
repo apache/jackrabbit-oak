@@ -19,11 +19,24 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.IndexHelper;
+import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
+import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +44,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -38,22 +52,29 @@ import java.util.function.Predicate;
 
 import static java.util.Collections.unmodifiableSet;
 
+/**
+ * This class is where the strategy being selected for building FlatFileStore.
+ */
 public class FlatFileNodeStoreBuilder {
 
     private static final String FLAT_FILE_STORE_DIR_NAME_PREFIX = "flat-fs-";
 
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    public static final String OAK_INDEXER_USE_LZ4 = "oak.indexer.useLZ4";
     /**
      * System property name for sort strategy. If this is true, we use {@link MultithreadedTraverseWithSortStrategy}, else
      * {@link StoreAndSortStrategy} strategy is used.
      * NOTE - System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} takes precedence over this one.
      */
-    static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
+    public static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
     /**
      * System property name for sort strategy. This takes precedence over {@link #OAK_INDEXER_TRAVERSE_WITH_SORT}.
      * Allowed values are the values from enum {@link SortStrategyType}
      */
     public static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
+    /**
+     * System property to define the existing folder containing the flat file store files
+     */
     public static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
 
     /**
@@ -82,7 +103,7 @@ public class FlatFileNodeStoreBuilder {
      * System property for specifying number of files for batch merge task when using {@link MultithreadedTraverseWithSortStrategy}
      */
     static final String PROP_MERGE_TASK_BATCH_SIZE = "oak.indexer.mergeTaskBatchSize";
-
+    
     /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */
@@ -105,11 +126,17 @@ public class FlatFileNodeStoreBuilder {
     private long dumpThreshold = Integer.getInteger(OAK_INDEXER_DUMP_THRESHOLD_IN_MB, OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT) * FileUtils.ONE_MB;
     private Predicate<String> pathPredicate = path -> true;
 
-    private final boolean useZip = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
+    private final Compression algorithm = compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) :
+        Compression.NONE;
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
             (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.STORE_AND_SORT);
+    private RevisionVector rootRevision = null;
+    private DocumentNodeStore nodeStore = null;
+    private MongoDocumentStore mongoDocumentStore = null;
 
     public enum SortStrategyType {
         /**
@@ -123,7 +150,11 @@ public class FlatFileNodeStoreBuilder {
         /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
          */
-        MULTITHREADED_TRAVERSE_WITH_SORT
+        MULTITHREADED_TRAVERSE_WITH_SORT,
+        /**
+         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
+         */
+        PIPELINED
     }
 
     public FlatFileNodeStoreBuilder(File workDir, MemoryManager memoryManager) {
@@ -173,59 +204,135 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    public FlatFileNodeStoreBuilder withRootRevision(RevisionVector rootRevision) {
+        this.rootRevision = rootRevision;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withNodeStore(DocumentNodeStore nodeStore) {
+        this.nodeStore = nodeStore;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMongoDocumentStore(MongoDocumentStore mongoDocumentStore) {
+        this.mongoDocumentStore = mongoDocumentStore;
+        return this;
+    }
+
+
     public FlatFileStore build() throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
-        FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFile(), new NodeStateEntryReader(blobStore),
-                unmodifiableSet(preferredPathElements), useZip);
+        FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFiles().get(0),
+            new NodeStateEntryReader(blobStore),
+                unmodifiableSet(preferredPathElements), algorithm);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
         }
         return store;
     }
 
-    private File createdSortedStoreFile() throws IOException, CompositeException {
+    public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
+            Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
+        logFlags();
+        comparator = new PathElementComparator(preferredPathElements);
+        entryWriter = new NodeStateEntryWriter(blobStore);
+
+        List<File> fileList = createdSortedStoreFiles();
+        
+        long start = System.currentTimeMillis();
+        // If not already split, split otherwise skip splitting
+        if (!fileList.stream().allMatch(FlatFileSplitter.IS_SPLIT)) {
+            NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
+            FlatFileSplitter splitter = new FlatFileSplitter(fileList.get(0), indexHelper.getWorkDir(),
+                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
+                indexDefinitions);
+            fileList = splitter.split();
+            log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
+        }
+
+        List<FlatFileStore> storeList = new ArrayList<>();
+        for (File flatFileItem : fileList) {
+            FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, new NodeStateEntryReader(blobStore),
+                    unmodifiableSet(preferredPathElements), algorithm);
+            storeList.add(store);
+        }
+        return storeList;
+    }
+
+    /**
+     * Returns the existing list of store files if it can read from system property OAK_INDEXER_SORTED_FILE_PATH which 
+     * defines the existing folder where the flat file store files are present. Will throw an exception if it cannot 
+     * read or the path in the system property is not a directory.
+     * If the system property OAK_INDEXER_SORTED_FILE_PATH in undefined, or it cannot read relevant files it 
+     * initializes the flat file store.
+     * 
+     * @return list of flat files
+     * @throws IOException 
+     * @throws CompositeException
+     */
+    private List<File> createdSortedStoreFiles() throws IOException, CompositeException {
+        // Check system property defined path
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
-        if (sortedFilePath != null) {
-            File sortedFile = new File(sortedFilePath);
-            if (sortedFile.exists() && sortedFile.isFile() && sortedFile.canRead()) {
-                log.info("Reading from provided sorted file [{}] (via system property '{}')",
-                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
-                return sortedFile;
-            } else {
-                String msg = String.format("Cannot read sorted file at [%s] configured via system property '%s'",
-                        sortedFile.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
-                throw new IllegalArgumentException(msg);
+        if (StringUtils.isNotBlank(sortedFilePath)) {
+            File sortedDir = new File(sortedFilePath);
+            log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
+                sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+            List<File> files = getFiles(sortedDir);
+            if (files != null) {
+                return files;
+            }
+        }
+
+        // Initialize the flat file store again
+
+        createStoreDir();
+        SortStrategy strategy = createSortStrategy(flatFileStoreDir);
+        File result = strategy.createSortedStoreFile();
+        entryCount = strategy.getEntryCount();
+        return Collections.singletonList(result);
+    }
+
+    @Nullable
+    private List<File> getFiles(File sortedDir) {
+        if (sortedDir.exists() && sortedDir.canRead() && sortedDir.isDirectory()) {
+            File[] files = sortedDir.listFiles(
+                (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
+            if (files != null && files.length != 0) {
+                return Arrays.asList(files);
             }
         } else {
-            createStoreDir();
-            org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy strategy = createSortStrategy(flatFileStoreDir);
-            File result = strategy.createSortedStoreFile();
-            entryCount = strategy.getEntryCount();
-            return result;
+            String msg = String.format("Cannot read sorted files directory at [%s]", sortedDir.getAbsolutePath());
+            throw new IllegalArgumentException(msg);
         }
+        return null;
     }
 
     SortStrategy createSortStrategy(File dir) throws IOException {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy");
-                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, algorithm, pathPredicate);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
-                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, useZip, pathPredicate);
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, algorithm, pathPredicate);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, useZip, memoryManager, dumpThreshold, pathPredicate);
+                        blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate);
+            case PIPELINED:
+                log.info("Using PipelinedStrategy");
+                return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
 
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
-        log.info("Compression enabled while sorting : {} ({})", useZip, OAK_INDEXER_USE_ZIP);
+        log.info("Compression enabled while sorting : {} ({})", compressionEnabled, OAK_INDEXER_USE_ZIP);
+        log.info("LZ4 enabled for compression algorithm : {} ({})", useLZ4, OAK_INDEXER_USE_LZ4);
         log.info("Sort strategy : {} ({})", sortStrategyType, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 

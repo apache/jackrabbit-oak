@@ -16,17 +16,10 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.HashSet;
-import java.util.Set;
-import javax.jcr.RepositoryException;
-import javax.security.auth.Subject;
-
 import org.apache.jackrabbit.api.security.principal.PrincipalIterator;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Impersonation;
-import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
@@ -38,6 +31,12 @@ import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.jcr.RepositoryException;
+import javax.security.auth.Subject;
+import java.security.Principal;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -127,15 +126,21 @@ class ImpersonationImpl implements Impersonation, UserConstants {
             return false;
         }
 
+        Set<Principal> principals = subject.getPrincipals();
         Set<String> principalNames = new HashSet<>();
-        for (Principal principal : subject.getPrincipals()) {
+        for (Principal principal : principals) {
             principalNames.add(principal.getName());
+        }
+
+        // OAK-10173 : short-cut if the subject contains any of the configured principal names that can impersonate all users
+        if (isImpersonator(principalNames)){
+            return true;
         }
 
         boolean allows = getImpersonatorNames().removeAll(principalNames);
         if (!allows) {
             // check if subject belongs to administrator user
-            for (Principal principal : subject.getPrincipals()) {
+            for (Principal principal : principals) {
                 if (isAdmin(principal)) {
                     allows = true;
                     break;
@@ -152,7 +157,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     }
 
     @NotNull
-    private Set<String> getImpersonatorNames(@NotNull Tree userTree) {
+    private static Set<String> getImpersonatorNames(@NotNull Tree userTree) {
         Set<String> princNames = new HashSet<>();
         PropertyState impersonators = userTree.getProperty(REP_IMPERSONATORS);
         if (impersonators != null) {
@@ -163,7 +168,7 @@ class ImpersonationImpl implements Impersonation, UserConstants {
         return princNames;
     }
 
-    private void updateImpersonatorNames(@NotNull Tree userTree, @NotNull Set<String> principalNames) {
+    private static void updateImpersonatorNames(@NotNull Tree userTree, @NotNull Set<String> principalNames) {
         if (principalNames.isEmpty()) {
             userTree.removeProperty(REP_IMPERSONATORS);
         } else {
@@ -174,17 +179,23 @@ class ImpersonationImpl implements Impersonation, UserConstants {
     private boolean isAdmin(@NotNull Principal principal) {
         if (principal instanceof AdminPrincipal) {
             return true;
-        } else if (GroupPrincipals.isGroup(principal)) {
-            return false;
-        } else {
-            try {
-                Authorizable authorizable = user.getUserManager().getAuthorizable(principal);
-                return authorizable != null && !authorizable.isGroup() && ((User) authorizable).isAdmin();
-            } catch (RepositoryException e) {
-                log.debug(e.getMessage());
-                return false;
-            }
         }
+        if (GroupPrincipals.isGroup(principal)) {
+            return false;
+        }
+        return Utils.isAdmin(principal, user.getUserManager());
+    }
+
+    private boolean isImpersonator(@NotNull Set<String> principalNames) {
+        Set<String> impersonatorPrincipals = Set.of(user.getUserManager().getConfig().getConfigValue(
+                PARAM_IMPERSONATOR_PRINCIPAL_NAMES,
+                new String[]{}));
+
+        if (impersonatorPrincipals.isEmpty()) {
+            return false;
+        }
+        return principalNames.stream()
+                .anyMatch(impersonatorPrincipals::contains);
     }
 
     private boolean isValidPrincipal(@NotNull Principal principal) {

@@ -19,7 +19,9 @@
 
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+
+import java.util.Hashtable;
 import java.util.Properties;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
@@ -185,7 +187,7 @@ public class MountInfoProviderServiceTest {
 
     private void registerActivateMountInfoConfig(MountInfoConfig.Props mountInfoProps) {
         MountInfoConfig mountInfoConfig = new MountInfoConfig();
-        context.bundleContext().registerService(MountInfoConfig.class.getName(), mountInfoConfig, new Properties());
+        context.bundleContext().registerService(MountInfoConfig.class, mountInfoConfig, new Hashtable<String, Object>());
         mountInfoConfig.activate(context.bundleContext(), mountInfoProps);
     }
 

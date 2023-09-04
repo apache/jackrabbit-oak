@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import com.google.common.base.Predicate;
-import com.google.common.hash.BloomFilter;
-import com.google.common.hash.Funnel;
-import com.google.common.hash.PrimitiveSink;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.hash.BloomFilter;
+import org.apache.jackrabbit.guava.common.hash.Funnel;
+import org.apache.jackrabbit.guava.common.hash.PrimitiveSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

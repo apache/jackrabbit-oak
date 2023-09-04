@@ -27,8 +27,8 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Map;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.cm.file.ConfigurationHandler;
 import org.apache.jackrabbit.core.data.DataStore;
@@ -42,7 +42,7 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.cleanup;
 import static org.apache.jackrabbit.oak.fixture.DataStoreUtils.configureIfCloudDataStore;
 

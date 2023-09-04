@@ -19,8 +19,10 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.junit.Test;
 
@@ -33,7 +35,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.MultithreadedTraverseWithSortStrategy.DirectoryHelper;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
 import static org.junit.Assert.assertEquals;
 
 public class MultithreadedTraverseWithSortStrategyTest {
@@ -43,7 +44,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         List<Long> lastModifiedBreakpoints = Arrays.asList(10L, 20L, 30L, 40L);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                lastModifiedBreakpoints, null, null, null, null, true, null,
+                lastModifiedBreakpoints, null, null, null, null, Compression.GZIP, null,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
 
             @Override
@@ -54,7 +55,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         assertEquals(lastModifiedBreakpoints.size(), ranges.size());
         for (int i = 0; i < lastModifiedBreakpoints.size(); i++) {
             long lm = lastModifiedBreakpoints.get(i);
-            LastModifiedRange lmRange = new LastModifiedRange(lm, i < lastModifiedBreakpoints.size() - 1 ? lastModifiedBreakpoints.get(i+1) : lm+1);
+            LastModifiedRange lmRange = new LastModifiedRange(lm, i < lastModifiedBreakpoints.size() - 1 ? lastModifiedBreakpoints.get(i + 1) : lm + 1);
             assertEquals(ranges.get(i), new TraversingRange(lmRange, null));
         }
     }
@@ -103,7 +104,7 @@ public class MultithreadedTraverseWithSortStrategyTest {
         workDirs.add(workDir);
         List<TraversingRange> ranges = new ArrayList<>();
         MultithreadedTraverseWithSortStrategy mtws = new MultithreadedTraverseWithSortStrategy(null,
-                null, null, null, null, workDirs, true, null,
+                null, null, null, null, workDirs, Compression.GZIP, null,
                 FlatFileNodeStoreBuilder.OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT * FileUtils.ONE_MB, path -> true) {
             @Override
             void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,

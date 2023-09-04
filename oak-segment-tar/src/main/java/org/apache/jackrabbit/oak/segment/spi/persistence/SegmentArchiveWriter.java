@@ -140,4 +140,14 @@ public interface SegmentArchiveWriter {
      */
     @NotNull
     String getName();
+
+    /**
+     * This method returns {@code true} if the storage is accessed via a network protocol, not tight to the traditional storage technology,
+     * for example, HTTP. Based on that info, for instance, calling classes can decide to update archive metadata (graph, binary references, index) more frequently,
+     * and not only when the archive is being closed. With that multiple Oak processes can access the storage simultaneously, with one process in read-write mode and
+     * one or more processes in read-only mode.
+     *
+     * @return
+     */
+    boolean isRemote();
 }

@@ -30,7 +30,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.junit.Assert.assertEquals;
 
 public class CopyOnReadDirectoryTest {
@@ -41,7 +41,7 @@ public class CopyOnReadDirectoryTest {
     public void multipleCloseCalls() throws Exception{
         AtomicInteger executionCount = new AtomicInteger();
         Executor e = r -> {executionCount.incrementAndGet(); r.run();};
-        IndexCopier c = new IndexCopier(sameThreadExecutor(), temporaryFolder.newFolder(), true);
+        IndexCopier c = new IndexCopier(newDirectExecutorService(), temporaryFolder.newFolder(), true);
         Directory dir = new CopyOnReadDirectory(c, new RAMDirectory(), new RAMDirectory(), false, "foo", e);
 
         dir.close();

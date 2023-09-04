@@ -23,7 +23,8 @@ import java.util.List;
 
 /**
  * Stats Collector for throttling operation.
- * <p/>It's implementation are required to provide the time taken for implementing each operation while throttling is ON.
+ * <p>
+ * It's implementation are required to provide the time taken for implementing each operation while throttling is ON.
  */
 public interface ThrottlingStatsCollector {
 
@@ -56,6 +57,18 @@ public interface ThrottlingStatsCollector {
      * @param retryCount number of retries done to get the update
      */
     void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, String key, boolean newEntry,
+                           boolean success, int retryCount);
+
+    /**
+     * Called when a update operation was completed which could have affected multiple
+     * documents.
+     * @param throttlingTimeNanos time taken
+     * @param collection the collection
+     * @param ids List of document ids which got updated
+     * @param success true if the update was success
+     * @param retryCount number of retries done to get the update
+     */
+    void doneFindAndModify(long throttlingTimeNanos, Collection<? extends Document> collection, List<String> ids,
                            boolean success, int retryCount);
 
     /**

@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import com.mongodb.MongoClient;
 
 import org.apache.commons.io.FilenameUtils;
@@ -326,6 +326,18 @@ public class DocumentNodeStoreServiceTest {
         rgcJob.run(); //Need to trigger run method explicitly as delay-factor is set in this method
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
         assertEquals(delayFactor, dns.getVersionGarbageCollector().getOptions().delayFactor, 0.001);
+    }
+
+    @Test
+    public void suspendTimeoutMillis() {
+        Map<String, Object> config = newConfig(repoHome);
+        long suspendTimeoutMillis = 5000;
+        config.put("suspendTimeoutMillis", suspendTimeoutMillis);
+        MockOsgi.setConfigForPid(context.bundleContext(), PID, config);
+        MockOsgi.activate(service, context.bundleContext());
+
+        DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
+        assertEquals(suspendTimeoutMillis, dns.commitQueue.getSuspendTimeoutMillis());
     }
 
     @NotNull

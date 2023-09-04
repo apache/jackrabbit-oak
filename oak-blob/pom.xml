@@ -21,7 +21,7 @@
   <parent>
     <artifactId>oak-parent</artifactId>
     <groupId>org.apache.jackrabbit</groupId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.57-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -37,10 +37,6 @@
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
           <instructions>
-            <Import-Package>
-              <!-- OAK-7182 -->${guava.osgi.import},
-              *
-            </Import-Package>
             <Export-Package>
               org.apache.jackrabbit.oak.spi.blob,
               org.apache.jackrabbit.oak.spi.blob.stats,
@@ -56,17 +52,17 @@
     <!-- Optional OSGi dependencies, used only when running within OSGi -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
+      <artifactId>org.osgi.annotation.versioning</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.compendium</artifactId>
+      <artifactId>osgi.core</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.annotation</artifactId>
+      <artifactId>org.osgi.service.component</artifactId>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -94,8 +90,9 @@
 
     <!-- General utility libraries -->
     <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-shaded-guava</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-io</groupId>

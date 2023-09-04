@@ -16,8 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -25,6 +27,8 @@ import java.util.Collections;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ReadPolicyTest {
 
@@ -53,5 +57,21 @@ public class ReadPolicyTest {
         assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/some/random"), path));
         assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", "/some/random/path"), path));
         assertTrue(ReadPolicy.hasEffectiveReadPolicy(ImmutableSet.of("/another/path", PathUtils.ROOT_PATH), path));
+    }
+    
+    @Test
+    public void testCanAccessReadPolicy() {
+        PermissionProvider pp = mock(PermissionProvider.class);
+        
+        assertFalse(ReadPolicy.canAccessReadPolicy(pp));
+        assertFalse(ReadPolicy.canAccessReadPolicy(pp, "/test/path"));
+        
+        when(pp.isGranted("/test/path", Permissions.PERMISSION_NAMES.get(Permissions.READ_ACCESS_CONTROL))).thenReturn(true);
+
+        assertFalse(ReadPolicy.canAccessReadPolicy(pp));
+        assertFalse(ReadPolicy.canAccessReadPolicy(pp, "/different/path"));
+
+        assertTrue(ReadPolicy.canAccessReadPolicy(pp, "/test/path"));
+        assertTrue(ReadPolicy.canAccessReadPolicy(pp, "/different/path", "/test/path"));
     }
 }

@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.oak.api.ContentSession;
@@ -231,7 +231,9 @@ public class ReadablePathsAccessControlTest extends AbstractPrincipalBasedTest {
 
     @Test
     public void testGetEffectivePoliciesByPrincipal() throws Exception {
-        // NOTE: lookup by principal currently doesn't include READ_POLICY in accordance to default ac implementation
-        assertEquals(0, acMgr.getEffectivePolicies(Collections.singleton(testPrincipal)).length);
+        // OAK-10135 : include read-policy in effective policies by principal result
+        AccessControlPolicy[] effective = acMgr.getEffectivePolicies(Collections.singleton(testPrincipal));
+        assertEquals(1, effective.length);
+        assertTrue(effective[0] instanceof ReadPolicy);
     }
 }

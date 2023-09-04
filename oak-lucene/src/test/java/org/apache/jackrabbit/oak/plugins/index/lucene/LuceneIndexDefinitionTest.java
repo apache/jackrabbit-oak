@@ -24,7 +24,7 @@ import java.util.List;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
@@ -46,7 +46,7 @@ import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.TieredMergePolicy;
 import org.junit.Test;
 
-import static com.google.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static javax.jcr.PropertyType.TYPENAME_LONG;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
@@ -54,8 +54,8 @@ import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.api.Type.NAMES;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANALYZERS;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.ANL_DEFAULT;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANALYZERS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.ANL_DEFAULT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.registerTestNodeType;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLuceneIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexHelper.newLucenePropertyIndexDefinition;
@@ -605,8 +605,8 @@ public class LuceneIndexDefinitionTest {
         //Set this to -1 to avoid wrapping by LimitAnalyzer
         defnb.setProperty(FulltextIndexConstants.MAX_FIELD_LENGTH, -1);
         defnb.child(ANALYZERS).child(ANL_DEFAULT)
-                .child(LuceneIndexConstants.ANL_TOKENIZER)
-                .setProperty(LuceneIndexConstants.ANL_NAME, "whitespace");
+                .child(FulltextIndexConstants.ANL_TOKENIZER)
+                .setProperty(FulltextIndexConstants.ANL_NAME, "whitespace");
         LuceneIndexDefinition defn = new LuceneIndexDefinition(root, defnb.getNodeState(), "/foo");
         assertEquals(TokenizerChain.class.getName(), defn.getAnalyzer().getClass().getName());
     }

@@ -23,13 +23,13 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleW
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean;
 import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils;
 
 public class IndexMBeanRegistration implements Registration {

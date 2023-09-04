@@ -34,19 +34,20 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Queues;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.LuceneIndexWriter;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -133,10 +134,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.base.Predicates.notNull;
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.api.Type.LONG;
@@ -146,6 +147,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.denotesRoot;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.TYPE_LUCENE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexLookupUtil.LUCENE_INDEX_DEFINITION_PREDICATE;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.NATIVE_SORT_ORDER;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
@@ -194,10 +196,14 @@ import static org.apache.lucene.search.BooleanClause.Occur.*;
  */
 public class LucenePropertyIndex extends FulltextIndex {
 
+    private static final Logger LOG = LoggerFactory
+            .getLogger(LucenePropertyIndex.class);
+    private static final PerfLogger PERF_LOGGER =
+        new PerfLogger(LoggerFactory.getLogger(LucenePropertyIndex.class.getName() + ".perf"));
 
     private final static long LOAD_DOCS_WARN = Long.getLong("oak.lucene.loadDocsWarn", 30 * 1000L);
     private final static long LOAD_DOCS_STOP = Long.getLong("oak.lucene.loadDocsStop", 3 * 60 * 1000L);
-    private final static boolean NON_LAZY = Boolean.getBoolean("oak.lucene.nonLazyIndex");
+    private final static boolean NON_LAZY = SystemPropertySupplier.create("oak.lucene.nonLazyIndex", true).loggingTo(LOG).get();
     public final static String OLD_FACET_PROVIDER_CONFIG_NAME = "oak.lucene.oldFacetProvider";
     private final static boolean OLD_FACET_PROVIDER = Boolean.getBoolean(OLD_FACET_PROVIDER_CONFIG_NAME);
     public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
@@ -205,11 +211,6 @@ public class LucenePropertyIndex extends FulltextIndex {
             Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
 
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
-
-    private static final Logger LOG = LoggerFactory
-        .getLogger(LucenePropertyIndex.class);
-    private static final PerfLogger PERF_LOGGER =
-        new PerfLogger(LoggerFactory.getLogger(LucenePropertyIndex.class.getName() + ".perf"));
 
     /**
      * Batch size for fetching results from Lucene queries.
@@ -224,6 +225,12 @@ public class LucenePropertyIndex extends FulltextIndex {
     private final PostingsHighlighter postingsHighlighter = new PostingsHighlighter();
 
     private final IndexAugmentorFactory augmentorFactory;
+
+    static {
+        if (!NON_LAZY) {
+            LOG.warn("Lazy index download is enabled explicitly; this is not recommended, see OAK-10102.");
+        }
+    }
 
     public LucenePropertyIndex(IndexTracker tracker) {
         this(tracker, null);
@@ -1223,8 +1230,8 @@ public class LucenePropertyIndex extends FulltextIndex {
                     }
                     return in;
                 } else if (pr.isNotNullRestriction()) {
-                    // not null. For date lower bound of zero can be used
-                    return NumericRangeQuery.newLongRange(propertyName, 0L, Long.MAX_VALUE, true, true);
+                    // not null. As we are indexing generic dates which can be beyond epoch. So using complete numeric range
+                    return NumericRangeQuery.newLongRange(propertyName, Long.MIN_VALUE, Long.MAX_VALUE, true, true);
                 } else if (pr.isNot && pr.not != null) {
                     // -[property]=[value]
                     BooleanQuery bool = new BooleanQuery();
@@ -1539,6 +1546,8 @@ public class LucenePropertyIndex extends FulltextIndex {
             Query subQuery = new BooleanQuery();
             if (pr.indexDefinition.isDynamicBoostLiteEnabled()) {
                 subQuery = tokenToQuery(text, FieldNames.SIMILARITY_TAGS, analyzer);
+                // De-boosting dynamic boost based query so other clauses will have more relevance
+                subQuery.setBoost(DYNAMIC_BOOST_WEIGHT);
             } else if (augmentor != null) {
                 subQuery = augmentor.getQueryTerm(text, analyzer, pr.indexDefinition.getDefinitionNodeState());
             }

@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.value.jcr;
 
-import static com.google.common.base.Objects.toStringHelper;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,7 +25,7 @@ import java.net.URI;
 import javax.jcr.PropertyType;
 import javax.jcr.RepositoryException;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.api.ReferenceBinary;
 import org.apache.jackrabbit.api.binary.BinaryDownload;
 import org.apache.jackrabbit.api.binary.BinaryDownloadOptions;
@@ -93,18 +93,20 @@ class BinaryImpl implements ReferenceBinary, BinaryDownload {
     @Override
     public URI getURI(@NotNull BinaryDownloadOptions downloadOptions)
             throws RepositoryException {
-        if (value.getBlob().isInlined()) {
-            // Binary is inlined, we cannot return a URI for it
+        ValueImpl v = getBinaryValue();
+        if (v == null || v.getBlob().isInlined()) {
+            // property is not a binary, or it is inlined
+            // we cannot return a URI for it
             return null;
         }
 
         // ValueFactoryImpl.getBlobId() will only return a blobId for a BinaryImpl, which
         // a client cannot spoof, so we know that the id in question is valid and can be
         // trusted, so we can safely give out a URI to the binary for downloading.
-        Blob blob = getBinaryValue().getBlob();
+        Blob blob = v.getBlob();
         String blobId = blob.getContentIdentity();
         if (null != blobId) {
-            return value.getDownloadURI(blob, downloadOptions);
+            return v.getDownloadURI(blob, downloadOptions);
         }
         return null;
     }

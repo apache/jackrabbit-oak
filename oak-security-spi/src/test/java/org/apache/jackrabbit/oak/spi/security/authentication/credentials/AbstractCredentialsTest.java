@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.spi.security.authentication.credentials;
 import java.util.Date;
 import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

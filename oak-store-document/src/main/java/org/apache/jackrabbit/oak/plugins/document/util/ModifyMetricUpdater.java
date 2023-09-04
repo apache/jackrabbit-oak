@@ -25,9 +25,10 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentStoreStatsCollector;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.TimerStats;
 
+import java.util.List;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.ObjIntConsumer;
-import java.util.function.Predicate;
 
 import static java.util.Objects.requireNonNull;
 
@@ -61,27 +62,27 @@ public final class ModifyMetricUpdater {
 
     public void update(final Collection<? extends Document> collection, final int retryCount,
                        final long timeTakenNanos, final boolean isSuccess, final boolean  newEntry,
-                       final Predicate<Collection<? extends Document>> isNodesCollection,
+                       final List<String> ids, final BiPredicate<Collection<? extends Document>, Integer> isNodesCollectionUpdated,
                        final BiStatsConsumer createBiStatsConsumer,
                        final BiStatsConsumer updateBiStatsConsumer,
                        final ObjIntConsumer<MeterStats> retryNodesConsumer,
                        final Consumer<MeterStats> failureNodesConsumer) {
 
-        requireNonNull(isNodesCollection);
+        requireNonNull(isNodesCollectionUpdated);
         requireNonNull(createBiStatsConsumer);
         requireNonNull(updateBiStatsConsumer);
         requireNonNull(retryNodesConsumer);
         requireNonNull(failureNodesConsumer);
 
-        if (isNodesCollection.negate().test(collection)) {
+        if (isNodesCollectionUpdated.negate().test(collection, ids.size())) {
             return;
         }
 
         if (isSuccess) {
             if (newEntry) {
-                createBiStatsConsumer.accept(createNodeUpsertMeter, createNodeUpsertTimer, 1, timeTakenNanos);
+                createBiStatsConsumer.accept(createNodeUpsertMeter, createNodeUpsertTimer, ids.size(), timeTakenNanos);
             } else {
-                updateBiStatsConsumer.accept(updateNodeMeter, updateNodeTimer, 1, timeTakenNanos);
+                updateBiStatsConsumer.accept(updateNodeMeter, updateNodeTimer, ids.size(), timeTakenNanos);
             }
             if (retryCount > 0) retryNodesConsumer.accept(updateNodeRetryCountMeter, retryCount);
         } else {

@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -46,7 +46,7 @@ import java.security.Principal;
 import java.util.Map;
 import java.util.Set;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * Implementation of the {@link org.apache.jackrabbit.oak.spi.security.authorization.principalbased.Filter} interface that
@@ -76,6 +76,15 @@ public class FilterProviderImpl implements FilterProvider {
     private final Map<String, String> validatedPrincipalNamesPathMap = Maps.newConcurrentMap();
     private final Map<String, String> unsupportedPrincipalNames = Maps.newConcurrentMap();
 
+    /**
+     * Constructor to use outside OSGi containers
+     * @param oakPath the repository path where the principals are located
+     * @since 1.54
+     */
+    public FilterProviderImpl(@NotNull String oakPath) {
+        setPath(oakPath);
+    }
+
     //-----------------------------------------------------< FilterProvider >---
 
     @Override
@@ -98,19 +107,23 @@ public class FilterProviderImpl implements FilterProvider {
 
     //----------------------------------------------------< SCR Integration >---
 
+    public FilterProviderImpl() {
+        // constructor to use from SCR (not yet possible to use constructor injection, see https://issues.apache.org/jira/browse/OAK-9837)
+    }
+
     @Activate
     protected void activate(Configuration configuration, Map<String, Object> properties) {
-        setPath(configuration);
+        setPath(configuration.path());
     }
 
     @Modified
     protected void modified(Configuration configuration, Map<String, Object> properties) {
-        setPath(configuration);
+        setPath(configuration.path());
     }
 
-    private void setPath(@NotNull Configuration configuration) {
-        checkState(isValidPath(configuration.path()), "Configured path must be a valid absolute path.");
-        oakPath = configuration.path();
+    private void setPath(@NotNull String path) {
+        checkState(isValidPath(path), "Configured path must be a valid absolute path.");
+        oakPath = path;
     }
 
     private static boolean isValidPath(@Nullable String path) {

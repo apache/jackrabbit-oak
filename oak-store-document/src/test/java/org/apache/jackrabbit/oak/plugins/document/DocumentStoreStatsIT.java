@@ -19,12 +19,13 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -35,6 +36,8 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 
 import static java.util.Collections.singletonList;
+import static java.util.List.of;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.junit.Assert.assertTrue;
@@ -48,7 +51,7 @@ import static org.mockito.Mockito.verify;
 
 @SuppressWarnings("Duplicates")
 public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
-    private DocumentStoreStatsCollector stats = mock(DocumentStoreStatsCollector.class);
+    private final DocumentStoreStatsCollector stats = mock(DocumentStoreStatsCollector.class);
     @Rule
     public TestName testName = new TestName();
 
@@ -135,6 +138,43 @@ public class DocumentStoreStatsIT extends AbstractDocumentStoreTest {
         ds.findAndUpdate(Collection.NODES, up);
 
         verify(coll).doneFindAndModify(anyLong(), eq(Collection.NODES), eq(id), eq(false), eq(true), anyInt());
+    }
+
+    @Test
+    public void bulkFindAndModify() {
+        // create ten documents
+        String base = testName.getMethodName();
+        List<UpdateOp> updateOps = new ArrayList<>(10);
+        List<String> ids = new ArrayList<>(10);
+
+        for (int i = 0; i < 10; i++) {
+            String id = base + i;
+            UpdateOp up = new UpdateOp(id, true);
+            boolean success = super.ds.create(NODES, of(up));
+            assertTrue("document with " + id + " not created", success);
+            removeMe.add(id);
+
+            // create update op for modify request
+            up = new UpdateOp(id, false);
+            up.max("_modified", 122L);
+            updateOps.add(up);
+            ids.add(id);
+        }
+
+        DocumentStoreStatsCollector coll = mock(DocumentStoreStatsCollector.class);
+        configureStatsCollector(coll);
+
+        ds.findAndUpdate(NODES, updateOps);
+
+        if (ds instanceof MongoDocumentStore) {
+            // uses bulk find and modify stats collector only in case of MongoDocumentStore
+            verify(coll).doneFindAndModify(anyLong(), eq(NODES), eq(ids), eq(true), anyInt());
+        } else {
+            for (int i = 0; i < 10; i++) {
+                String id = base + i;
+                verify(coll).doneFindAndModify(anyLong(), eq(NODES), eq(id), eq(false), eq(true), anyInt());
+            }
+        }
     }
 
     @Test

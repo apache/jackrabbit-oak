@@ -19,12 +19,12 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.io.UnsupportedEncodingException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Supplier;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.segment.util.SafeEncode;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;

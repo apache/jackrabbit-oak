@@ -26,13 +26,12 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;
-import org.apache.jackrabbit.oak.spi.GuavaDeprecation;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.DEFAULT;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.ScheduleExecutionInstanceTypes.RUN_ON_LEADER;
@@ -170,17 +169,6 @@ public class WhiteboardUtils {
         }
     }
 
-
-    /**
-     * @deprecated use {@link #getServices(Whiteboard, Class, java.util.function.Predicate)} instead
-     */
-    @NotNull
-    @Deprecated public static <T> List<T> getServices(@NotNull Whiteboard wb, @NotNull Class<T> type,
-            @Nullable com.google.common.base.Predicate<T> predicate) {
-        GuavaDeprecation.handleCall("OAK-8685");
-        return getServices(wb, type, (java.util.function.Predicate<T>) (input) -> predicate.apply(input));
-    }
-
     /**
      * Returns the one of the currently available services from the whiteboard of the tracked type. If {@code predicate} is
      * not {@code null} only a service that match the predicate is returned.
@@ -206,16 +194,5 @@ public class WhiteboardUtils {
             tracker.stop();
         }
 
-    }
-
-    /**
-     * @deprecated use {@link #getService(Whiteboard, Class, Predicate)} instead
-     */
-    @Nullable
-    @Deprecated
-    public static <T> T getService(@NotNull Whiteboard wb, @NotNull Class<T> type,
-            @Nullable com.google.common.base.Predicate<T> predicate) {
-        GuavaDeprecation.handleCall("OAK-8685");
-        return getService(wb, type, (Predicate<T>) (input) -> predicate.apply(input));
     }
 }

@@ -44,9 +44,12 @@ The limitations are described in [Constraints](./constraints.html).
 
 #### Node Name Length Limit
 
-With the document storage backend (MongoDB, RDBMS), there is currently 
-a limit of 150 UTF-8 bytes on the length of the node names.
-See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644).
+With the document storage backend there was a limit of 150 UTF-8 bytes on the
+length of the node names with MongoDB 4.0 and earlier. Starting with Oak 1.44
+and MongoDB 4.2, this limitation has been removed. The limit still exists when
+running Oak on a document storage backend using RDBMS.
+See also [OAK-2644](https://issues.apache.org/jira/browse/OAK-2644) and
+[OAK-9757](https://issues.apache.org/jira/browse/OAK-9757).
 
 ### Session state and refresh behaviour
 
@@ -110,9 +113,9 @@ return an object of type `QueryObjectModel`.
 * Push notification mechanisms like JCR observation weight heavy on distributed systems. Therefore,
   if an application requirement is not actually an "eventing problem" consider using different means
   like query and custom indexes.
-  [Apache Sling](http://sling.apache.org) identified and classified common [usage patterns]
-  (https://cwiki.apache.org/confluence/display/SLING/Observation+usage+patterns) of observation and
-  recommendations on alternative solutions where applicable.
+  [Apache Sling](http://sling.apache.org) identified and classified common
+  [usage patterns](https://cwiki.apache.org/confluence/display/SLING/Observation+usage+patterns)
+  of observation and recommendations on alternative solutions where applicable.
 
 * Event generation is done by looking at the difference between two revisions of the persisted
   content trees. Items not present in a previous revision but present in the current revision are

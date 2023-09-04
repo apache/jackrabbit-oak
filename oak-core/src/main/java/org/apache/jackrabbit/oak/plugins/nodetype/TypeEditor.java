@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.nodetype;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Predicates.in;
-import static com.google.common.collect.Iterables.any;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.any;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_MIXINTYPES;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -44,9 +44,9 @@ import java.util.function.Predicate;
 import javax.jcr.PropertyType;
 import javax.jcr.Value;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -464,27 +464,26 @@ public class TypeEditor extends DefaultEditor {
         }
         // verify the presence of all mandatory items
         if (!properties.isEmpty()) {
-            constraintViolation(21, "Mandatory property " + properties.iterator().next() + " not found in a new node");
+            constraintViolation(21, "Mandatory property '" + properties.iterator().next() + "' not found in a new node");
         }
 
         List<String> names = Lists.newArrayList(after.getChildNodeNames());
         for (String child : effective.getMandatoryChildNodes()) {
             if (!names.remove(child)) {
-                constraintViolation(25, "Mandatory child node " + child + " not found in a new node");
+                constraintViolation(25, "Mandatory child node '" + child + "' not found in a new node");
             }
         }
-        if (!names.isEmpty()) {
-            for (String name : names) {
-                if (NodeStateUtils.isHidden(name)) {
-                    continue;
-                }
+
+        for (String name : names) {
+            if (!NodeStateUtils.isHidden(name)) {
                 NodeState child = after.getChildNode(name);
                 String primary = child.getName(JCR_PRIMARYTYPE);
                 Iterable<String> mixins = child.getNames(JCR_MIXINTYPES);
                 NodeBuilder childBuilder = builder.getChildNode(name);
                 TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder, false);
                 if (!effective.isValidChildNode(name, editor.getEffective())) {
-                    constraintViolation(25, "Unexpected child node " + name + " found in a new node");
+                    constraintViolation(25, "Unexpected child node '" + name + "' of effective type '" + editor.getEffective()
+                            + "' found in a new node");
                 }
             }
         }

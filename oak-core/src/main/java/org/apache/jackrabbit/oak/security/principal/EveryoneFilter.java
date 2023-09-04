@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.principal;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.jetbrains.annotations.NotNull;

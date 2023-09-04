@@ -69,6 +69,16 @@ public class JackrabbitAccessControlManagerDelegatorTest extends AbstractDelegat
         verifyNoMoreInteractions(jrAcMgr, sessionDelegate);
         verifyNoInteractions(principal);
     }
+
+    @Test
+    public void testGetEffectivePoliciesByPrincipalsAndPaths() throws Exception {
+        delegator.getEffectivePolicies(Collections.singleton(principal), absPath);
+        
+        verify(jrAcMgr).getEffectivePolicies(Collections.singleton(principal), absPath);
+        verify(sessionDelegate).perform(any(SessionOperation.class));
+        verifyNoMoreInteractions(jrAcMgr, sessionDelegate);
+        verifyNoInteractions(principal);
+    }
     
     @Test
     public void testHasPrivilegesByPrincipals() throws Exception {

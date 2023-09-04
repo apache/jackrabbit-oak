@@ -26,7 +26,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.io.Files;
 import com.google.gson.stream.JsonWriter;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.json.Base64BlobSerializer;
@@ -36,9 +36,9 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class NodeStateSerializer {
     public enum Format {JSON, TXT}

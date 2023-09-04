@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.jcr.delegate;
 
-import static com.google.common.base.Objects.toStringHelper;
-import static com.google.common.collect.Iterables.addAll;
-import static com.google.common.collect.Iterables.contains;
-import static com.google.common.collect.Iterators.filter;
-import static com.google.common.collect.Iterators.transform;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.newLinkedHashSet;
+import static org.apache.jackrabbit.guava.common.base.MoreObjects.toStringHelper;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.addAll;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterators.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newLinkedHashSet;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISMIXIN;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKISDEEP;
 import static org.apache.jackrabbit.JcrConstants.JCR_LOCKOWNER;
@@ -71,8 +71,8 @@ import javax.jcr.nodetype.ConstraintViolationException;
 import javax.jcr.nodetype.NoSuchNodeTypeException;
 import javax.jcr.security.AccessControlException;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -389,8 +389,8 @@ public class NodeDelegate extends ItemDelegate {
         }
     }
 
-    public void addMixin(String typeName) throws RepositoryException {
-        TreeUtil.addMixin(getTree(), typeName, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH), getUserID());
+    public void addMixin(Function<Tree, Iterable<String>> existingMixins, String typeName) throws RepositoryException {
+        TreeUtil.addMixin(getTree(), existingMixins, typeName, sessionDelegate.getRoot().getTree(NODE_TYPES_PATH), getUserID());
     }
 
     public void removeMixin(String typeName) throws RepositoryException {
@@ -421,7 +421,7 @@ public class NodeDelegate extends ItemDelegate {
     public void updateMixins(Set<String> addMixinNames, Set<String> removedOakMixinNames) throws RepositoryException {
         // 1. set all new mixin types including validation
         for (String oakMixinName : addMixinNames) {
-            addMixin(oakMixinName);
+            addMixin(TreeUtil::getMixinTypeNames, oakMixinName);
         }
 
         if (!removedOakMixinNames.isEmpty()) {

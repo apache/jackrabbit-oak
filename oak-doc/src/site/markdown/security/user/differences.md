@@ -67,11 +67,9 @@ invalid transient modifications.
 The user query is expected to work as in Jackrabbit 2.x with the following notable
 bug fixes:
 
-* `QueryBuilder#setScope(String groupID, boolean declaredOnly)` now also works properly
-  for the everyone group (see [OAK-949])
-* `QueryBuilder#impersonates(String principalName)` works properly for the admin
-  principal which are specially treated in the implementation of the `Impersonation`
-  interface (see [OAK-1183]).
+* `QueryBuilder#setScope(String groupID, boolean declaredOnly)` now also works properly for the `everyone` group (see [OAK-949])
+* `QueryBuilder#impersonates(String principalName)` works properly for the admin principal which are specially treated in the implementation of the `Impersonation` interface (see [OAK-1183]).
+* `QueryBuilder#impersonates(String principalName)` respects the `PARAM_IMPERSONATOR_PRINCIPAL_NAMES` configuration option (see [OAK-10173])
 
 #### Additional Functionality
 
@@ -133,4 +131,5 @@ in Jackrabbit 2.x are no longer supported and will be ignored:
 
 [OAK-949]: https://issues.apache.org/jira/browse/OAK-949
 [OAK-1183]: https://issues.apache.org/jira/browse/OAK-1183
+[OAK-10173]: https://issues.apache.org/jira/browse/OAK-10173
 [everyone]: /oak/docs/apidocs/org/apache/jackrabbit/oak/spi/security/principal/EveryonePrincipal.html

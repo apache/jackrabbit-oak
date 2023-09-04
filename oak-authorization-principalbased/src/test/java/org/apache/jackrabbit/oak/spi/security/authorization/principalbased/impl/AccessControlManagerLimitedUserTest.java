@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -29,7 +29,10 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
+import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ImmutableACL;
+import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPolicy;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -44,6 +47,10 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.NT_REP_PRINCIPAL_ENTRY;
 import static org.apache.jackrabbit.oak.spi.security.authorization.principalbased.impl.Constants.REP_EFFECTIVE_PATH;
@@ -53,6 +60,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Tests for PrincipalBasedAccessControlManager where the editing session (based on a regular user with default
@@ -258,6 +266,15 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
         root.commit();
         testRoot.refresh();
         assertPolicies(testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal)), ImmutableACL.class, 1, 2);
+
+        // make sure test-user has read-accesscontrol permission on any readable-path
+        grant(testPrincipal, PathUtils.ROOT_PATH, JCR_READ_ACCESS_CONTROL);
+        root.commit();
+        testRoot.refresh();
+
+        AccessControlPolicy[] effective = testAcMgr.getEffectivePolicies(ImmutableSet.of(systemPrincipal));;
+        assertPolicies(effective, ImmutableACL.class, 2, 2);
+        assertTrue(effective[1] instanceof ReadPolicy);
     }
 
     @Test(expected = AccessDeniedException.class)
@@ -753,5 +770,20 @@ public class AccessControlManagerLimitedUserTest extends AbstractPrincipalBasedT
 
         testRoot.getTree(getEntryPath()).remove();
         testRoot.commit();
+    }
+
+    @Test
+    public void testGetEffectivePrincipalsReadablePaths() throws Exception {
+        Set<String> readablePaths = getConfig(AuthorizationConfiguration.class).getParameters().getConfigValue(PermissionConstants.PARAM_READ_PATHS, PermissionConstants.DEFAULT_READ_PATHS);
+        String[] paths = readablePaths.stream().map(oakPath -> namePathMapper.getJcrPath(oakPath)).distinct().toArray(String[]::new);
+        assertEquals(3, paths.length);
+
+        // readpolicy must not be included if editing session doesn't have sufficient permission on readable paths.
+        try {
+            getAccessControlManager(testRoot).getEffectivePolicies(Collections.singleton(systemPrincipal), paths);
+            fail("AccessDenied exception expected");
+        } catch (AccessDeniedException e) {
+            // success
+        }
     }
 }

@@ -18,10 +18,10 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Throwables.getStackTraceAsString;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Throwables.getStackTraceAsString;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.api.jmx.IndexStatsMBean.STATUS_DONE;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.ASYNC_PROPERTY_NAME;
@@ -49,7 +49,7 @@ import javax.management.openmbean.SimpleType;
 import javax.management.openmbean.TabularData;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.stats.TimeSeries;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -97,10 +97,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Splitter;
-import com.google.common.base.Stopwatch;
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 
 public class AsyncIndexUpdate implements Runnable, Closeable {
     /**
@@ -1096,7 +1096,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 failingSince = latestErrorTime;
                 latestErrorWarn = System.currentTimeMillis();
                 if (isConcurrentUpdateException) {
-                    log.info("[{}]", name,  e.getMessage());
+                    log.info("[{}] The index update failed : {}", name,  e.getMessage());
                 } else {
                     log.warn("[{}] The index update failed", name, e);
                 }
@@ -1106,7 +1106,7 @@ public class AsyncIndexUpdate implements Runnable, Closeable {
                 if (warn) {
                     latestErrorWarn = System.currentTimeMillis();
                     if (isConcurrentUpdateException) {
-                        log.info("[{}]", name,  e.getMessage());
+                        log.info("[{}] The index update is still failing : {}", name,  e.getMessage());
                     } else {
                         log.warn("[{}] The index update is still failing", name, e);
                     }

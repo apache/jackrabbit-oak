@@ -22,7 +22,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.File;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.junit.Test;
 

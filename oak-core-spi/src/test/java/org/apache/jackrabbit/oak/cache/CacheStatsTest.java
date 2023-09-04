@@ -24,9 +24,9 @@ import static org.junit.Assert.assertTrue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.Weigher;
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;

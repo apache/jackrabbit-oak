@@ -16,13 +16,13 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.persistentCache;
 
-import static com.google.common.base.Predicates.in;
-import static com.google.common.base.Predicates.not;
-import static com.google.common.cache.RemovalCause.COLLECTED;
-import static com.google.common.cache.RemovalCause.EXPIRED;
-import static com.google.common.cache.RemovalCause.SIZE;
-import static com.google.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.base.Predicates.in;
+import static org.apache.jackrabbit.guava.common.base.Predicates.not;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.Collections.singleton;
+import static org.apache.jackrabbit.guava.common.cache.RemovalCause.COLLECTED;
+import static org.apache.jackrabbit.guava.common.cache.RemovalCause.EXPIRED;
+import static org.apache.jackrabbit.guava.common.cache.RemovalCause.SIZE;
 
 import java.nio.ByteBuffer;
 import java.util.Collections;
@@ -32,6 +32,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheStats;
+import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -44,15 +49,10 @@ import org.h2.mvstore.MVMap;
 import org.h2.mvstore.WriteBuffer;
 import org.h2.mvstore.type.DataType;
 import org.jetbrains.annotations.Nullable;
-
-import com.google.common.base.Function;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheStats;
-import com.google.common.cache.RemovalCause;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.jackrabbit.guava.common.base.Function;
 
 class NodeCache<K extends CacheValue, V extends  CacheValue>
         implements Cache<K, V>, GenerationCache, EvictionListener<K, V> {

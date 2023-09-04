@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.run;
 
 import java.util.Map;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import io.prometheus.client.exporter.PushGateway;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;

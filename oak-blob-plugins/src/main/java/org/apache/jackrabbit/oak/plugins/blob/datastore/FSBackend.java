@@ -24,16 +24,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
-import com.google.common.io.Closeables;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.io.Closeables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
@@ -41,6 +40,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.LazyFileInputStream;
+import org.apache.jackrabbit.oak.commons.io.FileTreeTraverser;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.apache.jackrabbit.util.TransientFileFactory;
@@ -48,7 +48,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.commons.io.FilenameUtils.normalizeNoEndSeparator;
 
 /**
@@ -157,17 +157,10 @@ public class FSBackend extends AbstractSharedBackend {
 
     @Override
     public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-        return Files.fileTreeTraverser().postOrderTraversal(fsPathDir)
-            .filter(new Predicate<File>() {
-                @Override public boolean apply(File input) {
-                    return input.isFile() && !normalizeNoEndSeparator(input.getParent())
-                        .equals(fsPath);
-                }
-            }).transform(new Function<File, DataIdentifier>() {
-                @Override public DataIdentifier apply(File input) {
-                    return new DataIdentifier(input.getName());
-                }
-            }).iterator();
+        return FileTreeTraverser.depthFirstPostOrder(fsPathDir)
+                .filter(file -> file.isFile() && !normalizeNoEndSeparator(file.getParent()).equals(fsPath))
+                .map(file -> new DataIdentifier(file.getName()))
+                .iterator();
     }
 
     @Override
@@ -307,18 +300,11 @@ public class FSBackend extends AbstractSharedBackend {
     @Override
     public Iterator<DataRecord> getAllRecords() {
         final AbstractSharedBackend backend = this;
-        return Files.fileTreeTraverser().postOrderTraversal(fsPathDir)
-            .filter(new Predicate<File>() {
-                @Override public boolean apply(File input) {
-                    return input.isFile() && !normalizeNoEndSeparator(input.getParent())
-                        .equals(fsPath);
-                }
-            }).transform(new Function<File, DataRecord>() {
-                @Override public DataRecord apply(File input) {
-                    return new FSBackendDataRecord(backend, new DataIdentifier(input.getName()),
-                        input);
-                }
-            }).iterator();
+
+        return FileTreeTraverser.depthFirstPostOrder(fsPathDir)
+                .filter(file -> file.isFile() && !normalizeNoEndSeparator(file.getParent()).equals(fsPath))
+                .map(file -> (DataRecord) new FSBackendDataRecord(backend, new DataIdentifier(file.getName()), file))
+                .iterator();
     }
 
 

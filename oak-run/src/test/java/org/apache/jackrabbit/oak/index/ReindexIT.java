@@ -19,12 +19,13 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
-import com.google.common.io.Files;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.json.JsopDiff;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
@@ -47,6 +48,7 @@ import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 import javax.jcr.query.QueryResult;
 import javax.jcr.query.Row;
+import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -54,7 +56,7 @@ import java.security.Permission;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static java.lang.System.getSecurityManager;
 import static java.lang.System.setSecurityManager;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
@@ -69,7 +71,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class ReindexIT extends AbstractIndexCommandTest {
+public class ReindexIT extends LuceneAbstractIndexCommandTest {
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
     private final PrintStream originalErr = System.err;
 
@@ -111,7 +113,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         command.execute(args);
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
         NodeStore store2 = fixture2.getNodeStore();
         PropertyState reindexCount = getNode(store2.getRoot(), "/oak:index/fooIndex").getProperty(IndexConstants.REINDEX_COUNT);
         assertEquals(1, reindexCount.getValue(Type.LONG).longValue());
@@ -145,12 +147,16 @@ public class ReindexIT extends AbstractIndexCommandTest {
     @Test
     public void reindexAndThenImport() throws Exception {
         createTestData(true);
+        int fooSuggestCount = 2;
+        int contentCount = 100;
+        addSuggestContent(fixture, "/testnode/suggest1", "foo", fooSuggestCount);
         fixture.getAsyncIndexUpdate("async").run();
 
         //Update index to bar property also but do not index yet
         indexBarPropertyAlso(fixture);
 
         int fooCount = getFooCount(fixture, "foo");
+        List<String> suggestResults1 = getSuggestResults(fixture);
         String checkpoint = fixture.getNodeStore().checkpoint(TimeUnit.HOURS.toMillis(24));
 
         //Close the repository so as all changes are flushed
@@ -176,17 +182,19 @@ public class ReindexIT extends AbstractIndexCommandTest {
         //Phase 2 - Add some more indexable content. This would let us validate that post
         //import
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
-        addTestContent(fixture2, "/testNode/b", "foo", 100);
-        addTestContent(fixture2, "/testNode/c", "bar", 100);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
+        addTestContent(fixture2, "/testNode/b", "foo", contentCount);
+        addTestContent(fixture2, "/testNode/c", "bar", contentCount);
+        addSuggestContent(fixture2, "/testNode/suggest2", "foo", fooSuggestCount);
         fixture2.getAsyncIndexUpdate("async").run();
 
         String explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString("traverse"));
         assertThat(explain, not(containsString(TEST_INDEX_PATH)));
-
         int foo2Count = getFooCount(fixture2, "foo");
-        assertEquals(fooCount + 100, foo2Count);
+        List<String> suggestResults2 = getSuggestResults(fixture2);
+        assertEquals(suggestResults1.size() + fooSuggestCount, suggestResults2.size());
+        assertEquals(fooCount + contentCount + fooSuggestCount, foo2Count);
         assertNotNull(fixture2.getNodeStore().retrieve(checkpoint));
         fixture2.close();
 
@@ -211,11 +219,12 @@ public class ReindexIT extends AbstractIndexCommandTest {
         //~-----------------------------------------
         //Phase 4 - Validate the import
 
-        RepositoryFixture fixture4 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture4 = new LuceneRepositoryFixture(storeDir);
         int foo4Count = getFooCount(fixture4, "foo");
-
+        List<String> suggestResults4 = getSuggestResults(fixture4);
         //new count should be same as previous
         assertEquals(foo2Count, foo4Count);
+        assertEquals(suggestResults2.size(), suggestResults4.size());
 
         //Checkpoint must be released
         assertNull(fixture4.getNodeStore().retrieve(checkpoint));
@@ -227,6 +236,20 @@ public class ReindexIT extends AbstractIndexCommandTest {
         //Updates to the index definition should have got picked up
         String explain4 = getQueryPlan(fixture4, "select * from [nt:base] where [bar] is not null");
         assertThat(explain4, containsString(TEST_INDEX_PATH));
+
+        // Run the async index update
+        // This is needed for the refresh of the stored index def to take place.
+        fixture4.getAsyncIndexUpdate("async").run();
+
+        // check if the stored index def has the correct async property set
+        NodeState index = fixture4.getNodeStore().getRoot().getChildNode("oak:index").getChildNode("fooIndex");
+        NodeState storedDef = index.getChildNode(":index-definition");
+
+        // This assertion checks that the diff b/w index def and stored index def should not have async property in it.
+        assertFalse(JsopDiff.diffToJsop(index, storedDef).contains("async"));
+
+        // This checks that the stored index def has the proper async value set.
+        assertTrue(storedDef.toString().contains("async = async"));
         fixture4.close();
     }
 
@@ -262,7 +285,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         command.execute(args);
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
 
         explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString(TEST_INDEX_PATH));
@@ -327,7 +350,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
 
         command.execute(args);
 
-        RepositoryFixture fixture2 = new RepositoryFixture(storeDir);
+        IndexRepositoryFixture fixture2 = new LuceneRepositoryFixture(storeDir);
 
         explain = getQueryPlan(fixture2, "select * from [nt:base] where [bar] is not null");
         assertThat(explain, containsString("/oak:index/barIndex"));
@@ -339,7 +362,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         assertThat(indexPaths, hasItem("/oak:index/barIndex"));
     }
 
-    private void indexBarPropertyAlso(RepositoryFixture fixture2) throws IOException, RepositoryException {
+    private void indexBarPropertyAlso(IndexRepositoryFixture fixture2) throws IOException, RepositoryException {
         Session session = fixture2.getAdminSession();
         NodeState idxState = NodeStateUtils.getNode(fixture2.getNodeStore().getRoot(), TEST_INDEX_PATH);
         LuceneIndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder(
@@ -352,7 +375,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         session.logout();
     }
 
-    private int getFooCount(RepositoryFixture fixture, String propName) throws IOException, RepositoryException {
+    private int getFooCount(IndexRepositoryFixture fixture, String propName) throws IOException, RepositoryException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         String explanation = getQueryPlan(fixture, "select * from [nt:base] where ["+propName+"] is not null");
@@ -365,7 +388,7 @@ public class ReindexIT extends AbstractIndexCommandTest {
         return size;
     }
 
-    private static String getQueryPlan(RepositoryFixture fixture, String query) throws RepositoryException, IOException {
+    private static String getQueryPlan(IndexRepositoryFixture fixture, String query) throws RepositoryException, IOException {
         Session session = fixture.getAdminSession();
         QueryManager qm = session.getWorkspace().getQueryManager();
         Query explain = qm.createQuery("explain "+query, Query.JCR_SQL2);
@@ -374,6 +397,30 @@ public class ReindexIT extends AbstractIndexCommandTest {
         String explanation = explainRow.getValue("plan").getString();
         session.logout();
         return explanation;
+    }
+
+    public List<String> getSuggestResults(IndexRepositoryFixture fixture) throws Exception {
+        Session session = fixture.getAdminSession();
+
+        QueryManager qm = session.getWorkspace().getQueryManager();
+        String sql = "SELECT [rep:suggest()] FROM [nt:base] WHERE SUGGEST('sugge')";
+        String explanation = getQueryPlan(fixture, sql);
+        assertThat(explanation, containsString("/oak:index/fooIndex"));
+
+        Query q = qm.createQuery(sql, Query.SQL);
+        List<String> result = getResult(q.execute(), "rep:suggest()");
+        assertNotNull(result);
+        return result;
+    }
+
+    private List<String> getResult(QueryResult result, String propertyName) throws RepositoryException {
+        List<String> results = Lists.newArrayList();
+        RowIterator it = result.getRows();
+        while (it.hasNext()) {
+            Row row = it.nextRow();
+            results.add(row.getValue(propertyName).getString());
+        }
+        return results;
     }
 
     public static <E extends Throwable> void assertExits(final int expectedStatus, final ThrowingExecutable<E> executable) throws E {

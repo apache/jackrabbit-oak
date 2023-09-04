@@ -23,8 +23,8 @@ import java.util.List;
 
 import org.apache.jackrabbit.oak.commons.StringUtils;
 
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.ImmutableList.copyOf;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.copyOf;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 
 class StateInBytesHolder implements NodeStateHolder {

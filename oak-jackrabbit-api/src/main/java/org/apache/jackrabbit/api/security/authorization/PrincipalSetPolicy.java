@@ -23,6 +23,7 @@ import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlPolicy;
 
 import org.jetbrains.annotations.NotNull;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Extension of the JCR {@link javax.jcr.security.AccessControlPolicy AccessControlPolicy}
@@ -38,6 +39,7 @@ import org.jetbrains.annotations.NotNull;
  * {@link AccessControlPolicy policies} will have if used together in the same
  * repository.</p>
  */
+@ProviderType
 public interface PrincipalSetPolicy extends AccessControlPolicy {
 
     /**

@@ -22,7 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.writer;
 import java.io.IOException;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryFactory;
 import org.apache.jackrabbit.oak.spi.mount.Mount;
@@ -30,7 +30,7 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.index.IndexableField;
 
-import static com.google.common.collect.Iterables.concat;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static java.util.Collections.singleton;
 import static java.util.stream.StreamSupport.stream;
 

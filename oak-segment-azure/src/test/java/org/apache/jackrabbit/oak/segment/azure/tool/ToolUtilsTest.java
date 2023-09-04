@@ -24,8 +24,9 @@ import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
-import org.apache.jackrabbit.oak.segment.azure.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;

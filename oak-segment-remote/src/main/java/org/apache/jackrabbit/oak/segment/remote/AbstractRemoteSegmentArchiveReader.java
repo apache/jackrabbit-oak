@@ -19,7 +19,7 @@ package org.apache.jackrabbit.oak.segment.remote;
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.getSegmentFileName;
 import static org.apache.jackrabbit.oak.segment.remote.RemoteUtilities.OFF_HEAP;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -135,4 +135,9 @@ public abstract class AbstractRemoteSegmentArchiveReader implements SegmentArchi
      * @return the decoded file component of this archive.
      */
     protected abstract File archivePathAsFile();
+
+    @Override
+    public boolean isRemote() {
+        return true;
+    }
 }

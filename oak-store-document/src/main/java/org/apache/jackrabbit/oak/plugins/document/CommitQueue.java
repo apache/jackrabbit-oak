@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -31,7 +31,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -49,7 +49,7 @@ final class CommitQueue {
     /**
      * The default suspend timeout in milliseconds: 60'000.
      */
-    static final long DEFAULT_SUSPEND_TIMEOUT = TimeUnit.MINUTES.toMillis(1);
+    static final long DEFAULT_SUSPEND_TIMEOUT = 60_000;
 
     private final SortedMap<Revision, Entry> commits = new TreeMap<Revision, Entry>(StableRevisionComparator.INSTANCE);
 
@@ -66,7 +66,7 @@ final class CommitQueue {
     private DocumentNodeStoreStatsCollector statsCollector
             = new DocumentNodeStoreStats(StatisticsProvider.NOOP);
 
-    private long suspendTimeout = Long.getLong("oak.documentMK.suspendTimeoutMillis", DEFAULT_SUSPEND_TIMEOUT);
+    private long suspendTimeout = getSuspendTimeout(DEFAULT_SUSPEND_TIMEOUT);
 
     CommitQueue(@NotNull RevisionContext context) {
         this.context = checkNotNull(context);
@@ -197,7 +197,14 @@ final class CommitQueue {
      * @param timeout the timeout to set.
      */
     void setSuspendTimeoutMillis(long timeout) {
-        this.suspendTimeout = timeout;
+        this.suspendTimeout = getSuspendTimeout(timeout);
+    }
+
+    /**
+     * @return the current suspend timeout.
+     */
+    long getSuspendTimeoutMillis() {
+        return suspendTimeout;
     }
 
     interface Callback {
@@ -206,6 +213,17 @@ final class CommitQueue {
     }
 
     //------------------------< internal >--------------------------------------
+
+    /**
+     * Returns the suspend timeout that should be used. The passed suspend
+     * timeout is used / returned, unless overridden by a system property.
+     *
+     * @param suspendTimeout timeout, unless overridden by system property.
+     * @return the effective suspend timeout.
+     */
+    private static long getSuspendTimeout(long suspendTimeout) {
+        return Long.getLong("oak.documentMK.suspendTimeoutMillis", suspendTimeout);
+    }
 
     private void notifySuspendedCommits() {
         synchronized (suspendedCommits) {

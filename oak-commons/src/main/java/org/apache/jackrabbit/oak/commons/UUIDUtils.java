@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
-import com.google.common.base.Charsets;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -32,7 +32,7 @@ public final class UUIDUtils {
 
     @NotNull
     public static String generateUUID(String hint) {
-        UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes(Charsets.UTF_8));
+        UUID uuid = UUID.nameUUIDFromBytes(hint.getBytes(StandardCharsets.UTF_8));
         return uuid.toString();
     }
 

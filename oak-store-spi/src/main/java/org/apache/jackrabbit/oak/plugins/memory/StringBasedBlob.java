@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import org.jetbrains.annotations.NotNull;
 

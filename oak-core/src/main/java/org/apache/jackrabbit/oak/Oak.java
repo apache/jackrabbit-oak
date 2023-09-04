@@ -16,10 +16,11 @@
  */
 package org.apache.jackrabbit.oak;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.Collections.emptyMap;
+import static org.apache.jackrabbit.oak.spi.toggle.Feature.newFeature;
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerMBean;
 
 import java.io.Closeable;
@@ -49,11 +50,11 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentRepository;
@@ -580,7 +581,7 @@ public class Oak {
         }
 
         if (queryEngineSettings != null) {
-            Feature prefetchFeature = Feature.newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
+            Feature prefetchFeature = newFeature(QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES, whiteboard);
             LOG.info("Registered Prefetch feature: " + QueryEngineSettings.FT_NAME_PREFETCH_FOR_QUERIES);
             closer.register(prefetchFeature);
             queryEngineSettings.setPrefetchFeature(prefetchFeature);
@@ -801,7 +802,8 @@ public class Oak {
                 queryEngineSettings.unwrap(),
                 indexProvider,
                 securityProvider,
-                new AggregatingDescriptors(t)) {
+                new AggregatingDescriptors(t),
+                newFeature("FT_CLASSIC_MOVE_OAK-10147", whiteboard)) {
             @Override
             public void close() throws IOException {
                 super.close();

@@ -16,10 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -259,6 +259,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         
         Principal externalGroupPrincipal = getExternalGroupPrincipal(extuser.getPrincipal());
         assertNotNull(externalGroupPrincipal);
+        assertEquals(dynamicGroups, externalGroupPrincipal instanceof ItemBasedPrincipal);
 
         Set<Principal> dynamicGroupMembership = principalProvider.getMembershipPrincipals(externalGroupPrincipal);
         if (dynamicGroups) {
@@ -275,7 +276,7 @@ public class PrincipalProviderAutoMembershipTest extends ExternalGroupPrincipalP
         assertTrue(it.hasNext());
         while (it.hasNext()) {
             Principal p = it.next();
-            if (!(p instanceof ItemBasedPrincipal)) {
+            if (isExternalGroupPrincipal(p)) {
                 return p;
             }
         }

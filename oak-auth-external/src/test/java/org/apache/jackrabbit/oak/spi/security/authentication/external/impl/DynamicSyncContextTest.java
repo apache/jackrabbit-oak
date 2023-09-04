@@ -16,28 +16,25 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.AbstractExternalAuthTest;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalGroup;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentity;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalIdentityRef;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.ExternalUser;
-import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalNameResolver;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncException;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncResult;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncedIdentity;
@@ -47,14 +44,12 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.basic.Defa
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
-import javax.jcr.ValueFactory;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -83,63 +78,17 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class DynamicSyncContextTest extends AbstractExternalAuthTest {
+public class DynamicSyncContextTest extends AbstractDynamicTest {
 
     static final String PREVIOUS_SYNCED_ID = "third";
     static final long PREVIOUS_NESTING_DEPTH = Long.MAX_VALUE;
     static final String GROUP_ID = "aaa";
-    
-    Root r;
-    UserManager userManager;
-    ValueFactory valueFactory;
-
-    DynamicSyncContext syncContext;
-
-    // the external user identity that has been synchronized before dynamic membership is enabled.
-    ExternalUser previouslySyncedUser;
-
-    @Before
-    public void before() throws Exception {
-        super.before();
-        r = getSystemRoot();
-        
-        createAutoMembershipGroups();
-        previouslySyncedUser = syncPriorToDynamicMembership();
-        
-        userManager = getUserManager(r);
-        valueFactory = getValueFactory(r);
-        syncContext = new DynamicSyncContext(syncConfig, idp, userManager, valueFactory);
-        
-        // inject user-configuration as well as sync-handler and sync-hander-mapping to have get dynamic-membership 
-        // providers registered.
-        context.registerInjectActivateService(getUserConfiguration());
-        registerSyncHandler(syncConfigAsMap(), idp.getName());
-    }
-
-    @After
-    public void after() throws Exception {
-        try {
-            syncContext.close();
-            r.refresh();
-        } finally {
-            super.after();
-        }
-    }
-
-    private void createAutoMembershipGroups() throws RepositoryException {
-        DefaultSyncConfig sc = createSyncConfig();
-        UserManager um = getUserManager(r);
-        // create automembership groups
-        for (String id : Iterables.concat(sc.user().getAutoMembership(), sc.group().getAutoMembership())) {
-            um.createGroup(id);
-        }
-    }
 
     /**
      * Synchronized a separate user with DefaultSyncContext to test behavior for previously synchronized user/group
      * with deep membership-nesting => all groups synched
      */
-    private ExternalUser syncPriorToDynamicMembership() throws Exception {
+    @NotNull ExternalUser syncPriorToDynamicMembership() throws Exception {
         DefaultSyncConfig priorSyncConfig = createSyncConfig();
         priorSyncConfig.user().setMembershipNestingDepth(PREVIOUS_NESTING_DEPTH);
         
@@ -148,7 +97,8 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         tidp.addGroup(new TestIdentityProvider.TestGroup("ttt", idpName));
         tidp.addGroup(new TestIdentityProvider.TestGroup("tt", idpName).withGroups("ttt"));
         tidp.addGroup(new TestIdentityProvider.TestGroup("thirdGroup", idpName).withGroups("tt"));
-        tidp.addUser(new TestIdentityProvider.TestUser(PREVIOUS_SYNCED_ID, idpName).withGroups("thirdGroup"));
+        tidp.addGroup(new TestIdentityProvider.TestGroup("forthGroup", idpName));
+        tidp.addUser(new TestIdentityProvider.TestUser(PREVIOUS_SYNCED_ID, idpName).withGroups("thirdGroup", "forthGroup"));
 
         UserManager um = getUserManager(r);
         DefaultSyncContext ctx = new DefaultSyncContext(priorSyncConfig, idp, um, getValueFactory(r));
@@ -159,20 +109,6 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
         ctx.close();
         r.commit();
         return previouslySyncedUser;
-    }
-
-    @Override
-    @NotNull
-    protected DefaultSyncConfig createSyncConfig() {
-        DefaultSyncConfig sc = super.createSyncConfig();
-        sc.user().setDynamicMembership(true);
-        return sc;
-    }
-
-    protected void sync(@NotNull ExternalIdentity externalIdentity, @NotNull SyncResult.Status expectedStatus) throws Exception {
-        SyncResult result = syncContext.sync(externalIdentity);
-        assertSame(expectedStatus, result.getStatus());
-        r.commit();
     }
 
     protected void assertDynamicMembership(@NotNull ExternalIdentity externalIdentity, long depth) throws Exception {
@@ -224,7 +160,8 @@ public class DynamicSyncContextTest extends AbstractExternalAuthTest {
             Group gr = userManager.getAuthorizable(ref.getId(), Group.class);
             assertNotNull(gr);
             assertTrue(gr.isMember(a));
-            assertTrue(Iterators.contains(a.memberOf(), gr));
+            List<String> ids = getIds(a.memberOf());
+            assertTrue("Expected "+ids+ " to contain "+gr.getID(), ids.contains(gr.getID()));
             
             if (Iterables.contains(declaredGroupRefs, ref)) {
                 assertTrue(gr.isDeclaredMember(a));

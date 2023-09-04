@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.RangeIterator;
 import javax.jcr.RepositoryException;
+
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Objects;
@@ -41,10 +42,10 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
 
     private static final Logger log = LoggerFactory.getLogger(AuthorizableIterator.class);
 
-    private final Iterator<Authorizable> authorizables;
+    private final Iterator<? extends Authorizable> authorizables;
     private final long size;
     private final Set<String> servedIds;
-
+    
     @NotNull
     static AuthorizableIterator create(@NotNull Iterator<Tree> authorizableTrees,
                                        @NotNull UserManagerImpl userManager,
@@ -52,6 +53,12 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
         Iterator<Authorizable> it = Iterators.transform(authorizableTrees, new TreeToAuthorizable(userManager, authorizableType));
         long size = getSize(authorizableTrees);
         return new AuthorizableIterator(it, size, false);
+    }
+
+    @NotNull
+    static AuthorizableIterator create(boolean filterDuplicates, @NotNull Iterator<? extends Authorizable> it1) {
+        long size = getSize(it1);
+        return new AuthorizableIterator(it1, size, filterDuplicates);
     }
     
     @NotNull
@@ -69,7 +76,7 @@ final class AuthorizableIterator implements Iterator<Authorizable> {
         return new AuthorizableIterator(Iterators.concat(it1, it2), size, filterDuplicates);
     }
 
-    private AuthorizableIterator(Iterator<Authorizable> authorizables, long size, boolean filterDuplicates) {
+    private AuthorizableIterator(Iterator<? extends Authorizable> authorizables, long size, boolean filterDuplicates) {
         if (filterDuplicates)  {
             this.servedIds = new HashSet<>();
             this.authorizables = Iterators.filter(authorizables, authorizable -> {

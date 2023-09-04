@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.security.authorization.accesscontrol;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,12 +39,13 @@ import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
@@ -76,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.ReadPo
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionConstants;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.Restriction;
+import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionPattern;
 import org.apache.jackrabbit.oak.spi.security.authorization.restriction.RestrictionProvider;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -89,7 +92,7 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Default implementation of the {@code JackrabbitAccessControlManager} interface.
@@ -365,36 +368,33 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
     @Override
     public AccessControlPolicy[] getEffectivePolicies(@NotNull Set<Principal> principals) throws RepositoryException {
         if (!Util.checkValidPrincipals(principals, principalManager, Util.getImportBehavior(getConfig()))) {
-            return new JackrabbitAccessControlPolicy[0];
+            return new AccessControlPolicy[0];
         }
-        
-        Root r = getLatestRoot();
-        Result aceResult = searchAces(principals, r);
-        Set<JackrabbitAccessControlList> effective = Sets.newTreeSet(new PolicyComparator());
-
-        Set<String> processed = Sets.newHashSet();
-        Predicate<Tree> predicate = new PrincipalPredicate(principals);
-        for (ResultRow row : aceResult.getRows()) {
-            Tree aceTree = row.getTree(null);
-            String acePath = aceTree.getPath();
-            String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
-
-            Tree accessControlledTree = aceTree.getParent().getParent();
-            if (!POLICY_NODE_NAMES.contains(aclName) || !accessControlledTree.exists()) {
-                log.debug("Isolated access control entry -> ignore query result at {}", acePath);
-                continue;
-            }
-
-            String path = (REP_REPO_POLICY.equals(aclName)) ? null : accessControlledTree.getPath();
-            if (!processed.contains(path)) {
-                JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, predicate);
-                if (policy != null) {
-                    effective.add(policy);
-                    processed.add(path);
-                }
-            }
+        Set<AccessControlPolicy> effective = internalGetEffectivePolicies(principals, Collections.emptySet());
+        // add read-policy if there are readable paths configured where the editing session has READ_ACCESS_CONTROL granted
+        if (ReadPolicy.canAccessReadPolicy(getPermissionProvider(), readPaths.toArray(new String[0]))) {
+            effective.add(ReadPolicy.INSTANCE);
         }
         return effective.toArray(new AccessControlPolicy[0]);
+    }
+
+    @Override
+    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws RepositoryException {
+        if (!Util.checkValidPrincipals(principals, principalManager, Util.getImportBehavior(getConfig()))) {
+            return Collections.emptyIterator();
+        }
+
+        // NOTE: searching all ACEs for the specified principals may not be the most efficient way to compute effective
+        // policies when there are many and they also need to be filtered by paths. this could be refactored to retrieve 
+        // effective policies by paths and then filter for the given principals.
+        Collection<String> oakPaths = getOakPaths(absPaths);
+        Set<AccessControlPolicy> effective = internalGetEffectivePolicies(principals, oakPaths);
+        
+        boolean hasReadPolicy = oakPaths.isEmpty() || oakPaths.stream().anyMatch(p -> ReadPolicy.hasEffectiveReadPolicy(readPaths, p));
+        if (hasReadPolicy && ReadPolicy.canAccessReadPolicy(getPermissionProvider(), readPaths.toArray(new String[0]))) {
+            effective.add(ReadPolicy.INSTANCE);
+        }
+        return effective.iterator();
     }
 
     //--------------------------------------------------------< PolicyOwner >---
@@ -593,6 +593,50 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
             return getOakPath(Strings.emptyToNull(v.getString()));
         }
     }
+    
+    @NotNull
+    private Set<AccessControlPolicy> internalGetEffectivePolicies(@NotNull Set<Principal> principals, Collection<String> oakPaths) throws RepositoryException {
+        Root r = getLatestRoot();
+        Result aceResult = searchAces(principals, r);
+        Set<AccessControlPolicy> effective = Sets.newTreeSet(new PolicyComparator());
+
+        Set<String> processed = Sets.newHashSet();
+        for (ResultRow row : aceResult.getRows()) {
+            Tree aceTree = row.getTree(null);
+            String acePath = aceTree.getPath();
+            String aclName = Text.getName(Text.getRelativeParent(acePath, 1));
+
+            Tree accessControlledTree = aceTree.getParent().getParent();
+            if (!POLICY_NODE_NAMES.contains(aclName) || !accessControlledTree.exists()) {
+                log.debug("Isolated access control entry -> ignore query result at {}", acePath);
+                continue;
+            }
+
+            String path = (REP_REPO_POLICY.equals(aclName)) ? null : accessControlledTree.getPath();
+            if (!processed.contains(path) && matchingPath(path, oakPaths)) {
+                Predicate<Tree> predicate = new PrincipalPredicate(path, principals, oakPaths);
+                JackrabbitAccessControlList policy = createACL(path, accessControlledTree, true, predicate);
+                if (policy != null) {
+                    effective.add(policy);
+                    processed.add(path);
+                }
+            }
+        }
+        return effective;
+    }
+    
+    private static boolean matchingPath(@Nullable String accessControlledPath, @NotNull Collection<String> oakPaths) {
+        if (oakPaths.isEmpty()) {
+            return true;
+        }
+        return oakPaths.stream().anyMatch(oakPath -> {
+            if (oakPath == null) {
+                return accessControlledPath == null;
+            } else {
+                return accessControlledPath != null && Text.isDescendantOrEqual(accessControlledPath, oakPath);
+            }
+        });
+    } 
 
     //--------------------------------------------------------------------------
     private class NodeACL extends ACL {
@@ -795,17 +839,33 @@ public class AccessControlManagerImpl extends AbstractAccessControlManager imple
         }
     }
 
-    private static final class PrincipalPredicate implements Predicate<Tree> {
+    private final class PrincipalPredicate implements Predicate<Tree> {
 
+        private final String accessControlledPath;
         private final Iterable<String> principalNames;
+        private final Collection<String> oakPaths;
 
-        private PrincipalPredicate(@NotNull Set<Principal> principals) {
+        private PrincipalPredicate(@Nullable String accessControlledPath, @NotNull Set<Principal> principals, @NotNull Collection<String> oakPaths) {
+            this.accessControlledPath = accessControlledPath;
             principalNames = Iterables.transform(principals, Principal::getName);
+            this.oakPaths = oakPaths;
         }
 
         @Override
         public boolean test(@NotNull Tree aceTree) {
+            return matchingPrincipal(aceTree) && matchingRestrictions(aceTree);
+        }
+        
+        private boolean matchingPrincipal(@NotNull Tree aceTree) {
             return Iterables.contains(principalNames, TreeUtil.getString(aceTree, REP_PRINCIPAL_NAME));
+        }
+        
+        private boolean matchingRestrictions(@NotNull Tree aceTree) {
+            if (oakPaths.isEmpty()) {
+                return true;
+            }
+            RestrictionPattern pattern = restrictionProvider.getPattern(accessControlledPath, restrictionProvider.readRestrictions(accessControlledPath, aceTree));
+            return oakPaths.stream().anyMatch(pattern::matches);
         }
     }
 }

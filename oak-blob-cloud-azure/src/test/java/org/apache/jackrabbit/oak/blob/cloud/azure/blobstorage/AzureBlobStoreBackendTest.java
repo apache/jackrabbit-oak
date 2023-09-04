@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
@@ -54,14 +54,14 @@ import static org.junit.Assert.fail;
 public class AzureBlobStoreBackendTest {
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
-    
+
     private static final String CONTAINER_NAME = "blobstore";
     private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
     private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
 
     private CloudBlobContainer container;
-    
+
     @After
     public void tearDown() throws Exception {
         if (container != null) {
@@ -76,9 +76,9 @@ public class AzureBlobStoreBackendTest {
 
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
         azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
-        
+
         azureBlobStoreBackend.init();
-        
+
         assertWriteAccessNotGranted(azureBlobStoreBackend);
         assertReadAccessGranted(azureBlobStoreBackend, BLOBS);
     }
@@ -90,7 +90,7 @@ public class AzureBlobStoreBackendTest {
 
         AzureBlobStoreBackend azureBlobStoreBackend = new AzureBlobStoreBackend();
         azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
-        
+
         azureBlobStoreBackend.init();
 
         assertWriteAccessGranted(azureBlobStoreBackend, "file");
@@ -107,7 +107,7 @@ public class AzureBlobStoreBackendTest {
         azureBlobStoreBackend.setProperties(getConfigurationWithSasToken(sasToken));
 
         azureBlobStoreBackend.init();
-        
+
         assertWriteAccessNotGranted(azureBlobStoreBackend);
         assertReadAccessNotGranted(azureBlobStoreBackend);
     }
@@ -118,7 +118,7 @@ public class AzureBlobStoreBackendTest {
         azureBlobStoreBackend.setProperties(getConfigurationWithAccessKey());
 
         azureBlobStoreBackend.init();
-        
+
         assertWriteAccessGranted(azureBlobStoreBackend, "file");
         assertReadAccessGranted(azureBlobStoreBackend, ImmutableSet.of("file"));
     }
@@ -142,7 +142,7 @@ public class AzureBlobStoreBackendTest {
         azureBlobStoreBackend.init();
         assertReferenceSecret(azureBlobStoreBackend);
     }
-    
+
     private CloudBlobContainer createBlobContainer() throws Exception {
         container = azurite.getContainer("blobstore");
         for (String blob : BLOBS) {
@@ -150,7 +150,7 @@ public class AzureBlobStoreBackendTest {
         }
         return container;
     }
-    
+
     private static Properties getConfigurationWithSasToken(String sasToken) {
         Properties properties = getBasicConfiguration();
         properties.setProperty(AzureConstants.AZURE_SAS, sasToken);
@@ -158,7 +158,7 @@ public class AzureBlobStoreBackendTest {
         properties.setProperty(AzureConstants.AZURE_REF_ON_INIT, "false");
         return properties;
     }
-    
+
     private static Properties getConfigurationWithAccessKey() {
         Properties properties = getBasicConfiguration();
         properties.setProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, AzuriteDockerRule.ACCOUNT_KEY);
@@ -171,7 +171,7 @@ public class AzureBlobStoreBackendTest {
         properties.setProperty(AzureConstants.AZURE_CONNECTION_STRING, getConnectionString());
         return properties;
     }
-    
+
     @NotNull
     private static Properties getBasicConfiguration() {
         Properties properties = new Properties();
@@ -202,7 +202,7 @@ public class AzureBlobStoreBackendTest {
             .map(path -> path.substring(path.lastIndexOf('/') + 1))
             .filter(path -> !path.isEmpty())
             .collect(toSet());
-        
+
         Set<String> expectedBlobNames = expectedBlobs.stream().map(name -> name + ".txt").collect(toSet());
 
         assertEquals(expectedBlobNames, actualBlobNames);
@@ -223,7 +223,7 @@ public class AzureBlobStoreBackendTest {
         backend.getAzureContainer()
             .getBlockBlobReference(blob + ".txt").uploadText(blob);
     }
-   
+
     private static void assertWriteAccessNotGranted(AzureBlobStoreBackend backend) {
         try {
             assertWriteAccessGranted(backend, "test.txt");
@@ -245,11 +245,11 @@ public class AzureBlobStoreBackendTest {
     private static Instant yesterday() {
         return Instant.now().minus(Duration.ofDays(1));
     }
-    
+
     private static ImmutableSet<String> concat(ImmutableSet<String> set, String element) {
         return ImmutableSet.<String>builder().addAll(set).add(element).build();
     }
-   
+
     private static String getConnectionString() {
         return Utils.getConnectionString(AzuriteDockerRule.ACCOUNT_NAME, AzuriteDockerRule.ACCOUNT_KEY, azurite.getBlobEndpoint());
     }

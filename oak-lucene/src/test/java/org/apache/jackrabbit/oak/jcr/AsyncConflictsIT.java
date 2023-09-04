@@ -55,7 +55,7 @@ import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.read.ListAppender;
 import ch.qos.logback.core.spi.FilterReply;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class AsyncConflictsIT extends DocumentClusterIT {
     private static final Set<Fixture> FIXTURES = FixturesHelper.getFixtures();

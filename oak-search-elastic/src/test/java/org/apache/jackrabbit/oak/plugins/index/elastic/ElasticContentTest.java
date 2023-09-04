@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
@@ -23,9 +24,8 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -172,6 +172,28 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    public void indexWithDefaultFetchSizes() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        IntStream.range(0, 20).forEach(n -> {
+                    Tree child = content.addChild("child_" + n);
+                    child.setProperty("a", "text");
+                }
+        );
+        root.commit(Map.of("sync-mode", "rt"));
+
+        List<String> results = IntStream.range(0, 20).mapToObj(i -> "/content/child_" + i).collect(Collectors.toList());
+
+        reset(spyMetricHandler);
+        assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
+        verify(spyMetricHandler, times(2)).markQuery(anyString(), anyBoolean());
+    }
+
+    @Test
     public void indexWithCustomFetchSizes() throws Exception {
         BiConsumer<String, Iterable<Long>> buildIndex = (p, fetchSizes) -> {
             IndexDefinitionBuilder builder = createIndex(p).noAsync();
@@ -180,9 +202,9 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
             setIndex(p + "_" + UUID.randomUUID(), builder);
         };
 
-        buildIndex.accept("a", Collections.singletonList(1L));
-        buildIndex.accept("b", Arrays.asList(1L, 2L));
-        buildIndex.accept("c", Arrays.asList(3L, 100L));
+        buildIndex.accept("a", List.of(1L));
+        buildIndex.accept("b", List.of(1L, 2L));
+        buildIndex.accept("c", List.of(3L, 100L));
         root.commit();
 
         Tree content = root.getTree("/").addChild("content");
@@ -193,9 +215,9 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
                     child.setProperty("c", "text");
                 }
         );
-        root.commit(Collections.singletonMap("sync-mode", "rt"));
+        root.commit(Map.of("sync-mode", "rt"));
 
-        List<String> results = Arrays.asList("/content/child_0", "/content/child_1", "/content/child_2");
+        List<String> results = IntStream.range(0, 3).mapToObj(i -> "/content/child_" + i).collect(Collectors.toList());
 
         reset(spyMetricHandler);
         assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results);
@@ -220,7 +242,7 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
             setIndex(p + "_" + UUID.randomUUID(), builder);
         };
 
-        buildIndex.accept("a", Collections.singletonList(10L));
+        buildIndex.accept("a", List.of(10L));
         root.commit();
 
         Tree content = root.getTree("/").addChild("content");
@@ -236,5 +258,28 @@ public class ElasticContentTest extends ElasticAbstractQueryTest {
         root.commit();
 
         assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [a] = 'text'", results));
+    }
+
+    @Test
+    public void deduplicateFields() throws Exception {
+        IndexDefinitionBuilder builder = createIndex("a").noAsync();
+        builder.indexRule("nt:base").property("a").propertyIndex();
+        Tree index = setIndex(UUID.randomUUID().toString(), builder);
+        root.commit();
+
+        Tree content = root.getTree("/").addChild("content");
+        content.addChild("indexed1").setProperty("a", List.of("foo", "foo"), Type.STRINGS);
+        content.addChild("indexed2").setProperty("a", List.of("foo", "bar", "foo"), Type.STRINGS);
+        root.commit();
+
+        assertEventually(() -> {
+            ObjectNode indexed1 = getDocument(index, "/content/indexed1");
+            assertThat(indexed1.get("a").asText(), equalTo("foo"));
+
+            ObjectNode indexed2 = getDocument(index, "/content/indexed2");
+            assertThat(indexed2.get("a").size(), equalTo(2));
+            assertThat(indexed2.get("a").get(0).asText(), equalTo("foo"));
+            assertThat(indexed2.get("a").get(1).asText(), equalTo("bar"));
+        });
     }
 }

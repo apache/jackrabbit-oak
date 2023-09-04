@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch.core.GetRequest;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
@@ -50,7 +52,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition.BULK_FLUSH_INTERVAL_MS_DEFAULT;
@@ -92,8 +94,8 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     }
 
     /*
-    Override this to create some other repo initializer if needed
-    // Make sure to call super.initialize(builder)
+     * Override this to create some other repo initializer if needed
+     * Make sure to call super.initialize(builder)
      */
     protected InitialContent getInitialContent() {
         return new InitialContent() {
@@ -240,7 +242,20 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
 		}
     }
 
-    private ElasticIndexDefinition getElasticIndexDefinition(Tree index) {
+    protected ObjectNode getDocument(Tree index, String id) {
+        ElasticIndexDefinition esIdxDef = getElasticIndexDefinition(index);
+
+        GetRequest get = GetRequest.of(r -> r
+                .index(esIdxDef.getIndexAlias())
+                .id(id));
+        try {
+            return esConnection.getClient().get(get, ObjectNode.class).source();
+        } catch (ElasticsearchException | IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    protected ElasticIndexDefinition getElasticIndexDefinition(Tree index) {
         return new ElasticIndexDefinition(
                 nodeStore.getRoot(),
                 nodeStore.getRoot().getChildNode(INDEX_DEFINITIONS_NAME).getChildNode(index.getName()),

@@ -22,13 +22,12 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import com.amazonaws.services.s3.Headers;
-import com.amazonaws.services.s3.model.SSEAlgorithm;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.lang3.time.DateUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -60,6 +59,20 @@ import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION;
+import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID;
+import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM;
+import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY;
+import static com.amazonaws.services.s3.Headers.SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5;
+import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
+import static com.amazonaws.services.s3.model.SSEAlgorithm.KMS;
+import static com.amazonaws.util.Base64.decode;
+import static com.amazonaws.util.Md5Utils.md5AsBase64;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEY;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEYID;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getFixtures;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3Config;
 import static org.apache.jackrabbit.oak.blob.cloud.s3.S3DataStoreUtils.getS3DataStore;
@@ -125,7 +138,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
         props.setProperty(S3Constants.PRESIGNED_HTTP_UPLOAD_URI_EXPIRY_SECONDS, "60");
         props.setProperty(S3Constants.PRESIGNED_URI_ENABLE_ACCELERATION, "60");
         props.setProperty(S3Constants.PRESIGNED_HTTP_DOWNLOAD_URI_CACHE_MAX_SIZE, "60");
-        props.setProperty(S3Constants.S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_NONE);
+        props.setProperty(S3_ENCRYPTION, S3Constants.S3_ENCRYPTION_NONE);
         super.setUp();
     }
 
@@ -175,11 +188,11 @@ public class TestS3Ds extends AbstractDataStoreTest {
     @Test
     public void testDataMigration() {
         try {
-            String encryption = props.getProperty(S3Constants.S3_ENCRYPTION);
+            String encryption = props.getProperty(S3_ENCRYPTION);
 
             //manually close the setup ds and remove encryption
             ds.close();
-            props.remove(S3Constants.S3_ENCRYPTION);
+            props.remove(S3_ENCRYPTION);
             ds = createDataStore();
 
             byte[] data = new byte[dataLength];
@@ -190,7 +203,7 @@ public class TestS3Ds extends AbstractDataStoreTest {
             ds.close();
 
             // turn encryption now anc recreate datastore instance
-            props.setProperty(S3Constants.S3_ENCRYPTION, encryption);
+            props.setProperty(S3_ENCRYPTION, encryption);
             props.setProperty(S3Constants.S3_RENAME_KEYS, "true");
             ds = createDataStore();
 
@@ -252,16 +265,24 @@ public class TestS3Ds extends AbstractDataStoreTest {
         HttpPut putreq = new HttpPut(puturl);
 
         String keyId = null;
-        String encryptionType = props.getProperty(S3Constants.S3_ENCRYPTION);
+        String encryptionType = props.getProperty(S3_ENCRYPTION);
 
-        if (encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
-             keyId = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-             putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION,
-                     SSEAlgorithm.KMS.getAlgorithm()));
-             if(keyId != null) {
-                 putreq.addHeader(new BasicHeader(Headers.SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID,
-                         keyId));
-             }
+        switch (encryptionType) {
+            case S3_ENCRYPTION_SSE_KMS:
+                keyId = props.getProperty(S3_SSE_KMS_KEYID);
+                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION, KMS.getAlgorithm()));
+                if (keyId != null) {
+                    putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_AWS_KMS_KEYID, keyId));
+                }
+                break;
+            case S3_ENCRYPTION_SSE_C:
+                keyId = props.getProperty(S3_SSE_C_KEY);
+                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
+                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
+                putreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
+                break;
+            default:
+                break;
         }
 
         putreq.setEntity(new InputStreamEntity(inputstream , length));
@@ -273,6 +294,16 @@ public class TestS3Ds extends AbstractDataStoreTest {
 
     private HttpEntity httpGet(URI uri) throws IOException {
         HttpGet getreq = new HttpGet(uri);
+
+        final String encryptionType = props.getProperty(S3_ENCRYPTION);
+
+        if (Objects.equals(S3_ENCRYPTION_SSE_C, encryptionType)) {
+            String keyId = props.getProperty(S3_SSE_C_KEY);
+            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_ALGORITHM, AES256.getAlgorithm()));
+            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY, keyId));
+            getreq.addHeader(new BasicHeader(SERVER_SIDE_ENCRYPTION_CUSTOMER_KEY_MD5, md5AsBase64(decode(keyId))));
+        }
+
         CloseableHttpClient httpclient = HttpClients.createDefault();
         CloseableHttpResponse res = httpclient.execute(getreq);
         Assert.assertEquals(200, res.getStatusLine().getStatusCode());

@@ -16,9 +16,23 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static java.io.File.createTempFile;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.commons.io.FileUtils.forceDelete;
+import static org.apache.commons.io.IOUtils.closeQuietly;
+import static org.apache.commons.io.IOUtils.copyLarge;
+import static org.apache.jackrabbit.guava.common.io.Closeables.close;
+import static org.apache.jackrabbit.guava.common.io.FileWriteMode.APPEND;
+import static org.apache.jackrabbit.guava.common.io.Files.asByteSink;
+import static org.apache.jackrabbit.guava.common.io.Files.move;
+import static org.apache.jackrabbit.guava.common.io.Files.newWriter;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
+import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
+import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.sortInBatch;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -26,39 +40,17 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.base.Strings;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.PeekingIterator;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.io.Closeables.close;
-import static com.google.common.io.FileWriteMode.APPEND;
-import static com.google.common.io.Files.asByteSink;
-import static com.google.common.io.Files.move;
-import static com.google.common.io.Files.newWriter;
-import static java.io.File.createTempFile;
-import static org.apache.commons.io.FileUtils.forceDelete;
-import static org.apache.commons.io.IOUtils.closeQuietly;
-import static org.apache.commons.io.IOUtils.copyLarge;
-import static org.apache.commons.io.LineIterator.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
-import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.mergeSortedFiles;
-import static org.apache.jackrabbit.oak.commons.sort.ExternalSort.sortInBatch;
 
 /**
  * Simple File utils
@@ -71,15 +63,6 @@ public final class FileIOUtils {
     public final static Comparator<String> lexComparator = new Comparator<String>() {
         @Override public int compare(String s1, String s2) {
             return s1.compareTo(s2);
-        }
-    };
-
-    /**
-     * @deprecated use {@link java.util.function.Function#identity()} instead
-     */
-    @Deprecated public final static Function<String, String> passThruTransformer = new Function<String, String>() {
-        @Nullable @Override public String apply(@Nullable String input) {
-            return input;
         }
     };
 
@@ -231,7 +214,7 @@ public final class FileIOUtils {
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
         @Nullable Logger logger, @Nullable String message) throws IOException {
-        return writeStrings(iterator, f, escape, java.util.function.Function.identity(), logger, message);
+        return writeStrings(iterator, f, escape, Function.identity(), logger, message);
     }
 
     /**
@@ -248,7 +231,7 @@ public final class FileIOUtils {
      * @throws IOException
      */
     public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
-        @NotNull java.util.function.Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
+        @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
         BufferedWriter writer = newWriter(f, UTF_8);
         boolean threw = true;
 
@@ -258,7 +241,7 @@ public final class FileIOUtils {
                 writeAsLine(writer, transformer.apply(iterator.next()), escape);
                 count++;
                 if (logger != null) {
-                    if (count % 1000 == 0) {
+                    if (count % 100000 == 0) {
                         logger.info(Strings.nullToEmpty(message) + count);
                     }
                 }
@@ -271,16 +254,6 @@ public final class FileIOUtils {
     }
 
     /**
-     * @deprecated use {@link #writeStrings(Iterator, File, boolean, java.util.function.Function, Logger, String)} instead
-     */
-    @Deprecated public static int writeStrings(Iterator<String> iterator, File f, boolean escape,
-            @NotNull Function<String, String> transformer, @Nullable Logger logger, @Nullable String message) throws IOException {
-        GuavaDeprecation.handleCall("OAK-8677");
-        java.util.function.Function<String, String> tr2 = (s) -> transformer.apply(s);
-        return writeStrings(iterator, f, escape, tr2, logger, message);
-    }
-
-    /**
      * Reads strings from the given stream into a set and optionally unescaping for line breaks.
      *
      * @param stream the source of the strings
@@ -290,11 +263,11 @@ public final class FileIOUtils {
      */
     public static Set<String> readStringsAsSet(InputStream stream, boolean unescape) throws IOException {
         BufferedReader reader = null;
-        Set<String> set = newHashSet();
+        Set<String> set = new HashSet<>();
         boolean threw = true;
 
         try {
-            reader = new BufferedReader(new InputStreamReader(stream, Charsets.UTF_8));
+            reader = new BufferedReader(new InputStreamReader(stream, UTF_8));
             String line  = null;
             while ((line = reader.readLine()) != null) {
                 if (unescape) {
@@ -352,10 +325,10 @@ public final class FileIOUtils {
      * comparator.
      */
     public static class TransformingComparator implements Comparator<String> {
-        private Comparator delegate;
+        private Comparator<String> delegate;
         private Function<String, String> func;
 
-        public TransformingComparator(Comparator delegate, Function<String, String> func) {
+        public TransformingComparator(Comparator<String> delegate, Function<String, String> func) {
             this.delegate = delegate;
             this.func = func;
         }
@@ -363,173 +336,6 @@ public final class FileIOUtils {
         @Override
         public int compare(String s1, String s2) {
             return delegate.compare(func.apply(s1), func.apply(s2));
-        }
-    }
-
-    /**
-     * FileLineDifferenceIterator class which iterates over the difference of 2 files line by line.
-     *
-     * If there is a scope for lines in the files containing line break characters it should be
-     * ensured that both the files are written with
-     * {@link #writeAsLine(BufferedWriter, String, boolean)} with true to escape line break
-     * characters.
-     * 
-     * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator} instead
-     */
-    @Deprecated public static class FileLineDifferenceIterator extends AbstractIterator<String> implements Closeable {
-        private final PeekingIterator<String> peekMarked;
-        private final LineIterator marked;
-        private final LineIterator all;
-        private Function<String, String> transformer = new Function<String, String>() {
-            @Override
-            public String apply(String input) {
-                return input;
-            }
-        };
-
-        public FileLineDifferenceIterator(LineIterator marked, LineIterator available) throws IOException {
-            this(marked, available, null);
-        }
-
-        public FileLineDifferenceIterator(File marked, File available,
-            @Nullable Function<String, String> transformer) throws IOException {
-            this(FileUtils.lineIterator(marked, UTF_8.toString()),
-                FileUtils.lineIterator(available, UTF_8.toString()), transformer);
-        }
-
-        public FileLineDifferenceIterator(LineIterator marked, LineIterator available,
-            @Nullable Function<String, String> transformer) throws IOException {
-            GuavaDeprecation.handleCall("OAK-8676");
-            this.marked = marked;
-            this.peekMarked = Iterators.peekingIterator(marked);
-            this.all = available;
-            if (transformer != null) {
-                this.transformer = transformer;
-            }
-        }
-
-        @Override
-        protected String computeNext() {
-            String diff = computeNextDiff();
-            if (diff == null) {
-                close();
-                return endOfData();
-            }
-            return diff;
-        }
-
-        @Override
-        public void close() {
-            LineIterator.closeQuietly(marked);
-            LineIterator.closeQuietly(all);
-        }
-
-        private String computeNextDiff() {
-            if (!all.hasNext()) {
-                return null;
-            }
-
-            //Marked finish the rest of all are part of diff
-            if (!peekMarked.hasNext()) {
-                return all.next();
-            }
-
-            String diff = null;
-            while (all.hasNext() && diff == null) {
-                diff = all.next();
-                while (peekMarked.hasNext()) {
-                    String marked = peekMarked.peek();
-                    int comparisonResult = transformer.apply(diff).compareTo(transformer.apply((marked)));
-                    if (comparisonResult > 0) {
-                        //Extra entries in marked. Ignore them and move on
-                        peekMarked.next();
-                    } else if (comparisonResult == 0) {
-                        //Matching entry found in marked move past it. Not a
-                        //dif candidate
-                        peekMarked.next();
-                        diff = null;
-                        break;
-                    } else {
-                        //This entry is not found in marked entries
-                        //hence part of diff
-                        return diff;
-                    }
-                }
-            }
-            return diff;
-        }
-    }
-
-    /**
-     * Implements a {@link java.io.Closeable} wrapper over a {@link LineIterator}.
-     * Also has a transformer to transform the output. If the underlying file is
-     * provide then it deletes the file on {@link #close()}.
-     *
-     * If there is a scope for lines in the file containing line break characters it should be
-     * ensured that the files is written with
-     * {@link #writeAsLine(BufferedWriter, String, boolean)} with true to escape line break
-     * characters and should be properly unescaped on read.
-     * A custom transformer can also be provided to unescape.
-     *
-     * @param <T> the type of elements in the iterator
-     * @deprecated use {@link org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator} instead
-     */
-    @Deprecated public static class BurnOnCloseFileIterator<T> extends AbstractIterator<T> implements Closeable {
-        private final Logger log = LoggerFactory.getLogger(getClass());
-
-        private final LineIterator iterator;
-        private final Function<String, T> transformer;
-        private final File backingFile;
-
-        public BurnOnCloseFileIterator(LineIterator iterator, Function<String, T> transformer) {
-            this(iterator, null, transformer);
-        }
-
-        public BurnOnCloseFileIterator(LineIterator iterator, File backingFile,
-            Function<String, T> transformer) {
-            GuavaDeprecation.handleCall("OAK-8666");
-            this.iterator = iterator;
-            this.transformer = transformer;
-            this.backingFile = backingFile;
-        }
-
-        @Override
-        protected T computeNext() {
-            if (iterator.hasNext()) {
-                return transformer.apply(iterator.next());
-            }
-
-            try {
-                close();
-            } catch (IOException e) {
-                log.warn("Error closing iterator", e);
-            }
-            return endOfData();
-        }
-
-        @Override
-        public void close() throws IOException {
-            closeQuietly(iterator);
-            if (backingFile != null && backingFile.exists()) {
-                forceDelete(backingFile);
-            }
-        }
-
-        public static BurnOnCloseFileIterator<String> wrap(LineIterator iter) {
-            return new BurnOnCloseFileIterator<String>(iter, new Function<String, String>() {
-                public String apply(String s) {
-                    return s;
-                }
-            });
-        }
-
-        public static BurnOnCloseFileIterator<String> wrap(LineIterator iter, File backingFile) {
-            return new BurnOnCloseFileIterator<String>(iter, backingFile,
-                new Function<String, String>() {
-                    public String apply(String s) {
-                        return s;
-                    }
-                });
         }
     }
 }

@@ -21,12 +21,12 @@ Principal Management
 <a name="jcr_api"></a>
 ### JCR API
 
-JCR itself doesn't come with a dedicated principal management API. Nevertheless
-the specification mentions `java.security.Principal` as key feature for access 
+JCR itself doesn't come with a dedicated principal management API. Nevertheless,
+the specification mentions `java.security.Principal` as a key feature for access 
 control management but leaves the discovery of principals to the implementation 
 (see [Section 16.5.7](https://s.apache.org/jcr-2.0-spec/16_Access_Control_Management.html#16.5.7%20Principal%20Discovery)).
 
-Therefore an API for principal management has been defined as part of the
+Therefore, an API for principal management has been defined as part of the
 extensions present with Jackrabbit API.
 
 <a name="jackrabbit_api"></a>
@@ -34,12 +34,13 @@ extensions present with Jackrabbit API.
 
 The Jackrabbit API provides support for principal management (i.e. discovery) that 
 are missing in JCR. The relevant interfaces are defined in the 
-`org.apache.jackrabbit.api.security.principal' package space:
+[org.apache.jackrabbit.api.security.principal](https://jackrabbit.apache.org/oak/docs/apidocs/org/apache/jackrabbit/api/security/principal/package-summary.html) package space:
 
 - `PrincipalManager`
 - `PrincipalIterator`
 - `JackrabbitPrincipal` extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html)
     - `ItemBasedPrincipal`
+- `GroupPrincipal` extends [Principal](http://docs.oracle.com/javase/7/docs/api/java/security/Principal.html) replacing the removed `java.security.acl.Group` (see [OAK-7024](https://issues.apache.org/jira/browse/OAK-7024)).
 
 #### Differences wrt Jackrabbit 2.x
 

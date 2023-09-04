@@ -19,6 +19,11 @@
 
 package org.apache.jackrabbit.oak.commons;
 
+import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -29,20 +34,15 @@ import java.util.Random;
 import java.util.TreeSet;
 import java.util.function.Function;
 
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.StandardSystemProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import org.apache.commons.io.LineIterator;
+import org.apache.jackrabbit.guava.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.io.FileLineDifferenceIterator;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
-
-import static java.util.Arrays.asList;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 public class FileLineDifferenceIteratorTest {
     
@@ -69,7 +69,7 @@ public class FileLineDifferenceIteratorTest {
                     new ArrayList<String>(diff));
         }
     }
-    
+
     @Test
     public void testNoDiff() throws Exception {
         assertDiff("a,b,c", "a,b,c", Collections.<String> emptyList());
@@ -93,7 +93,7 @@ public class FileLineDifferenceIteratorTest {
         assertDiff("a,b,d,e,f", "a,b,c,f, h", asList("c", "h"));
         assertDiff("3,7", "2,3,5,9", asList("2", "5", "9"));
     }
-    
+
     @Test
     public void testMarkedDiffWithExtraEntriesInMarked() throws IOException {
         assertReverseDiff("a,b,c,e,h", "a,b,c", asList("e", "h"));
@@ -134,18 +134,6 @@ public class FileLineDifferenceIteratorTest {
         assertTransformed("", "", Collections.<String> emptyList());
         assertTransformed("", "a, b", asList("a", "b"));
         assertTransformed("", "a:4, b:1", asList("a:4", "b:1"));
-    }
-
-    @Test
-    public void testDiffTransformDeprecated() throws IOException {
-        assertTransformedDeprecated("a:x,b:y", "a:1,b:2,c:3,e:4,h", asList("c:3", "e:4", "h"));
-        assertTransformedDeprecated("a,b,d,e", "a,b,c", asList("c"));
-        assertTransformedDeprecated("a:1,b:2,d:3,e:4,f:5", "a:z,b:y,c:x,f:w", asList("c:x"));
-        assertTransformedDeprecated("a,b,d,e,f", "a,b,c,f,h", asList("c", "h"));
-        assertTransformedDeprecated("3:1,7:6", "2:0,3:6,5:3,9:1", asList("2:0", "5:3", "9:1"));
-        assertTransformedDeprecated("", "", Collections.<String> emptyList());
-        assertTransformedDeprecated("", "a, b", asList("a", "b"));
-        assertTransformedDeprecated("", "a:4, b:1", asList("a:4", "b:1"));
     }
 
     private static List<String> getLineBreakStrings() {
@@ -194,21 +182,6 @@ public class FileLineDifferenceIteratorTest {
     private static void assertTransformed(String marked, String all, List<String> diff) throws IOException {
         Iterator<String> itr = new FileLineDifferenceIterator(lineItr(marked), lineItr(all),
             new Function<String, String>() {
-                @Nullable @Override
-                public String apply(@Nullable String input) {
-                    if (input != null) {
-                        return input.split(":")[0];
-                    }
-                    return null;
-                }
-            });
-
-        assertThat("marked: " + marked + " all: " + all, ImmutableList.copyOf(itr), is(diff));
-    }
-
-    private static void assertTransformedDeprecated(String marked, String all, List<String> diff) throws IOException {
-        Iterator<String> itr = new org.apache.jackrabbit.oak.commons.FileIOUtils.FileLineDifferenceIterator(lineItr(marked), lineItr(all),
-            new com.google.common.base.Function<String, String>() {
                 @Nullable @Override
                 public String apply(@Nullable String input) {
                     if (input != null) {

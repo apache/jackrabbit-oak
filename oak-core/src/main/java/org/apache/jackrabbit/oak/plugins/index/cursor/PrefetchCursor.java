@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.cursor;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -25,6 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
@@ -33,13 +35,11 @@ import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-
 /**
  * A cursor that is able to prefetch nodes from the node store.
  */
 public class PrefetchCursor extends AbstractCursor {
-    
+
     private static final Logger LOG = LoggerFactory.getLogger(PrefetchCursor.class);
 
     // match ${...} -- unfortunately it needs a lot of escaping. 
@@ -58,8 +58,13 @@ public class PrefetchCursor extends AbstractCursor {
         this.store = store;
         this.prefetchCount = prefetchCount;
         this.rootState = rootState;
-        this.prefetched = Iterators.emptyIterator();
+        this.prefetched = Collections.emptyIterator();
         this.prefetchRelative = prefetchRelative;
+    }
+
+    @Override
+    public long getSize(SizePrecision precision, long max) {
+        return cursor.getSize(precision, max);
     }
 
     @Override

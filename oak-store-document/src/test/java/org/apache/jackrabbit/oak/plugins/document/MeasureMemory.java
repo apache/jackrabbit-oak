@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import com.mongodb.BasicDBObject;
 
 import org.apache.jackrabbit.oak.api.Blob;

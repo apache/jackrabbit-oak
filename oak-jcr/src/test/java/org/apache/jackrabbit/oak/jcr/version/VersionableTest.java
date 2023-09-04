@@ -28,7 +28,7 @@ import javax.jcr.version.VersionException;
 import javax.jcr.version.VersionHistory;
 import javax.jcr.version.VersionManager;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -39,9 +39,9 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Set;
 
-import static com.google.common.collect.ImmutableSet.of;
-import static com.google.common.collect.Lists.transform;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
+import static org.apache.jackrabbit.guava.common.collect.Lists.transform;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.util.Arrays.asList;
 
 /**

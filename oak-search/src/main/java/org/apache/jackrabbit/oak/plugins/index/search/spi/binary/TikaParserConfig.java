@@ -26,7 +26,7 @@ import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.ParseContext;

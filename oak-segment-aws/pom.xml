@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.45-SNAPSHOT</version>
+        <version>1.57-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -33,7 +33,7 @@
     <name>Oak Segment AWS</name>
 
     <properties>
-        <aws.version>1.11.700</aws.version>
+        <aws.version>1.12.353</aws.version>
         <sqlite4java.version>1.0.392</sqlite4java.version>
     </properties>
 
@@ -45,7 +45,6 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                          <!-- OAK-7182 -->${guava.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
@@ -141,20 +140,21 @@
     <!-- D E P E N D E N C I E S -->
     <!-- ====================================================================== -->
     <dependencies>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-shaded-guava</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Optional OSGi dependencies, used only when running within OSGi -->
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
+            <artifactId>osgi.core</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.annotation</artifactId>
+            <artifactId>org.osgi.service.component</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -186,11 +186,6 @@
             <artifactId>oak-store-spi</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.9</version>
         </dependency>
 
         <!-- AWS dependencies -->

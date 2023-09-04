@@ -21,13 +21,16 @@ package org.apache.jackrabbit.oak.plugins.memory;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
-import com.google.common.io.ByteSource;
+import org.apache.jackrabbit.guava.common.hash.HashCode;
+import org.apache.jackrabbit.guava.common.hash.Hashing;
+import org.apache.jackrabbit.guava.common.io.ByteSource;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract base class for {@link Blob} implementations.
@@ -35,6 +38,20 @@ import org.jetbrains.annotations.Nullable;
  * {@code hashCode} and {@code equals}.
  */
 public abstract class AbstractBlob implements Blob {
+
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractBlob.class);
+
+    private static final boolean DEBUG_BLOB_EQUAL_LOG = SystemPropertySupplier
+            .create("oak.abstractblob.equal.log", false)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
+            .get();
+
+    private static final long DEBUG_BLOB_EQUAL_LOG_LIMIT = SystemPropertySupplier
+            .create("oak.abstractblob.equal.log.limit", 100_000_000L)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
+            .get();
 
     private static ByteSource supplier(final Blob blob) {
         return new ByteSource() {
@@ -60,6 +77,10 @@ public abstract class AbstractBlob implements Blob {
         //definitely same blob. If not we need to check further.
         if (ai != null && bi != null && ai.equals(bi)){
             return true;
+        }
+
+        if (DEBUG_BLOB_EQUAL_LOG && al > DEBUG_BLOB_EQUAL_LOG_LIMIT) {
+            LOG.debug("Blobs have the same length of {} and we're falling back to byte-wise comparison.", al);
         }
 
         try {

@@ -18,6 +18,26 @@
  */
 package org.apache.jackrabbit.oak.commons;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.collect.Sets.union;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.lineBreakAwareComparator;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
+import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
+import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -35,42 +55,21 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 
-import com.google.common.base.Function;
-import com.google.common.base.Splitter;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
-import com.google.common.primitives.Longs;
 import org.apache.commons.io.FileUtils;
-import org.apache.jackrabbit.oak.commons.FileIOUtils.BurnOnCloseFileIterator;
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Splitter;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-
-import static com.google.common.base.Charsets.UTF_8;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newHashSet;
-import static com.google.common.collect.Sets.union;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.append;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.copy;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.lexComparator;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.lineBreakAwareComparator;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.merge;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.readStringsAsSet;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.sort;
-import static org.apache.jackrabbit.oak.commons.FileIOUtils.writeStrings;
-import static org.apache.jackrabbit.oak.commons.IOUtils.closeQuietly;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
-
 
 /**
  * Tests for {@link FileIOUtils}
@@ -99,23 +98,6 @@ public class FileIOUtilsTest {
 
         File f = folder.newFile();
         int count = writeStrings(added.iterator(), f, false, new java.util.function.Function<String, String>() {
-            @Nullable @Override public String apply(@Nullable String input) {
-                return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
-            }
-        }, null, null);
-        assertEquals(added.size(), count);
-
-        Set<String> retrieved = readStringsAsSet(new FileInputStream(f), false);
-        assertEquals(actual, retrieved);
-    }
-
-    @Test
-    public void writeCustomReadOrgStringsDeprecated() throws Exception {
-        Set<String> added = newHashSet("a-", "z-", "e-", "b-");
-        Set<String> actual = newHashSet("a", "z", "e", "b");
-
-        File f = folder.newFile();
-        int count = writeStrings(added.iterator(), f, false, new Function<String, String>() {
             @Nullable @Override public String apply(@Nullable String input) {
                 return Splitter.on("-").trimResults().omitEmptyStrings().splitToList(input).get(0);
             }
@@ -208,7 +190,7 @@ public class FileIOUtilsTest {
         for (int i = 0; i < numEntries; i++) {
             entries[i] = r.nextLong();
         }
-        
+
         Iterator<Long> boxedEntries = Longs.asList(entries).iterator();
         Iterator<String> hexEntries = Iterators.transform(boxedEntries, new Function<Long, String>() {
                     @Nullable @Override public String apply(@Nullable Long input) {
@@ -216,13 +198,13 @@ public class FileIOUtilsTest {
                     }
                 });
         File f = assertWrite(hexEntries, false, numEntries);
-        
+
         Comparator<String> prefixComparator = new Comparator<String>() {
             @Override public int compare(String s1, String s2) {
                 return s1.substring(0, 3).compareTo(s2.substring(0, 3));
             }
         };
-        
+
         sort(f, prefixComparator);
         BufferedReader reader =
             new BufferedReader(new InputStreamReader(new FileInputStream(f), UTF_8));
@@ -363,36 +345,12 @@ public class FileIOUtilsTest {
     }
 
     @Test
-    public void deprecatedfileIteratorTest() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
-        File f = assertWrite(added.iterator(), false, added.size());
-
-        BurnOnCloseFileIterator<String> iterator =
-            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()));
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(f.exists());
-    }
-
-    @Test
     public void fileIteratorBurnTest() throws Exception {
         Set<String> added = newHashSet("a", "z", "e", "b");
         File f = assertWrite(added.iterator(), false, added.size());
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator =
                 org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(!f.exists());
-    }
-
-    @Test
-    public void deprecatedFileIteratorBurnTest() throws Exception {
-        Set<String> added = newHashSet("a", "z", "e", "b");
-        File f = assertWrite(added.iterator(), false, added.size());
-
-        BurnOnCloseFileIterator<String> iterator =
-            BurnOnCloseFileIterator.wrap(FileUtils.lineIterator(f, UTF_8.toString()), f);
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -411,18 +369,6 @@ public class FileIOUtilsTest {
     }
 
     @Test
-    public void deprecatedFileIteratorLineBreakTest() throws IOException {
-        Set<String> added = newHashSet(getLineBreakStrings());
-        File f = assertWrite(added.iterator(), true, added.size());
-
-        BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f, UTF_8.toString()),
-                f, (input) -> unescapeLineBreaks(input));
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(!f.exists());
-    }
-
-    @Test
     public void fileIteratorRandomizedTest() throws Exception {
         Set<String> added = newHashSet();
         for (int i = 0; i < 100; i++) {
@@ -432,21 +378,6 @@ public class FileIOUtilsTest {
 
         org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String> iterator = new org.apache.jackrabbit.oak.commons.io.BurnOnCloseFileIterator<String>(
                 FileUtils.lineIterator(f, UTF_8.toString()), f, (input) -> unescapeLineBreaks(input));
-
-        assertEquals(added, Sets.newHashSet(iterator));
-        assertTrue(!f.exists());
-    }
-
-    @Test
-    public void deprecatedFileIteratorRandomizedTest() throws Exception {
-        Set<String> added = newHashSet();
-        for (int i = 0; i < 100; i++) {
-            added.add(getRandomTestString());
-        }
-        File f = assertWrite(added.iterator(), true, added.size());
-
-        BurnOnCloseFileIterator<String> iterator = new BurnOnCloseFileIterator<String>(FileUtils.lineIterator(f, UTF_8.toString()),
-                f, (input) -> unescapeLineBreaks(input));
 
         assertEquals(added, Sets.newHashSet(iterator));
         assertTrue(!f.exists());
@@ -476,6 +407,22 @@ public class FileIOUtilsTest {
 
         assertTrue(f.exists());
         assertTrue(!f2.exists());
+    }
+
+    @Test
+    public void testTransformingComparator() throws Exception {
+        Comparator<String> delegate = new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        };
+        java.util.function.Function<String, String> fun = x -> x.toLowerCase(Locale.ENGLISH);
+        FileIOUtils.TransformingComparator comp = new FileIOUtils.TransformingComparator(delegate, fun);
+
+        assertTrue(0 > delegate.compare("A", "a"));
+        assertTrue(0 < delegate.compare("a", "A"));
+        assertTrue(0 == comp.compare("a", "A"));
     }
 
     private static List<String> getLineBreakStrings() {

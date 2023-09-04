@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLeafPreviousDocId;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
@@ -28,9 +30,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.Lock;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -40,10 +40,10 @@ import org.apache.jackrabbit.oak.plugins.document.util.StringValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import com.google.common.base.Objects;
-import com.google.common.cache.Cache;
-
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isLeafPreviousDocId;
+import org.apache.jackrabbit.guava.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Cache for the NodeDocuments. This class is thread-safe and uses the provided NodeDocumentLock.

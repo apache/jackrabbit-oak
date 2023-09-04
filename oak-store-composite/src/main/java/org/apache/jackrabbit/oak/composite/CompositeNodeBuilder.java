@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import com.google.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;

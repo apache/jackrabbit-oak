@@ -16,13 +16,14 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
+
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -63,6 +64,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
@@ -82,6 +84,12 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                 name = "User Path",
                 description = "Path underneath which user nodes are being created.")
         String usersPath() default UserConstants.DEFAULT_USER_PATH;
+
+        @AttributeDefinition(
+                name = "Impersonator principals",
+                description = "List of users who can impersonate and groups whose members can impersonate any user.",
+                type = AttributeType.STRING)
+        String[] impersonatorPrincipals() default {};
 
         @AttributeDefinition(
                 name = "Group Path",

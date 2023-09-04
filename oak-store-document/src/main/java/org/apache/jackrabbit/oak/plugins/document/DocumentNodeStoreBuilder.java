@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Suppliers.ofInstance;
+import static java.util.Objects.isNull;
+import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -23,17 +31,12 @@ import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.base.Supplier;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.RemovalCause;
-import com.google.common.cache.RemovalListener;
-import com.google.common.cache.RemovalNotification;
-import com.google.common.cache.Weigher;
-import com.google.common.util.concurrent.MoreExecutors;
-
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.cache.CacheBuilder;
+import org.apache.jackrabbit.guava.common.cache.RemovalCause;
+import org.apache.jackrabbit.guava.common.cache.RemovalListener;
+import org.apache.jackrabbit.guava.common.cache.RemovalNotification;
+import org.apache.jackrabbit.guava.common.cache.Weigher;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -64,12 +67,10 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Suppliers.ofInstance;
-import static java.util.Objects.isNull;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_JOURNAL_GC_MAX_AGE_MILLIS;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_VER_GC_MAX_AGE;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Predicates;
+import org.apache.jackrabbit.guava.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 
 /**
  * A generic builder for a {@link DocumentNodeStore}. By default the builder
@@ -162,6 +163,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
      * @return a new {@link DocumentNodeStoreBuilder}.
@@ -492,8 +494,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public Executor getExecutor() {
-        if(executor == null){
-            return MoreExecutors.sameThreadExecutor();
+        if (executor == null){
+            return MoreExecutors.newDirectExecutorService();
         }
         return executor;
     }
@@ -676,6 +678,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
      */
     public long getRevisionGCMaxAge() {
         return maxRevisionGCAgeMillis;
+    }
+
+    public T setSuspendTimeoutMillis(long suspendTimeoutMillis) {
+        this.suspendTimeoutMillis = suspendTimeoutMillis;
+        return thisBuilder();
+    }
+
+    public long getSuspendTimeoutMillis() {
+        return suspendTimeoutMillis;
     }
 
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {

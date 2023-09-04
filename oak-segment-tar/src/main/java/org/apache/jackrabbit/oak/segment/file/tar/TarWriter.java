@@ -19,11 +19,11 @@
 
 package org.apache.jackrabbit.oak.segment.file.tar;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkPositionIndexes;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkPositionIndexes;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static java.lang.String.format;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.FILE_NAME_FORMAT;
 import static org.apache.jackrabbit.oak.segment.file.tar.TarConstants.GRAPH_MAGIC;
@@ -38,6 +38,7 @@ import java.util.UUID;
 import java.util.zip.CRC32;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.file.UnrecoverableArchiveException;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexWriter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveWriter;
@@ -215,10 +216,14 @@ class TarWriter implements Closeable {
         // to ensure that no concurrent thread is still flushing
         // the file when we close the file handle.
         synchronized (closeMonitor) {
-            writeBinaryReferences();
-            writeGraph();
+            try {
+                writeBinaryReferences();
+                writeGraph();
 
-            archive.close();
+                archive.close();
+            } catch (IOException e) {
+                throw new UnrecoverableArchiveException("Failed to close tar archive", e);
+            }
         }
     }
 

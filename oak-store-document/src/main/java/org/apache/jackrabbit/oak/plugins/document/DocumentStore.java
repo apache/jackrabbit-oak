@@ -18,6 +18,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Condition;
@@ -26,6 +28,9 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static java.util.stream.Collectors.toList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.Throttler.NO_THROTTLING;
 
 /**
@@ -339,6 +344,7 @@ public interface DocumentStore {
      *         if the document wasn't found
      * @throws DocumentStoreException if the operation failed. E.g. because of
      *          an I/O error.
+     * @see #createOrUpdate(Collection, List)
      */
     @Nullable
     <T extends Document> T findAndUpdate(Collection<T> collection,
@@ -485,5 +491,84 @@ public interface DocumentStore {
      */
     default Throttler throttler() {
         return NO_THROTTLING;
+    }
+
+    /**
+     * Get a list of documents with only projected fields (as mentioned in projections param)
+     * along with "_id" field and where the key is greater than a start value and
+     * less than an end value <em>and</em> the given "indexed property" is greater
+     * or equals the specified value.
+     * <p>
+     * The indexed property can either be a {@link Long} value, in which case numeric
+     * comparison applies, or a {@link Boolean} value, in which case "false" is mapped
+     * to "0" and "true" is mapped to "1".
+     * <p>
+     * The returned documents are sorted by key and are immutable.
+     *
+     * @param <T> the document type
+     * @param collection the collection
+     * @param fromKey the start value (excluding)
+     * @param toKey the end value (excluding)
+     * @param indexedProperty the name of the indexed property (optional)
+     * @param startValue the minimum value of the indexed property
+     * @param limit the maximum number of entries to return
+     * @param projection {@link List} of projected keys (optional). Keep this empty to fetch all fields on document.
+     * @return the list (possibly empty)
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
+     */
+    @NotNull
+    default <T extends Document> List<T> query(final Collection<T> collection,
+                                               final String fromKey,
+                                               final String toKey,
+                                               final String indexedProperty,
+                                               final long startValue,
+                                               final int limit,
+                                               final List<String> projection) throws DocumentStoreException {
+
+        final List<T> list = query(collection, fromKey, toKey, indexedProperty, startValue, limit);
+
+        if (projection == null || projection.isEmpty()) {
+            return list;
+        }
+
+        final Set<String> projectedSet = newHashSet(projection);
+        projectedSet.add(ID);
+
+        return list.stream().map(t -> {
+            T newDocument = collection.newDocument(this);
+            t.deepCopy(newDocument);
+            newDocument.keySet().retainAll(projectedSet);
+            return newDocument;
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * Performs a conditional update (e.g. using
+     * {@link UpdateOp.Condition.Type#EXISTS} and only update the
+     * document if the condition is <code>true</code>. The returned documents are
+     * immutable.
+     * <p>
+     * In case of a {@code DocumentStoreException} (e.g. when a communication
+     * error occurs) only some updates may have been applied. In this case
+     * it is the responsibility of the caller to check which {@link UpdateOp}s
+     * were applied and take appropriate action. The implementation however ensures
+     * that the result of the operations are properly reflected in the document
+     * cache. That is, an implementation could simply evict the documents related
+     * to the given update operations from the cache.
+     *
+     * @param <T> the document type
+     * @param collection the collection
+     * @param updateOps the update operation List
+     * @return the list containing old documents or <code>null</code> if the condition is not met
+     *         or if the document wasn't found. The order in the result list reflects the order
+     *         in the updateOps parameter
+     * @throws DocumentStoreException if the operation failed. E.g. because of
+     *          an I/O error.
+     */
+    @NotNull
+    default <T extends Document> List<T> findAndUpdate(final @NotNull Collection<T> collection,
+                                                       final @NotNull List<UpdateOp> updateOps) throws DocumentStoreException {
+        return updateOps.stream().map(op -> findAndUpdate(collection, op)).collect(toList());
     }
 }

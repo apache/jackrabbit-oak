@@ -44,7 +44,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
 public class ValidNamesTest extends AbstractRepositoryTest {
 
@@ -172,28 +172,24 @@ public class ValidNamesTest extends AbstractRepositoryTest {
         unsupportedNameTest("foo/bar", PathNotFoundException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedPipe() {
-        unsupportedNameTest("foo|bar", PathNotFoundException.class);
+        unsupportedNameTest("foo|bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedStar() {
-        unsupportedNameTest("foo*bar", PathNotFoundException.class);
+        unsupportedNameTest("foo*bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedOpenBracket() {
-        unsupportedNameTest("foo[bar", PathNotFoundException.class);
+        unsupportedNameTest("foo[bar", RepositoryException.class);
     }
 
-    // TODO: questionable exception
     @Test
     public void testEnclosedCloseBracket() {
-        unsupportedNameTest("foo]bar", PathNotFoundException.class);
+        unsupportedNameTest("foo]bar", RepositoryException.class);
     }
 
     // TODO: questionable exception

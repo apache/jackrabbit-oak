@@ -17,19 +17,22 @@
 package org.apache.jackrabbit.oak.security.authorization.composite;
 
 import java.security.Principal;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
+import javax.jcr.UnsupportedRepositoryOperationException;
 import javax.jcr.security.AccessControlException;
 import javax.jcr.security.AccessControlManager;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.api.security.JackrabbitAccessControlPolicy;
 import org.apache.jackrabbit.commons.iterator.AccessControlPolicyIteratorAdapter;
@@ -40,6 +43,7 @@ import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.Abstra
 import org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.PolicyOwner;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.AggregationFilter;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Access control manager that aggregates a list of different access control
@@ -94,8 +98,7 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
                 break;
             }
         }
-        List<AccessControlPolicy> l = policies.build();
-        return l.toArray(new AccessControlPolicy[0]);
+        return policies.build().stream().distinct().toArray(AccessControlPolicy[]::new);
     }
 
     @Override
@@ -173,5 +176,20 @@ class CompositeAccessControlManager extends AbstractAccessControlManager {
         }
         List<AccessControlPolicy> l = policies.build();
         return l.toArray(new AccessControlPolicy[0]);
+    }
+
+    @Override
+    public @NotNull Iterator<AccessControlPolicy> getEffectivePolicies(@NotNull Set<Principal> principals, @Nullable String... absPaths) throws AccessDeniedException, AccessControlException, UnsupportedRepositoryOperationException, RepositoryException {
+        ImmutableList.Builder<Iterator<AccessControlPolicy>> iterators = ImmutableList.builder();
+        for (AccessControlManager acMgr : acMgrs) {
+            if (acMgr instanceof JackrabbitAccessControlManager) {
+                JackrabbitAccessControlManager jAcMgr = (JackrabbitAccessControlManager) acMgr;
+                iterators.add(jAcMgr.getEffectivePolicies(principals, absPaths));
+                if (aggregationFilter.stop(jAcMgr, principals)) {
+                    break;
+                }
+            }
+        }
+        return Iterators.concat(iterators.build().toArray(new Iterator[0]));
     }
 }

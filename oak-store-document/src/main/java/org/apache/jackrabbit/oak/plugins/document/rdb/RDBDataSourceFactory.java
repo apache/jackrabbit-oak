@@ -30,8 +30,8 @@ import java.util.logging.Logger;
 
 import javax.sql.DataSource;
 
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
-import org.apache.jackrabbit.oak.plugins.document.util.SystemPropertySupplier;
 import org.slf4j.LoggerFactory;
 
 /**

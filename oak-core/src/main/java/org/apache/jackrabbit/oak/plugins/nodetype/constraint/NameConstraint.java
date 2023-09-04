@@ -21,12 +21,11 @@ import java.util.function.Predicate;
 import javax.jcr.RepositoryException;
 import javax.jcr.Value;
 
-import org.apache.jackrabbit.oak.core.GuavaDeprecation;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NameConstraint implements Predicate<Value>, com.google.common.base.Predicate<Value> {
+public class NameConstraint implements Predicate<Value> {
     private static final Logger log = LoggerFactory.getLogger(NameConstraint.class);
 
     private final String requiredValue;
@@ -44,16 +43,6 @@ public class NameConstraint implements Predicate<Value>, com.google.common.base.
             log.warn("Error checking name constraint " + this, e);
             return false;
         }
-    }
-
-    /**
-     * @deprecated use {@link #test(Value)} instead  (see <a href="https://issues.apache.org/jira/browse/OAK-8874">OAK-8874</a>)
-     */
-    @Deprecated
-    @Override
-    public boolean apply(@Nullable Value value) {
-        GuavaDeprecation.handleCall("OAK-8874");
-        return test(value);
     }
 
     @Override

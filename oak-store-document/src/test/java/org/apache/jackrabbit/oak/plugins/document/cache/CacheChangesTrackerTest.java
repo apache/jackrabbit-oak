@@ -16,9 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import com.google.common.base.Predicate;
-import com.google.common.cache.Cache;
-import com.google.common.collect.ImmutableSet;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerLimit;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.oak.cache.CacheLIRS;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
@@ -35,14 +43,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyLowerLimit;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getKeyUpperLimit;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 
 public class CacheChangesTrackerTest {
 

@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.spi.security.privilege;
 
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Longs;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.primitives.Longs;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;

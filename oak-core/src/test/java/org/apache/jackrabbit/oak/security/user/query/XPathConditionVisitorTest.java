@@ -20,8 +20,8 @@ import java.util.Iterator;
 import java.util.Map;
 import javax.jcr.Value;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.UserManager;
 import org.apache.jackrabbit.oak.AbstractSecurityTest;

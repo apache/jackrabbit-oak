@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,18 +32,24 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
+import static org.apache.jackrabbit.JcrConstants.JCR_PREDECESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_SUCCESSORS;
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 import static org.apache.jackrabbit.JcrConstants.JCR_VERSIONHISTORY;
 import static org.apache.jackrabbit.oak.plugins.document.check.Result.END;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreCheckHelper.getAllNodeDocuments;
@@ -66,6 +73,8 @@ public class DocumentStoreCheck {
 
     private final boolean summary;
 
+    private final boolean counter;
+
     private final int numThreads;
 
     private final ExecutorService executorService;
@@ -78,23 +87,40 @@ public class DocumentStoreCheck {
 
     private final boolean versionHistory;
 
+    private final boolean predecessors;
+
+    private final boolean successors;
+
+    private final boolean uuid;
+
+    private final boolean consistency;
+
+    private final List<String> paths;
+
     private DocumentStoreCheck(DocumentNodeStore ns,
                                DocumentStore store,
                                Closer closer,
                                boolean progress,
                                boolean silent,
                                boolean summary,
+                               boolean counter,
                                int numThreads,
                                String output,
                                boolean orphan,
                                boolean baseVersion,
-                               boolean versionHistory) {
+                               boolean versionHistory,
+                               boolean predecessors,
+                               boolean successors,
+                               boolean uuid,
+                               boolean consistency,
+                               List<String> paths) {
         this.ns = ns;
         this.store = store;
         this.closer = closer;
         this.progress = progress;
         this.silent = silent;
         this.summary = summary;
+        this.counter = counter;
         this.numThreads = numThreads;
         this.executorService = new ThreadPoolExecutor(
                 numThreads, numThreads, 1, TimeUnit.MINUTES,
@@ -106,6 +132,11 @@ public class DocumentStoreCheck {
         this.orphan = orphan;
         this.baseVersion = baseVersion;
         this.versionHistory = versionHistory;
+        this.predecessors = predecessors;
+        this.successors = successors;
+        this.uuid = uuid;
+        this.consistency = consistency;
+        this.paths = paths;
     }
 
     public void run() throws Exception {
@@ -113,7 +144,7 @@ public class DocumentStoreCheck {
         scheduleResultWriter(results);
 
         DocumentProcessor processor = createDocumentProcessor();
-        for (NodeDocument doc : getAllDocs(store)) {
+        for (NodeDocument doc : paths.isEmpty() ? getAllDocs(store) : getDocs(store, paths)) {
             processor.processDocument(doc, results);
         }
         processor.end(results);
@@ -161,6 +192,9 @@ public class DocumentStoreCheck {
 
     private DocumentProcessor createDocumentProcessor() {
         List<DocumentProcessor> processors = new ArrayList<>();
+        if (counter) {
+            processors.add(new NodeCounter(ns, ns.getHeadRevision(), executorService));
+        }
         if (summary) {
             processors.add(new Summary(numThreads));
         }
@@ -181,8 +215,20 @@ public class DocumentStoreCheck {
         if (versionHistory) {
             processors.add(new ReferenceCheck(JCR_VERSIONHISTORY, ns, ns.getHeadRevision(), executorService));
         }
+        if (predecessors) {
+            processors.add(new ReferenceCheck(JCR_PREDECESSORS, ns, ns.getHeadRevision(), executorService));
+        }
+        if (successors) {
+            processors.add(new ReferenceCheck(JCR_SUCCESSORS, ns, ns.getHeadRevision(), executorService));
+        }
         if (baseVersion) {
             processors.add(new ReferenceCheck(JCR_BASEVERSION, ns, ns.getHeadRevision(), executorService));
+        }
+        if (uuid) {
+            processors.add(new ReferenceCheck(JCR_UUID, ns, ns.getHeadRevision(), executorService));
+        }
+        if (consistency) {
+            processors.add(new ConsistencyCheck(ns, executorService));
         }
         return CompositeDocumentProcessor.compose(processors);
     }
@@ -193,6 +239,14 @@ public class DocumentStoreCheck {
         } else {
             return getAllDocuments(store);
         }
+    }
+
+    private static Iterable<NodeDocument> getDocs(DocumentStore store,
+                                                  List<String> paths) {
+        return paths.stream()
+                .map(p -> store.find(Collection.NODES, Utils.getIdFromPath(p)))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     public static class Builder {
@@ -209,6 +263,8 @@ public class DocumentStoreCheck {
 
         private boolean summary;
 
+        private boolean counter;
+
         private int numThreads = Runtime.getRuntime().availableProcessors();
 
         private String output;
@@ -218,6 +274,16 @@ public class DocumentStoreCheck {
         private boolean baseVersion;
 
         private boolean versionHistory;
+
+        private boolean predecessors;
+
+        private boolean successors;
+
+        private boolean uuid;
+
+        private boolean consistency;
+
+        private final List<String> paths = new ArrayList<>();
 
         public Builder(DocumentNodeStore ns,
                        DocumentStore store,
@@ -239,6 +305,11 @@ public class DocumentStoreCheck {
 
         public Builder withSummary(boolean enable) {
             this.summary = enable;
+            return this;
+        }
+
+        public Builder withCounter(boolean enable) {
+            this.counter = enable;
             return this;
         }
 
@@ -267,10 +338,36 @@ public class DocumentStoreCheck {
             return this;
         }
 
+        public Builder withPredecessors(boolean enable) {
+            this.predecessors = enable;
+            return this;
+        }
+
+        public Builder withSuccessors(boolean enable) {
+            this.successors = enable;
+            return this;
+        }
+
+        public Builder withUuid(boolean enable) {
+            this.uuid = enable;
+            return this;
+        }
+
+        public Builder withConsistency(boolean enable) {
+            this.consistency = enable;
+            return this;
+        }
+
+        public Builder withPaths(List<String> paths) {
+            this.paths.clear();
+            this.paths.addAll(paths);
+            return this;
+        }
+
         public DocumentStoreCheck build() {
             return new DocumentStoreCheck(ns, store, closer, progress, silent,
-                    summary, numThreads, output, orphan, baseVersion,
-                    versionHistory);
+                    summary, counter, numThreads, output, orphan, baseVersion,
+                    versionHistory, predecessors, successors, uuid, consistency, paths);
         }
     }
 

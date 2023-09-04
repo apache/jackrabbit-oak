@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -44,7 +44,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
-import static com.google.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -99,8 +98,6 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
 
     /**
      * convenience method for printing on logs the currently registered node types.
-     *
-     * @param builder
      */
     private static void printNodeTypes(NodeBuilder builder) {
         if (LOG.isDebugEnabled()) {
@@ -117,6 +114,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, ElasticIndexDefinition.TYPE_ELASTICSEARCH);
+        indexDefn.setProperty(ElasticIndexDefinition.FAIL_ON_ERROR, false);
         indexDefn.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         Tree includeNtFileContent = indexDefn.addChild(FulltextIndexConstants.AGGREGATES)
                 .addChild(NT_TEST_ASSET).addChild("include10");
@@ -130,7 +128,6 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
         setTraversalEnabled(false);
         final String statement = "//element(*, test:Asset)[ " +
                 "jcr:contains(jcr:content/renditions/dam.text.txt/jcr:content, 'quick') ]";
-        List<String> expected = newArrayList();
         Tree content = root.getTree("/").addChild("content");
         Tree page = content.addChild("asset");
         page.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
@@ -144,10 +141,9 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
         resource.setProperty(binaryProperty(JCR_DATA,
                 "the quick brown fox jumps over the lazy dog."));
         root.commit();
-        expected.add("/content/asset");
 
         assertEventually(()-> {
-            assertQuery(statement, "xpath", expected);
+            assertQuery(statement, "xpath", List.of("/content/asset"));
         });
     }
 }

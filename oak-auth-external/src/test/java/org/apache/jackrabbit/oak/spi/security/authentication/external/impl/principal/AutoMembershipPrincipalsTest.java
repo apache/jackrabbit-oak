@@ -16,9 +16,10 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
@@ -65,7 +66,7 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         amp = new AutoMembershipPrincipals(userManager, MAPPING, getAutoMembershipConfigMapping());
         
         when(amConfig.getAutoMembership(authorizable)).thenReturn(ImmutableSet.of(automembershipGroup3.getID()));
-        when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Iterators.emptyIterator());
+        when(amConfig.getAutoMembers(any(UserManager.class), any(Group.class))).thenReturn(Collections.emptyIterator());
         when(amConfig.getAutoMembers(userManager, automembershipGroup3)).thenReturn(Iterators.singletonIterator(authorizable));
     }
 
@@ -254,6 +255,19 @@ public class AutoMembershipPrincipalsTest extends AbstractAutoMembershipTest {
         verify(inherited).getID();
         verifyNoMoreInteractions(gr, inherited);
         reset(gr, inherited, um);
+    }
+
+    @Test
+    public void testIsInheritedMemberGroupLookupFails() throws Exception {
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(userManager, MAPPING, Collections.emptyMap());
+        assertFalse(amprincipals.isInheritedMember(IDP_INVALID_AM, getTestGroup(), authorizable));
+    }
+
+    @Test
+    public void testIsInheritedMemberConfiguredUser() throws Exception {
+        Map<String, String[]> mapping = ImmutableMap.of(IDP_INVALID_AM, new String[] {getTestUser().getID()});
+        AutoMembershipPrincipals amprincipals = new AutoMembershipPrincipals(userManager, mapping, Collections.emptyMap());
+        assertFalse(amprincipals.isInheritedMember(IDP_INVALID_AM, getTestGroup(), authorizable));
     }
     
     @Test

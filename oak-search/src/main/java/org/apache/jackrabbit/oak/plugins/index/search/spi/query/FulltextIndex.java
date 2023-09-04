@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
 
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Chars;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.primitives.Chars;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result.SizePrecision;
 import org.apache.jackrabbit.oak.api.Type;
@@ -57,7 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import static com.google.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.AdvancedQueryIndex;
 import static org.apache.jackrabbit.oak.spi.query.QueryIndex.NativeQueryIndex;
 
@@ -429,7 +429,12 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                     readCount++;
                     if (readCount % TRAVERSING_WARNING == 0) {
                         Cursors.checkReadLimit(readCount, settings);
-                        log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                        if (readCount == 2 * TRAVERSING_WARNING) {
+                            log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter(),
+                                    new Exception("call stack"));
+                        } else {
+                            log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
+                        }
                     }
                     return currentRow.path;
                 }

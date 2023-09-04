@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.jcr.session;
 
-import static com.google.common.collect.Lists.newArrayListWithCapacity;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayListWithCapacity;
 
 import java.io.InputStream;
 import java.math.BigDecimal;

@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.run;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.exporter.NodeStateExportCommand;
 import org.apache.jackrabbit.oak.index.IndexCommand;
 import org.apache.jackrabbit.oak.index.merge.IndexDiffCommand;
@@ -71,6 +71,6 @@ public final class AvailableModes {
             .put("search-nodes", new SearchNodesCommand())
             .put("segment-copy", new SegmentCopyCommand())
             .put("server", new ServerCommand())
-            .put("purge-index-versions", new PurgeOldIndexVersionCommand())
+            .put("purge-index-versions", new LucenePurgeOldIndexVersionCommand())
             .build());
 }

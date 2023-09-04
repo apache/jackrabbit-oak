@@ -16,14 +16,14 @@
  */
 package org.apache.jackrabbit.oak.spi.lock;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
 
-import com.google.common.collect.ImmutableSet;
 import org.apache.jackrabbit.JcrConstants;
 
 public interface LockConstants extends JcrConstants {
 
-    Set<String> LOCK_PROPERTY_NAMES = ImmutableSet.of(
-            JCR_LOCKISDEEP,
-            JCR_LOCKOWNER);
+    Set<String> LOCK_PROPERTY_NAMES = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(JCR_LOCKISDEEP, JCR_LOCKOWNER)));
 }

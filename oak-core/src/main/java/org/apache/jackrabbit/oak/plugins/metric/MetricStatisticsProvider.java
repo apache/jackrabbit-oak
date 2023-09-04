@@ -36,7 +36,7 @@ import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ObjectNameFactory;
 import com.codahale.metrics.RatioGauge;
 import com.codahale.metrics.Timer;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics;
 import org.apache.jackrabbit.api.stats.RepositoryStatistics.Type;
 import org.apache.jackrabbit.oak.commons.jmx.JmxUtil;

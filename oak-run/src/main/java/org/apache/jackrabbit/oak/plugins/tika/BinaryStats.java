@@ -28,9 +28,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.codehaus.groovy.runtime.StringGroovyMethods;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;

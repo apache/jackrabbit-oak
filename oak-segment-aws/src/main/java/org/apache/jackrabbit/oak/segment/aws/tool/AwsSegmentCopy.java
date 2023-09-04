@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.segment.aws.tool;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.newSegmentNodeStorePersistence;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.printMessage;
 import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.printableStopwatch;
@@ -27,7 +27,7 @@ import static org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.storeTypeF
 
 import java.io.PrintWriter;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;

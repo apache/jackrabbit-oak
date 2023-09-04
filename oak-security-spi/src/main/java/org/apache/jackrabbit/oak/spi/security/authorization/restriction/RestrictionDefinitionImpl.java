@@ -18,11 +18,11 @@ package org.apache.jackrabbit.oak.spi.security.authorization.restriction;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.base.Objects;
+import org.apache.jackrabbit.guava.common.base.Objects;
 import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 /**
  * Default implementation of the {@link RestrictionDefinition} interface.

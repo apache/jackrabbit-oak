@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import com.google.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Function;
 
 import org.jetbrains.annotations.NotNull;
 

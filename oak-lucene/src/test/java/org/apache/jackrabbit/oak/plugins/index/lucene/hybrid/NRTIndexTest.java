@@ -40,7 +40,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.FieldFactory.newPathField;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.junit.Assert.assertEquals;
@@ -64,7 +64,7 @@ public class NRTIndexTest {
 
     @Before
     public void setUp() throws IOException {
-        indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
+        indexCopier = new IndexCopier(newDirectExecutorService(), temporaryFolder.getRoot());
         indexFactory = new NRTIndexFactory(indexCopier, StatisticsProvider.NOOP);
         indexFactory.setAssertAllResourcesClosed(true);
         LuceneIndexEditorContext.configureUniqueId(builder);

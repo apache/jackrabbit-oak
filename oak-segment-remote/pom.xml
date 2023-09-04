@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.57-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -36,7 +36,6 @@
           <configuration>
             <instructions>
               <Import-Package>
-                <!-- OAK-7182 -->${guava.osgi.import},
                   org.apache.jackrabbit.oak.segment.spi*,
                   !org.apache.jackrabbit.oak.segment*,
 				  !net.sf.cglib.asm.util,
@@ -63,28 +62,33 @@
            	 <excludes>
              </excludes>
             </configuration>
-        </plugin>        
+        </plugin>
       </plugins>
     </build>
-    
+
    <!-- ====================================================================== -->
     <!-- D E P E N D E N C I E S -->
     <!-- ====================================================================== -->
     <dependencies>
+        <dependency>
+            <groupId>org.apache.jackrabbit</groupId>
+            <artifactId>oak-shaded-guava</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Optional OSGi dependencies, used only when running within OSGi -->
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
+            <artifactId>osgi.core</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
+            <artifactId>org.osgi.service.component</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.annotation</artifactId>
+            <artifactId>org.osgi.annotation.versioning</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -134,7 +138,7 @@
             <artifactId>commons-pool2</artifactId>
             <version>2.6.2</version>
         </dependency>
-        
+
         <!-- Test dependencies -->
         <dependency>
             <groupId>org.mockito</groupId>
@@ -150,6 +154,7 @@
             <groupId>com.github.kstyrc</groupId>
             <artifactId>embedded-redis</artifactId>
             <version>0.6</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
           <groupId>ch.qos.logback</groupId>

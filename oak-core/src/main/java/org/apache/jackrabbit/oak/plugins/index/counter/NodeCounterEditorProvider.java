@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.counter;
 
-import java.util.UUID;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -31,10 +29,13 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+
+import java.util.UUID;
 
 @Component(service = IndexEditorProvider.class)
 public class NodeCounterEditorProvider implements IndexEditorProvider {
@@ -48,6 +49,14 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
     @Reference
     private MountInfoProvider mountInfoProvider = Mounts.defaultMountInfoProvider();
 
+    /**
+     The statistics provider will be null for any testcase that is using the nodeCounter. As some of these testcases are
+     using default repository builders that we can't modify, we default the statisticsProvider to be the NOOP instance,
+     as this is the easiest to instantiate.
+    */
+    @Reference
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+
     @Override
     @Nullable
     public Editor getIndexEditor(@NotNull String type,
@@ -56,10 +65,10 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         if (!TYPE.equals(type)) {
             return null;
         }
-        int resolution; 
+        int resolution;
         PropertyState s = definition.getProperty(RESOLUTION);
         if (s == null) {
-            resolution = NodeCounterEditor.DEFAULT_RESOLUTION; 
+            resolution = NodeCounterEditor.DEFAULT_RESOLUTION;
         } else {
             resolution = s.getValue(Type.LONG).intValue();
         }
@@ -83,12 +92,25 @@ public class NodeCounterEditorProvider implements IndexEditorProvider {
         } else {
             NodeCounterEditor.NodeCounterRoot rootData = new NodeCounterEditor.NodeCounterRoot(
                     resolution, seed, definition, root, callback);
-            return new NodeCounterEditor(rootData, mountInfoProvider);
+            return new NodeCounterEditor(rootData, mountInfoProvider, statisticsProvider);
         }
     }
 
     public NodeCounterEditorProvider with(MountInfoProvider mountInfoProvider) {
         this.mountInfoProvider = mountInfoProvider;
+        return this;
+    }
+
+    /**
+     * This is intended to be used during testing if there is a need to use a statistics provider that can be registered
+     * in the mBean server, e.g. the MetricStatisticsProvider. The DefaultStatisticsProvider and StatisticsProvider.NOOP
+     * will not.
+     *
+     * @param statisticsProvider a statisticsProvider as explained above
+     * @return the current NodeCounterEditor that is being built.
+     */
+    public NodeCounterEditorProvider with(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
         return this;
     }
 }

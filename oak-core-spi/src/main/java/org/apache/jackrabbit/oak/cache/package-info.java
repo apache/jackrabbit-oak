@@ -19,7 +19,7 @@
  * <em>For Oak internal use only. Do not use outside Oak components.</em>
  */
 @Internal(since = "1.1.1")
-@Version("1.1.1")
+@Version("2.0")
 package org.apache.jackrabbit.oak.cache;
 
 import org.apache.jackrabbit.oak.commons.annotations.Internal;

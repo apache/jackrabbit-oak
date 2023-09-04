@@ -36,8 +36,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Queues;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Queues;
 
 /**
  * A cursor that reads all nodes in a given subtree.
@@ -159,10 +159,15 @@ class TraversingCursor extends AbstractCursor {
 
                 readCount++;
                 if (readCount % 1000 == 0) {
-                    FilterIterators.checkReadLimit(readCount, settings);
-                    String caller = IndexUtils.getCaller(this.settings.getIgnoredClassNamesInCallTrace());
-                    LOG.warn("Traversed {} nodes with filter {} called by {}; consider creating an index or changing the query" , 
-                            readCount, filter, caller);
+                    if (readCount == 20000) {
+                        LOG.warn("Traversed {} nodes with filter {}; consider creating an index or changing the query",
+                                readCount, filter, new Exception("call stack"));
+                    } else {
+                        FilterIterators.checkReadLimit(readCount, settings);
+                        String caller = IndexUtils.getCaller(this.settings.getIgnoredClassNamesInCallTrace());
+                        LOG.warn("Traversed {} nodes with filter {} called by {}; consider creating an index or changing the query",
+                                readCount, filter, caller);
+                    }
                 }
 
                 NodeState node = entry.getNodeState();

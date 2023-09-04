@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.45-SNAPSHOT</version>
+    <version>1.57-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -215,7 +215,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>oak-segment-azure</artifactId>
+      <artifactId>oak-blob-cloud-azure</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
@@ -263,21 +263,4 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <!-- Workaround for http://bugs.java.com/view_bug.do?bug_id=6550655 -->
-  <profiles>
-    <profile>
-      <id>java6</id>
-      <activation>
-        <jdk>1.6</jdk>
-      </activation>
-      <dependencies>
-        <dependency>
-          <groupId>org.apache.felix</groupId>
-          <artifactId>org.apache.felix.scr.annotations</artifactId>
-          <scope>provided</scope>
-        </dependency>
-      </dependencies>
-    </profile>
-  </profiles>
 </project>

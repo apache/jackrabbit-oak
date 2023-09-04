@@ -19,14 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Iterables.get;
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Sets.newConcurrentHashSet;
-import static com.google.common.util.concurrent.Futures.addCallback;
-import static com.google.common.util.concurrent.Futures.dereference;
-import static com.google.common.util.concurrent.Futures.immediateCancelledFuture;
-import static com.google.common.util.concurrent.MoreExecutors.listeningDecorator;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static java.lang.Boolean.parseBoolean;
 import static java.lang.Integer.MAX_VALUE;
 import static java.lang.Integer.getInteger;
@@ -52,6 +45,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -59,14 +53,19 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import javax.management.InstanceAlreadyExistsException;
@@ -75,11 +74,7 @@ import javax.management.MBeanServer;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import com.google.common.base.Predicate;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableScheduledFuture;
-import com.google.common.util.concurrent.ListeningScheduledExecutorService;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -150,24 +145,24 @@ public class SegmentCompactionIT {
     private final MBeanServer mBeanServer = ManagementFactory.getPlatformMBeanServer();
 
     private final Random rnd = new Random();
-    private final ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(50);
-    private final ListeningScheduledExecutorService scheduler = listeningDecorator(executor);
+    private final ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(50);
     private final FileStoreGCMonitor fileStoreGCMonitor = new FileStoreGCMonitor(Clock.SIMPLE);
     private final TestGCMonitor gcMonitor = new TestGCMonitor(fileStoreGCMonitor);
     private final SegmentGCOptions gcOptions = defaultGCOptions()
                 .setEstimationDisabled(true)
                 .setForceTimeout(3600);
-    private final Set<Future<?>> writers = newConcurrentHashSet();
-    private final Set<Future<?>> readers = newConcurrentHashSet();
-    private final Set<Future<?>> references = newConcurrentHashSet();
-    private final Set<Future<?>> checkpoints = newConcurrentHashSet();
+    private final Set<Future<?>> writers = ConcurrentHashMap.newKeySet();
+    private final Set<Future<?>> readers = ConcurrentHashMap.newKeySet();
+    private final Set<Future<?>> references = ConcurrentHashMap.newKeySet();
+    private final Set<Future<?>> checkpoints = ConcurrentHashMap.newKeySet();
     private final SegmentCompactionITMBean segmentCompactionMBean = new SegmentCompactionITMBean();
 
     private FileStore fileStore;
     private SegmentNodeStore nodeStore;
     private Registration mBeanRegistration;
 
-    private volatile ListenableFuture<?> compactor = immediateCancelledFuture();
+    private volatile CompletableFuture<?> compactor = CompletableFuture.failedFuture(new IllegalStateException("NotInitialised"));
+
     private volatile ReadWriteLock compactionLock = null;
     private volatile int maxReaders = getInteger("SegmentCompactionIT.maxReaders", 10);
     private volatile int maxWriters = getInteger("SegmentCompactionIT.maxWriters", 10);
@@ -242,14 +237,11 @@ public class SegmentCompactionIT {
             throws NotCompliantMBeanException, InstanceAlreadyExistsException,
             MBeanRegistrationException {
         mBeanServer.registerMBean(mBean, objectName);
-        return new Registration(){
-            @Override
-            public void unregister() {
-                try {
-                    mBeanServer.unregisterMBean(objectName);
-                } catch (Exception e) {
-                    LOG.error("Error unregistering Segment Compaction MBean", e);
-                }
+        return () -> {
+            try {
+                mBeanServer.unregisterMBean(objectName);
+            } catch (Exception e) {
+                LOG.error("Error unregistering Segment Compaction MBean", e);
             }
         };
     }
@@ -274,15 +266,10 @@ public class SegmentCompactionIT {
                 .withStatisticsProvider(statisticsProvider)
                 .build();
         WriterCacheManager cacheManager = builder.getCacheManager();
-        Runnable cancelGC = new Runnable() {
-            @Override
-            public void run() {
-                fileStore.cancelGC();
-            }
-        };
+        Runnable cancelGC = () -> fileStore.cancelGC();
         Supplier<String> status = () -> fileStoreGCMonitor.getStatus();
 
-        List<Registration> registrations = newArrayList();
+        List<Registration> registrations = new ArrayList<>();
         registrations.add(registerMBean(segmentCompactionMBean,
                 new ObjectName("IT:TYPE=Segment Compaction")));
         registrations.add(registerMBean(new SegmentRevisionGCMBean(fileStore, gcOptions, fileStoreGCMonitor),
@@ -346,55 +333,41 @@ public class SegmentCompactionIT {
     }
 
     private void scheduleSizeMonitor() {
-        scheduler.scheduleAtFixedRate(new Runnable() {
-            @Override
-            public void run() {
-                fileStoreSize = fileStore.getStats().getApproximateSize();
-            }
-        }, 1, 1, MINUTES);
+        scheduler.scheduleAtFixedRate(() -> fileStoreSize = fileStore.getStats().getApproximateSize(), 1, 1, MINUTES);
     }
 
     private synchronized void scheduleCompactor() {
         compactor.cancel(false);
         GCType gcType = compactionCount.get() % fullCompactionCycle == 0 ? FULL : TAIL;
         LOG.info("Scheduling {} compaction after {} minutes", gcType, compactionInterval);
-        compactor = scheduler.schedule(
-                (new Compactor(fileStore, gcMonitor, gcOptions, gcType)),
-                compactionInterval, MINUTES);
-        addCallback(compactor, new FutureCallback<Object>() {
-            @Override
-            public void onSuccess(Object result) {
-                compactionCount.incrementAndGet();
-                scheduleCompactor();
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                segmentCompactionMBean.error("Compactor error", t);
-            }
-        });
+        compactor = CompletableFuture.runAsync(new Compactor(fileStore, gcMonitor, gcOptions, gcType),
+                        afterDelay(compactionInterval, MINUTES))
+                .whenComplete((__, throwable) -> {
+                    if (throwable == null) {
+                        compactionCount.incrementAndGet();
+                        scheduleCompactor();
+                    } else {
+                        segmentCompactionMBean.error("Compactor error", throwable);
+                    }
+                });
     }
 
     private void scheduleWriter() {
         if (writers.size() < maxWriters) {
             final RandomWriter writer = new RandomWriter(rnd, nodeStore, rnd.nextInt(maxWriteOps), "W" + rnd.nextInt(5));
-            final ListenableScheduledFuture<Void> futureWriter = scheduler.schedule(
-                    writer, rnd.nextInt(30), SECONDS);
+            CompletableFuture<Void> futureWriter = CompletableFuture.runAsync(writer,
+                    afterDelay(rnd.nextInt(30), SECONDS));
             writers.add(futureWriter);
-            addCallback(futureWriter, new FutureCallback<Void>() {
-                @Override
-                public void onSuccess(Void result) {
+            futureWriter.whenComplete((__, throwable) -> {
+                if (throwable == null) {
                     writers.remove(futureWriter);
                     if (!futureWriter.isCancelled()) {
                         scheduleWriter();
                     }
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
+                } else {
                     writer.cancel();
                     writers.remove(futureWriter);
-                    segmentCompactionMBean.error("Writer error", t);
+                    segmentCompactionMBean.error("Writer error", throwable);
                 }
             });
         }
@@ -405,12 +378,11 @@ public class SegmentCompactionIT {
             final RandomReader<?> reader = rnd.nextBoolean()
                 ? new RandomNodeReader(rnd, nodeStore)
                 : new RandomPropertyReader(rnd, nodeStore);
-            final ListenableScheduledFuture<?> futureReader = scheduler.schedule(
-                    reader, rnd.nextInt(30), SECONDS);
+            final CompletableFuture<?> futureReader = CompletableFuture.supplyAsync(reader,
+                    afterDelay(rnd.nextInt(30), SECONDS));
             readers.add(futureReader);
-            addCallback(futureReader, new FutureCallback<Object>() {
-                @Override
-                public void onSuccess(Object node) {
+            futureReader.whenComplete((node, throwable) -> {
+                if (throwable == null) {
                     readers.remove(futureReader);
                     if (!futureReader.isCancelled()) {
                         if (rnd.nextBoolean()) {
@@ -419,13 +391,10 @@ public class SegmentCompactionIT {
                             scheduleReader();
                         }
                     }
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
+                } else {
                     reader.cancel();
                     readers.remove(futureReader);
-                    segmentCompactionMBean.error("Node reader error", t);
+                    segmentCompactionMBean.error("Node reader error", throwable);
                 }
             });
         }
@@ -434,23 +403,19 @@ public class SegmentCompactionIT {
     private void scheduleReference(Object object) {
         if (references.size() < maxReferences) {
             final Reference reference = new Reference(object);
-            final ListenableScheduledFuture<?> futureReference = scheduler.schedule(
-                    reference, rnd.nextInt(600), SECONDS);
+            final CompletableFuture<?> futureReference = CompletableFuture.runAsync(reference,
+                    afterDelay(rnd.nextInt(600), SECONDS));
             references.add(futureReference);
-            addCallback(futureReference, new FutureCallback<Object>() {
-                @Override
-                public void onSuccess(Object result) {
+            futureReference.whenComplete((__, throwable) -> {
+                if (throwable == null) {
                     references.remove(futureReference);
                     if (!futureReference.isCancelled()) {
                         scheduleReader();
                     }
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
+                } else {
                     reference.run();
                     references.remove(futureReference);
-                    segmentCompactionMBean.error("Reference error", t);
+                    segmentCompactionMBean.error("Reference error", throwable);
                 }
             });
         } else {
@@ -461,36 +426,32 @@ public class SegmentCompactionIT {
     private synchronized void scheduleCheckpoints() {
         while (checkpoints.size() < maxCheckpoints) {
             Checkpoint checkpoint = new Checkpoint(nodeStore);
-
-            // Flatmap that sh..
-            ListenableFuture<Void> futureCheckpoint = dereference(scheduler.schedule(
-                () -> {
-                    checkpoint.acquire();
-                    return scheduler.schedule(checkpoint::release, checkpointInterval, SECONDS);
-                },
-                rnd.nextInt(checkpointInterval), SECONDS));
-
+            Executor afterAquireDelay = afterDelay(checkpointInterval, SECONDS);
+            Executor afterReleaseDelay = afterDelay(rnd.nextInt(checkpointInterval), SECONDS);
+            final CompletableFuture<?> futureCheckpoint = CompletableFuture.runAsync(checkpoint::acquire, afterAquireDelay)
+                    .thenRunAsync(checkpoint::release, afterReleaseDelay);
             checkpoints.add(futureCheckpoint);
-            addCallback(futureCheckpoint, new FutureCallback<Object>() {
-                @Override
-                public void onSuccess(Object __) {
+            futureCheckpoint.whenComplete((__, throwable) -> {
+                if (throwable == null) {
                     checkpoints.remove(futureCheckpoint);
                     if (!futureCheckpoint.isCancelled()) {
                         scheduleCheckpoints();
                     }
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
+                } else {
                     checkpoint.cancel();
                     checkpoints.remove(futureCheckpoint);
-                    segmentCompactionMBean.error("Checkpoint error", t);
+                    segmentCompactionMBean.error("Checkpoint error", throwable);
                 }
             });
         }
     }
 
-    private class RandomWriter implements Callable<Void> {
+    @NotNull
+    private static Executor afterDelay(int delay, TimeUnit timeUnit) {
+        return CompletableFuture.delayedExecutor(delay, timeUnit);
+    }
+
+    private class RandomWriter implements Runnable {
         private final Random rnd;
         private final NodeStore nodeStore;
         private final int opCount;
@@ -505,51 +466,46 @@ public class SegmentCompactionIT {
             this.itemPrefix = itemPrefix;
         }
 
-
         public void cancel() {
             cancelled = true;
         }
 
-        private <T> T run(Callable<T> thunk) throws Exception {
+        private void runWithReadLock(Runnable thunk) {
             ReadWriteLock lock = compactionLock;
             if (lock != null) {
                 lock.readLock().lock();
                 try {
-                    return thunk.call();
+                    thunk.run();
                 } finally {
                     lock.readLock().unlock();
                 }
             } else {
-                return thunk.call();
+                thunk.run();
             }
         }
 
         @Override
-        public Void call() throws Exception {
-            return run(new Callable<Void>() {
-                @Override
-                public Void call() throws Exception {
-                    NodeBuilder root = nodeStore.getRoot().builder();
-                    for (int k = 0; k < opCount && !cancelled; k++) {
-                        modify(nodeStore, root);
+        public void run() {
+            runWithReadLock(() -> {
+                NodeBuilder root = nodeStore.getRoot().builder();
+                for (int k = 0; k < opCount && !cancelled; k++) {
+                    modify(nodeStore, root);
+                }
+                if (!cancelled) {
+                    try {
+                        CommitHook commitHook = rnd.nextBoolean()
+                                ? new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.OURS))
+                                : new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.THEIRS));
+                        nodeStore.merge(root, commitHook, CommitInfo.EMPTY);
+                        segmentCompactionMBean.committed();
+                    } catch (CommitFailedException e) {
+                        LOG.warn("Commit failed: {}", e.getMessage());
                     }
-                    if (!cancelled) {
-                        try {
-                            CommitHook commitHook = rnd.nextBoolean()
-                                    ? new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.OURS))
-                                    : new CompositeHook(ConflictHook.of(DefaultThreeWayConflictHandler.THEIRS));
-                            nodeStore.merge(root, commitHook, CommitInfo.EMPTY);
-                            segmentCompactionMBean.committed();
-                        } catch (CommitFailedException e) {
-                            LOG.warn("Commit failed: {}", e.getMessage());
-                        }
-                    }
-                    return null;
                 }
             });
         }
 
-        private void modify(NodeStore nodeStore, NodeBuilder nodeBuilder) throws IOException {
+        private void modify(NodeStore nodeStore, NodeBuilder nodeBuilder) {
             int p0 = nodeRemoveRatio;
             int p1 = p0 + propertyRemoveRatio;
             int p2 = p1 + nodeAddRatio;
@@ -581,7 +537,7 @@ public class SegmentCompactionIT {
 
         private NodeBuilder chooseRandomNode(NodeBuilder nodeBuilder, Predicate<NodeBuilder> predicate) {
             NodeBuilder childBuilder = chooseRandomNode(nodeBuilder);
-            while (!predicate.apply(childBuilder)) {
+            while (!predicate.test(childBuilder)) {
                 childBuilder = randomStep(nodeBuilder, nodeBuilder = childBuilder);
             }
             return childBuilder;
@@ -593,7 +549,7 @@ public class SegmentCompactionIT {
             if (k == 0) {
                 return parent;
             } else {
-                String name = get(node.getChildNodeNames(), k - 1);
+                String name = Iterables.get(node.getChildNodeNames(), k - 1);
                 return node.getChildNode(name);
             }
         }
@@ -601,50 +557,40 @@ public class SegmentCompactionIT {
         private void removeRandomProperty(NodeBuilder nodeBuilder) {
             int count = (int) nodeBuilder.getPropertyCount();
             if (count > 0) {
-                PropertyState property = get(nodeBuilder.getProperties(), rnd.nextInt(count));
+                PropertyState property = Iterables.get(nodeBuilder.getProperties(), rnd.nextInt(count));
                 nodeBuilder.removeProperty(property.getName());
             }
         }
 
         private void addRandomNode(NodeBuilder nodeBuilder) {
-            chooseRandomNode(nodeBuilder, new Predicate<NodeBuilder>() {
-                @Override
-                public boolean apply(NodeBuilder builder) {
-                    return builder.getChildNodeCount(maxNodeCount) < maxNodeCount;
-                }
-            }).setChildNode('N' + itemPrefix + rnd.nextInt(maxNodeCount));
+            chooseRandomNode(nodeBuilder, builder -> builder.getChildNodeCount(maxNodeCount) < maxNodeCount)
+                    .setChildNode('N' + itemPrefix + rnd.nextInt(maxNodeCount));
         }
 
         private void addRandomValue(NodeBuilder nodeBuilder) {
-            chooseRandomNode(nodeBuilder, new Predicate<NodeBuilder>() {
-                @Override
-                public boolean apply(NodeBuilder builder) {
-                    return builder.getPropertyCount() < maxPropertyCount;
-                }
-            })
-            .setProperty('P' + itemPrefix + rnd.nextInt(maxPropertyCount),
-                    randomAlphabetic(rnd.nextInt(maxStringSize)));
+            chooseRandomNode(nodeBuilder, builder -> builder.getPropertyCount() < maxPropertyCount)
+                    .setProperty('P' + itemPrefix + rnd.nextInt(maxPropertyCount),
+                            randomAlphabetic(rnd.nextInt(maxStringSize)));
         }
 
-        private void addRandomBlob(NodeStore nodeStore, NodeBuilder nodeBuilder) throws IOException {
-            chooseRandomNode(nodeBuilder, new Predicate<NodeBuilder>() {
-                @Override
-                public boolean apply(NodeBuilder builder) {
-                    return builder.getPropertyCount() < maxPropertyCount;
-                }
-            })
-            .setProperty('B' + itemPrefix + rnd.nextInt(maxPropertyCount),
-                    createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
+        private void addRandomBlob(NodeStore nodeStore, NodeBuilder nodeBuilder) {
+            chooseRandomNode(nodeBuilder, builder -> builder.getPropertyCount() < maxPropertyCount)
+                    .setProperty('B' + itemPrefix + rnd.nextInt(maxPropertyCount),
+                            createBlob(nodeStore, rnd.nextInt(maxBlobSize)));
         }
 
-        private Blob createBlob(NodeStore nodeStore, int size) throws IOException {
+        private Blob createBlob(NodeStore nodeStore, int size) {
             byte[] data = new byte[size];
             new Random().nextBytes(data);
-            return nodeStore.createBlob(new ByteArrayInputStream(data));
+            try {
+                return nodeStore.createBlob(new ByteArrayInputStream(data));
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to create blob", e);
+            }
         }
     }
 
-    private abstract static class RandomReader<T> implements Callable<T> {
+    private abstract static class RandomReader<T> implements Supplier<T> {
         protected final Random rnd;
         protected final NodeStore nodeStore;
 
@@ -665,7 +611,7 @@ public class SegmentCompactionIT {
             if (k == 0) {
                 return parent;
             } else {
-                String name = get(node.getChildNodeNames(), k - 1);
+                String name = Iterables.get(node.getChildNodeNames(), k - 1);
                 return node.getChildNode(name);
             }
         }
@@ -681,7 +627,7 @@ public class SegmentCompactionIT {
         protected final PropertyState chooseRandomProperty(NodeState node) {
             int count = (int) node.getPropertyCount();
             if (count > 0) {
-                return get(node.getProperties(), rnd.nextInt(count));
+                return Iterables.get(node.getProperties(), rnd.nextInt(count));
             } else {
                 return null;
             }
@@ -694,7 +640,7 @@ public class SegmentCompactionIT {
         }
 
         @Override
-        public NodeState call() throws Exception {
+        public NodeState get() {
             return chooseRandomNode(nodeStore.getRoot());
         }
     }
@@ -705,7 +651,7 @@ public class SegmentCompactionIT {
         }
 
         @Override
-        public PropertyState call() throws Exception {
+        public PropertyState get() {
             return chooseRandomProperty(chooseRandomNode(nodeStore.getRoot()));
         }
     }
@@ -736,17 +682,17 @@ public class SegmentCompactionIT {
             this.gcType = gcType;
         }
 
-        private <T> T run(Callable<T> thunk) throws Exception {
+        private void runWithWriteLock(Runnable thunk) {
             ReadWriteLock lock = compactionLock;
             if (lock != null) {
                 lock.writeLock().lock();
                 try {
-                    return thunk.call();
+                    thunk.run();
                 } finally {
                     lock.writeLock().unlock();
                 }
             } else {
-                return thunk.call();
+                thunk.run();
             }
         }
 
@@ -755,14 +701,10 @@ public class SegmentCompactionIT {
             if (gcMonitor.isCleaned()) {
                 LOG.info("Running compaction");
                 try {
-                    run(new Callable<Void>() {
-                        @Override
-                        public Void call() throws Exception {
-                            gcMonitor.resetCleaned();
-                            gcOptions.setGCType(gcType);
-                            fileStore.getGCRunner().run();
-                            return null;
-                        }
+                    runWithWriteLock(() -> {
+                        gcMonitor.resetCleaned();
+                        gcOptions.setGCType(gcType);
+                        fileStore.getGCRunner().run();
                     });
                 } catch (Exception e) {
                     LOG.error("Error while running compaction", e);
@@ -782,21 +724,19 @@ public class SegmentCompactionIT {
             this.nodeStore = nodeStore;
         }
 
-        public Void acquire() {
+        public void acquire() {
             checkpoint = nodeStore.checkpoint(DAYS.toMillis(1));
-            return null;
         }
 
-        public Void release() {
+        public void release() {
             while (!cancelled && !nodeStore.release(checkpoint)) {}
-            return null;
         }
 
         public void cancel() {
             cancelled = true;
         }
     }
-    
+
     private static class TestGCMonitor implements GCMonitor {
         private final GCMonitor delegate;
         private volatile boolean cleaned = true;
@@ -842,7 +782,7 @@ public class SegmentCompactionIT {
             cleaned = true;
             delegate.cleaned(reclaimedSize, currentSize);
         }
-        
+
         @Override
         public void updateStatus(String status) {
             delegate.updateStatus(status);
@@ -877,12 +817,12 @@ public class SegmentCompactionIT {
 
         @Override
         public void setCorePoolSize(int corePoolSize) {
-            executor.setCorePoolSize(corePoolSize);
+            scheduler.setCorePoolSize(corePoolSize);
         }
 
         @Override
         public int getCorePoolSize() {
-            return executor.getCorePoolSize();
+            return scheduler.getCorePoolSize();
         }
 
         @Override

@@ -22,7 +22,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-import static com.google.common.collect.ImmutableList.of;
+import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
 import static javax.jcr.PropertyType.TYPENAME_BINARY;
 import static javax.jcr.PropertyType.TYPENAME_STRING;
 import static org.apache.jackrabbit.JcrConstants.JCR_LASTMODIFIED;

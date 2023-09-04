@@ -20,11 +20,14 @@ import java.util.Map;
 
 import javax.jcr.RepositoryException;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * Interface for managing a JCR repository as a JMX MBean.
  *
  * @since Apache Jackrabbit 2.3
  */
+@ProviderType
 public interface ManagedRepositoryMBean {
 
     /**

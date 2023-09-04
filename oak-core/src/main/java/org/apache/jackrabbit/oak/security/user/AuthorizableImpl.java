@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.Group;
 import org.apache.jackrabbit.api.security.user.User;
@@ -288,13 +288,13 @@ abstract class AuthorizableImpl implements Authorizable, UserConstants, TreeAwar
         
         MembershipProvider mMgr = getMembershipProvider();
         Iterator<Tree> trees = mMgr.getMembership(getTree(), includeInherited);
-        
+
         if (!trees.hasNext()) {
-            return dynamicGroups;
+            return new RangeIteratorAdapter(AuthorizableIterator.create(true, dynamicGroups));
+        } else {
+            AuthorizableIterator groups = AuthorizableIterator.create(trees, userManager, AuthorizableType.GROUP);
+            AuthorizableIterator allGroups = AuthorizableIterator.create(true, dynamicGroups, groups);
+            return new RangeIteratorAdapter(allGroups);
         }
-        
-        AuthorizableIterator groups = AuthorizableIterator.create(trees, userManager, AuthorizableType.GROUP);
-        AuthorizableIterator allGroups = AuthorizableIterator.create(true, dynamicGroups, groups);
-        return new RangeIteratorAdapter(allGroups);
     }
 }

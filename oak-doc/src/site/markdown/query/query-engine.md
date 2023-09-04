@@ -414,6 +414,7 @@ If there is no good property to use keyset pagination on, then the lowercase of 
 It is best to start with `$lastEntry` as an empty string, and then in each subsequent run use the lowercase version of the node name of the last entry.
 Notice that some nodes may appear in two query results, if there are multiple nodes with the same name.
 In this case, SQL-2 needs to be used, because with XPath, escaping is applied to names.
+For more details about function-based indexes, see [the function-based indexing documentation](lucene.html#function-based-indexing).
 
     select [jcr:path], * from [nt:file] as a
     where lower(name(a)) >= $lastEntry
@@ -516,7 +517,7 @@ The SimpleExcerptProvider is also used for queries that don't use
 a Lucene index, or if the query uses a Lucene index, but excerpts are not configured there.
 
 ### Native Queries
-
+`@deprecated Oak 1.46`
 To take advantage of features that are available in full-text index implementations
 such as Apache Lucene and Apache Lucene Solr, so called `native` constraints are supported.
 Such constraints are passed directly to the full-text index. This is supported

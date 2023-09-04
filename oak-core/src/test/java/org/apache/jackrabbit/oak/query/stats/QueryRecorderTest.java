@@ -21,9 +21,23 @@ import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 
 public class QueryRecorderTest {
-    
+
     @Test
     public void simplify() {
+        // special cases
+        assertEquals("SELECT * FROM [nt:unstructured] AS node WHERE [id]='x'",
+                QueryRecorder.simplify("SELECT * FROM [nt:unstructured] AS node WHERE [id]='Joes''s'"));
+        assertEquals("SELECT * FROM [nt:unstructured] AS node WHERE [id]=1",
+                QueryRecorder.simplify("SELECT * FROM [nt:unstructured] AS node WHERE [id]=1002877501"));
+        assertEquals("SELECT p.* FROM [cq:Page] AS p WHERE isdescendantnode('x')", QueryRecorder
+                .simplify("SELECT p.* FROM [cq:Page] AS p WHERE isdescendantnode(p,[/content/kaufland/hr/hr/home])"));
+        assertEquals("SELECT p.* FROM [cq:Page] AS p WHERE ISDESCENDANTNODE('x')", QueryRecorder
+                .simplify("SELECT p.* FROM [cq:Page] AS p WHERE ISDESCENDANTNODE(p,[/content/kaufland/hr/hr/home])"));
+        assertEquals("SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE(\"x\") AND [cq:template] like \"x\"", QueryRecorder
+                .simplify("SELECT * FROM [nt:base] WHERE ISDESCENDANTNODE(\"/test\") AND [cq:template] like \"abc\""));
+        assertEquals("(/jcr:root/a/b/.../* | /jcr:root/d/e/.../*)",
+                QueryRecorder.simplify("(/jcr:root/a/b/c/d//* | /jcr:root/d/e/f/g//*)"));
+
         // SQL-2
         // dummy
         assertEquals("SELECT sling:alias FROM nt:base WHERE sling:alias IS NOT NULL", 

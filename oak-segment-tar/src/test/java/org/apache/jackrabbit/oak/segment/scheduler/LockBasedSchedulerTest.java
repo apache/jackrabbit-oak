@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.scheduler;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static java.util.concurrent.Executors.newFixedThreadPool;
 import static org.junit.Assert.assertNotNull;
 
@@ -52,7 +52,7 @@ public class LockBasedSchedulerTest {
 
     /**
      * OAK-7162
-     * 
+     *
      * This test guards against race conditions which may happen when the head
      * state in {@link Revisions} is changed from outside the scheduler. If a
      * race condition happens at that point, data from a single commit will be
@@ -65,7 +65,7 @@ public class LockBasedSchedulerTest {
         SegmentNodeStoreStats stats = new SegmentNodeStoreStats(statsProvider);
         final LockBasedScheduler scheduler = LockBasedScheduler.builder(ms.getRevisions(), ms.getReader(), stats)
                 .build();
-        
+
         final RecordId initialHead = ms.getRevisions().getHead();
         ExecutorService executorService = newFixedThreadPool(10);
         final AtomicInteger count = new AtomicInteger();
@@ -78,7 +78,7 @@ public class LockBasedSchedulerTest {
                     String property = "prop" + count.incrementAndGet();
                     Commit commit = createCommit(scheduler, property, "value");
                     SegmentNodeState result = (SegmentNodeState) scheduler.schedule(commit);
-                    
+
                     return result.getProperty(property);
                 }
             };
@@ -97,7 +97,7 @@ public class LockBasedSchedulerTest {
                 results.add(executorService.submit(commitTask));
                 executorService.submit(parallelTask);
             }
-            
+
             for (Future<?> result : results) {
                 assertNotNull(
                         "PropertyState must not be null! The corresponding commit got lost because of a race condition.",

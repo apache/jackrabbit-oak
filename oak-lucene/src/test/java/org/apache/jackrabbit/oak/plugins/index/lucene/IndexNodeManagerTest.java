@@ -23,7 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndex;
 import org.apache.jackrabbit.oak.plugins.index.lucene.hybrid.NRTIndexFactory;
@@ -48,7 +48,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static com.google.common.util.concurrent.MoreExecutors.sameThreadExecutor;
+import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TestUtil.newDoc;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
@@ -75,7 +75,7 @@ public class IndexNodeManagerTest {
 
     @Before
     public void setUp() throws IOException {
-        indexCopier = new IndexCopier(sameThreadExecutor(), temporaryFolder.getRoot());
+        indexCopier = new IndexCopier(newDirectExecutorService(), temporaryFolder.getRoot());
         nrtFactory = new NRTIndexFactory(indexCopier, StatisticsProvider.NOOP);
         readerFactory = new DefaultIndexReaderFactory(Mounts.defaultMountInfoProvider(), indexCopier);
         LuceneIndexEditorContext.configureUniqueId(builder);

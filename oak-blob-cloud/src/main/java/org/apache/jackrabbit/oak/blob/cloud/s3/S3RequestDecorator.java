@@ -17,16 +17,28 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import java.util.Properties;
-
 import com.amazonaws.services.s3.model.CopyObjectRequest;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
+import com.amazonaws.services.s3.model.GetObjectMetadataRequest;
+import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.SSEAlgorithm;
 import com.amazonaws.services.s3.model.SSEAwsKeyManagementParams;
-import com.amazonaws.util.StringUtils;
+import com.amazonaws.services.s3.model.SSECustomerKey;
+
+import java.util.Properties;
+
+import static com.amazonaws.HttpMethod.GET;
+import static com.amazonaws.services.s3.model.SSEAlgorithm.AES256;
+import static com.amazonaws.util.StringUtils.hasValue;
+import static java.util.Objects.requireNonNull;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_C;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_ENCRYPTION_SSE_KMS;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_C_KEY;
+import static org.apache.jackrabbit.oak.blob.cloud.s3.S3Constants.S3_SSE_KMS_KEYID;
 
 /**
  * This class to sets encrption mode in S3 request.
@@ -34,22 +46,55 @@ import com.amazonaws.util.StringUtils;
  */
 public class S3RequestDecorator {
     DataEncryption dataEncryption = DataEncryption.NONE;
-    Properties props;
     SSEAwsKeyManagementParams sseParams;
 
-    public S3RequestDecorator(Properties props) {
-        String encryptionType = props.getProperty(S3Constants.S3_ENCRYPTION);
-        if (encryptionType != null) {
-            this.dataEncryption = dataEncryption.valueOf(encryptionType);
+    SSECustomerKey sseCustomerKey;
 
-            if (encryptionType.equals(S3Constants.S3_ENCRYPTION_SSE_KMS)) {
-                String keyId = props.getProperty(S3Constants.S3_SSE_KMS_KEYID);
-                sseParams = new SSEAwsKeyManagementParams();
-                if (!StringUtils.isNullOrEmpty(keyId)) {
-                    sseParams.withAwsKmsKeyId(keyId);
+    public S3RequestDecorator(Properties props) {
+        final String encryptionType = props.getProperty(S3_ENCRYPTION);
+        if (encryptionType != null) {
+            this.dataEncryption = DataEncryption.valueOf(encryptionType);
+
+            switch (encryptionType) {
+                case S3_ENCRYPTION_SSE_KMS: {
+                    final String keyId = props.getProperty(S3_SSE_KMS_KEYID);
+                    sseParams = new SSEAwsKeyManagementParams();
+                    if (hasValue(keyId)) {
+                        sseParams.withAwsKmsKeyId(keyId);
+                    }
+                    break;
                 }
+                case S3_ENCRYPTION_SSE_C: {
+                    final String keyId = props.getProperty(S3_SSE_C_KEY);
+                    if (hasValue(keyId)) {
+                        sseCustomerKey = new SSECustomerKey(keyId);
+                    }
+                    break;
+                }
+                default:
+                    break;
             }
         }
+    }
+
+    /**
+     * Set encryption in {@link GetObjectMetadataRequest}
+     */
+    public GetObjectMetadataRequest decorate(final GetObjectMetadataRequest request) {
+        if (requireNonNull(getDataEncryption()) == DataEncryption.SSE_C) {
+            request.withSSECustomerKey(sseCustomerKey);
+        }
+        return request;
+    }
+
+    /**
+     * Set encryption in {@link GetObjectRequest}
+     */
+    public GetObjectRequest decorate(final GetObjectRequest request) {
+        if (requireNonNull(getDataEncryption()) == DataEncryption.SSE_C) {
+            request.withSSECustomerKey(sseCustomerKey);
+        }
+        return request;
     }
 
     /**
@@ -67,6 +112,9 @@ public class S3RequestDecorator {
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 /*Set*/
                 request.withSSEAwsKeyManagementParams(sseParams);
+                break;
+            case SSE_C:
+                request.withSSECustomerKey(sseCustomerKey);
                 break;
             case NONE:
                 break;
@@ -90,6 +138,10 @@ public class S3RequestDecorator {
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
+            case SSE_C:
+                metadata.setSSEAlgorithm(AES256.getAlgorithm());
+                request.withSourceSSECustomerKey(sseCustomerKey).withDestinationSSECustomerKey(sseCustomerKey);
+                break;
             case NONE:
                 break;
         }
@@ -109,6 +161,9 @@ public class S3RequestDecorator {
                 metadata.setSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
                 request.withSSEAwsKeyManagementParams(sseParams);
                 break;
+            case SSE_C:
+                request.withSSECustomerKey(sseCustomerKey);
+                break;
             case NONE:
                 break;
         }
@@ -119,11 +174,18 @@ public class S3RequestDecorator {
     public GeneratePresignedUrlRequest decorate(GeneratePresignedUrlRequest request) {
         switch (getDataEncryption()) {
           case SSE_KMS:
+              if (request.getMethod() == GET) break; // KMS is not valid for GET Requests
               String keyId = getSSEParams().getAwsKmsKeyId();
               request = request.withSSEAlgorithm(SSEAlgorithm.KMS.getAlgorithm());
               if (keyId != null) {
                   request = request.withKmsCmkId(keyId);
               }
+              break;
+          case SSE_C:
+              request = request.withSSECustomerKey(sseCustomerKey);
+              break;
+          default:
+              break;
         }
         return request;
     }
@@ -141,7 +203,7 @@ public class S3RequestDecorator {
      *
      */
     private enum DataEncryption {
-        SSE_S3, SSE_KMS, NONE;
+        SSE_S3, SSE_KMS, SSE_C, NONE;
     }
 
 }

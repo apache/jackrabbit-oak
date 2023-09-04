@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBu
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 

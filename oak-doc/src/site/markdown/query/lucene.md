@@ -179,17 +179,14 @@ codec
 : Name of the [Lucene codec](#codec) to use
 
 compatVersion
-: Required integer property and should be set to 2
-: By default Oak uses older Lucene index implementation which does not
-  support property restrictions, index time aggregation etc.
-  To make use of this feature set it to 2.
-  Please note for full text indexing with compatVersion 2,
+: Required integer property, needs to be set to 2
+: Version 1 is deprecated, and new indexes should always use version 2.
+  Version 1 doesn't support property restrictions and index time aggregation.
+  A compatVersion 2 full text index is usually faster to run queries.
+  For full text indexing with compatVersion 2,
   at query time, only the access right of the parent (aggregate) node is checked,
   and the access right of the child nodes is not checked.
-  If this is a security concern, then compatVersion should not be set,
-  so that query time aggregation is used, in which case the access right
-  of the relevant child is also checked.
-  A compatVersion 2 full text index is usually faster to run queries.
+  If this is a concern, then aggregation should not be used.
 
 evaluatePathRestrictions
 : Optional boolean property defaults to `false`.
@@ -399,6 +396,9 @@ name
 
   If `isRegexp` is true, then the property name is a regular expression.
 
+  Special properties such as "jcr:path", "jcr:score" can not be indexed.
+  The path can be indexes using a function-based index in recent versions of Oak.
+
 isRegexp
 : If set to true, then the property name is interpreted as a regular
   expression, and the given definition is applicable for matching property names.
@@ -515,7 +515,7 @@ excludeFromAggregation
 : If set to true, the property is excluded from aggregation [OAK-3981][OAK-3981]
 
 function
-: Since 1.5.11, 1.6.0
+: Since 1.5.11, 1.6.0, 1.42.0
 : Function, for [function-based indexing](#function-based-indexing).
 
 dynamicBoost
@@ -540,12 +540,12 @@ sync
 : Changes to the content are available in the index as soon as they are committed.
   Requires "propertyIndex=true".
   Relative properties and notNullCheckEnabled are not supported.
-: See [synchronous Lucene property indexes][synchronous-lucene-property-indexes] for details.
+: See [Hybrid Indexes][hybrid-index] for details.
 
 unique
 : Since 1.8.0, [OAK-6535]
 : Requires "sync=true". Enforces unique property values in the content.
-: See [synchronous Lucene property indexes][synchronous-lucene-property-indexes] for details.
+: See [Hybrid Indexes][hybrid-index] for details.
 
 <a name="property-names"></a>**Property Names**
 
@@ -762,10 +762,15 @@ defaults to 5
 
 #### <a name="analyzers"></a>Analyzers
 
+If no analyzer is specified, then `OakAnalyzer` is used, which uses the
+Apache Lucene `StandardTokenizer`, the `LowerCaseFilter`,
+and the `WordDelimiterFilter` with the following options:
+`GENERATE_WORD_PARTS`, `STEM_ENGLISH_POSSESSIVE`, and `GENERATE_NUMBER_PARTS`.
+
 `@since Oak 1.5.5, 1.4.7, 1.2.19`
-Unless custom analyzer is configured (as documented below), in-built analyzer
-can be configured to include original term as well to be indexed. This is
-controlled by setting boolean property `indexOriginalTerm` on analyzers node.
+Unless custom analyzer is explicitly configured (as documented below), the built-in analyzer
+can be configured to include the original term as well (`PRESERVE_ORIGINAL`). This is
+controlled by setting boolean property `indexOriginalTerm` on the `analyzers` node:
 
     /oak:index/assetType
       - jcr:primaryType = "oak:QueryIndexDefinition"
@@ -845,7 +850,20 @@ all the other components (e.g. `charFilters`, `Synonym`) are optional.
 
 #### Examples
 
-Adding stemming support
+To convert umlauts using ASCII folding, use the following. 
+(ASCII folding converts characters to Basic Latin where possible. 
+This includes umlauts, characters with accents, and so on.)
+
+```
+    + analyzers
+      + default
+        + tokenizer
+          - name = "Standard"
+        + filters (nt:unstructured) // the filters needs to be ordered
+          + ASCIIFolding
+```
+
+For stemming support, use:
 ```
 1. Use an analyzer which has stemming included by default e.g. EnglishAnalyzer which has PorterStemFilter.
     + analyzers
@@ -1132,10 +1150,10 @@ contain data for the subtree under `/content/companya`
 
 ### <a name="function-based-indexing"></a>Function-Based Indexing
 
-`@since Oak 1.5.11, 1.6.0`
+`@since Oak 1.5.11, 1.6.0, 1.42.0`
 
 Function-based indexes can for example allow to search (or order by) the lower case version of a property.
-For more details see [OAK-3574][OAK-3574].
+For more details see [OAK-3574][OAK-3574] and [OAK-9625][OAK-9625].
 
 For example using the index definition
 
@@ -1165,6 +1183,8 @@ Indexing multi-valued properties is supported.
 Relative properties are supported (except for ".." and ".").
 Range conditions are supported ('>', '>=', '<=', '<').
 
+The functions path(), first(), and name() require Oak version 1.42.0 or newer.
+
 ### <a name="dynamic-boost"></a>Dynamic Boost
 
 `@since Oak 1.28.0`
@@ -1191,6 +1211,7 @@ See also [OAK-8971][OAK-8971].
 
 
 ### <a name="native-query"></a>Native Query and Index Selection
+`@deprecated Oak 1.46`
 
 Oak query engine supports native queries like
 
@@ -1541,10 +1562,10 @@ Facets and counts returned by index reflect what is accessible to the given user
 The query result therefore only reflects information the user has access rights for.
 This can be slow, specially for large result set.
 
-* `insecure` means the facet counts are reported as stored in the index, without performing access rights checks.
-Warning: this setting potentially leaks repository information the user that runs the query may not see.
-It must only be used if either the index is guaranteed to only contain data that is public
-(e.g. a public subtree of the repository), or if the leaked information is not sensitive.
+* `insecure` means the facet counts are reported as stored in the index, without performing access rights checks. 
+This setting may allow users to infer the existence of content to which they do not have access.
+It is recommended to use this setting only if either the index is guaranteed to only contain data that is public 
+(e.g. a public subtree of the repository), or if the information is not sensitive.
 
 * `statistical` means the data is sampled randomly (default `1000` configurable via
 `sampleSize`), and ACL checks are performed on this sample.
@@ -2187,6 +2208,7 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [OAK-7379]: https://issues.apache.org/jira/browse/OAK-7379
 [OAK-7739]: https://issues.apache.org/jira/browse/OAK-7739
 [OAK-8971]: https://issues.apache.org/jira/browse/OAK-8971
+[OAK-9625]: https://issues.apache.org/jira/browse/OAK-9625
 [luke]: https://code.google.com/p/luke/
 [tika]: http://tika.apache.org/
 [oak-console]: https://github.com/apache/jackrabbit-oak/tree/trunk/oak-run#console
@@ -2200,6 +2222,6 @@ SELECT rep:facet(title) FROM [app:Asset] WHERE [title] IS NOT NULL
 [boost-faq]: https://wiki.apache.org/lucene-java/LuceneFAQ#How_do_I_make_sure_that_a_match_in_a_document_title_has_greater_weight_than_a_match_in_a_document_body.3F
 [score-explanation]: https://lucene.apache.org/core/4_6_0/core/org/apache/lucene/search/IndexSearcher.html#explain%28org.apache.lucene.search.Query,%20int%29
 [oak-lucene]: http://www.javadoc.io/doc/org.apache.jackrabbit/oak-lucene/
-[synchronous-lucene-property-indexes]: http://jackrabbit.apache.org/archive/wiki/JCR/Synchronous-Lucene-Property-Indexes_115513516.html
 [index-tags]: https://jackrabbit.apache.org/oak/docs/query/query-engine.html#Query_Option_Index_Tag
 [index-selection-policy]: https://jackrabbit.apache.org/oak/docs/query/query-engine.html#Index_Selection_Policy
+[hybrid-index]: https://jackrabbit.apache.org/oak/docs/query/hybrid-index.html

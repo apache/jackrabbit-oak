@@ -15,12 +15,14 @@
    limitations under the License.
 -->
 
-User and Group Synchronization : The Default Implementation
+# User and Group Synchronization : The Default Implementation
 --------------------------------------------------------------------------------
 
-### Default Implementation of Sync API
+<!-- MACRO{toc} -->
 
-#### SyncManager
+## Default Implementation of Sync API
+
+### SyncManager
 
 The default implementation (`SyncManagerImpl`) is intended for use in an OSGi-base
 repository setup: it tracks all `SyncHandler` registered via OSGi.
@@ -28,20 +30,20 @@ repository setup: it tracks all `SyncHandler` registered via OSGi.
 It can be used in non-OSGi environments by passing a `org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard`
 to the constructor.
 
-#### SyncHandler
+### SyncHandler
 
 The [DefaultSyncHandler] comes with a set of configuration options that
 allow to specify the synchronization behavior (see below). Depending on the 
 configuration it chooses between two different `SyncContext` implementations.
 
-#### SyncContext
+### SyncContext
 
 Oak provides the following implementations of the [SyncContext] interface:
 
 - [DefaultSyncContext]: base implementation that synchronizes external user and group accounts into the repository
 - [DynamicSyncContext]: derived implementation that provides special handling for external groups.
  
-##### DefaultSyncContext
+#### DefaultSyncContext
 
 All users/groups synchronized by this context will get the following properties set.
 These properties allow to run separate task for periodical update and make sure
@@ -59,7 +61,7 @@ for further details.
 The [DefaultSyncContext] is exported as part of the 'basic' package space and
 may be used to provide custom implementations.
 
-##### DynamicSyncContext
+#### DynamicSyncContext
 
 Extending from the [DefaultSyncContext] this implementation that provides special 
 handling  for external groups in case the [Dynamic Group Membership](#dynamic_membership) 
@@ -70,21 +72,22 @@ the group principal names of the external user accounts:
 
 - `rep:externalPrincipalNames` : Optional system-maintained property related to [Dynamic Group Membership](#dynamic_membership)
 
-#### SyncResult
+### SyncResult
 
 The [DefaultSyncResultImpl] is exported as part of the 'basic' package space 
 providing a simple `SyncResult` implementation based on a status and a [DefaultSyncedIdentity].
 
 
-#### SyncedIdentity
+### SyncedIdentity
 
 The [DefaultSyncedIdentity] is exported as part of the 'basic' package space. It 
 maps the ID of a synchronized user/group account to the external identity references
 represented by [ExternalIdentityRef].
 
 
+### Dynamic Sync
 <a name="dynamic_membership"></a>
-### Dynamic Group Membership
+#### Dynamic Group Membership
 
 As of Oak 1.5.3 the default sync handler comes with an addition configuration 
 option that allows enabling dynamic group membership resolution for external users. 
@@ -95,7 +98,7 @@ The details and effects on other security related modules are described in
 section [Dynamic Membership and Dynamic Groups](dynamic.html). 
 
 <a name="dynamic_groups"></a>
-### Dynamic Groups
+#### Dynamic Groups
 
 As of Oak 1.46.0 there exists the option to leverage [Dynamic Membership](#dynamic_membership) in combination with a 
 new `Dynamic Groups` configuration option (see also [OAK-9803]). If both options are enabled external groups will continue 
@@ -104,7 +107,7 @@ User Management API without losing the benefits of the dynamic membership.
 See section [Dynamic Membership and Dynamic Groups](dynamic.html) for details and comparison.
 
 <a name="xml_import"></a>
-#### XML Import
+### XML Import
 
 The protected nature of the `rep:externalPrincipalNames` is also reflected during
 XML import of user accounts:
@@ -118,9 +121,9 @@ the target system the sync will then result in a full sync of group membership o
 will re-create the `rep:externalPrincipalNames` property.
 
 <a name="validation"></a>
-#### Validation
+### Validation
 
-##### rep:externalPrincipalNames
+#### rep:externalPrincipalNames
 
 As of Oak 1.5.3 a dedicated `Validator` implementation asserts that the protected,
 system-maintained property `rep:externalPrincipalNames` is only written by the 
@@ -140,7 +143,7 @@ with external user/group accounts.
 | 0072              | Property 'rep:externalPrincipalNames' requires 'rep:externalId' to be present on the Node. |
 | 0073              | Property 'rep:externalId' cannot be removed if 'rep:externalPrincipalNames' is present. |
 
-##### rep:externalId
+#### rep:externalId
 
 If protection of the `rep:externalId` property is enabled (since Oak 1.5.8) the
 validator performs the following checks:
@@ -150,7 +153,8 @@ validator performs the following checks:
 | 0074              | Attempt to add, modify or remove the system maintained property 'rep:externalId'. |
 | 0075              | Property 'rep:externalId' may only have a single value of type STRING. |
  
-##### Protecting synchronized external users/groups 
+<a name="protect_external_identities"></a> 
+#### Protecting synchronized external users/groups 
 
 If protection of synchronized external users/groups is enabled (since Oak 1.44.0) an additional validator is present
 which either warns upon or prevents creation, modification and removal of external identities that have been synchronized 
@@ -175,7 +179,8 @@ The following constraint violations will be reported:
 | 0076 | Attempt to remove protected external identity '%s'                         |
 | 0076 | Attempt to remove node '%s' from protected external identity               |
 
-##### Enforcing dynamic groups
+<a name="enforcing_dynamic_groups"></a> 
+#### Enforcing dynamic groups
 
 If `user.dynamicMembership` is enabled together with `group.dynamicGroups` a separate validator will be present to
 make sure no members are added to the dynamic groups through regular API calls (`Group.addMember(Authorizable)` and 
@@ -196,6 +201,7 @@ to a dynamic external group:
 <a name="configuration"></a>
 ### Configuration
 
+<a name="configuration_sync_handler"></a>
 #### Configuration of the DefaultSyncHandler
 
 The default `SyncHandler` implementations are configured via [DefaultSyncConfig]:
@@ -219,6 +225,12 @@ The default `SyncHandler` implementations are configured via [DefaultSyncConfig]
 | Group 'Dynamic Groups'        | `group.dynamicGroups`         | Only takes effect in combination with `user.dynamicMembership` and will result in external groups being synced as dynamic groups. |
 | | | |
 
+Note, that the following options relate to the [dynamic sync](dynamic.html) feature:
+- `user.dynamicMembership` : Enabling dynamic membership for external users.
+- `user.enforceDynamicMembership` : If enabled together with `user.dynamicMembership` previously synced membership information will be migrated to dynamic membership upon user sync. Otherwise it takes no effect.
+- `group.dynamicGroups` : Only takes effect in combination with `user.dynamicMembership` and will result in external groups being synced as dynamic groups.
+
+<a name="configuration_automembership"></a>
 #### Automatic Membership with AutoMembershipConfig
 Since Oak 1.42.0 ([OAK-9463]) the auto-membership behavior can be extended to allow for conditional group membership 
 based on characteristics of a given synced external identity. In addition to configuration options `group.autoMembership` 
@@ -230,6 +242,7 @@ The `DefaultSyncHandler` is tracking services implementing [AutoMembershipConfig
 If present the additional membership defined by the [AutoMembershipConfig], will be reflected upon default and dynamic 
 sync together with the original, 'global' auto-membership configuration.
 
+<a name="configuration_principals"></a>
 #### Configuration of the 'Apache Jackrabbit Oak External PrincipalConfiguration'
 
 Please note that the `ExternalPrincipalConfiguration` _("Apache Jackrabbit Oak External PrincipalConfiguration")_ 

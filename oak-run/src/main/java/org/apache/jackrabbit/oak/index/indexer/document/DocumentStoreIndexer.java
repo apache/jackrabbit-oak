@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.oak.index.ExtendedIndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 

@@ -19,14 +19,15 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,11 +50,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import static com.google.common.base.Charsets.UTF_8;
 import static java.lang.management.ManagementFactory.getMemoryMXBean;
 import static java.lang.management.ManagementFactory.getMemoryPoolMXBeans;
 import static java.lang.management.MemoryType.HEAP;
 import static org.apache.commons.io.FileUtils.ONE_GB;
+import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
@@ -68,13 +69,13 @@ class TraverseWithSortStrategy implements SortStrategy {
     private final NodeStateEntryTraverserFactory nodeStatesFactory;
     private final NodeStateEntryWriter entryWriter;
     private final File storeDir;
-    private final boolean compressionEnabled;
     private final Charset charset = UTF_8;
     private final Comparator<NodeStateHolder> comparator;
     private NotificationEmitter emitter;
     private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
+    private final Compression algorithm;
     /**
      * Max memory to be used if jmx based memory monitoring is not available. This value is not considered if jmx based
      * monitoring is available.
@@ -95,19 +96,20 @@ class TraverseWithSortStrategy implements SortStrategy {
 
 
     TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, boolean compressionEnabled, Predicate<String> pathPredicate) {
+                             NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm, Predicate<String> pathPredicate) {
         this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
         this.storeDir = storeDir;
-        this.compressionEnabled = compressionEnabled;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.pathPredicate = pathPredicate;
+        this.algorithm = algorithm;
     }
 
     @Override
     public File createSortedStoreFile() throws IOException {
-        try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(new MongoDocumentTraverser.TraversingRange(new LastModifiedRange(0,
-                Long.MAX_VALUE),null))) {
+        try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(
+                new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null))
+        ) {
             logFlags();
             configureMemoryListener();
             sortWorkDir = createdSortWorkDir(storeDir);
@@ -124,8 +126,8 @@ class TraverseWithSortStrategy implements SortStrategy {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(compressionEnabled));
-        try(BufferedWriter writer = createWriter(sortedFile, compressionEnabled)) {
+        File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
+        try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
@@ -133,7 +135,7 @@ class TraverseWithSortStrategy implements SortStrategy {
                     comparator,
                     charset,
                     true, //distinct
-                    compressionEnabled, //useZip
+                    algorithm,
                     func2,
                     func1
             );
@@ -156,7 +158,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         entryBatch.clear();
         entryBatch.trimToSize();
 
-        log.info("Dumped {} nodestates in json format in {}",entryCount, w);
+        log.info("Dumped {} nodestates in json format in {}", entryCount, w);
         log.info("Created {} sorted files of size {} to merge",
                 sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
     }
@@ -192,7 +194,7 @@ class TraverseWithSortStrategy implements SortStrategy {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
-        try (BufferedWriter writer = FlatFileStoreUtils.createWriter(newtmpfile, compressionEnabled)) {
+        try (BufferedWriter writer = createWriter(newtmpfile, algorithm)) {
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());
@@ -202,12 +204,12 @@ class TraverseWithSortStrategy implements SortStrategy {
             }
         }
         log.info("Sorted and stored batch of size {} (uncompressed {}) with {} entries in {}",
-                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize),entryBatch.size(), w);
+                humanReadableByteCount(newtmpfile.length()), humanReadableByteCount(textSize), entryBatch.size(), w);
         sortedFiles.add(newtmpfile);
     }
 
     private boolean isMemoryLow() {
-        if (useMaxMemory){
+        if (useMaxMemory) {
             return memoryUsed > maxMemoryBytes;
         }
         return !sufficientMemory.get();

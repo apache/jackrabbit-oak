@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static com.google.common.collect.Iterables.contains;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.contains;
 
 /**
  * Utility class for creating {@link PropertyValue} instances.

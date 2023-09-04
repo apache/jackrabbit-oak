@@ -27,7 +27,7 @@ import java.util.Optional;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import com.google.common.base.Joiner;
+import org.apache.jackrabbit.guava.common.base.Joiner;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;

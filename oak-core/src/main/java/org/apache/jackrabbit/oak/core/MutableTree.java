@@ -18,8 +18,8 @@
  */
 package org.apache.jackrabbit.oak.core;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.commons.PathUtils.elements;
 import static org.apache.jackrabbit.oak.commons.PathUtils.isAbsolute;
 
@@ -264,11 +264,14 @@ final class MutableTree extends AbstractMutableTree {
      * @param newName   new name for this tree
      */
     boolean moveTo(@NotNull MutableTree newParent, @NotNull String newName) {
-        name = checkNotNull(newName);
-        parent = checkNotNull(newParent);
+        checkNotNull(newName);
+        checkNotNull(newParent);
+        MutableTree oldParent = parent;
         boolean success = nodeBuilder.moveTo(newParent.nodeBuilder, newName);
         if (success) {
-            parent.updateChildOrder(false);
+            name = newName;
+            parent = newParent;
+            oldParent.updateChildOrder(false);
             newParent.updateChildOrder(false);
         }
         return success;

@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.query.xpath.Expression.OrCondition;
 import org.apache.jackrabbit.oak.query.xpath.Expression.Property;
 import org.apache.jackrabbit.oak.spi.query.QueryConstants;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * An xpath statement.

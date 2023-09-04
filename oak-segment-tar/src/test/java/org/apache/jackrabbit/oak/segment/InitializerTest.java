@@ -21,7 +21,7 @@ package org.apache.jackrabbit.oak.segment;
 
 import java.io.IOException;
 
-import com.google.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;

@@ -229,6 +229,7 @@ public class DefaultSyncContext implements SyncContext {
         ExternalIdentityRef ref = identity.getExternalId();
         if (!isSameIDP(ref)) {
             // create result in accordance with sync(String) where status is FOREIGN
+            warnForeign(identity);
             boolean isGroup = (identity instanceof ExternalGroup);
             return new DefaultSyncResultImpl(new DefaultSyncedIdentity(identity.getId(), ref, isGroup, -1), SyncResult.Status.FOREIGN);
         }
@@ -286,6 +287,7 @@ public class DefaultSyncContext implements SyncContext {
             // check if we need to deal with this authorizable
             ExternalIdentityRef ref = getIdentityRef(auth);
             if (ref == null || !isSameIDP(ref)) {
+                warnForeignExisting(auth, auth.isGroup());
                 return new DefaultSyncResultImpl(new DefaultSyncedIdentity(id, ref, auth.isGroup(), -1), SyncResult.Status.FOREIGN);
             }
 
@@ -428,6 +430,7 @@ public class DefaultSyncContext implements SyncContext {
     protected DefaultSyncResultImpl syncUser(@NotNull ExternalUser external, @NotNull User user) throws RepositoryException {
         // make also sure the local user to be synced belongs to the same IDP. Note: 'external' has been verified before.
         if (!isSameIDP(user)) {
+            warnForeignExisting(user, false);
             return new DefaultSyncResultImpl(new DefaultSyncedIdentity(external.getId(), external.getExternalId(), false, -1), SyncResult.Status.FOREIGN);
         }
 
@@ -457,6 +460,7 @@ public class DefaultSyncContext implements SyncContext {
     protected DefaultSyncResultImpl syncGroup(@NotNull ExternalGroup external, @NotNull Group group) throws RepositoryException {
         // make also sure the local user to be synced belongs to the same IDP. Note: 'external' has been verified before.
         if (!isSameIDP(group)) {
+            warnForeignExisting(group, true);
             return new DefaultSyncResultImpl(new DefaultSyncedIdentity(external.getId(), external.getExternalId(), false, -1), SyncResult.Status.FOREIGN);
         }
 
@@ -554,7 +558,7 @@ public class DefaultSyncContext implements SyncContext {
                 } else if (a.isGroup() && isSameIDP(a)) {
                     grp = (Group) a;
                 } else {
-                    log.warn("Existing authorizable '{}' is not a group from this IDP '{}'.", extGroup.getId(), idp.getName());
+                    warnForeignExisting(a, true);
                     continue;
                 }
                 log.debug("- user manager returned '{}'", grp.getID());
@@ -773,6 +777,16 @@ public class DefaultSyncContext implements SyncContext {
         return idp.getName().equals(ref.getProviderName());
     }
 
+    protected void warnForeign(@NotNull ExternalIdentity externalIdentity) {
+        log.warn("Cannot sync externally identity '{}' due to IDP mismatch; expected IDP '{}'.", externalIdentity.getId(), idp.getName());
+    }
+    
+    protected void warnForeignExisting(@NotNull Authorizable existing, boolean expectGroup) throws RepositoryException {
+        String typeName = (existing.isGroup()) ? "group" : "user";
+        String expectedType = (expectGroup) ? "group" : "user";
+        log.warn("Cannot sync external identity: Existing {} with id '{}' and principal name '{}' is not a {} defined by IDP '{}'.", typeName, existing.getID(), existing.getPrincipal().getName(), expectedType, idp.getName());
+    }
+    
     private static String authType(@NotNull Authorizable a) {
         return a.isGroup() ? "group" : "user";
     }

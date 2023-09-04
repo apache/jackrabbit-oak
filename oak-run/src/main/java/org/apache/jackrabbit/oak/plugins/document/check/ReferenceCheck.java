@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.check;
 
-import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -29,6 +29,8 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import static org.apache.jackrabbit.JcrConstants.JCR_UUID;
 
 /**
  * Checks if {@code jcr:baseVersion} reference properties resolve to a node.
@@ -46,22 +48,39 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
     }
 
     @Override
-    protected Optional<Result> runTask(@NotNull Path path,
-                                       @Nullable NodeState state) {
+    protected void runTask(@NotNull Path path,
+                           @Nullable NodeState state,
+                           @NotNull Consumer<Result> resultConsumer) {
         if (state == null) {
-            return Optional.empty();
+            return;
         }
         PropertyState prop = state.getProperty(propertyName);
-        Result result = null;
         if (prop != null) {
-            String ref = prop.getValue(Type.REFERENCE);
-            AtomicReference<String> resolvedPath = new AtomicReference<>("");
-            NodeState version = getNodeByUUID(ref, resolvedPath);
-            if (version == null) {
-                result = new BrokenReference(path, ref, resolvedPath.get());
+            if (prop.isArray()) {
+                for (int i = 0; i < prop.count(); i++) {
+                    checkReference(path, prop.getValue(Type.REFERENCE, i), resultConsumer);
+                }
+            } else {
+                checkReference(path, prop.getValue(Type.REFERENCE), resultConsumer);
             }
         }
-        return Optional.ofNullable(result);
+    }
+
+    private void checkReference(@NotNull Path path,
+                                @NotNull String ref,
+                                @NotNull Consumer<Result> resultConsumer) {
+        AtomicReference<String> resolvedPath = new AtomicReference<>("");
+        NodeState target = getNodeByUUID(ref, resolvedPath);
+        if (target == null) {
+            resultConsumer.accept(new BrokenReference(path, ref, resolvedPath.get()));
+        } else if (!isReferenceable(target, ref)) {
+            resultConsumer.accept(new ReferenceTargetInvalid(path, ref, resolvedPath.get(), target.getString(JCR_UUID)));
+        }
+    }
+
+    private boolean isReferenceable(@NotNull NodeState node,
+                                    @NotNull String uuid) {
+        return uuid.equals(node.getString(JCR_UUID));
     }
 
     private final class BrokenReference implements Result {
@@ -87,6 +106,41 @@ public class ReferenceCheck extends AsyncNodeStateProcessor {
             json.key("type").value("reference");
             json.key("path").value(new Path(path, propertyName).toString());
             json.key("uuid").value(reference);
+            json.key("resolved").value(resolvedPath);
+            json.key("revision").value(headRevision.toString());
+            json.endObject();
+            return json.toString();
+        }
+    }
+
+    private final class ReferenceTargetInvalid implements Result {
+
+        private final Path path;
+
+        private final String reference;
+
+        private final String resolvedPath;
+
+        private final String targetUUID;
+
+        public ReferenceTargetInvalid(@NotNull Path path,
+                                      @NotNull String reference,
+                                      @NotNull String resolvedPath,
+                                      @Nullable String targetUUID) {
+            this.path = path;
+            this.reference = reference;
+            this.resolvedPath = resolvedPath;
+            this.targetUUID = targetUUID;
+        }
+
+        @Override
+        public String toJson() {
+            JsopBuilder json = new JsopBuilder();
+            json.object();
+            json.key("type").value("referenceTargetInvalid");
+            json.key("path").value(new Path(path, propertyName).toString());
+            json.key("uuid").value(reference);
+            json.key("targetUuid").value(targetUUID);
             json.key("resolved").value(resolvedPath);
             json.key("revision").value(headRevision.toString());
             json.endObject();

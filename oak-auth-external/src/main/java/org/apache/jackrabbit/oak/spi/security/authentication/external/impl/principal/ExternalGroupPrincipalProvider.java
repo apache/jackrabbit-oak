@@ -16,11 +16,11 @@
  */
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Sets;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.api.security.principal.GroupPrincipal;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
@@ -160,9 +160,9 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
         }
         
         Result result = findPrincipals(principalName, true);
-        Iterator<? extends ResultRow> rows = (result == null) ? Iterators.emptyIterator() : result.getRows().iterator();
+        Iterator<? extends ResultRow> rows = (result == null) ? Collections.emptyIterator() : result.getRows().iterator();
         if (rows.hasNext()) {
-            return new ExternalGroupPrincipal(principalName, getIdpName(rows.next()));
+            return createExternalGroupPrincipal(principalName, getIdpName(rows.next()));
         }
         return null;
     }
@@ -257,7 +257,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     @Override
     public @NotNull Iterator<Authorizable> getMembers(@NotNull Group group, boolean includeInherited) throws RepositoryException {
         if (!isDynamic(group)) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } else {
             Result result = findPrincipals(group.getPrincipal().getName(), true);
             if (result != null) {
@@ -275,26 +275,38 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
 
     @Override
     public boolean isMember(@NotNull Group group, @NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
-        if (authorizable.isGroup() || !isDynamic(group) || !isDynamic(authorizable)) {
+        if (authorizable.isGroup() || !isDynamic(authorizable)) {
             return false;
         } else {
-            String principalName = group.getPrincipal().getName();
-            return isDynamicMember(principalName, authorizable);
+            if (isDynamic(group) && isDynamicMember(group.getPrincipal().getName(), authorizable)) {
+                return true;
+            }
+            // test for inheritance from dynamic groups through cross-IDP membership
+            if (includeInherited) {
+                Iterator<Group> dynamicGroups = getMembership(authorizable, false);
+                while (dynamicGroups.hasNext()) {
+                    Group dynamicGroup = dynamicGroups.next();
+                    if (group.isMember(dynamicGroup)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     }
 
     @Override
     public @NotNull Iterator<Group> getMembership(@NotNull Authorizable authorizable, boolean includeInherited) throws RepositoryException {
         if (authorizable.isGroup() || !isDynamic(authorizable)) {
-            return Iterators.emptyIterator();
+            return Collections.emptyIterator();
         } else {
             Value[] vs = authorizable.getProperty(REP_EXTERNAL_PRINCIPAL_NAMES);
             if (vs == null || vs.length == 0) {
-                return Iterators.emptyIterator();
+                return Collections.emptyIterator();
             }
             
             Set<Value> valueSet = ImmutableSet.copyOf(vs);
-            return Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
+            Iterator<Group> declared = Iterators.filter(Iterators.transform(valueSet.iterator(), value -> {
                 try {
                     String groupPrincipalName = value.getString();
                     Authorizable gr = userManager.getAuthorizable(new PrincipalImpl(groupPrincipalName));
@@ -303,6 +315,12 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                     return null;
                 }
             }), Objects::nonNull);
+            if (includeInherited) {
+                // retrieve groups inherited from dynamic groups through cross-IDP membership
+                return new InheritedMembershipIterator(declared);
+            } else {
+                return declared;
+            }
         }
     }
 
@@ -355,7 +373,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
 
     @NotNull
-    private Set<Principal> getGroupPrincipals(@NotNull Authorizable authorizable, @NotNull Tree tree) {
+    private Set<Principal> getGroupPrincipals(@NotNull Authorizable authorizable, @NotNull Tree tree) throws RepositoryException {
         if (!tree.exists()) {
             return Collections.emptySet();
         }
@@ -370,8 +388,11 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 // we have an 'external' user that has been synchronized with the dynamic-membership option
                 Set<Principal> groupPrincipals = Sets.newHashSet();
                 for (String principalName : ps.getValue(Type.STRINGS)) {
-                    groupPrincipals.add(new ExternalGroupPrincipal(principalName, idpName));
+                    groupPrincipals.add(createExternalGroupPrincipal(principalName, idpName));
                 }
+
+                // add inherited local groups (crossing IDP boundary)
+                groupPrincipals.addAll(getInheritedPrincipals(groupPrincipals, idpName));
 
                 // add existing group principals as defined with the _autoMembership_ option.
                 groupPrincipals.addAll(getAutomembershipPrincipals(idpName, authorizable));
@@ -381,7 +402,25 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
             }
         } else {
             // resolve automembership for dynamic groups
+            // NOTE: no need to resolve inherited local principals as this is covered by the default principal provider
             return getAutomembershipPrincipals(idpName, authorizable);
+        }
+    }
+
+    /**
+     * Special handling for the case where dynamic groups have been added to local groups
+     * @return set of inherited group principals 
+     */
+    private Set<Principal> getInheritedPrincipals(@NotNull Set<Principal> externalGroupPrincipals, @NotNull String idpName) {
+        if (idpNamesWithDynamicGroups.contains(idpName)) {
+            Set<Principal> inherited = new HashSet<>();
+            for (Principal p : externalGroupPrincipals) {
+                inherited.addAll(DynamicGroupUtil.getInheritedPrincipals(p, userManager));
+            }
+            return inherited;
+        } else {
+            // no dynamic groups created => membership with local groups cannot be created
+            return Collections.emptySet();
         }
     }
 
@@ -472,13 +511,43 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
     }
     
     //------------------------------------------------------< inner classes >---
+    
+    private GroupPrincipal createExternalGroupPrincipal(@NotNull String principalName, @Nullable String idpName) {
+        if (idpNamesWithDynamicGroups.contains(idpName)) {
+            return new ExternalGroupPrincipalItemBased(principalName, idpName);
+        } else {
+            return new ExternalGroupPrincipal(principalName, idpName);
+        }
+    }
+
+    /**
+     * Implementation of the {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} interface representing 
+     * external group identities that are represented as authorizable group in the repository's user management i.e.   
+     * the {@code SyncHandler} configured for the IDP with the given name has dynamic-group option enabled.
+     */
+    private final class ExternalGroupPrincipalItemBased extends ExternalGroupPrincipal implements ItemBasedPrincipal {
+
+        private ExternalGroupPrincipalItemBased(@NotNull String principalName, @Nullable String idpName) {
+            super(principalName, idpName);
+        }
+
+        @Override
+        public @NotNull String getPath() throws RepositoryException {
+            Authorizable a = userManager.getAuthorizable(this);
+            if (a == null) {
+                throw new RepositoryException("Cannot determine path for principal '" + getName() + "'. Group with this principal name does not exist.");
+            } else {
+                return a.getPath();
+            }
+        }
+    }
 
     /**
      * Implementation of the {@link org.apache.jackrabbit.api.security.principal.GroupPrincipal} interface representing external group
      * identities that are <strong>not</strong> represented as authorizable group
      * in the repository's user management.
      */
-    private final class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
+    private class ExternalGroupPrincipal extends PrincipalImpl implements GroupPrincipal {
 
         private final String idpName;
         
@@ -582,7 +651,7 @@ class ExternalGroupPrincipalProvider implements PrincipalProvider, ExternalIdent
                 String principalName = propValues.next();
                 if (!processed.contains(principalName) && matchesQuery(principalName) ) {
                     processed.add(principalName);
-                    return new ExternalGroupPrincipal(principalName, idpName);
+                    return createExternalGroupPrincipal(principalName, idpName);
                 }
             }
             return null;

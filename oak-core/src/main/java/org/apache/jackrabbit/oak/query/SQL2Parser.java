@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.query;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 
 import java.math.BigDecimal;
 import java.text.ParseException;
@@ -636,6 +636,7 @@ public class SQL2Parser {
                 }
             }
         } else if ("NATIVE".equalsIgnoreCase(functionName)) {
+            LOG.warn("Native queries are deprecated. Query:{}", statement);
             String selectorName;
             if (currentTokenType == IDENTIFIER) {
                 selectorName = readName();

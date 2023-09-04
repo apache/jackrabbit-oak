@@ -53,29 +53,6 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
      */
     String TEST_MODE = "testMode";
 
-    /**
-     * Boolean property indicating if in-built analyzer should preserve original term
-     * (i.e. use
-     * {@link org.apache.lucene.analysis.miscellaneous.WordDelimiterFilter#PRESERVE_ORIGINAL}
-     * flag)
-     */
-    String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
-
-    /**
-     * Node name under which various analyzers are configured
-     */
-    String ANALYZERS = "analyzers";
-
-    /**
-     * Name of the default analyzer definition node under 'analyzers' node
-     */
-    String ANL_DEFAULT = "default";
-    String ANL_FILTERS = "filters";
-    String ANL_STOPWORDS = "stopwords";
-    String ANL_TOKENIZER = "tokenizer";
-    String ANL_CHAR_FILTERS = "charFilters";
-    String ANL_CLASS = "class";
-    String ANL_NAME = "name";
     String ANL_LUCENE_MATCH_VERSION = AbstractAnalysisFactory.LUCENE_MATCH_VERSION_PARAM;
 
     /**

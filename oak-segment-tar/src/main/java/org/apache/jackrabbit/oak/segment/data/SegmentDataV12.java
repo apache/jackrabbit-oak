@@ -22,7 +22,7 @@ import java.io.OutputStream;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 
 class SegmentDataV12 implements SegmentData {
 
@@ -189,7 +189,8 @@ class SegmentDataV12 implements SegmentData {
             return new StringData(internalReadRecordId(index + Long.BYTES), (int) length);
         }
 
-        throw new IllegalStateException("String is too long: " + length);
+        throw new IllegalStateException("String is too long: " + length + "; possibly trying to read a "
+                + "BLOB using getString; can not convert BLOB to String");
     }
 
     private StringData internalReadString(int index, int length) {

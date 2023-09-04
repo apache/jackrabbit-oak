@@ -19,6 +19,9 @@
 
 package org.apache.jackrabbit.oak.commons.sort;
 
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
+import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Closeable;
@@ -31,23 +34,18 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Lists;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.FileIOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.escapeLineBreak;
-import static org.apache.jackrabbit.oak.commons.sort.EscapeUtils.unescapeLineBreaks;
 
 /**
  * Utility class to store a list of string and perform sort on that. For small size
@@ -61,10 +59,10 @@ public class StringSort implements Iterable<String>, Closeable {
     private final int overflowToDiskThreshold;
     private final Comparator<String> comparator;
 
-    private final List<String> ids = Lists.newArrayList();
+    private final List<String> ids = new ArrayList<>();
     private long size;
 
-    private final List<String> inMemBatch = Lists.newArrayList();
+    private final List<String> inMemBatch = new ArrayList<>();
 
     private boolean useFile;
     private PersistentState persistentState;
@@ -167,13 +165,13 @@ public class StringSort implements Iterable<String>, Closeable {
          */
         private static final int TEMP_DIR_ATTEMPTS = 10000;
 
-        private final Charset charset = Charsets.UTF_8;
+        private final Charset charset = StandardCharsets.UTF_8;
         private final File workDir;
         private final Comparator<String> comparator;
         private File idFile;
         private File sortedFile;
         private BufferedWriter writer;
-        private List<CloseableIterator> openedIterators = Lists.newArrayList();
+        private List<CloseableIterator> openedIterators = new ArrayList<>();
 
         public PersistentState(Comparator<String> comparator) {
             this(comparator, createTempDir("oak-sorter-"));

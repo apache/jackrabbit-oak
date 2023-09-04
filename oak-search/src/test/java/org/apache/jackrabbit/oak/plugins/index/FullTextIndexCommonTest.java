@@ -16,194 +16,283 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
+import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
-import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+
+import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.INDEX_DEFINITION_NODE;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
 
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
 
+    @Test
+    public void fullTextQuery() throws Exception {
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
+                },
+                "propa");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "Hello World!");
+        test.addChild("b").setProperty("propa", "Simple test");
+        test.addChild("c").setProperty("propa", "Hello everyone. This is a fulltext test");
+        test.addChild("d").setProperty("propa", "howdy! hello again");
+        root.commit();
+
+        String query = "//*[jcr:contains(@propa, 'Hello')]";
+
+        assertEventually(() -> {
+            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertQuery(query, XPATH, List.of("/test/a", "/test/c", "/test/d"));
+        });
+    }
+
+    @Test
+    public void fullTextQueryWithDifferentBoosts() throws Exception {
+        setup(builder -> {
+                    builder.indexRule("nt:base").property("propa").analyzed().nodeScopeIndex().boost(10);
+                    builder.indexRule("nt:base").property("propb").analyzed().nodeScopeIndex().boost(100);
+                }, idx -> {
+                },
+                "propa", "propb");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("propa", "Hello World!");
+        test.addChild("b").setProperty("propb", "Hello World");
+        Tree c = test.addChild("c");
+        c.setProperty("propa", "Hello people");
+        c.setProperty("propb", "Hello folks");
+        test.addChild("d").setProperty("propb", "baz");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/c", "/test/b", "/test/a"), true, true);
+            assertQuery("//*[jcr:contains(., 'Hello')] order by @jcr:score ascending", XPATH,
+                    List.of("/test/a", "/test/b", "/test/c"), true, true);
+            assertQuery("//*[jcr:contains(., 'people')]", XPATH, List.of("/test/c"));
+        });
+    }
+
+    @Test
+    public void noStoredIndexDefinition() throws Exception {
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
+                },
+                "propa");
+
+        assertEventually(() -> {
+            Tree indexNode = root.getTree("/" + INDEX_DEFINITIONS_NAME + "/" + index.getName());
+            PropertyState ps = indexNode.getProperty(IndexConstants.REINDEX_COUNT);
+            assertTrue(ps != null && ps.getValue(Type.LONG) == 1 && !indexNode.hasChild(INDEX_DEFINITION_NODE));
+        });
+    }
+
+    /*
+    In this test only nodeScope property is set over index. (OAK-9166)
+     */
+    @Test
+    public void onlyNodeScopeIndexedQuery() throws Exception {
+        setup(builder -> {
+                    builder.indexRule("nt:base").property("a").nodeScopeIndex();
+                    builder.indexRule("nt:base").property("b").nodeScopeIndex();
+                }, idx -> {
+                },
+                "a", "b");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("nodea").setProperty("a", "hello");
+        test.addChild("nodeb").setProperty("a", "world");
+        test.addChild("nodec").setProperty("a", "hello world");
+        Tree d = test.addChild("noded");
+        d.setProperty("a", "hello");
+        d.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello OR world')]", XPATH, List.of("/test/nodea", "/test/nodeb", "/test/nodec", "/test/noded"));
+        });
+    }
+
+    @Test
+    public void nodeScopeIndexedQuery() throws Exception {
+        setup(builder -> {
+                    builder.indexRule("nt:base").property("a").analyzed().nodeScopeIndex();
+                    builder.indexRule("nt:base").property("b").analyzed().nodeScopeIndex();
+                }, idx -> {
+                },
+                "a", "b");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("a", "hello");
+        test.addChild("b").setProperty("a", "world");
+        test.addChild("c").setProperty("a", "hello world");
+        Tree d = test.addChild("d");
+        d.setProperty("a", "hello");
+        d.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/a", "/test/c", "/test/d"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/c", "/test/d"));
+        });
+    }
+
+    @Test
+    public void propertyIndexWithNodeScopeIndexedQuery() throws Exception {
+        setup(builder -> {
+                    builder.indexRule("nt:base").property("a").propertyIndex().nodeScopeIndex();
+                    builder.indexRule("nt:base").property("b").propertyIndex().nodeScopeIndex();
+                }, idx -> {
+                },
+                "a", "b");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("nodea").setProperty("a", "hello");
+        test.addChild("nodeb").setProperty("a", "world");
+        test.addChild("nodec").setProperty("a", "hello world");
+        Tree d = test.addChild("noded");
+        d.setProperty("a", "hello");
+        d.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodea", "/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec", "/test/noded"));
+        });
+    }
+
+    /*
+        In this test only we set nodeScope on a property and on b property just analyzed property is set over index. (OAK-9166)
+        contains query of type contain(., 'string') should not return b.
+     */
+    @Test
+    public void onlyAnalyzedPropertyShouldNotBeReturnedForNodeScopeIndexedQuery() throws Exception {
+        setup(builder -> {
+                    builder.indexRule("nt:base").property("a").nodeScopeIndex();
+                    builder.indexRule("nt:base").property("b").analyzed();
+                }, idx -> {
+                },
+                "a", "b");
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("nodea").setProperty("b", "hello");
+        test.addChild("nodeb").setProperty("b", "world");
+        test.addChild("nodec").setProperty("a", "hello world");
+        Tree d = test.addChild("noded");
+        d.setProperty("a", "hello");
+        d.setProperty("b", "world");
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("//*[jcr:contains(., 'Hello')]", XPATH, List.of("/test/nodec", "/test/noded"));
+            assertQuery("//*[jcr:contains(., 'hello world')]", XPATH, List.of("/test/nodec"));
+        });
+    }
+
+    @Test
+    public void fullTextMultiTermQuery() throws Exception {
+        setup();
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("analyzed_field", "test123");
+        test.addChild("b").setProperty("analyzed_field", "test456");
+        root.commit();
+
+        assertEventually(() ->
+                assertQuery("//*[jcr:contains(@analyzed_field, 'test123')]", XPATH, List.of("/test/a"))
+        );
+    }
+
+    @Test
+    public void fulltextWithModifiedNodeScopeIndex() throws Exception {
+        Tree index = setup();
+
+        //add content
+        Tree test = root.getTree("/").addChild("test");
+
+        test.addChild("a").setProperty("analyzed_field", "sun.jpg");
+        root.commit();
+
+        assertEventually(() ->
+                assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')]", XPATH, List.of("/test/a")));
+
+        // add nodeScopeIndex at a later stage
+        index.getChild("indexRules").getChild("nt:base").getChild("properties")
+                .getChild("analyzed_field").setProperty(FulltextIndexConstants.PROP_NODE_SCOPE_INDEX, true);
+        index.setProperty(IndexConstants.REINDEX_PROPERTY_NAME, true);
+        index.setProperty(FulltextIndexConstants.PROP_REFRESH_DEFN, true);
+        root.commit();
+
+        assertEventually(() ->
+                assertQuery("//*[jcr:contains(., 'jpg')]", XPATH, List.of("/test/a")));
+    }
+
     protected void assertEventually(Runnable r) {
         TestUtil.assertEventually(r,
                 ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 
-    @Test
-    public void defaultAnalyzer() throws Exception {
-        Tree test = setup();
-
-        test.addChild("a").setProperty("analyzed_field", "sun.jpg");
-        root.commit();
-
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, 'SUN.JPG')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'Sun')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'SUN.jpg')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'sun')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(., 'jpg')] ", XPATH, Collections.singletonList("/test/a"));
-        });
-    }
-
-    @Test
-    public void defaultAnalyzerHonourSplitOptions() throws Exception {
-        Tree test = setup();
-
-        test.addChild("a").setProperty("analyzed_field", "1234abCd5678");
-        root.commit();
-
-        assertEventually(() -> {
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, 'abcd')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '5678')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, '1234abCd5678')] ", XPATH, Collections.singletonList("/test/a"));
-        });
-    }
-
-
-    @Test
-    public void testWithSpecialCharsInSearchTerm() throws Exception {
-        Tree test = setup();
-        test.addChild("a").setProperty("analyzed_field", "foo");
-        root.commit();
-
-        assertEventually(() -> {
-            // Special characters {':' , '/', '!', '&', '|', '='} are escaped before creating lucene/elastic queries using
-            // {@see org.apache.jackrabbit.oak.plugins.index.search.spi.query.FullTextIndex#rewriteQueryText}
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo:')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '|foo/')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '&=!foo')] ", XPATH, Collections.singletonList("/test/a"));
-
-            // Braces are not escaped in the above rewriteQueryText method - we do not change that to maintain backward compatibility
-            // So these need explicit escaping or filtering on client side while creating the jcr query
-            assertQuery("//*[jcr:contains(@analyzed_field, '\\{foo\\}')] ", XPATH, Collections.singletonList("/test/a"));
-            assertQuery("//*[jcr:contains(@analyzed_field, '\\[foo\\]')] ", XPATH, Collections.singletonList("/test/a"));
-        });
-
-    }
-
-    @Test()
-    public void testFullTextTermWithUnescapedBraces() throws Exception {
-        LogCustomizer customLogs = setupLogCustomizer();
-        Tree test = setup();
-
-        test.addChild("a").setProperty("analyzed_field", "foo");
-        root.commit();
-
-        // Below queries would fail silently (return 0 results with an entry in logs for the query that failed)
-        // due to unescaped special character (which is not handled in backend)
-        try {
-            customLogs.starting();
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo}')] ", XPATH, Collections.emptyList());
-            assertQuery("//*[jcr:contains(@analyzed_field, 'foo]')] ", XPATH, Collections.emptyList());
-
-            Assert.assertTrue(customLogs.getLogs().containsAll(getExpectedLogMessage()));
-        } finally {
-            customLogs.finished();
-        }
-    }
-
-    @Test
-    public void pathTransformationsWithNoPathRestrictions() throws Exception {
-        Tree test = setup();
-        test.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
-        test.addChild("b").setProperty("analyzed_field", "bar");
-        test.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
-
-        root.commit();
-
-        assertEventually(() -> {
-            assertQuery("//*[j:c/@analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/c/d"));
-            assertQuery("//*[d/*/@analyzed_field = 'bar']", XPATH, Collections.singletonList("/test/c"));
-        });
-    }
-
-    @Test
-    public void pathTransformationsWithPathRestrictions() throws Exception {
-        Tree test = setup();
-
-        test.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
-        test.addChild("b").setProperty("analyzed_field", "bar");
-        test.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
-        test.addChild("e").addChild("temp:c").setProperty("analyzed_field", "bar");
-        test.addChild("f").addChild("d").addChild("temp:c").setProperty("analyzed_field", "bar");
-        test.addChild("g").addChild("e").addChild("temp:c").setProperty("analyzed_field", "bar");
-
-
-        Tree temp = root.getTree("/").addChild("tmp");
-
-        temp.addChild("a").addChild("j:c").setProperty("analyzed_field", "bar");
-        temp.getChild("a").setProperty("abc", "foo");
-        temp.addChild("b").setProperty("analyzed_field", "bar");
-        temp.addChild("c").addChild("d").addChild("j:c").setProperty("analyzed_field", "bar");
-        temp.getChild("c").getChild("d").setProperty("abc", "foo");
-        root.commit();
-
-        assertEventually(() -> {
-            // ALL CHILDREN
-            assertQuery("/jcr:root/test//*[j:c/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/c/d"));
-            assertQuery("/jcr:root/test//*[*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/c/d", "/test/e", "/test/f/d", "/test/g/e"));
-            assertQuery("/jcr:root/test//*[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c", "/test/f"));
-            assertQuery("/jcr:root/test//*[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a/j:c","/test/b","/test/c/d/j:c",
-                    "/test/e/temp:c", "/test/f/d/temp:c","/test/g/e/temp:c"));
-
-            // DIRECT CHILDREN
-            assertQuery("/jcr:root/test/*[j:c/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a"));
-            assertQuery("/jcr:root/test/*[*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a", "/test/e"));
-            assertQuery("/jcr:root/test/*[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c", "/test/f"));
-            assertQuery("/jcr:root/test/*[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/b"));
-
-            // EXACT
-            assertQuery("/jcr:root/test/a[j:c/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a"));
-            assertQuery("/jcr:root/test/a[*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a"));
-            assertQuery("/jcr:root/test/c[d/*/analyzed_field = 'bar']", XPATH, Arrays.asList("/test/c"));
-            assertQuery("/jcr:root/test/a/j:c[analyzed_field = 'bar']", XPATH, Arrays.asList("/test/a/j:c"));
-
-            // PARENT
-
-            assertQuery("select a.[jcr:path] as [jcr:path] from [nt:base] as a \n" +
-                    "  inner join [nt:base] as b on ischildnode(b, a)\n" +
-                    "  where isdescendantnode(a, '/tmp') \n" +
-                    "  and b.[analyzed_field] = 'bar'\n" +
-                    "  and a.[abc] is not null ", SQL2, Arrays.asList("/tmp/a", "/tmp/c/d"));
-        });
-    }
-
+    private static final BiConsumer<IndexDefinitionBuilder, List<String>> DEFAULT_BUILDER_HOOK = ((builder, analyzedFields) ->
+            analyzedFields.forEach(f -> builder.indexRule("nt:base").property(f).analyzed()));
 
     protected Tree setup() throws Exception {
-        IndexDefinitionBuilder builder = indexOptions.createIndex(
-                indexOptions.createIndexDefinitionBuilder(), false, "analyzed_field");
-        builder.noAsync();
-        builder.indexRule("nt:base")
-                .property("analyzed_field")
-                .analyzed().nodeScopeIndex();
-        builder.evaluatePathRestrictions();
-
-        indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
-        root.commit();
-
-        //add content
-        Tree test = root.getTree("/").addChild("test");
-        root.commit();
-
-        return test;
+        return setup(List.of("analyzed_field"), idx -> {
+        });
     }
 
-    // TODO : Below two method are only used for testFullTextTermWithUnescapedBraces
-    // TODO : If needed in future, we can possibly use test metadata to change the
-    // TODO : returned values from these based on which test is being executed
-    protected abstract LogCustomizer setupLogCustomizer();
+    protected Tree setup(List<String> analyzedFields, Consumer<Tree> indexHook) throws Exception {
+        return setup(
+                builder -> DEFAULT_BUILDER_HOOK.accept(builder, analyzedFields),
+                indexHook,
+                analyzedFields.toArray(new String[0])
+        );
+    }
 
-    protected abstract List<String> getExpectedLogMessage();
+    private Tree setup(Consumer<IndexDefinitionBuilder> builderHook, Consumer<Tree> indexHook, String... propNames) throws Exception {
+        IndexDefinitionBuilder builder = indexOptions.createIndex(
+                indexOptions.createIndexDefinitionBuilder(), false, propNames);
+        builder.noAsync();
+        builder.evaluatePathRestrictions();
+        builderHook.accept(builder);
+
+        Tree index = indexOptions.setIndex(root, UUID.randomUUID().toString(), builder);
+        indexHook.accept(index);
+        root.commit();
+
+        return index;
+    }
+
+    private String explain(String query, String lang) {
+        String explain = "explain " + query;
+        return executeQuery(explain, lang).get(0);
+    }
 
 }

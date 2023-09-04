@@ -19,7 +19,7 @@
 
 package org.apache.jackrabbit.oak.segment.file;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
 
 import java.io.PrintWriter;

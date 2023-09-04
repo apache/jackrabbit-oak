@@ -72,7 +72,7 @@ public class SystemRoot extends MutableRoot {
         this(store, hook, workspaceName, securityProvider, queryEngineSettings, indexProvider,
                 new ContentSessionImpl(
                         LOGIN_CONTEXT, securityProvider, workspaceName,
-                        store, hook, queryEngineSettings, indexProvider) {
+                        store, hook, queryEngineSettings, indexProvider, null) {
                     @NotNull
                     @Override
                     public Root getLatestRoot() {
@@ -90,7 +90,7 @@ public class SystemRoot extends MutableRoot {
             @NotNull QueryIndexProvider indexProvider,
             @NotNull ContentSessionImpl session) {
         super(store, hook, workspaceName, SystemSubject.INSTANCE,
-                securityProvider, queryEngineSettings, indexProvider, session);
+                securityProvider, queryEngineSettings, indexProvider, null, session);
     }
     
 }

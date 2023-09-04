@@ -18,7 +18,7 @@ package org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol;
 
 import java.util.Collection;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 
 /**
@@ -82,10 +82,10 @@ public interface AccessControlConstants {
      * 
      * Example:
      * <pre>
-     * rep:current = []                => restriction applies to the target node only
-     * rep:current = [*]               => restriction applies to the target node and all it's properties
-     * rep:current = [jcr:primaryType] => restriction applies to the target node and it's property jcr:primaryType
-     * rep:current = [a, b, prefix:c]  => restriction applies to the target node and it's properties a, b and prefix:c
+     * rep:current = []                =&gt; restriction applies to the target node only
+     * rep:current = [*]               =&gt; restriction applies to the target node and all it's properties
+     * rep:current = [jcr:primaryType] =&gt; restriction applies to the target node and it's property jcr:primaryType
+     * rep:current = [a, b, prefix:c]  =&gt; restriction applies to the target node and it's properties a, b and prefix:c
      * </pre>
      * 
      * @since OAK 1.42.0

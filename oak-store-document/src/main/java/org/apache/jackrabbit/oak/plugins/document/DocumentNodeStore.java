@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkNotNull;
-import static com.google.common.base.Preconditions.checkState;
-import static com.google.common.collect.Iterables.partition;
-import static com.google.common.collect.Iterables.transform;
-import static com.google.common.collect.Lists.reverse;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.partition;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.reverse;
 import static java.util.Collections.singletonList;
+import static java.util.Objects.nonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -31,14 +33,13 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.JOURNAL;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.MANY_CHILDREN_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS_RESOLUTION;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PATH;
 import static org.apache.jackrabbit.oak.plugins.document.Path.ROOT;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
-import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.alignWithExternalRevisions;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getModuleVersion;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.pathToId;
 import static org.apache.jackrabbit.oak.spi.observation.ChangeSet.COMMIT_CONTEXT_OBSERVATION_CHANGESET;
 
 import java.io.Closeable;
@@ -67,46 +68,36 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import javax.jcr.PropertyType;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Stopwatch;
-import com.google.common.base.Strings;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
-import com.google.common.cache.Cache;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import com.google.common.util.concurrent.UncheckedExecutionException;
-
+import org.apache.jackrabbit.guava.common.cache.Cache;
+import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.apache.jackrabbit.oak.commons.json.JsopStream;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.MarkSweepGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.blob.ReferencedBlob;
 import org.apache.jackrabbit.oak.plugins.document.Branch.BranchCommit;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundledDocumentDiffer;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.PersistentCache;
 import org.apache.jackrabbit.oak.plugins.document.persistentCache.broadcast.DynamicBroadcastConfig;
 import org.apache.jackrabbit.oak.plugins.document.prefetch.CacheWarming;
-import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.commons.json.JsopStream;
-import org.apache.jackrabbit.oak.commons.json.JsopWriter;
-import org.apache.jackrabbit.oak.api.Blob;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.plugins.document.util.LeaseCheckDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.LoggingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.plugins.document.util.ReadOnlyDocumentStoreWrapperFactory;
+import org.apache.jackrabbit.oak.plugins.document.util.ThrottlingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.TimingDocumentStoreWrapper;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.plugins.document.util.ThrottlingDocumentStoreWrapper;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.GarbageCollectableBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.ChangeDispatcher;
 import org.apache.jackrabbit.oak.spi.commit.CommitContext;
@@ -127,12 +118,24 @@ import org.apache.jackrabbit.oak.spi.state.PrefetchNodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.apache.jackrabbit.guava.common.base.Function;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Supplier;
+import org.apache.jackrabbit.guava.common.base.Suppliers;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.apache.jackrabbit.guava.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Sets;
 
 /**
  * Implementation of a NodeStore on {@link DocumentStore}.
@@ -264,6 +267,11 @@ public final class DocumentNodeStore
 
     private int changeSetMaxItems = SystemPropertySupplier.create("oak.document.changeSet.maxItems", 50).loggingTo(LOG).get();
 
+    /**
+     * Batch size to purge uncommitted revisions & collisions on boot-up. The default value is 50.
+     */
+    private int purgeUncommittedRevisions = SystemPropertySupplier.create("oak.document.purgeUncommittedRevisions.batchSize", 50).loggingTo(LOG).get();
+
     private int changeSetMaxDepth = SystemPropertySupplier.create("oak.document.changeSet.maxDepth", 9).loggingTo(LOG).get();
 
     /**
@@ -338,6 +346,11 @@ public final class DocumentNodeStore
      * Background thread performing updates of _lastRev entries.
      */
     private Thread backgroundUpdateThread;
+
+    /**
+     * Background thread performing purging of unmerged branch commits & collision markers
+     */
+    private Thread backgroundPurgeThread;
 
     /**
      * Monitor object to synchronize background writes.
@@ -711,19 +724,24 @@ public final class DocumentNodeStore
 
         checkpoints = new Checkpoints(this);
         // initialize branchCommits
-        branches.init(store, this);
+        branches.init(store, this, purgeUncommittedRevisions);
 
         dispatcher = builder.isPrefetchExternalChanges() ?
                 new PrefetchDispatcher(getRoot(), executor) :
                 new ChangeDispatcher(getRoot());
         commitQueue = new CommitQueue(this);
         commitQueue.setStatisticsCollector(nodeStoreStatsCollector);
+        commitQueue.setSuspendTimeoutMillis(builder.getSuspendTimeoutMillis());
         batchCommitQueue = new BatchCommitQueue(store);
         // prepare background threads
         backgroundReadThread = new Thread(
                 new BackgroundReadOperation(this, isDisposed),
                 "DocumentNodeStore background read thread " + threadNamePostfix);
         backgroundReadThread.setDaemon(true);
+        backgroundPurgeThread = new Thread(
+                new BackgroundPurgeOperation(this, isDisposed),
+                "DocumentNodeStore background purge thread " + threadNamePostfix);
+        backgroundPurgeThread.setDaemon(true);
         backgroundUpdateThread = new Thread(
                 new BackgroundUpdateOperation(this, isDisposed),
                 "DocumentNodeStore background update thread " + threadNamePostfix);
@@ -806,6 +824,7 @@ public final class DocumentNodeStore
 
             backgroundUpdateThread.start();
             backgroundSweepThread.start();
+            backgroundPurgeThread.start();
 
             if (sweep2Lock >= 0) {
                 // sweep2 is necessary - so start a sweep2 background task
@@ -852,7 +871,8 @@ public final class DocumentNodeStore
         Utils.joinQuietly(backgroundReadThread,
                 backgroundUpdateThread,
                 backgroundSweepThread,
-                backgroundSweep2Thread);
+                backgroundSweep2Thread,
+                backgroundPurgeThread);
 
         DocumentStoreException ex = null;
 
@@ -1365,7 +1385,7 @@ public final class DocumentNodeStore
                 children = readChildren(parent, name, limit);
                 nodeChildrenCache.put(key, children);
             }
-            return children;                
+            return children;
         } catch (UncheckedExecutionException e) {
             throw DocumentStoreException.convert(e.getCause(),
                     "Error occurred while fetching children for path "
@@ -2357,11 +2377,19 @@ public final class DocumentNodeStore
      */
     boolean renewClusterIdLease() {
         Stopwatch sw = Stopwatch.createStarted();
-        boolean renewed = clusterNodeInfo.renewLease();
-        if (renewed) {
-            nodeStoreStatsCollector.doneLeaseUpdate(sw.elapsed(MICROSECONDS));
+        boolean renewedOrException = true;
+        try {
+            renewedOrException = clusterNodeInfo.renewLease();
+        } finally {
+            // we need to collect the stats if,
+            // 1. Either lease had been renewed
+            // 2. or there is exception while renewing the lease i.e lease renewal failed/timed out
+            // In case lease is not renewed (can happen if it had not expired), we don't collect the stats
+            if (renewedOrException) {
+                nodeStoreStatsCollector.doneLeaseUpdate(sw.elapsed(MICROSECONDS));
+            }
         }
-        return renewed;
+        return renewedOrException;
     }
 
     /**
@@ -2918,6 +2946,11 @@ public final class DocumentNodeStore
         return num;
     }
 
+    private void purgeUnmergedBranchCommitAndCollisionMarkers(final ClusterNodeInfoDocument cluster) {
+        branches.purgeUnmergedBranchCommitAndCollisionMarkers(store, cluster.getClusterId(), purgeUncommittedRevisions,
+                cluster.isOlderThanLastWrittenRootRevPredicate());
+    }
+
     private int forceBackgroundSweep(Revision startRev, String reason) throws DocumentStoreException {
         NodeDocumentSweeper sweeper = new NodeDocumentSweeper(this, false);
         LOG.info("Starting document sweep. Head: {}, starting at {} (reason: {})",
@@ -3385,7 +3418,7 @@ public final class DocumentNodeStore
         LOG.debug("diffManyChildren: path: {}, fromRev: {}, toRev: {}", path, fromRev, toRev);
 
         for (NodeDocument doc : store.query(Collection.NODES, fromKey, toKey,
-                NodeDocument.MODIFIED_IN_SECS, minValue, Integer.MAX_VALUE)) {
+                NodeDocument.MODIFIED_IN_SECS, minValue, Integer.MAX_VALUE, newArrayList(PATH))) {
             paths.add(doc.getPath());
         }
 
@@ -3688,6 +3721,35 @@ public final class DocumentNodeStore
                 delay = (int) SECONDS.toMillis(MODIFIED_IN_SECS_RESOLUTION);
             }
             return Suppliers.ofInstance(delay);
+        }
+    }
+
+    /**
+     * Background unmerged branch commits & collision marker operation.
+     */
+    private static class BackgroundPurgeOperation extends NodeStoreTask {
+
+        BackgroundPurgeOperation(DocumentNodeStore nodeStore, AtomicBoolean isDisposed) {
+            // run every 60 secs
+            super(nodeStore, isDisposed, Suppliers.ofInstance(60000));
+        }
+
+        @Override
+        protected void execute(@NotNull DocumentNodeStore nodeStore) {
+            final Clock clock = nodeStore.getClock();
+            final long now = clock.getTime();
+            final boolean debug = LOG.isDebugEnabled();
+            if (debug) {
+                LOG.debug("BackgroundPurgeOperation.execute: started purging for non active clusterIds");
+            }
+            ClusterNodeInfoDocument.all(nodeStore.nonLeaseCheckingStore)
+                    .stream().filter(cluster -> !cluster.isActive())
+                    .filter(cluster -> nonNull(cluster.getLastWrittenRootRev()))
+                    .forEach(nodeStore::purgeUnmergedBranchCommitAndCollisionMarkers);
+            if (debug) {
+                LOG.debug("BackgroundPurgeOperation.execute: done purging for non active clusterIds, time taken {}ms",
+                        clock.getTime() - now);
+            }
         }
     }
 

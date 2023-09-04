@@ -39,7 +39,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import static com.google.common.collect.Maps.newHashMap;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.stats.TimeSeriesStatsUtil.asCompositeData;
 
 public class CompositeNodeStoreStats implements CompositeNodeStoreStatsMBean, CompositeNodeStoreMonitor {

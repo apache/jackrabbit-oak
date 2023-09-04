@@ -26,7 +26,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.zip.CRC32;
 
-import com.google.common.base.Charsets;
+import org.apache.jackrabbit.guava.common.base.Charsets;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.junit.Test;

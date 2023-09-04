@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import ch.qos.logback.classic.Level;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;

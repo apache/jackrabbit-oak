@@ -70,8 +70,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
+import org.mockito.Mockito;
 
-import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 
 /**
  * AbstractOakTest is the base class for oak test execution.
@@ -128,6 +129,7 @@ public abstract class AbstractSecurityTest {
             }
             Configuration.setConfiguration(null);
         }
+        Mockito.framework().clearInlineMocks();
     }
 
     protected ContentRepository getContentRepository() {

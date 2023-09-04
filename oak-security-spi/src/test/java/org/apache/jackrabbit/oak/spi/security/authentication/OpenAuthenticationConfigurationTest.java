@@ -21,7 +21,7 @@ import javax.jcr.Credentials;
 import javax.security.auth.Subject;
 import javax.security.auth.login.LoginException;
 
-import com.google.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.junit.Before;
 import org.junit.Test;
 

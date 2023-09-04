@@ -25,29 +25,32 @@ import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
  * The Jackrabbit repository interface. This interface contains the
  * Jackrabbit-specific extensions to the JCR {@link Repository} interface.
  */
+@ProviderType
 public interface JackrabbitRepository extends Repository {
 
     /**
      * Key to a <code>boolean</code> descriptor. Returns <code>true</code> if
      * and only if user management is supported.
      */
-    public static final String OPTION_USER_MANAGEMENT_SUPPORTED = "option.user.management.supported";
+    String OPTION_USER_MANAGEMENT_SUPPORTED = "option.user.management.supported";
 
     /**
      * Key to a <code>boolean</code> descriptor. Returns <code>true</code> if
      * and only if principal management is supported.
      */
-    public static final String OPTION_PRINCIPAL_MANAGEMENT_SUPPORTED = "option.principal.management.supported";
+    String OPTION_PRINCIPAL_MANAGEMENT_SUPPORTED = "option.principal.management.supported";
 
     /**
      * Key to a <code>boolean</code> descriptor. Returns <code>true</code> if
      * and only if privilege management is supported.
      */
-    public static final String OPTION_PRIVILEGE_MANAGEMENT_SUPPORTED = "option.privilege.management.supported";
+    String OPTION_PRIVILEGE_MANAGEMENT_SUPPORTED = "option.privilege.management.supported";
 
     /**
      * Equivalent to {@code login(credentials, workspaceName)} except that the returned

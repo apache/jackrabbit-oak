@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import com.google.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -25,14 +25,22 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.util.ISO8601;
 import org.junit.Test;
 
+import javax.jcr.PropertyType;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Calendar;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static javax.jcr.PropertyType.TYPENAME_DATE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROPDEF_PROP_NODE_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NOT_NULL_CHECK_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NULL_CHECK_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_PROPERTY_INDEX;
@@ -358,6 +366,83 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
                 ImmutableList.of("/test/i"));
     }
 
+    @Test
+    public void rangeQueriesWithBeforeEpoch() throws Exception {
+        Tree idx = indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "propa")
+        );
+        Tree propIdx = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("propa");
+        propIdx.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("propa", createCal("14/02/1768"));
+        test.addChild("b").setProperty("propa", createCal("14/03/1769"));
+        test.addChild("c").setProperty("propa", createCal("14/04/1770"));
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [nt:base] where [propa] >= " + dt("15/02/1768"), asList("/test/b", "/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] <=" + dt("15/03/1769"), asList("/test/b", "/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] < " + dt("14/03/1769"), singletonList("/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] <> " + dt("14/03/1769"), asList("/test/a", "/test/c"));
+            assertQuery("select [jcr:path] from [nt:base] where [propa] > " + dt("15/02/1768") + " and [propa] < " + dt("13/04/1770"), singletonList("/test/b"));
+            assertQuery("select [jcr:path] from [nt:base] where propa is not null", asList("/test/a", "/test/b", "/test/c"));
+        });
+    }
+
+    @Test
+    public void dateQueryWithEmptyValue() throws Exception {
+        Tree idx = indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "textField", "imageLaunchDate")
+        );
+        Tree aggregates = idx.addChild("aggregates").addChild("nt:base");
+        Tree include0 = aggregates.addChild("include0");
+        include0.setProperty("path", "jcr:content/metadata/product", Type.STRING);
+
+        Tree dateField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("imageLaunchDate");
+        dateField.setProperty("name", "jcr:content/metadata/product/imageLaunchDate");
+        dateField.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_DATE);
+        dateField.setProperty(FulltextIndexConstants.PROP_ORDERED, true);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        Tree a = test.addChild("a");
+        a.setProperty("textField", "foo");
+        Tree content = a.addChild("jcr:content").addChild("metadata").addChild("product");
+        content.setProperty("imageLaunchDate", "", Type.STRING);
+        root.commit();
+
+        assertEventually(() -> assertQuery("select [jcr:path] from [nt:base] where [textField] = 'foo'", singletonList("/test/a")));
+    }
+
+    @Test
+    public void inQueryWithUnparseableValue() throws Exception {
+        Tree idx = indexOptions.setIndex(
+                root,
+                "test1",
+                indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false, "booleanField")
+        );
+        Tree booleanField = idx.getChild("indexRules").getChild("nt:base").getChild(PROP_NODE).getChild("booleanField");
+        booleanField.setProperty(FulltextIndexConstants.PROP_TYPE, PropertyType.TYPENAME_BOOLEAN);
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        test.addChild("a").setProperty("booleanField", true);
+        root.commit();
+
+        assertEventually(() -> {
+            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'True')", singletonList("/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('true', 'InvalidBool')", singletonList("/test/a"));
+            assertQuery("select [jcr:path] from [nt:base] where [booleanField] in('foo', 'InvalidBool')", emptyList());
+        });
+    }
+
+
     protected String explain(String query) {
         String explain = "explain " + query;
         return executeQuery(explain, "JCR-SQL2").get(0);
@@ -367,5 +452,20 @@ public abstract class PropertyIndexCommonTest extends AbstractQueryTest {
         t = t.addChild(nodeName);
         t.setProperty(JcrConstants.JCR_PRIMARYTYPE, typeName, Type.NAME);
         return t;
+    }
+
+    private static Calendar createCal(String dt) throws ParseException {
+        SimpleDateFormat sdf = new SimpleDateFormat("dd/MM/yyyy");
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(sdf.parse(dt));
+        return cal;
+    }
+
+    private static String dt(String date) {
+        try {
+            return String.format("CAST ('%s' AS DATE)", ISO8601.format(createCal(date)));
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

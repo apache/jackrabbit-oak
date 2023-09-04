@@ -72,8 +72,8 @@ public class OsgiWhiteboardTest {
         };
 
         when(
-                bundleContext.registerService(Runnable.class.getName(), r,
-                        new Hashtable<Object, Object>())).thenReturn(sr);
+                bundleContext.registerService(Runnable.class, r,
+                        new Hashtable<String, Object>())).thenReturn(sr);
         Registration reg = w.register(Runnable.class, r,
                 new HashMap<String, Object>());
         reg.unregister();

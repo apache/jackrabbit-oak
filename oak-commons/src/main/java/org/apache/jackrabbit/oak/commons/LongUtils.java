@@ -27,10 +27,10 @@ public final class LongUtils {
      * signed long arithmetic, in which case {@link Long#MAX_VALUE} will be
      * returned instead of the result.
      *
-     * Note: this method is a variant of {@link com.google.common.math.LongMath#checkedAdd(long, long)}
+     * Note: this method is a variant of {@link org.apache.jackrabbit.guava.common.math.LongMath#checkedAdd(long, long)}
      * that returns {@link Long#MAX_VALUE} instead of throwing {@code ArithmeticException}.
      *
-     * @see com.google.common.math.LongMath#checkedAdd(long, long)
+     * @see org.apache.jackrabbit.guava.common.math.LongMath#checkedAdd(long, long)
      */
     public static long safeAdd(long a, long b) {
         long result = a + b;

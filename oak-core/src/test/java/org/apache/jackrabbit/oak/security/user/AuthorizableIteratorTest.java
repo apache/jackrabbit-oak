@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableList;
+import org.apache.jackrabbit.guava.common.collect.Iterators;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.User;
 import org.apache.jackrabbit.commons.iterator.RangeIteratorAdapter;
@@ -121,7 +121,7 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
         List<Authorizable> l = ImmutableList.of(getTestUser(), a);
         assertEquals(1, Iterators.size(AuthorizableIterator.create(true, l.iterator(), Collections.emptyIterator())));
     }
-    
+
     @Test
     public void testGetSize3() throws Exception {
         List<User> l = Lists.newArrayList(getTestUser());
@@ -135,10 +135,10 @@ public class AuthorizableIteratorTest extends AbstractSecurityTest {
         assertEquals(2, AuthorizableIterator.create(false, adapter, adapter).getSize());
         assertEquals(2, AuthorizableIterator.create(true, adapter, adapter).getSize());
     }
-    
+
     @Test
     public void testGetSize4() {
-        assertEquals(0, AuthorizableIterator.create(Iterators.emptyIterator(), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE).getSize());
-        assertEquals(0, AuthorizableIterator.create(true, Iterators.emptyIterator(), Iterators.emptyIterator()).getSize());
+        assertEquals(0, AuthorizableIterator.create(Collections.emptyIterator(), (UserManagerImpl) getUserManager(root), AuthorizableType.AUTHORIZABLE).getSize());
+        assertEquals(0, AuthorizableIterator.create(true, Collections.emptyIterator(), Collections.emptyIterator()).getSize());
     }
 }

@@ -51,9 +51,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import com.google.common.collect.ImmutableSet;
-
-import jersey.repackaged.com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 /**
  * Tests indexing and queries when using the composite node store.

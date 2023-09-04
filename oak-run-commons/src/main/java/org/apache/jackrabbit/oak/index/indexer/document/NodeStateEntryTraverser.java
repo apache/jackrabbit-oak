@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document;
 
-import com.google.common.collect.FluentIterable;
-import com.google.common.io.Closer;
+import org.apache.jackrabbit.guava.common.collect.FluentIterable;
+import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser;
+import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,13 +37,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
-import static com.google.common.collect.Iterables.concat;
-import static com.google.common.collect.Iterables.transform;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
-import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentTraverser.TraversingRange;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 
 public class NodeStateEntryTraverser implements Iterable<NodeStateEntry>, Closeable {
     private final Closer closer = Closer.create();

@@ -50,7 +50,7 @@ import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.runners.Parameterized.Parameters;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;

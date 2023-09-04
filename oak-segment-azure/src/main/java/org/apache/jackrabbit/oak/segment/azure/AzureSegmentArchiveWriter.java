@@ -25,12 +25,13 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.base.Stopwatch;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -39,6 +40,11 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWriter {
 
     private final CloudBlobDirectory archiveDirectory;
+
+    private final Retrier retrier = Retrier.withParams(
+            Integer.getInteger("azure.segment.archive.writer.retries.max", 16),
+            Integer.getInteger("azure.segment.archive.writer.retries.intervalMs", 5000)
+    );
 
     public AzureSegmentArchiveWriter(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor) {
         super(ioMonitor, monitor);
@@ -82,20 +88,24 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
 
     @Override
     protected void doWriteDataFile(byte[] data, String extension) throws IOException {
-        try {
-            getBlob(getName() + extension).uploadFromByteArray(data, 0, data.length);
-        } catch (StorageException e) {
-            throw new IOException(e);
-        }
+        retrier.execute(() -> {
+            try {
+                getBlob(getName() + extension).uploadFromByteArray(data, 0, data.length);
+            } catch (StorageException e) {
+                throw new IOException(e);
+            }
+        });
     }
 
     @Override
     protected void afterQueueClosed() throws IOException {
-        try {
-            getBlob("closed").uploadFromByteArray(new byte[0], 0, 0);
-        } catch (StorageException e) {
-            throw new IOException(e);
-        }
+        retrier.execute(() -> {
+            try {
+                getBlob("closed").uploadFromByteArray(new byte[0], 0, 0);
+            } catch (StorageException e) {
+                throw new IOException(e);
+            }
+        });
     }
 
     @Override

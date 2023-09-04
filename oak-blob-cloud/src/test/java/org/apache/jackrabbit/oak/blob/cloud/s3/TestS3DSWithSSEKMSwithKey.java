@@ -16,7 +16,7 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.s3;
 
-import com.google.common.base.Strings;
+import org.apache.jackrabbit.guava.common.base.Strings;
 import org.junit.AssumptionViolatedException;
 import org.junit.Before;
 import org.slf4j.Logger;

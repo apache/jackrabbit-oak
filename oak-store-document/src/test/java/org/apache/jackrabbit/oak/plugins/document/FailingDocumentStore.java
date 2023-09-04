@@ -16,12 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.collect.Lists;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException.Type;
 
@@ -46,6 +48,8 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private Type exceptionType = Type.GENERIC;
 
     private List<Collection<? extends Document>> collectionIncludeList;
+
+    private List<FailedUpdateOpListener> listeners = new ArrayList<>();
 
     class Fail {
 
@@ -94,6 +98,11 @@ class FailingDocumentStore extends DocumentStoreWrapper {
         }
     }
 
+    public interface FailedUpdateOpListener {
+
+        void failed(UpdateOp op);
+    }
+
     FailingDocumentStore(DocumentStore store, long seed) {
         this(store, new Random(seed));
     }
@@ -109,6 +118,10 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     Fail fail() {
         return new Fail();
+    }
+
+    void addListener(FailedUpdateOpListener listener) {
+        listeners.add(listener);
     }
 
     @Override
@@ -152,9 +165,11 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> boolean create(Collection<T> collection,
                                                List<UpdateOp> updateOps) {
+        List<UpdateOp> remaining = new ArrayList<>(updateOps);
+        int i = 0;
         // create individually
         for (UpdateOp op : updateOps) {
-            maybeFail(collection);
+            maybeFail(collection, remaining.subList(i++, remaining.size()));
             if (!super.create(collection, singletonList(op))) {
                 return false;
             }
@@ -165,17 +180,19 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> T createOrUpdate(Collection<T> collection,
                                                  UpdateOp update) {
-        maybeFail(collection);
+        maybeFail(collection, singletonList(update));
         return super.createOrUpdate(collection, update);
     }
 
     @Override
     public <T extends Document> List<T> createOrUpdate(Collection<T> collection,
                                                        List<UpdateOp> updateOps) {
+        List<UpdateOp> remaining = new ArrayList<>(updateOps);
         List<T> result = Lists.newArrayList();
-        // redirect to single document createOrUpdate
+        int i = 0;
         for (UpdateOp op : updateOps) {
-            result.add(createOrUpdate(collection, op));
+            maybeFail(collection, remaining.subList(i++, remaining.size()));
+            result.add(super.createOrUpdate(collection, op));
         }
         return result;
     }
@@ -183,16 +200,26 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     @Override
     public <T extends Document> T findAndUpdate(Collection<T> collection,
                                                 UpdateOp update) {
-        maybeFail(collection);
+        maybeFail(collection, singletonList(update));
         return super.findAndUpdate(collection, update);
     }
 
     private <T extends Document> void maybeFail(Collection<T> collection) {
+        maybeFail(collection, Collections.emptyList());
+    }
+
+    private <T extends Document> void maybeFail(Collection<T> collection,
+                                                List<UpdateOp> remainingOps) {
         if ((collectionIncludeList == null || collectionIncludeList.contains(collection)) &&
                 (random.nextFloat() < p || failAfter.getAndDecrement() <= 0)) {
             if (numFailures.getAndDecrement() > 0) {
+                reportRemainingOps(remainingOps);
                 throw new DocumentStoreException("write operation failed", null, exceptionType);
             }
         }
+    }
+
+    private void reportRemainingOps(List<UpdateOp> remainingOps) {
+        listeners.forEach(listener -> remainingOps.forEach(listener::failed));
     }
 }

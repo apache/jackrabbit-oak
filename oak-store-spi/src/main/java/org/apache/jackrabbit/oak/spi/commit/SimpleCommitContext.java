@@ -21,9 +21,9 @@ package org.apache.jackrabbit.oak.spi.commit;
 
 import java.util.Map;
 
-import com.google.common.collect.Maps;
+import org.apache.jackrabbit.guava.common.collect.Maps;
 
-import static com.google.common.base.Preconditions.checkNotNull;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
 public class SimpleCommitContext implements CommitContext {
     private final Map<String, Object> attrs = Maps.newHashMap();
