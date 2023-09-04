@@ -367,6 +367,10 @@ public interface QueryIndex {
             return Collections.emptyMap();
         }
 
+        default boolean isQueryOptionInsecureFacets() {
+            return false;
+        }
+
         /**
          * A builder for index plans.
          */
@@ -389,6 +393,7 @@ public interface QueryIndex {
             protected boolean deprecated;
             protected boolean logWarningForPathFilterMismatch;
             protected final Map<Level, List<String>> additionalMessages = new HashMap<>();
+            protected boolean queryOptionInsecureFacets;
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -406,6 +411,9 @@ public interface QueryIndex {
             }
 
             public Builder setFilter(Filter filter) {
+                if (this.filter == null && filter != null) {
+                    this.queryOptionInsecureFacets = filter.isQueryOptionInsecureFacets();
+                }
                 this.filter = filter;
                 return this;
             }
@@ -518,7 +526,7 @@ public interface QueryIndex {
                             Builder.this.deprecated;
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
                     private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
-
+                    private final boolean queryOptionInsecureFacets = Builder.this.queryOptionInsecureFacets;
                     private String getAdditionalMessageString() {
                         return additionalMessages.entrySet().stream()
                                 .map(e -> e.getKey() + " : " + e.getValue())
@@ -542,6 +550,7 @@ public interface QueryIndex {
                             + " deprecated : %s,"
                             + " supportsPathRestriction : %s,"
                             + " additionalMessage : %s,"
+                            + " queryOptionInsecureFacets : %s,"
                             + " logWarningForPathFilterMismatch : %s }",
                             costPerExecution,
                             costPerEntry,
@@ -556,6 +565,7 @@ public interface QueryIndex {
                             pathPrefix,
                             deprecated,
                             supportsPathRestriction,
+                            queryOptionInsecureFacets,
                             getAdditionalMessageString(),
                             logWarningForPathFilterMismatch
                             );
@@ -624,6 +634,11 @@ public interface QueryIndex {
                     @Override
                     public boolean getSupportsPathRestriction() {
                         return supportsPathRestriction;
+                    }
+
+                    @Override
+                    public boolean isQueryOptionInsecureFacets() {
+                        return queryOptionInsecureFacets;
                     }
 
                     @Override

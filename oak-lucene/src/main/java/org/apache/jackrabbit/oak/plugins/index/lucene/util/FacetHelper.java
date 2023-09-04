@@ -74,7 +74,7 @@ public class FacetHelper {
                     DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
                             searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
                     FacetsCollector.search(searcher, query, null,1, Sort.INDEXORDER, facetsCollector);
-                    if (plan.getFilter().isQueryOptionInsecureFacets()) {
+                    if (plan.isQueryOptionInsecureFacets()) {
                         facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
                     } else {
                         switch (secureFacetConfiguration.getMode()) {

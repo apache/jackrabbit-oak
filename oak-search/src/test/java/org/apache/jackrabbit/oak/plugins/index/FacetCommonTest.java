@@ -17,6 +17,8 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
+import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -30,10 +32,17 @@ import org.slf4j.LoggerFactory;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
+import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
+import javax.jcr.security.AccessControlList;
+import javax.jcr.security.AccessControlPolicy;
+import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
+import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -142,6 +151,22 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     public void secureFacets() throws Exception {
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
         assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
+    }
+
+    @Test
+    public void secureFacets_admin_optionInsecureFacets() throws Exception {
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        adminSession.save();
+        qm = adminSession.getWorkspace().getQueryManager();
+        assertEventually(() -> assertEquals(actualLabelCount, getFacets(null, true)));
+    }
+
+    @Test
+    public void secureFacets_anonymous_optionInsecureFacets() throws Exception {
+        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
+        allowInsecureQueryOptions(adminSession); // saves admin session; refreshes anonymous session
+        assertEventually(() -> assertEquals(actualLabelCount, getFacets(null, true)));
+        denyInsecureQueryOptions(adminSession);
     }
 
     @Test
@@ -297,6 +322,41 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         return getFacets(null);
     }
 
+    private void allowInsecureQueryOptions(Session session) throws RepositoryException {
+        JackrabbitAccessControlManager acManager = (JackrabbitAccessControlManager) session.getAccessControlManager();
+        Principal principal = AccessControlUtils.getPrincipal(session, "anonymous");
+        Privilege[] privs = AccessControlUtils.privilegesFromNames(acManager, "rep:insecureQueryOptions");
+        if (!acManager.hasPrivileges(null, Collections.singleton(principal), privs)) {
+            for (AccessControlPolicyIterator policyIt = acManager.getApplicablePolicies((String) null); policyIt.hasNext();) {
+                AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
+                if (policy instanceof JackrabbitAccessControlList) {
+                    if (((JackrabbitAccessControlList) policy).addEntry(principal, privs, true)) {
+                        acManager.setPolicy(null, policy);
+                    }
+                }
+            }
+        }
+        session.save();
+        anonymousSession.refresh(false);
+
+    }
+
+    private void denyInsecureQueryOptions(Session session) throws RepositoryException {
+        JackrabbitAccessControlManager acManager = (JackrabbitAccessControlManager) session.getAccessControlManager();
+        Principal principal = AccessControlUtils.getPrincipal(session, "anonymous");
+        Privilege[] privs = AccessControlUtils.privilegesFromNames(acManager, "rep:insecureQueryOptions");
+        if (acManager.hasPrivileges(null, Collections.singleton(principal), privs)) {
+            for (AccessControlPolicyIterator policyIt = acManager.getApplicablePolicies((String) null); policyIt.hasNext();) {
+                AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
+                if (((JackrabbitAccessControlList) policy).addEntry(principal, privs, false)) {
+                    acManager.setPolicy(null, policy);
+                }
+            }
+        }
+        session.save();
+        anonymousSession.refresh(false);
+    }
+
     private Node deny(Node node) throws RepositoryException {
         AccessControlUtils.deny(node, "anonymous", Privilege.JCR_ALL);
         return node;
@@ -306,13 +366,18 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         AccessControlUtils.allow(node, "anonymous", Privilege.JCR_READ);
         return node;
     }
-
     private Map<String, Integer> getFacets(String path) {
+        return getFacets(path, false);
+    }
+    private Map<String, Integer> getFacets(String path, boolean optionInsecureFacets) {
         String pathCons = "";
         if (path != null) {
             pathCons = " AND ISDESCENDANTNODE('" + path + "')";
         }
         String query = "SELECT [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
+        if (optionInsecureFacets) {
+            query += " OPTION(INSECURE FACETS)";
+        }
         Query q;
         QueryResult queryResult;
         try {
