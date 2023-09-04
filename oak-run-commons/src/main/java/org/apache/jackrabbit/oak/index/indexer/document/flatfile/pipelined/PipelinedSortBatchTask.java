@@ -108,7 +108,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
-            LOG.warn("Thread terminating with exception.", t);
+            LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);
@@ -125,7 +125,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
         Stopwatch sortClock = Stopwatch.createStarted();
         sortBuffer.sort(pathComparator);
-        LOG.info("Sorted batch in {}. Saving to disk.", sortClock);
+        LOG.info("Sorted batch in {}. Saving to disk", sortClock);
         Stopwatch saveClock = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;

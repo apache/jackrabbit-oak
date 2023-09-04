@@ -184,12 +184,12 @@ public class PipelinedStrategy implements SortStrategy {
 
     private void prettyPrintTransformStatisticsHistograms(TransformStageStatistics transformStageStatistics, boolean printHistogramAtInfo) {
         if (printHistogramAtInfo) {
-            LOG.info("Top hidden paths rejected: {}.", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
-            LOG.info("Top paths filtered: {}.", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
+            LOG.info("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
+            LOG.info("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
             LOG.info("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         } else {
-            LOG.debug("Top hidden paths rejected: {}.", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
-            LOG.debug("Top paths filtered: {}.", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
+            LOG.debug("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
+            LOG.debug("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
             LOG.debug("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         }
     }
@@ -318,7 +318,7 @@ public class PipelinedStrategy implements SortStrategy {
                 emptyBatchesQueue.add(NodeStateEntryBatch.createNodeStateEntryBatch(bufferSizeBytes, maxNumberOfEntriesPerBuffer));
             }
 
-            LOG.info("[TASK:PIPELINED-DUMP:START] Starting to download from MongoDB.");
+            LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
             MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
             PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue);
@@ -353,7 +353,7 @@ public class PipelinedStrategy implements SortStrategy {
 
 
             try {
-                LOG.info("Waiting for tasks to complete.");
+                LOG.info("Waiting for tasks to complete");
                 int tasksFinished = 0;
                 int transformTasksFinished = 0;
                 while (tasksFinished < numberOfThreads) {
@@ -399,7 +399,7 @@ public class PipelinedStrategy implements SortStrategy {
                         }
                         tasksFinished++;
                     } catch (ExecutionException ex) {
-                        LOG.warn("Execution error dumping from MongoDB: " + ex + ". Shutting down all threads.");
+                        LOG.warn("Execution error dumping from MongoDB: " + ex + ". Shutting down all threads");
                         threadPool.shutdownNow();
                         boolean terminated = threadPool.awaitTermination(5, TimeUnit.SECONDS);
                         if (!terminated) {

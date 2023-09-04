@@ -96,7 +96,7 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         try {
-            LOG.info("[TASK:{}:START] Starting merge-sort-task.", THREAD_NAME.toUpperCase(Locale.ROOT));
+            LOG.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.info("Waiting for next intermediate sorted file");
                 File sortedIntermediateFile = sortedFilesQueue.take();
@@ -126,7 +126,7 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
             LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
-            LOG.warn("Thread terminating with exception.", t);
+            LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);

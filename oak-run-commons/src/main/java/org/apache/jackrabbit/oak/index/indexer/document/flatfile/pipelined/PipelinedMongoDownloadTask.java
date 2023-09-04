@@ -128,7 +128,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
-        LOG.info("[TASK:{}:START] Starting to download from MongoDB.", THREAD_NAME.toUpperCase(Locale.ROOT));
+        LOG.info("[TASK:{}:START] Starting to download from MongoDB", THREAD_NAME.toUpperCase(Locale.ROOT));
         try {
             this.nextLastModified = 0;
             this.lastIdDownloaded = null;
@@ -164,7 +164,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         if (failuresStartTimestamp == null) {
                             failuresStartTimestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS);
                         }
-                        LOG.warn("Connection error downloading from MongoDB.", e);
+                        LOG.warn("Connection error downloading from MongoDB", e);
                         long secondsSinceStartOfFailures = Duration.between(failuresStartTimestamp, Instant.now()).toSeconds();
                         if (secondsSinceStartOfFailures > retryDuringSeconds) {
                             // Give up. Get a string of all exceptions that were thrown
@@ -206,7 +206,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
-            LOG.warn("Thread terminating with exception.", t);
+            LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);
