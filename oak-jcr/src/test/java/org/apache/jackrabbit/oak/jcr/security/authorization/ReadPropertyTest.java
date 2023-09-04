@@ -17,14 +17,25 @@
 package org.apache.jackrabbit.oak.jcr.security.authorization;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Node;
 import javax.jcr.Property;
 import javax.jcr.PropertyIterator;
+import javax.jcr.RepositoryException;
+import javax.jcr.Value;
 
+import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.spi.security.privilege.PrivilegeConstants;
 import org.junit.Test;
+
+import static org.apache.jackrabbit.JcrConstants.MIX_REFERENCEABLE;
+import static org.apache.jackrabbit.oak.spi.security.authorization.accesscontrol.AccessControlConstants.MIX_REP_ACCESS_CONTROLLABLE;
 
 /**
  * @since OAK 1.0 : jcr:read is an aggregation of read property and node privileges.
@@ -179,5 +190,42 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
             assertFalse(p.isModified());
             assertFalse(p.isNew());
         }
+    }
+
+    @Test
+    public void testAddMixinType() throws Exception {
+        superuser.getNode(path).addMixin(MIX_REFERENCEABLE);
+        superuser.save();
+
+        deny(path, privilegesFromName(PrivilegeConstants.JCR_READ));
+        allow(path, privilegesFromName(PrivilegeConstants.REP_READ_NODES));
+        allow(path, privilegesFromName(PrivilegeConstants.REP_WRITE));
+
+        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE);
+
+        Node node = testSession.getNode(path);
+        String mixTitle = "mix:title";
+        assertFalse(node.hasProperty(JcrConstants.JCR_MIXINTYPES));
+        assertTrue(node.canAddMixin(mixTitle));
+
+        // must be able to add mixin even if session
+        // does not have permission to read jcr:mixinTypes
+        node.addMixin(mixTitle);
+        testSession.save();
+
+        // we should be able to see all three mixin types
+        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE, mixTitle);
+    }
+
+    private void assertMixinTypes(Node node, String... mixins)
+            throws RepositoryException {
+        Set<String> expected = Arrays.stream(mixins).collect(Collectors.toSet());
+        Set<String> actual = new HashSet<>();
+        if (node.hasProperty(JcrConstants.JCR_MIXINTYPES)) {
+            for (Value v : node.getProperty(JcrConstants.JCR_MIXINTYPES).getValues()) {
+                actual.add(v.getString());
+            }
+        }
+        assertEquals(expected, actual);
     }
 }
