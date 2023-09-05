@@ -558,8 +558,8 @@ public interface QueryIndex {
                             + " pathPrefix : %s,"
                             + " deprecated : %s,"
                             + " supportsPathRestriction : %s,"
-                            + " additionalMessage : %s,"
                             + " queryOptionInsecureFacets : %s,"
+                            + " additionalMessage : %s,"
                             + " logWarningForPathFilterMismatch : %s }",
                             costPerExecution,
                             costPerEntry,

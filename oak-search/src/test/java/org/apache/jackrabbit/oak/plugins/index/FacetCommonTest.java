@@ -35,14 +35,12 @@ import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
-import javax.jcr.security.AccessControlList;
 import javax.jcr.security.AccessControlPolicy;
 import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.security.Privilege;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
@@ -329,10 +327,9 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         if (!acManager.hasPrivileges(null, Collections.singleton(principal), privs)) {
             for (AccessControlPolicyIterator policyIt = acManager.getApplicablePolicies((String) null); policyIt.hasNext();) {
                 AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
-                if (policy instanceof JackrabbitAccessControlList) {
-                    if (((JackrabbitAccessControlList) policy).addEntry(principal, privs, true)) {
-                        acManager.setPolicy(null, policy);
-                    }
+                if (policy instanceof JackrabbitAccessControlList
+                        && ((JackrabbitAccessControlList) policy).addEntry(principal, privs, true)) {
+                    acManager.setPolicy(null, policy);
                 }
             }
         }
@@ -348,7 +345,8 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         if (acManager.hasPrivileges(null, Collections.singleton(principal), privs)) {
             for (AccessControlPolicyIterator policyIt = acManager.getApplicablePolicies((String) null); policyIt.hasNext();) {
                 AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
-                if (((JackrabbitAccessControlList) policy).addEntry(principal, privs, false)) {
+                if (policy instanceof JackrabbitAccessControlList
+                        && ((JackrabbitAccessControlList) policy).addEntry(principal, privs, false)) {
                     acManager.setPolicy(null, policy);
                 }
             }
