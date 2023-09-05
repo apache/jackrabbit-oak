@@ -50,7 +50,7 @@ public class DocumentStoreIndexer extends DocumentStoreIndexerBase implements Cl
     }
 
     @Override
-    protected void preIndexOpertaions(List<NodeStateIndexer> indexers) {
+    protected void preIndexOperations(List<NodeStateIndexer> indexers) {
         // NOOP
     }
 }

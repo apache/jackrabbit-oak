@@ -466,7 +466,7 @@ public class IndexImporter {
         int count = 1;
         Stopwatch start = Stopwatch.createStarted();
         while (count <= maxRetries) {
-            LOG.info("IndexImporterStepExecutor:{} ,count:{}", indexImportState, count);
+            LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportState, count);
             try {
                 step.execute();
                 LOG.info("IndexImporterStepExecutor:{}:END Metrics: {}", indexImportState,
