@@ -198,8 +198,7 @@ public class UnionQueryImpl implements Query {
 
     @Override
     public boolean isInsecureResultSize() {
-        // assumes that the same queryOptions are passed to both left and right queries in setQueryOptions()
-        return right.isInsecureResultSize();
+        return left.isInsecureResultSize() || right.isInsecureResultSize();
     }
 
     @Override
