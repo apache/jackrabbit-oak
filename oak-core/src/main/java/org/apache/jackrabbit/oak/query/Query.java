@@ -87,7 +87,7 @@ public interface Query {
      * @return true if the INSECURE RESULT SIZE query option was set
      * @since 1.60
      */
-    default boolean isInsecureResultSize() {
+    default boolean isQueryOptionInsecureResultSize() {
         return false;
     }
 

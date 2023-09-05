@@ -80,7 +80,7 @@ public interface Result {
      *
      * @return true if the INSECURE RESULT SIZE query option was set
      */
-    default boolean isInsecureResultSize() {
+    default boolean isQueryOptionInsecureResultSize() {
         return false;
     }
     

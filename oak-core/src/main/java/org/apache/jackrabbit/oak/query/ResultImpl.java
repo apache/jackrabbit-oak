@@ -86,7 +86,7 @@ public class ResultImpl implements Result {
     }
 
     @Override
-    public boolean isInsecureResultSize() {
-        return query.isInsecureResultSize();
+    public boolean isQueryOptionInsecureResultSize() {
+        return query.isQueryOptionInsecureResultSize();
     }
 }

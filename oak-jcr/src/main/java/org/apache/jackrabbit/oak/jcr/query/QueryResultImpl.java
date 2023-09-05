@@ -139,7 +139,7 @@ public class QueryResultImpl implements QueryResult {
                 sessionDelegate.sync(rowIterator),
                 new PrefetchOptions() { {
                     size = result.getSize();
-                    fastSize = sessionContext.getFastQueryResultSize() || result.isInsecureResultSize();
+                    fastSize = sessionContext.getFastQueryResultSize() || result.isQueryOptionInsecureResultSize();
                     fastSizeCallback = result;
                 } });
         return new RowIteratorAdapter(prefIt) {
@@ -224,7 +224,7 @@ public class QueryResultImpl implements QueryResult {
                     sessionDelegate.sync(nodeIterator),
                     new PrefetchOptions() { {
                         size = result.getSize();
-                        fastSize = sessionContext.getFastQueryResultSize() || result.isInsecureResultSize();
+                        fastSize = sessionContext.getFastQueryResultSize() || result.isQueryOptionInsecureResultSize();
                         fastSizeCallback = result;
                     } });
         return new NodeIteratorAdapter(prefIt) {
