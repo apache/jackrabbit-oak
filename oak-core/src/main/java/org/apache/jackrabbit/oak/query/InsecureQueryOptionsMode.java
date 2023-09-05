@@ -45,8 +45,7 @@ public enum InsecureQueryOptionsMode {
     ALLOW;
 
     /**
-     * Internal package utility method to check the current execution context for the rep:insecureQueryOptions
-     * repository permission.
+     * Check whether the provided execution context has been granted the rep:insecureQueryOptions repository permission.
      *
      * @param context the execution context
      * @return true if the context has the rep:insecureQueryOptions repository permission
