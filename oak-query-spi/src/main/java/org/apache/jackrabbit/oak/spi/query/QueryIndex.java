@@ -367,6 +367,12 @@ public interface QueryIndex {
             return Collections.emptyMap();
         }
 
+        /**
+         * Indicates whether the query specified the INSECURE FACETS option.
+         *
+         * @return true if the INSECURE FACETS query option was set
+         * @since 1.60
+         */
         default boolean isQueryOptionInsecureFacets() {
             return false;
         }
