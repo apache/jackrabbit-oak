@@ -616,6 +616,7 @@ public class SolrQueryIndex implements FulltextQueryIndex, QueryIndex.AdvanceFul
                 .setCostPerExecution(1.5) // disk I/O + network I/O
                 .setCostPerEntry(0.3) // with properly configured SolrCaches ~70% of the doc fetches should hit them
                 .setFilter(filter)
+                .setQueryOptionInsecureFacets(filter.isQueryOptionInsecureFacets())
                 .setFulltextIndex(true)
                 .setIncludesNodeData(true) // we currently include node data
                 .setDelayed(true); //Solr is most usually async

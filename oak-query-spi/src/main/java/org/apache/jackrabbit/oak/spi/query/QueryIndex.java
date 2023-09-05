@@ -417,9 +417,6 @@ public interface QueryIndex {
             }
 
             public Builder setFilter(Filter filter) {
-                if (this.filter == null && filter != null) {
-                    this.queryOptionInsecureFacets = filter.isQueryOptionInsecureFacets();
-                }
                 this.filter = filter;
                 return this;
             }
@@ -492,6 +489,11 @@ public interface QueryIndex {
 
             public Builder setDeprecated(boolean deprecated) {
                 this.deprecated = deprecated;
+                return this;
+            }
+
+            public Builder setQueryOptionInsecureFacets(boolean queryOptionInsecureFacets) {
+                this.queryOptionInsecureFacets = queryOptionInsecureFacets;
                 return this;
             }
 
