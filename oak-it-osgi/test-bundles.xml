@@ -30,6 +30,8 @@
       <includes>
         <include>javax.jcr:jcr</include>
         <include>javax.servlet:javax.servlet-api</include>
+        <!-- to be removed when OAK-10371 is resolved -->
+        <include>com.google.guava:guava</include>
         <include>org.slf4j:slf4j-api</include>
         <include>ch.qos.logback:logback-core</include>
         <include>ch.qos.logback:logback-classic</include>
@@ -38,6 +40,7 @@
         <include>commons-collections:commons-collections</include>
         <include>commons-fileupload:commons-fileupload</include>
         <include>commons-logging:commons-logging</include>
+        <include>com.fasterxml.jackson.core:jackson-core</include>
         <include>org.apache.commons:commons-lang3</include>
         <include>org.apache.commons:commons-collections4</include>
         <include>org.apache.jackrabbit:jackrabbit-jcr-commons</include>
@@ -50,10 +53,13 @@
         <include>org.apache.jackrabbit:oak-store-composite</include>
         <include>org.apache.jackrabbit:oak-store-document</include>
         <include>org.apache.jackrabbit:oak-segment-tar</include>
+        <include>org.apache.jackrabbit:oak-segment-remote</include>
+        <include>org.apache.jackrabbit:oak-segment-azure</include>
         <include>org.apache.jackrabbit:oak-jcr</include>
         <include>org.apache.jackrabbit:oak-lucene</include>
         <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
+        <include>org.apache.jackrabbit:oak-blob-cloud-azure</include>
         <include>org.apache.jackrabbit:oak-core-spi</include>
         <include>org.apache.jackrabbit:oak-store-spi</include>
         <include>org.apache.jackrabbit:oak-query-spi</include>
