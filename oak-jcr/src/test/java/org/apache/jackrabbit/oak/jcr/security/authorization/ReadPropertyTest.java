@@ -217,6 +217,31 @@ public class ReadPropertyTest extends AbstractEvaluationTest {
         assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE, mixTitle);
     }
 
+    @Test // (OAK-10425) ignored and marked as known issue in pom.xml
+    public void testRemoveMixinType() throws Exception {
+        String mixTitle = "mix:title";
+        superuser.getNode(path).addMixin(mixTitle);
+        superuser.getNode(path).addMixin(MIX_REFERENCEABLE);
+        superuser.save();
+
+        deny(path, privilegesFromName(PrivilegeConstants.JCR_READ));
+        allow(path, privilegesFromName(PrivilegeConstants.REP_READ_NODES));
+        allow(path, privilegesFromName(PrivilegeConstants.REP_WRITE));
+
+        assertMixinTypes(superuser.getNode(path), mixTitle, MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE);
+
+        Node node = testSession.getNode(path);
+        assertFalse(node.hasProperty(JcrConstants.JCR_MIXINTYPES));
+
+        // must be able to remove mixin even if session
+        // does not have permission to read jcr:mixinTypes
+        node.removeMixin(mixTitle);
+        testSession.save();
+
+        // we should be able to see two mixin types
+        assertMixinTypes(superuser.getNode(path), MIX_REFERENCEABLE, MIX_REP_ACCESS_CONTROLLABLE);
+    }
+
     private void assertMixinTypes(Node node, String... mixins)
             throws RepositoryException {
         Set<String> expected = Arrays.stream(mixins).collect(Collectors.toSet());
