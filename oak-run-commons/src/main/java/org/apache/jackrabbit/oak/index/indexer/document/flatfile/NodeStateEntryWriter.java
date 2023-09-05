@@ -20,6 +20,10 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
+
+import java.util.LinkedList;
+import java.util.List;
+
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -30,8 +34,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.io.Writer;
+
 import java.util.Comparator;
-import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -118,9 +122,30 @@ public class NodeStateEntryWriter {
         return entryLine.substring(0, getDelimiterPosition(entryLine));
     }
 
+    /*
+        Currently we only have 2 types of store:
+        1. FlatFileStore
+        2. IncrementalFlatFileStore
+     */
     public static String[] getParts(String line) {
-        int pos = getDelimiterPosition(line);
-        return new String[]{line.substring(0, pos), line.substring(pos + 1)};
+        // file is FlatFileStore
+        if (line.endsWith("}")) {
+            int pos = getDelimiterPosition(line);
+            return new String[]{line.substring(0, pos), line.substring(pos + 1)};
+        } else {
+            // file is IncrementalFlatFileStore
+            List<Integer> positions = getDelimiterPositions(line);
+            checkState(positions.size() >= 2, "Invalid path entry [%s]", line);
+            // there are 4 parts in incrementalFFS and default delimiter is |
+            // path|nodeData|checkpoint|operand
+            // Node's data can itself have many | so we split based on first and last 2 |
+            String[] parts = new String[4];
+            parts[0] = line.substring(0, positions.get(0));
+            parts[1] = line.substring(positions.get(0) + 1, positions.get(positions.size() - 2));
+            parts[2] = line.substring(positions.get(positions.size() - 2) + 1, positions.get(positions.size() - 1));
+            parts[3] = line.substring(positions.get(positions.size() - 1) + 1);
+            return parts;
+        }
     }
 
     private static int getDelimiterPosition(String entryLine) {
@@ -128,4 +153,22 @@ public class NodeStateEntryWriter {
         checkState(indexOfPipe > 0, "Invalid path entry [%s]", entryLine);
         return indexOfPipe;
     }
+
+    private static List<Integer> getDelimiterPositions(String entryLine) {
+        List<Integer> indexPositions = new LinkedList<>();
+        int index = 0;
+        int indexOfPipe;
+        while (true) {
+            indexOfPipe = entryLine.indexOf(NodeStateEntryWriter.DELIMITER, index);
+            if (indexOfPipe > 0) {
+                indexPositions.add(indexOfPipe);
+                index = indexOfPipe + 1;
+            } else {
+                break;
+            }
+        }
+        checkState(indexPositions.size() > 0, "Invalid path entry [%s]", entryLine);
+        return indexPositions;
+    }
+
 }

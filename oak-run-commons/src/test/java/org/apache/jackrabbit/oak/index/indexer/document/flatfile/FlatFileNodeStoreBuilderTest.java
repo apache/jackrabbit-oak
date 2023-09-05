@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;

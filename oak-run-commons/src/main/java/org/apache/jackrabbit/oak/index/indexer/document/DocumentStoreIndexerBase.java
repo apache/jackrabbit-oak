@@ -30,6 +30,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryMa
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
+import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -170,7 +172,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withNodeStore(nodeStore)
                         .withMongoDocumentStore(getMongoDocumentStore())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
-                                nodeStore, getMongoDocumentStore(), traversalLog));
+                                nodeStore, getMongoDocumentStore(), traversalLog))
+                        .withCheckpoint(indexerSupport.getCheckpoint());
+
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
                 }
@@ -207,6 +211,30 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return storeList;
     }
 
+    public IncrementalStore buildIncrementalStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
+        IncrementalStoreBuilder builder;
+        IncrementalStore incrementalStore;
+        Set<String> preferredPathElements = new HashSet<>();
+        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
+        for (IndexDefinition indexDf : indexDefinitions) {
+            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
+        }
+        Stopwatch incrementalStoreWatch = Stopwatch.createStarted();
+        Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
+        try {
+            builder = new IncrementalStoreBuilder(indexHelper.getWorkDir(), indexHelper, initialCheckpoint, finalCheckpoint)
+                    .withPreferredPathElements(preferredPathElements)
+                    .withPathPredicate(predicate)
+                    .withBlobStore(indexHelper.getGCBlobStore());
+            incrementalStore = builder.build();
+            closer.register(incrementalStore);
+        } catch (Exception e) {
+            throw new IOException("Could not build incremental store", e);
+        }
+        log.info("Completed incremental store build in {}", incrementalStoreWatch);
+        return incrementalStore;
+    }
+
     /**
      * @return an Instance of FlatFileStore, whose getFlatFileStorePath() method can be used to get the absolute path to this store.
      * @throws IOException
@@ -236,7 +264,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
         indexerSupport.switchIndexLanesAndReindexFlag(copyOnWriteStore);
-
         NodeBuilder builder = copyOnWriteStore.getRoot().builder();
         CompositeIndexer indexer = prepareIndexers(copyOnWriteStore, builder, progressReporter);
         if (indexer.isEmpty()) {

@@ -86,4 +86,8 @@ public class FlatFileStoreUtils {
     public static String getSortedStoreFileName(Compression algorithm) {
         return algorithm.addSuffix("store-sorted.json");
     }
+
+    public static String getMetadataFileName(Compression algorithm) {
+        return algorithm.addSuffix("store-sorted.json.metadata");
+    }
 }

@@ -22,10 +22,12 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -34,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
@@ -42,7 +45,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
-class StoreAndSortStrategy implements SortStrategy {
+class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
     private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
 
@@ -50,23 +53,28 @@ class StoreAndSortStrategy implements SortStrategy {
     private final NodeStateEntryTraverserFactory nodeStatesFactory;
     private final PathElementComparator comparator;
     private final NodeStateEntryWriter entryWriter;
-    private final File storeDir;
-    private final Compression algorithm;
     private long entryCount;
     private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
     private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private long textSize;
-    private Predicate<String> pathPredicate;
 
+    public StoreAndSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, Set<String> preferredPaths,
+                                NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
+                                Predicate<String> pathPredicate, String checkpoint) {
+        super(storeDir, algorithm, pathPredicate,preferredPaths, checkpoint);
+        this.nodeStatesFactory = nodeStatesFactory;
+        this.comparator = new PathElementComparator(preferredPaths);
+        this.entryWriter = entryWriter;
 
+    }
+
+    @Deprecated
     public StoreAndSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator comparator,
                                 NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm, Predicate<String> pathPredicate) {
+        super(storeDir, algorithm, pathPredicate, null, null);
         this.nodeStatesFactory = nodeStatesFactory;
         this.comparator = comparator;
         this.entryWriter = entryWriter;
-        this.storeDir = storeDir;
-        this.algorithm = algorithm;
-        this.pathPredicate = pathPredicate;
     }
 
     @Override

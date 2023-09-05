@@ -16,18 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-
-import java.io.File;
+import java.io.Closeable;
 import java.io.IOException;
+import java.util.Iterator;
 
-@Deprecated
-public interface SortStrategy {
+public interface IncrementalStore extends Closeable {
 
-    File createSortedStoreFile() throws IOException, CompositeException;
+    Iterator<NodeStateEntry> iterator();
+
+    String getFlatFileStorePath();
 
     long getEntryCount();
+
+    void setEntryCount(long entryCount);
+
+    void close() throws IOException;
 }

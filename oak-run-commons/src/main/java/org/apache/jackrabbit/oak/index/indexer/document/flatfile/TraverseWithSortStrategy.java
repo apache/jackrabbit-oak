@@ -23,10 +23,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -46,6 +48,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -62,20 +65,18 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
-class TraverseWithSortStrategy implements SortStrategy {
+class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final AtomicBoolean sufficientMemory = new AtomicBoolean(true);
     private final NodeStateEntryTraverserFactory nodeStatesFactory;
     private final NodeStateEntryWriter entryWriter;
-    private final File storeDir;
     private final Charset charset = UTF_8;
     private final Comparator<NodeStateHolder> comparator;
     private NotificationEmitter emitter;
     private MemoryListener listener;
     private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private final long minMemory = Integer.getInteger(OAK_INDEXER_MIN_MEMORY, 2);
-    private final Compression algorithm;
     /**
      * Max memory to be used if jmx based memory monitoring is not available. This value is not considered if jmx based
      * monitoring is available.
@@ -92,17 +93,22 @@ class TraverseWithSortStrategy implements SortStrategy {
     private File sortWorkDir;
     private List<File> sortedFiles = new ArrayList<>();
     private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
-    private Predicate<String> pathPredicate;
-
-
-    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
-                             NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm, Predicate<String> pathPredicate) {
+    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, Set<String> preferredPaths,
+                             NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
+                             Predicate<String> pathPredicate, String checkpoint) {
+        super(storeDir, algorithm, pathPredicate, preferredPaths, checkpoint);
         this.nodeStatesFactory = nodeStatesFactory;
         this.entryWriter = entryWriter;
-        this.storeDir = storeDir;
+        this.comparator = (e1, e2) -> new PathElementComparator(preferredPaths).compare(e1.getPathElements(), e2.getPathElements());
+    }
+
+    @Deprecated
+    TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
+                             NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm, Predicate<String> pathPredicate) {
+        super(storeDir, algorithm, pathPredicate,null, null);
+        this.nodeStatesFactory = nodeStatesFactory;
+        this.entryWriter = entryWriter;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
-        this.pathPredicate = pathPredicate;
-        this.algorithm = algorithm;
     }
 
     @Override

@@ -16,18 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
-
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import java.io.File;
-import java.io.IOException;
+import java.util.Set;
 
-@Deprecated
-public interface SortStrategy {
-
-    File createSortedStoreFile() throws IOException, CompositeException;
-
-    long getEntryCount();
+public class IncrementalFlatFileStore extends FlatFileStore implements IncrementalStore {
+    public IncrementalFlatFileStore(BlobStore blobStore, File storeFile, File metadataFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, Compression algorithm) {
+        super(blobStore, storeFile, metadataFile, entryReader, preferredPathElements, algorithm);
+    }
 }

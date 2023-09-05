@@ -19,15 +19,18 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -105,12 +108,12 @@ public class FlatFileNodeStoreBuilder {
      * System property for specifying number of files for batch merge task when using {@link MultithreadedTraverseWithSortStrategy}
      */
     static final String PROP_MERGE_TASK_BATCH_SIZE = "oak.indexer.mergeTaskBatchSize";
-    
+
     /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */
-    static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
-    static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
+    public static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
+    public static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
     static final String OAK_INDEXER_DUMP_THRESHOLD_IN_MB = "oak.indexer.dumpThresholdInMB";
     static final int OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT = 16;
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -131,7 +134,7 @@ public class FlatFileNodeStoreBuilder {
     private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
     private final Compression algorithm = compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) :
-        Compression.NONE;
+            Compression.NONE;
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
@@ -140,6 +143,7 @@ public class FlatFileNodeStoreBuilder {
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
     private Set<IndexDefinition> indexDefinitions = null;
+    private String checkpoint;
 
 
     public enum SortStrategyType {
@@ -155,6 +159,7 @@ public class FlatFileNodeStoreBuilder {
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
          */
         MULTITHREADED_TRAVERSE_WITH_SORT,
+
         /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
          */
@@ -229,13 +234,19 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    public FlatFileNodeStoreBuilder withCheckpoint(String checkpoint) {
+        this.checkpoint = checkpoint;
+        return this;
+    }
 
     public FlatFileStore build() throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
-        FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFiles().get(0),
-            new NodeStateEntryReader(blobStore),
+        Pair<List<File>, List<File>> pair = createdSortedStoreFiles();
+        File metadataFile = pair.getValue() == null || pair.getValue().size() == 0 ? null : pair.getValue().get(0);
+        FlatFileStore store = new FlatFileStore(blobStore, pair.getKey().get(0), metadataFile,
+                new NodeStateEntryReader(blobStore),
                 unmodifiableSet(preferredPathElements), algorithm);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
@@ -244,27 +255,29 @@ public class FlatFileNodeStoreBuilder {
     }
 
     public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
-            Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
+                                         Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
 
-        List<File> fileList = createdSortedStoreFiles();
-        
+        Pair<List<File>, List<File>> pair = createdSortedStoreFiles();
+        List<File> fileList = pair.getKey();
+        File metadataFile = pair.getValue() == null || pair.getValue().size() == 0 ? null : pair.getValue().get(0);
+
         long start = System.currentTimeMillis();
         // If not already split, split otherwise skip splitting
         if (!fileList.stream().allMatch(FlatFileSplitter.IS_SPLIT)) {
             NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
             FlatFileSplitter splitter = new FlatFileSplitter(fileList.get(0), indexHelper.getWorkDir(),
-                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
-                indexDefinitions);
+                    new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
+                    indexDefinitions);
             fileList = splitter.split();
             log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
         }
 
         List<FlatFileStore> storeList = new ArrayList<>();
         for (File flatFileItem : fileList) {
-            FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, new NodeStateEntryReader(blobStore),
+            FlatFileStore store = new FlatFileStore(blobStore, flatFileItem, metadataFile, new NodeStateEntryReader(blobStore),
                     unmodifiableSet(preferredPathElements), algorithm);
             storeList.add(store);
         }
@@ -272,45 +285,53 @@ public class FlatFileNodeStoreBuilder {
     }
 
     /**
-     * Returns the existing list of store files if it can read from system property OAK_INDEXER_SORTED_FILE_PATH which 
-     * defines the existing folder where the flat file store files are present. Will throw an exception if it cannot 
+     * Returns the existing list of store files if it can read from system property OAK_INDEXER_SORTED_FILE_PATH which
+     * defines the existing folder where the flat file store files are present. Will throw an exception if it cannot
      * read or the path in the system property is not a directory.
-     * If the system property OAK_INDEXER_SORTED_FILE_PATH in undefined, or it cannot read relevant files it 
+     * If the system property OAK_INDEXER_SORTED_FILE_PATH in undefined, or it cannot read relevant files it
      * initializes the flat file store.
-     * 
-     * @return list of flat files
-     * @throws IOException 
+     *
+     * @return pair of "list of flat files" and metadata file
+     * @throws IOException
      * @throws CompositeException
      */
-    private List<File> createdSortedStoreFiles() throws IOException, CompositeException {
+    private Pair<List<File>, List<File>> createdSortedStoreFiles() throws IOException, CompositeException {
         // Check system property defined path
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
         if (StringUtils.isNotBlank(sortedFilePath)) {
             File sortedDir = new File(sortedFilePath);
             log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
-                sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
-            List<File> files = getFiles(sortedDir);
-            if (files != null) {
-                return files;
+                    sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+            // List of storefiles, List of metadatafile
+            Pair<List<File>, List<File>> storeFiles = getIndexStoreFiles(sortedDir);
+            if (storeFiles != null) {
+                return storeFiles;
             }
         }
 
         // Initialize the flat file store again
 
         createStoreDir();
-        SortStrategy strategy = createSortStrategy(flatFileStoreDir);
+        IndexStoreSortStrategy strategy = createSortStrategy(flatFileStoreDir);
         File result = strategy.createSortedStoreFile();
+        File metadata = strategy.createMetadataFile();
         entryCount = strategy.getEntryCount();
-        return Collections.singletonList(result);
+        return new ImmutablePair<>(Collections.singletonList(result), Collections.singletonList(metadata));
     }
 
     @Nullable
-    private List<File> getFiles(File sortedDir) {
+    private Pair<List<File>, List<File>> getIndexStoreFiles(File sortedDir) {
         if (sortedDir.exists() && sortedDir.canRead() && sortedDir.isDirectory()) {
-            File[] files = sortedDir.listFiles(
-                (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
-            if (files != null && files.length != 0) {
-                return Arrays.asList(files);
+            File[] storeFiles = sortedDir.listFiles(
+                    (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
+            File[] metadataFiles = sortedDir.listFiles(
+                    (dir, name) -> name.endsWith(FlatFileStoreUtils.getMetadataFileName(algorithm)));
+            // Not throwing error for backward compatibility
+            if (metadataFiles == null || metadataFiles.length == 0) {
+                log.error("Unable to find metadata file in files directory:{}", sortedDir.getAbsolutePath());
+            }
+            if (storeFiles != null && storeFiles.length != 0) {
+                return new ImmutablePair<>(Arrays.asList(storeFiles), Arrays.asList(metadataFiles));
             }
         } else {
             String msg = String.format("Cannot read sorted files directory at [%s]", sortedDir.getAbsolutePath());
@@ -319,23 +340,26 @@ public class FlatFileNodeStoreBuilder {
         return null;
     }
 
-    SortStrategy createSortStrategy(File dir) throws IOException {
+    IndexStoreSortStrategy createSortStrategy(File dir) throws IOException {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy");
-                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, algorithm, pathPredicate);
+                return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
+                        algorithm, pathPredicate, checkpoint);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
-                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, comparator, entryWriter, dir, algorithm, pathPredicate);
+                return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
+                        algorithm, pathPredicate, checkpoint);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
-                return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, comparator,
-                        blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate);
+                return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, preferredPathElements,
+                        blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate, checkpoint);
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
                 return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters);
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint);
+
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
@@ -355,6 +379,7 @@ public class FlatFileNodeStoreBuilder {
     /**
      * Returns the flat file store dir.
      * NOTE - Only works after flat file store dir has been built (i.e. after a call to {@link #build()}
+     *
      * @return flat file store dir or <code>null</code> if it has not been built
      */
     public File getFlatFileStoreDir() {
