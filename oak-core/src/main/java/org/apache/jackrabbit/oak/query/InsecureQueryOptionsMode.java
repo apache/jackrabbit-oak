@@ -16,6 +16,11 @@
  */
 package org.apache.jackrabbit.oak.query;
 
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
+import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
+
+import java.util.Optional;
+
 /**
  * Mode parameter passed from JCR to the Oak QueryEngine indicating the desired
  * behavior if a parsed statement declares any insecure query options.
@@ -37,5 +42,20 @@ public enum InsecureQueryOptionsMode {
      * Include any insecure query options specified by the statement in the query plan and the result. This should only
      * be passed for principals with the rep:insecureQueryOptions repository privilege.
      */
-    ALLOW
+    ALLOW;
+
+    /**
+     * Internal package utility method to check the current execution context for the rep:insecureQueryOptions
+     * repository permission.
+     *
+     * @param context the execution context
+     * @return true if the context has the rep:insecureQueryOptions repository permission
+     */
+    public static boolean hasPermission(ExecutionContext context) {
+        return Optional.ofNullable(context)
+                .map(ExecutionContext::getPermissionProvider)
+                .map(PermissionProvider::getRepositoryPermission)
+                .map(repoPerms -> repoPerms.isGranted(Permissions.INSECURE_QUERY_OPTIONS))
+                .orElse(false);
+    }
 }

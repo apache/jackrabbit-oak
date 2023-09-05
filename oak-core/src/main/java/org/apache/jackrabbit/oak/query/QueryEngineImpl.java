@@ -38,8 +38,6 @@ import org.apache.jackrabbit.oak.namepath.impl.NamePathMapperImpl;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.query.stats.QueryStatsData.QueryExecutionStats;
 import org.apache.jackrabbit.oak.query.xpath.XPathToSQL2Converter;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -265,12 +263,10 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
 
         ExecutionContext context = getExecutionContext();
-        boolean hasInsecureQueryOptionsPermission = Optional.ofNullable(context.getPermissionProvider())
-                .map(PermissionProvider::getRepositoryPermission)
-                .map(repoPerms -> repoPerms.isGranted(Permissions.INSECURE_QUERY_OPTIONS))
-                .orElse(false);
-        InsecureQueryOptionsMode insecureQueryOptionsMode = hasInsecureQueryOptionsPermission
+
+        InsecureQueryOptionsMode insecureQueryOptionsMode = InsecureQueryOptionsMode.hasPermission(context)
                 ? InsecureQueryOptionsMode.ALLOW : InsecureQueryOptionsMode.DENY;
+
         List<Query> queries = parseQuery(statement, language, context, mappings, insecureQueryOptionsMode);
 
         long actualLimit = getValue(queries, limit, Query::getLimit, Long.MAX_VALUE);
