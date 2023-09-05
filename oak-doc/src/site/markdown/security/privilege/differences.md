@@ -37,3 +37,4 @@ The following changes have been made to built-in privilege definitions:
     - `rep:alterProperties`
     - `rep:removeProperties`
     - `rep:indexDefinitionManagement`
+    - `rep:insecureQueryOptions`

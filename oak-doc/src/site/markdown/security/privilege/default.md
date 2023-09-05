@@ -71,6 +71,7 @@ corresponding [documentation](differences.html).
         rep:alterProperties
         rep:removeProperties
         rep:indexDefinitionManagement
+        rep:insecureQueryOptions
 
 Please note the following differences with respect to Jackrabbit 2.x definitions:
 
@@ -88,6 +89,7 @@ The new Privileges introduced with Oak 1.0 have the following effect:
 - `rep:alterProperties`: Privilege required in order to change existing properties (aggreate of `jcr:modifyProperties`)
 - `rep:removeProperties`: Privilege required in order to remove existing properties (aggreate of `jcr:modifyProperties`)
 - `rep:indexDefinitionManagement`: Privilege required to create, modify or deleate index definitions.
+- `rep:insecureQueryOptions`: Privilege required to execute query statements using the `INSECURE RESULT SIZE` and `INSECURE FACETS` options.
 
 #### Mapping Privileges to Items and API Calls
 An overview on how the built-in privileges map to API calls and individual items

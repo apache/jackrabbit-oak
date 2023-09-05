@@ -69,12 +69,13 @@ by the system only and cannot be modified by the API consumer.
 
 #### Repository Operations
 
-| Privilege               | Affected Items                                      |
-|-------------------------|-----------------------------------------------------|
-| jcr:namespaceManagement | implementation specific; in Oak everything below `/jcr:system/rep:namespaces` |
-| jcr:nodeTypeDefinitionManagement | implementation specific; in Oak everything below `/jcr:system/jcr:nodeTypes` |
-| rep:privilegeManagement | implementation specific; in Oak everything below `/jcr:system/rep:privileges` |
-| jcr:workspaceManagement | NA                                                  |
+| Privilege                        | Affected Items                                                                                           |
+|----------------------------------|----------------------------------------------------------------------------------------------------------|
+| jcr:namespaceManagement          | implementation specific; in Oak everything below `/jcr:system/rep:namespaces`                            |
+| jcr:nodeTypeDefinitionManagement | implementation specific; in Oak everything below `/jcr:system/jcr:nodeTypes`                             |
+| rep:privilegeManagement          | implementation specific; in Oak everything below `/jcr:system/rep:privileges`                            |
+| jcr:workspaceManagement          | NA                                                                                                       |
+| rep:insecureQueryOptions         | implementation specific; in Oak allows use of `INSECURE RESULT SIZE` and `INSECURE FACETS` query options |
 
 
 #### Annotations
