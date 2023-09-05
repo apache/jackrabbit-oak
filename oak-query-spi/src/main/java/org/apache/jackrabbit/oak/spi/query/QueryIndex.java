@@ -533,6 +533,7 @@ public interface QueryIndex {
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
                     private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
                     private final boolean queryOptionInsecureFacets = Builder.this.queryOptionInsecureFacets;
+
                     private String getAdditionalMessageString() {
                         return additionalMessages.entrySet().stream()
                                 .map(e -> e.getKey() + " : " + e.getValue())
