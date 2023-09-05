@@ -110,24 +110,14 @@ public class QueryOptions {
             t.read(']');
             prefetch = list;
         }
-        x = map.get("insecure");
+        x = map.get("insecureResultSize");
         if (x != null) {
-            JsopTokenizer t = new JsopTokenizer(x);
-            t.read('[');
-            do {
-                String opt = t.readString();
-                if ("resultSize".equals(opt)) {
-                    insecureResultSize = true;
-                } else if ("facets".equals(opt)) {
-                    insecureFacets = true;
-                }
-            } while (t.matches(','));
-            t.read(']');
+            insecureResultSize = "true".equals(x);
         }
-    }
-
-    public boolean hasInsecureOptions() {
-        return insecureResultSize || insecureFacets;
+        x = map.get("insecureFacets");
+        if (x != null) {
+            insecureFacets = "true".equals(x);
+        }
     }
 
     public static class AutomaticQueryOptionsMapping {

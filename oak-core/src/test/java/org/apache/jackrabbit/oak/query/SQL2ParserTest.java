@@ -197,32 +197,14 @@ public class SQL2ParserTest {
     }
 
     @Test(expected = ParseException.class)
-    public void testInsecureResultSizeSql2NotAllowed() throws ParseException {
-        p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
-        p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULTSIZE)");
-    }
-
-    @Test(expected = ParseException.class)
-    public void testInsecureResultSizeXPathNotAllowed() throws ParseException {
-        XPathToSQL2Converter c = new XPathToSQL2Converter();
-        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure resultsize)";
-        p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
-        p.parse(c.convert(xpath));
-    }
-
-    @Test(expected = ParseException.class)
-    public void testInsecureNoneSql2NotAllowed() throws ParseException {
-        p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
+    public void testInsecureNoneSql2() throws ParseException {
         p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE)");
     }
 
-    @Test
-    public void testInsecureNoneXPathNotAllowed() throws ParseException {
+    @Test(expected = ParseException.class)
+    public void testInsecureNoneXPath() throws ParseException {
         XPathToSQL2Converter c = new XPathToSQL2Converter();
         String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure)";
-        p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
-        // converted SQL2 will parse because an "insecure" XPath token without option tokens
-        // will not persist to the QueryOptions model
         p.parse(c.convert(xpath));
     }
 
@@ -238,6 +220,20 @@ public class SQL2ParserTest {
         String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure unknown)";
         p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
         // should throw in the convert method because "unknown" is not an expected token
+        p.parse(c.convert(xpath));
+    }
+
+    @Test(expected = ParseException.class)
+    public void testInsecureResultSizeSql2NotAllowed() throws ParseException {
+        p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
+        p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULT SIZE)");
+    }
+
+    @Test(expected = ParseException.class)
+    public void testInsecureResultSizeXPathNotAllowed() throws ParseException {
+        XPathToSQL2Converter c = new XPathToSQL2Converter();
+        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure result size)";
+        p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
         p.parse(c.convert(xpath));
     }
 
@@ -258,38 +254,25 @@ public class SQL2ParserTest {
     @Test(expected = ParseException.class)
     public void testInsecureResultSizeFacetsSql2NotAllowed() throws ParseException {
         p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
-        p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULTSIZE FACETS)");
+        p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULT SIZE, INSECURE FACETS)");
     }
 
     @Test(expected = ParseException.class)
     public void testInsecureResultSizeFacetsXPathNotAllowed() throws ParseException {
         XPathToSQL2Converter c = new XPathToSQL2Converter();
-        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure resultsize facets)";
+        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure result size, insecure facets)";
         p.setInsecureOptionsMode(InsecureQueryOptionsMode.DENY);
         p.parse(c.convert(xpath));
     }
 
     @Test
-    public void testInsecureResultSizeFacetsAllowed() throws ParseException {
-        p.setInsecureOptionsMode(InsecureQueryOptionsMode.ALLOW);
-        QueryImpl sqlQuery = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULTSIZE FACETS)");
-        assertTrue("expect insecure result size", sqlQuery.getQueryOptions().insecureResultSize);
-        assertTrue("expect insecure facets", sqlQuery.getQueryOptions().insecureFacets);
-        XPathToSQL2Converter c = new XPathToSQL2Converter();
-        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure resultsize facets)";
-        QueryImpl xpathQuery = (QueryImpl) p.parse(c.convert(xpath));
-        assertTrue("expect insecure result size", xpathQuery.getQueryOptions().insecureResultSize);
-        assertTrue("expect insecure facets", xpathQuery.getQueryOptions().insecureFacets);
-    }
-
-    @Test
     public void testInsecureResultSizeInsecureFacetsAllowed() throws ParseException {
         p.setInsecureOptionsMode(InsecureQueryOptionsMode.ALLOW);
-        QueryImpl sqlQuery = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULTSIZE, INSECURE FACETS)");
+        QueryImpl sqlQuery = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULT SIZE, INSECURE FACETS)");
         assertTrue("expect insecure result size", sqlQuery.getQueryOptions().insecureResultSize);
         assertTrue("expect insecure facets", sqlQuery.getQueryOptions().insecureFacets);
         XPathToSQL2Converter c = new XPathToSQL2Converter();
-        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure resultsize, insecure facets)";
+        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure result size, insecure facets)";
         QueryImpl xpathQuery = (QueryImpl) p.parse(c.convert(xpath));
         assertTrue("expect insecure result size", xpathQuery.getQueryOptions().insecureResultSize);
         assertTrue("expect insecure facets", xpathQuery.getQueryOptions().insecureFacets);
@@ -298,11 +281,11 @@ public class SQL2ParserTest {
     @Test
     public void testInsecureResultSizeAllowed() throws ParseException {
         p.setInsecureOptionsMode(InsecureQueryOptionsMode.ALLOW);
-        QueryImpl sqlQuery = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULTSIZE)");
+        QueryImpl sqlQuery = (QueryImpl) p.parse("SELECT * FROM [nt:base] WHERE b=2 OPTION(INSECURE RESULT SIZE)");
         assertTrue("expect insecure result size", sqlQuery.getQueryOptions().insecureResultSize);
         assertFalse("expect not insecure facets", sqlQuery.getQueryOptions().insecureFacets);
         XPathToSQL2Converter c = new XPathToSQL2Converter();
-        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure resultsize)";
+        String xpath = "/jcr:root/test/*/nt:resource[@jcr:encoding] option(insecure result size)";
         QueryImpl xpathQuery = (QueryImpl) p.parse(c.convert(xpath));
         assertTrue("expect insecure result size", xpathQuery.getQueryOptions().insecureResultSize);
         assertFalse("expect not insecure facets", xpathQuery.getQueryOptions().insecureFacets);
@@ -346,8 +329,7 @@ public class SQL2ParserTest {
     public void testInsecureNoneAllowed() throws ParseException {
         List<String> variations = Arrays.asList(
                 "",
-                "OPTION()",
-                "OPTION(INSECURE)"
+                "OPTION()"
         );
         p.setInsecureOptionsMode(InsecureQueryOptionsMode.ALLOW);
         for (String variation : variations) {
@@ -368,11 +350,9 @@ public class SQL2ParserTest {
         List<String> variations = Arrays.asList(
                 "",
                 "OPTION()",
-                "OPTION(INSECURE)",
-                "OPTION(INSECURE RESULTSIZE)",
+                "OPTION(INSECURE RESULT SIZE)",
                 "OPTION(INSECURE FACETS)",
-                "OPTION(INSECURE RESULTSIZE FACETS)",
-                "OPTION(INSECURE RESULTSIZE, INSECURE FACETS)"
+                "OPTION(INSECURE RESULT SIZE, INSECURE FACETS)"
         );
         p.setInsecureOptionsMode(null);
         for (String variation : variations) {

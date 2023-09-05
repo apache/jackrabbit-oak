@@ -382,17 +382,11 @@ public class Statement {
                             SQL2Parser::escapeStringLiteral));
             optionValues.add("prefetch (" + list + ")");
         }
-        if (queryOptions.hasInsecureOptions()) {
-            List<String> insecureOpts = new ArrayList<>();
-            insecureOpts.add("insecure");
-            if (queryOptions.insecureResultSize) {
-                insecureOpts.add("resultsize");
-            }
-            if (queryOptions.insecureFacets) {
-                insecureOpts.add("facets");
-            }
-            String list = String.join(" ", insecureOpts);
-            optionValues.add(list);
+        if (queryOptions.insecureResultSize) {
+            optionValues.add("insecure result size");
+        }
+        if (queryOptions.insecureFacets) {
+            optionValues.add("insecure facets");
         }
         buff.append(String.join(", ", optionValues));
         buff.append(")");

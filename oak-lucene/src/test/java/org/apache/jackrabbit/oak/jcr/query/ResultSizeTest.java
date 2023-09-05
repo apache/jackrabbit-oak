@@ -193,7 +193,7 @@ public class ResultSizeTest extends AbstractQueryTest {
 
         // fast (insecure) case
         String fastSizeResult = "";
-        q = qm.createQuery(statement + " option (insecure resultsize)", Query.JCR_SQL2);
+        q = qm.createQuery(statement + " option (insecure result size)", Query.JCR_SQL2);
         if (expected < 0) {
             // if expected < 0, i.e. insufficient permissions, expect a InvalidQueryException on execute().
             try {
@@ -215,7 +215,7 @@ public class ResultSizeTest extends AbstractQueryTest {
                 buff.append(n.getPath()).append('\n');
             }
             fastSizeResult = buff.toString();
-            q = qm.createQuery(statement + " option (insecure resultsize)", Query.JCR_SQL2);
+            q = qm.createQuery(statement + " option (insecure result size)", Query.JCR_SQL2);
             q.setLimit(90);
             it = q.execute().getNodes();
             assertEquals(90, it.getSize());

@@ -76,9 +76,9 @@ public interface Result {
     long getSize(SizePrecision precision, long max);
 
     /**
-     * Indicates whether the query specified the INSECURE RESULTSIZE option.
+     * Indicates whether the query specified the INSECURE RESULT SIZE option.
      *
-     * @return true if the INSECURE RESULTSIZE query option was set
+     * @return true if the INSECURE RESULT SIZE query option was set
      */
     default boolean isInsecureResultSize() {
         return false;

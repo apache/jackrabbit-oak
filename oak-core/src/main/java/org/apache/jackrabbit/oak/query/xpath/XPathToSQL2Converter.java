@@ -430,14 +430,16 @@ public class XPathToSQL2Converter {
                     read(")");
                     options.prefetch = list;
                 } else if (readIf("insecure")) {
-                    while (true) {
-                        if (readIf("resultsize")) {
+                    if (readIf("result")) {
+                        if (readIf("size")) {
                             options.insecureResultSize = true;
-                        } else if (readIf("facets")) {
-                            options.insecureFacets = true;
                         } else {
-                            break;
+                            throw getSyntaxError();
                         }
+                    } else if (readIf("facets")) {
+                        options.insecureFacets = true;
+                    } else {
+                        throw getSyntaxError();
                     }
                 } else {
                     break;
