@@ -254,6 +254,8 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
             String x = randomUnicodeString(r, 5);
             BytesRef ref = checkTruncateLength("x", x, "/x", 5);
             assertTrue(ref.length > 0 && ref.length <= 5);
+            //assert valid string
+            assertTrue(x.startsWith(ref.utf8ToString()));
         }
     }
 
