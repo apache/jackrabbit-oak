@@ -46,6 +46,7 @@
                             azure-keyvault-core,
                             guava
                         </Embed-Dependency>
+                        <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
                         <_plugin/>
                     </instructions>
                 </configuration>
