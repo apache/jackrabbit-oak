@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -49,6 +50,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -132,12 +135,46 @@ public class PipelinedIT {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false");
 
         Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
-        List<PathFilter> pathFilters = null;
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam"), List.of()));
 
         testSuccessfulDownload(pathPredicate, pathFilters);
     }
 
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters) throws CommitFailedException, IOException {
+    @Test
+    public void createFFS_filter_long_paths() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+
+        // Create a filter on the node with the longest path
+        String longestLine = EXPECTED_FFS.stream().max(Comparator.comparingInt(String::length)).get();
+        String longestPath = longestLine.substring(0, longestLine.lastIndexOf("|"));
+        String parent = PathUtils.getParentPath(longestPath);
+        Predicate<String> pathPredicate = s -> true;
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of(parent), List.of()));
+
+        // The results should contain all the parents of the node with the longest path
+        ArrayList<String> expected = new ArrayList<>();
+        expected.add(longestPath + "|{}");
+        while (true) {
+            expected.add(parent + "|{}");
+            if (parent.equals("/")) {
+                break;
+            }
+            parent = PathUtils.getParentPath(parent);
+        }
+        // The list above has the longest paths first, reverse it to match the order in the FFS
+        Collections.reverse(expected);
+
+        testSuccessfulDownload(pathPredicate, pathFilters, expected);
+    }
+
+    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters)
+            throws CommitFailedException, IOException {
+        testSuccessfulDownload(pathPredicate, pathFilters, EXPECTED_FFS);
+    }
+
+    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected)
+            throws CommitFailedException, IOException {
         ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
         createContent(rwStore.right);
 
@@ -147,7 +184,7 @@ public class PipelinedIT {
 
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
-        assertEquals(EXPECTED_FFS, Files.readAllLines(file.toPath()));
+        assertEquals(expected, Files.readAllLines(file.toPath()));
     }
 
     @Test

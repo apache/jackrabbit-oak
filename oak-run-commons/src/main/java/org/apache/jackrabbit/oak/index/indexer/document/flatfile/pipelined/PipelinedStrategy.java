@@ -199,6 +199,12 @@ public class PipelinedStrategy implements SortStrategy {
     private long entryCount;
     private final Predicate<String> pathPredicate;
 
+    /**
+     *
+     * @param pathPredicate Used by the transform stage to test if a node should be kept or discarded.
+     * @param pathFilters If non-empty, the download stage will use these filters to try to create a query that downloads
+     *                    only the matching MongoDB documents.
+     */
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,

@@ -365,6 +365,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // Explicitly list all ancestors in a or query.
         while (true) {
             parentFilters.add(Filters.eq(NodeDocument.ID, depth + ":" + path));
+            parentFilters.add(Filters.eq(NodeDocument.PATH, path));
             if (depth == 0) {
                 break;
             }
