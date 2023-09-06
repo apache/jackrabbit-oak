@@ -38,7 +38,7 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
-                    <instructions>
+                    <instructions combine.self="override">
                         <Import-Package>
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
@@ -58,8 +58,7 @@
                             azure-keyvault-core,
                             guava
                         </Embed-Dependency>
-                        <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
-                        <_plugin>org.apache.felix.bundleplugin.BlueprintPlugin</_plugin>
+                        <_plugin/>
                     </instructions>
                 </configuration>
             </plugin>
