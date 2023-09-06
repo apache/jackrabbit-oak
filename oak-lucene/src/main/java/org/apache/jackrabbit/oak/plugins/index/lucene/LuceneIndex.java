@@ -556,7 +556,6 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
                 .setCostPerExecution(0) // we're local. Low-cost
                 .setCostPerEntry(1)
                 .setFilter(filter)
-                .setQueryOptionInsecureFacets(filter.isQueryOptionInsecureFacets())
                 .setFulltextIndex(true)
                 .setEstimatedEntryCount(0) //TODO Fake it to provide constant cost for now
                 .setIncludesNodeData(false) // we should not include node data

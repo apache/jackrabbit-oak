@@ -179,6 +179,7 @@ public class FilterImpl implements Filter {
         this.selector = impl.selector;
         this.matchesAllTypes = selector != null ? selector.matchesAllTypes()
                 : false;
+        this.queryOptionInsecureFacets = filter.isQueryOptionInsecureFacets();
         this.settings = filter.getQueryLimits();
     }
 

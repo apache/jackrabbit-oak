@@ -1428,7 +1428,12 @@ public class QueryImpl implements Query {
 
     @Override
     public boolean isQueryOptionInsecureResultSize() {
-        return this.queryOptions.insecureResultSize && isAllowedInsecureOptions();
+        return this.queryOptions != null && this.queryOptions.insecureResultSize && isAllowedInsecureOptions();
+    }
+
+    @Override
+    public boolean isQueryOptionInsecureFacets() {
+        return this.queryOptions != null && this.queryOptions.insecureFacets && isAllowedInsecureOptions();
     }
 
     @Override

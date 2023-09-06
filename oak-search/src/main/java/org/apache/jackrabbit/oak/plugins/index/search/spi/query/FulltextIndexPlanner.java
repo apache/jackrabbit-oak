@@ -781,7 +781,6 @@ public class FulltextIndexPlanner {
                 .setFulltextIndex(definition.isFullTextEnabled())
                 .setIncludesNodeData(false) // we should not include node data
                 .setFilter(filter)
-                .setQueryOptionInsecureFacets(filter.isQueryOptionInsecureFacets())
                 .setPathPrefix(getPathPrefix())
                 .setSupportsPathRestriction(definition.evaluatePathRestrictions())
                 .setDelayed(true) //Lucene is always async

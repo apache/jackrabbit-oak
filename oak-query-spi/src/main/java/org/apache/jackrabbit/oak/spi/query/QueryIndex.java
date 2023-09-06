@@ -368,16 +368,6 @@ public interface QueryIndex {
         }
 
         /**
-         * Indicates whether the query specified the INSECURE FACETS option.
-         *
-         * @return true if the INSECURE FACETS query option was set
-         * @since 1.60
-         */
-        default boolean isQueryOptionInsecureFacets() {
-            return false;
-        }
-
-        /**
          * A builder for index plans.
          */
         class Builder {
@@ -492,11 +482,6 @@ public interface QueryIndex {
                 return this;
             }
 
-            public Builder setQueryOptionInsecureFacets(boolean queryOptionInsecureFacets) {
-                this.queryOptionInsecureFacets = queryOptionInsecureFacets;
-                return this;
-            }
-
             public IndexPlan build() {
 
                 return new IndexPlan() {
@@ -534,7 +519,6 @@ public interface QueryIndex {
                             Builder.this.deprecated;
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
                     private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
-                    private final boolean queryOptionInsecureFacets = Builder.this.queryOptionInsecureFacets;
 
                     private String getAdditionalMessageString() {
                         return additionalMessages.entrySet().stream()
@@ -558,7 +542,6 @@ public interface QueryIndex {
                             + " pathPrefix : %s,"
                             + " deprecated : %s,"
                             + " supportsPathRestriction : %s,"
-                            + " queryOptionInsecureFacets : %s,"
                             + " additionalMessage : %s,"
                             + " logWarningForPathFilterMismatch : %s }",
                             costPerExecution,
@@ -574,7 +557,6 @@ public interface QueryIndex {
                             pathPrefix,
                             deprecated,
                             supportsPathRestriction,
-                            queryOptionInsecureFacets,
                             getAdditionalMessageString(),
                             logWarningForPathFilterMismatch
                             );
@@ -643,11 +625,6 @@ public interface QueryIndex {
                     @Override
                     public boolean getSupportsPathRestriction() {
                         return supportsPathRestriction;
-                    }
-
-                    @Override
-                    public boolean isQueryOptionInsecureFacets() {
-                        return queryOptionInsecureFacets;
                     }
 
                     @Override

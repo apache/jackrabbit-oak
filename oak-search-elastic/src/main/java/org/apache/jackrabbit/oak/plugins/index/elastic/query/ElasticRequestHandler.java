@@ -273,7 +273,7 @@ public class ElasticRequestHandler {
 
     public ElasticFacetProvider getAsyncFacetProvider(ElasticResponseHandler responseHandler) {
         if (requiresFacets()) {
-            if (indexPlan.isQueryOptionInsecureFacets()) {
+            if (filter.isQueryOptionInsecureFacets()) {
                 return ElasticFacetProvider.getInsecureFacetProvider();
             } else {
                 return ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), this,
