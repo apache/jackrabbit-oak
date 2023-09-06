@@ -110,14 +110,8 @@ public class QueryOptions {
             t.read(']');
             prefetch = list;
         }
-        x = map.get("insecureResultSize");
-        if (x != null) {
-            insecureResultSize = "true".equals(x);
-        }
-        x = map.get("insecureFacets");
-        if (x != null) {
-            insecureFacets = "true".equals(x);
-        }
+        insecureResultSize = Boolean.parseBoolean(map.get("insecureResultSize"));
+        insecureFacets = Boolean.parseBoolean(map.get("insecureFacets"));
     }
 
     public static class AutomaticQueryOptionsMapping {
