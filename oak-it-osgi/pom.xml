@@ -217,13 +217,6 @@
       <artifactId>commons-lang3</artifactId>
       <scope>test</scope>
     </dependency>
-    <!-- to be removed when OAK-10371 is resolved -->
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>15.0</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>commons-fileupload</groupId>
       <artifactId>commons-fileupload</artifactId>
