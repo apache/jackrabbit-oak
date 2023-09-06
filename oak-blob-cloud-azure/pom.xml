@@ -46,7 +46,7 @@
                             azure-keyvault-core,
                             guava
                         </Embed-Dependency>
-                        <_plugin></_plugin>
+                        <_plugin/>
                     </instructions>
                 </configuration>
             </plugin>
