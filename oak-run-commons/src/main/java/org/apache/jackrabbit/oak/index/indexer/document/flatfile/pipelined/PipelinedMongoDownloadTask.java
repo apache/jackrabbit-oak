@@ -258,10 +258,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     exceptions.compute(e.getClass().getSimpleName() + " - " + e.getMessage(),
                             (key, val) -> val == null ? 1 : val + 1
                     );
-                    try {
-                        Thread.sleep(retryIntervalMs);
-                    } catch (InterruptedException ignore) {
-                    }
+                    Thread.sleep(retryIntervalMs);
                     // simple exponential backoff mechanism
                     retryIntervalMs = Math.min(retryMaxIntervalMillis, retryIntervalMs * 2);
                 }
