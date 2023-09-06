@@ -265,6 +265,7 @@ public class IndexCommand implements Command {
                 extendedIndexHelper.getIndexPaths(), reindexWatch, reindexWatch.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
         log.info("[TASK:REINDEX:END] Metrics: {}",  MetricsFormatter.newBuilder()
                 .add("duration", FormatingUtils.formatToSeconds(reindexWatch))
+                .add("durationSeconds", reindexWatch.elapsed(TimeUnit.SECONDS))
                 .build());
         return destDir;
     }

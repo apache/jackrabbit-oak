@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
@@ -109,6 +110,7 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
                     long ffsSizeBytes = flatFileStore.length();
                     String metrics = MetricsFormatter.newBuilder()
                             .add("duration", FormatingUtils.formatToSeconds(w))
+                            .add("durationSeconds", w.elapsed(TimeUnit.SECONDS))
                             .add("filesMerged", sortedFiles.size())
                             .add("ffsSizeBytes", ffsSizeBytes)
                             .add("ffsSize", humanReadableByteCountBin(ffsSizeBytes))

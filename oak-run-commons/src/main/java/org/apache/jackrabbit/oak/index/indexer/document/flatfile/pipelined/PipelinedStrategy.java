@@ -418,6 +418,7 @@ public class PipelinedStrategy implements SortStrategy {
                 }
                 LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
                         .add("duration", FormatingUtils.formatToSeconds(start))
+                        .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
                         .add("entryCount", entryCount)
                         .build());
                 printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);

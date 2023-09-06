@@ -70,6 +70,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -272,6 +273,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         log.info("Completed the indexing in {}", indexerWatch);
         log.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.newBuilder()
                 .add("duration", FormatingUtils.formatToSeconds(indexerWatch))
+                .add("durationSeconds", indexerWatch.elapsed(TimeUnit.SECONDS))
                 .build());
 
         log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
@@ -279,6 +281,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.newBuilder()
                 .add("duration", FormatingUtils.formatToSeconds(mergeNodeStoreWatch))
+                .add("durationSeconds", mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS))
                 .build());
 
         indexerSupport.postIndexWork(copyOnWriteStore);

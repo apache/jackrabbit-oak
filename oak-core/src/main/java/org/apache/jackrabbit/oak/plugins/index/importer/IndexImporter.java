@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
@@ -33,6 +34,7 @@ import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -467,11 +469,13 @@ public class IndexImporter {
         Stopwatch start = Stopwatch.createStarted();
         while (count <= maxRetries) {
             LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportState, count);
+            LOG.info("[TASK:{}:START]", indexImportState.name());
             try {
                 step.execute();
-                LOG.info("IndexImporterStepExecutor:{}:END Metrics: {}", indexImportState,
+                LOG.info("[TASK:{}:END] Metrics: {}", indexImportState.name(),
                         MetricsFormatter.newBuilder()
-                                .add("duration", start.elapsed().toString())
+                                .add("duration", FormatingUtils.formatToSeconds(start))
+                                .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
                                 .build()
                 );
                 break;

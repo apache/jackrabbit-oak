@@ -141,6 +141,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     String totalEnqueueDelayPercentage =  String.format("%1.2f", (100.0 * totalEnqueueDelayMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
                     String metrics = MetricsFormatter.newBuilder()
                             .add("duration", FormatingUtils.formatToSeconds(taskStartWatch))
+                            .add("durationSeconds", taskStartWatch.elapsed(TimeUnit.SECONDS))
                             .add("nodeStateEntriesGenerated", totalEntryCount)
                             .add("enqueueDelayMillis", totalEnqueueDelayMillis)
                             .add("enqueueDelayPercentage", totalEnqueueDelayPercentage)
