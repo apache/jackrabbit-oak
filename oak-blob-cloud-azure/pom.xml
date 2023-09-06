@@ -137,10 +137,11 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
         </dependency>
+        <!-- Azure Guava dependency -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>32.1.2-jre</version>
+            <version>24.1.1-jre</version>
         </dependency>
 
         <!-- Test dependencies -->
