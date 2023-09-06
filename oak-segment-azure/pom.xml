@@ -43,6 +43,8 @@
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
+                            !com.google.*,
+                            !org.checkerframework.*,
                             *
                         </Import-Package>
                         <Export-Package>

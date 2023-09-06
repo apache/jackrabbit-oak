@@ -37,6 +37,11 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
                     <instructions combine.self="override">
+                        <Import-Package>
+                          !com.google.*,
+                          !org.checkerframework.*,
+                          *
+                        </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
                         </Export-Package>
