@@ -82,7 +82,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     protected final IndexHelper indexHelper;
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
-    private final Set<String> indexerPaths = new HashSet<>();
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
 
     public DocumentStoreIndexerBase(IndexHelper indexHelper, IndexerSupport indexerSupport) {
@@ -109,15 +108,13 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         private final DocumentNodeStore documentNodeStore;
         private final MongoDocumentStore documentStore;
         private final Logger traversalLogger;
-        private final CompositeIndexer indexer;
 
         private MongoNodeStateEntryTraverserFactory(RevisionVector rootRevision, DocumentNodeStore documentNodeStore,
-                                                    MongoDocumentStore documentStore, Logger traversalLogger, CompositeIndexer indexer) {
+                                                    MongoDocumentStore documentStore, Logger traversalLogger) {
             this.rootRevision = rootRevision;
             this.documentNodeStore = documentNodeStore;
             this.documentStore = documentStore;
             this.traversalLogger = traversalLogger;
-            this.indexer = indexer;
         }
 
         @Override
@@ -165,11 +162,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
                         .withPathPredicate(pathPredicate)
+                        .withIndexDefinitions(indexDefinitions)
                         .withRootRevision(rootDocumentState.getRootRevision())
                         .withNodeStore(nodeStore)
                         .withMongoDocumentStore(getMongoDocumentStore())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
-                                nodeStore, getMongoDocumentStore(), traversalLog, indexer));
+                                nodeStore, getMongoDocumentStore(), traversalLog));
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
                 }
@@ -219,6 +217,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         for (IndexDefinition indexDf : indexDefinitions) {
             preferredPathElements.addAll(indexDf.getRelativeNodeNames());
         }
+
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
             preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
@@ -386,7 +385,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     indexers.add(indexer);
                     closer.register(indexer);
                     progressReporter.registerIndex(indexPath, true, -1);
-                    indexerPaths.add(indexPath);
                 }
             }
         }
