@@ -953,7 +953,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             public NodeType[] perform() throws RepositoryException {
                 Tree tree = node.getTree();
 
-                Iterator<String> mixinNames = getMixinTypeNames(tree);
+                Iterator<String> mixinNames = getMixinTypeNames(tree).iterator();
                 if (mixinNames.hasNext()) {
                     NodeTypeManager ntMgr = getNodeTypeManager();
                     List<NodeType> mixinTypes = Lists.newArrayList();
@@ -976,8 +976,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                Iterable<String> mixins = () -> getMixinTypeNames(tree);
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), mixins, oakName);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), getMixinTypeNames(tree), oakName);
             }
         });
     }
@@ -1018,7 +1017,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             }
             @Override
             public void performVoid() throws RepositoryException {
-                dlg.addMixin(oakTypeName);
+                dlg.addMixin(NodeImpl.this::getMixinTypeNames, oakTypeName);
             }
         });
     }
@@ -1346,11 +1345,11 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
     }
 
     @NotNull
-    private Iterator<String> getMixinTypeNames(@NotNull Tree tree) {
+    private Iterable<String> getMixinTypeNames(@NotNull Tree tree) {
         if (tree.hasProperty(JcrConstants.JCR_MIXINTYPES) || canReadMixinTypes(tree)) {
-            return TreeUtil.getMixinTypeNames(tree).iterator();
+            return TreeUtil.getMixinTypeNames(tree);
         } else {
-            return TreeUtil.getMixinTypeNames(tree, getReadOnlyTree(tree)).iterator();
+            return TreeUtil.getMixinTypeNames(tree, getReadOnlyTree(tree));
         }
     }
 
