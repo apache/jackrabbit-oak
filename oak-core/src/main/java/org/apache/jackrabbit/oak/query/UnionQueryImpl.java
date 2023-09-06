@@ -197,8 +197,19 @@ public class UnionQueryImpl implements Query {
     }
 
     @Override
+    public void verifyInsecureOptions() {
+        left.verifyInsecureOptions();
+        right.verifyInsecureOptions();
+    }
+
+    @Override
     public boolean isQueryOptionInsecureResultSize() {
         return left.isQueryOptionInsecureResultSize() || right.isQueryOptionInsecureResultSize();
+    }
+
+    @Override
+    public boolean isQueryOptionInsecureFacets() {
+        return left.isQueryOptionInsecureFacets() || right.isQueryOptionInsecureFacets();
     }
 
     @Override

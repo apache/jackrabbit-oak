@@ -389,7 +389,6 @@ public interface QueryIndex {
             protected boolean deprecated;
             protected boolean logWarningForPathFilterMismatch;
             protected final Map<Level, List<String>> additionalMessages = new HashMap<>();
-            protected boolean queryOptionInsecureFacets;
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;

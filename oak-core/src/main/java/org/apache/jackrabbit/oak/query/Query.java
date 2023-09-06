@@ -230,6 +230,13 @@ public interface Query {
      *             fail in this case
      */
     void verifyNotPotentiallySlow();
+
+    /**
+     * Checks the parsed query for insecure options and throws if the executing session lacks the necessary permission.
+     *
+     * @throws IllegalArgumentException if any insecure query options are enabled without the necessary permission
+     */
+    void verifyInsecureOptions();
     
     QueryExecutionStats getQueryExecutionStats();
 

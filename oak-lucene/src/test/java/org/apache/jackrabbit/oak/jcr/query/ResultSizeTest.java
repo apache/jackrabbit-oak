@@ -30,8 +30,6 @@ import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 
-import java.text.ParseException;
-
 public class ResultSizeTest extends AbstractQueryTest {
 
     public void testResultSize() throws Exception {
@@ -198,10 +196,10 @@ public class ResultSizeTest extends AbstractQueryTest {
             // if expected < 0, i.e. insufficient permissions, expect a InvalidQueryException on execute().
             try {
                 it = q.execute().getNodes();
-                fail("expected an InvalidQueryException caused by a ParseException");
+                fail("expected an InvalidQueryException caused by a IllegalArgumentException");
             } catch (InvalidQueryException e) {
                 assertTrue("expected an InvalidQueryException caused by a ParseException",
-                        e.getCause() instanceof ParseException);
+                        e.getCause() instanceof IllegalArgumentException);
             }
         } else {
             it = q.execute().getNodes();

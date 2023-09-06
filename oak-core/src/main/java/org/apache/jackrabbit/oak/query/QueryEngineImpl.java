@@ -128,8 +128,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
     public List<String> getBindVariableNames(
             String statement, String language, Map<String, String> mappings)
             throws ParseException {
-        List<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings,
-                InsecureQueryOptionsMode.IGNORE);
+        List<Query> qs = parseQuery(statement, language, getExecutionContext(), mappings);
         
         return qs.iterator().next().getBindVariableNames();
     }
@@ -146,7 +145,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
      */
     private static List<Query> parseQuery(
             String statement, String language, ExecutionContext context,
-            Map<String, String> mappings, InsecureQueryOptionsMode insecureOptionsMode) throws ParseException {
+            Map<String, String> mappings) throws ParseException {
         
         boolean isInternal = SQL2Parser.isInternal(statement);
         if (isInternal) {
@@ -172,7 +171,6 @@ public abstract class QueryEngineImpl implements QueryEngine {
         QueryExecutionStats stats = settings.getQueryStatsReporter().getQueryExecution(statement, language);
 
         SQL2Parser parser = new SQL2Parser(mapper, nodeTypes, settings, stats);
-        parser.setInsecureOptionsMode(insecureOptionsMode);
         if (language.endsWith(NO_LITERALS)) {
             language = language.substring(0, language.length() - NO_LITERALS.length());
             parser.setAllowNumberLiterals(false);
@@ -263,11 +261,7 @@ public abstract class QueryEngineImpl implements QueryEngine {
         }
 
         ExecutionContext context = getExecutionContext();
-
-        InsecureQueryOptionsMode insecureQueryOptionsMode = InsecureQueryOptionsMode.hasPermission(context)
-                ? InsecureQueryOptionsMode.ALLOW : InsecureQueryOptionsMode.DENY;
-
-        List<Query> queries = parseQuery(statement, language, context, mappings, insecureQueryOptionsMode);
+        List<Query> queries = parseQuery(statement, language, context, mappings);
 
         long actualLimit = getValue(queries, limit, Query::getLimit, Long.MAX_VALUE);
         long actualOffset = getValue(queries, offset, Query::getOffset, 0L);
@@ -282,6 +276,8 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 }
             }
             q.setTraversalEnabled(traversalEnabled);
+            // perform a throwing check if insecure options are enabled without permission
+            q.verifyInsecureOptions();
         }
 
         boolean mdc = false;

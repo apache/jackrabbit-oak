@@ -335,7 +335,6 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         }
         session.save();
         anonymousSession.refresh(false);
-
     }
 
     private void denyInsecureQueryOptions(Session session) throws RepositoryException {
@@ -364,9 +363,11 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         AccessControlUtils.allow(node, "anonymous", Privilege.JCR_READ);
         return node;
     }
+
     private Map<String, Integer> getFacets(String path) {
         return getFacets(path, false);
     }
+
     private Map<String, Integer> getFacets(String path, boolean optionInsecureFacets) {
         String pathCons = "";
         if (path != null) {
