@@ -469,10 +469,10 @@ public class IndexImporter {
         Stopwatch start = Stopwatch.createStarted();
         while (count <= maxRetries) {
             LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportState, count);
-            LOG.info("[TASK:{}:START]", indexImportState.name());
+            LOG.info("[TASK:{}:START]", indexImportState);
             try {
                 step.execute();
-                LOG.info("[TASK:{}:END] Metrics: {}", indexImportState.name(),
+                LOG.info("[TASK:{}:END] Metrics: {}", indexImportState,
                         MetricsFormatter.newBuilder()
                                 .add("duration", FormattingUtils.formatToSeconds(start))
                                 .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
