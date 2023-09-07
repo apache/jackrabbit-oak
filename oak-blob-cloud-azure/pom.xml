@@ -36,10 +36,11 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
-                    <instructions>
+                    <instructions combine.self="override">
                         <Import-Package>
-                            <!-- OAK-10369 -->${guava.osgi.import},
-                            *
+                          !com.google.*,
+                          !org.checkerframework.*,
+                          *
                         </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
@@ -47,8 +48,11 @@
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                         <Embed-Dependency>
                             azure-storage,
-                            azure-keyvault-core
+                            azure-keyvault-core,
+                            guava
                         </Embed-Dependency>
+                        <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
+                        <_plugin/>
                     </instructions>
                 </configuration>
             </plugin>
@@ -137,6 +141,12 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
+        </dependency>
+        <!-- Azure Guava dependency -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>24.1.1-jre</version>
         </dependency>
 
         <!-- Test dependencies -->

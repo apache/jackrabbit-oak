@@ -38,12 +38,13 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
-                    <instructions>
+                    <instructions combine.self="override">
                         <Import-Package>
-                            <!-- OAK-10369 -->${guava.osgi.import},
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
+                            !com.google.*,
+                            !org.checkerframework.*,
                             *
                         </Import-Package>
                         <Export-Package>
@@ -56,26 +57,13 @@
                         </Export-Package>
                         <Embed-Dependency>
                             azure-storage,
-                            azure-keyvault-core
+                            azure-keyvault-core,
+                            guava
                         </Embed-Dependency>
+                        <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
+                        <_plugin/>
                     </instructions>
                 </configuration>
-                <executions>
-                    <execution>
-                        <id>baseline</id>
-                        <goals>
-                            <goal>baseline</goal>
-                        </goals>
-                        <phase>pre-integration-test</phase>
-                        <configuration>
-                            <!--
-                              This is required because there's no prior (stable) version of oak-segment-azure
-                              This should be removed post first release
-                            -->
-                            <skip>true</skip>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.rat</groupId>
@@ -155,6 +143,12 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
+        </dependency>
+        <!-- Azure Guava dependency -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>24.1.1-jre</version>
         </dependency>
 
         <!-- Test dependencies -->

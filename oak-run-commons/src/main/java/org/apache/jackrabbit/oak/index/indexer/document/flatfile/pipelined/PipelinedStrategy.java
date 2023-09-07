@@ -35,6 +35,7 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -202,9 +204,16 @@ public class PipelinedStrategy implements SortStrategy {
 
     private final PathElementComparator pathComparator;
     private final Compression algorithm;
+    private final List<PathFilter> pathFilters;
     private long entryCount;
     private final Predicate<String> pathPredicate;
 
+    /**
+     *
+     * @param pathPredicate Used by the transform stage to test if a node should be kept or discarded.
+     * @param pathFilters If non-empty, the download stage will use these filters to try to create a query that downloads
+     *                    only the matching MongoDB documents.
+     */
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
@@ -212,7 +221,8 @@ public class PipelinedStrategy implements SortStrategy {
                              BlobStore blobStore,
                              File storeDir,
                              Compression algorithm,
-                             Predicate<String> pathPredicate) {
+                             Predicate<String> pathPredicate,
+                             List<PathFilter> pathFilters) {
         this.docStore = documentStore;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
@@ -221,10 +231,10 @@ public class PipelinedStrategy implements SortStrategy {
         this.pathComparator = new PathElementComparator(preferredPathElements);
         this.pathPredicate = pathPredicate;
         this.algorithm = algorithm;
+        this.pathFilters = pathFilters;
 
         Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
     }
-
 
     private int autodetectWorkingMemoryMB() {
         int maxHeapSizeMB = (int) (Runtime.getRuntime().maxMemory() / FileUtils.ONE_MB);
@@ -321,7 +331,7 @@ public class PipelinedStrategy implements SortStrategy {
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
             MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
-            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue);
+            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(dbCollection, mongoBatchSize, mongoDocQueue, pathFilters);
             ecs.submit(downloadTask);
 
             File flatFileStore = null;
