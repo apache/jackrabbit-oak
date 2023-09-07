@@ -22,7 +22,7 @@ import com.mongodb.BasicDBObject;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -140,7 +140,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
 
                     String totalEnqueueDelayPercentage =  String.format("%1.2f", (100.0 * totalEnqueueDelayMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
                     String metrics = MetricsFormatter.newBuilder()
-                            .add("duration", FormatingUtils.formatToSeconds(taskStartWatch))
+                            .add("duration", FormattingUtils.formatToSeconds(taskStartWatch))
                             .add("durationSeconds", taskStartWatch.elapsed(TimeUnit.SECONDS))
                             .add("nodeStateEntriesGenerated", totalEntryCount)
                             .add("enqueueDelayMillis", totalEnqueueDelayMillis)

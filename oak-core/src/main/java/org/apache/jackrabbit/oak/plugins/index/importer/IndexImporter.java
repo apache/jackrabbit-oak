@@ -34,7 +34,7 @@ import org.apache.jackrabbit.guava.common.collect.ListMultimap;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
@@ -474,7 +474,7 @@ public class IndexImporter {
                 step.execute();
                 LOG.info("[TASK:{}:END] Metrics: {}", indexImportState.name(),
                         MetricsFormatter.newBuilder()
-                                .add("duration", FormatingUtils.formatToSeconds(start))
+                                .add("duration", FormattingUtils.formatToSeconds(start))
                                 .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
                                 .build()
                 );

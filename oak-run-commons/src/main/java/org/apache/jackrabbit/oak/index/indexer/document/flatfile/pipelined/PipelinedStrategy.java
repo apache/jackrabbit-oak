@@ -26,7 +26,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
@@ -427,7 +427,7 @@ public class PipelinedStrategy implements SortStrategy {
                     }
                 }
                 LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
-                        .add("duration", FormatingUtils.formatToSeconds(start))
+                        .add("duration", FormattingUtils.formatToSeconds(start))
                         .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
                         .add("entryCount", entryCount)
                         .build());

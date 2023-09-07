@@ -31,7 +31,7 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
@@ -169,7 +169,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             }
             String enqueueingDelayPercentage = String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS));
             String metrics = MetricsFormatter.newBuilder()
-                    .add("duration", FormatingUtils.formatToSeconds(downloadStartWatch))
+                    .add("duration", FormattingUtils.formatToSeconds(downloadStartWatch))
                     .add("durationSeconds", downloadStartWatch.elapsed(TimeUnit.SECONDS))
                     .add("documentsDownloaded", documentsRead)
                     .add("enqueueingDelayMs", totalEnqueueWaitTimeMillis)

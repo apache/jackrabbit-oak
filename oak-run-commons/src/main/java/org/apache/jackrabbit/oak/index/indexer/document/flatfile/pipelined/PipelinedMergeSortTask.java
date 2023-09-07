@@ -22,7 +22,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -106,10 +106,10 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
                     LOG.info("Going to sort {} files, total size {}", sortedFiles.size(), humanReadableByteCountBin(sortedFilesSizeBytes));
                     Stopwatch w = Stopwatch.createStarted();
                     File flatFileStore = sortStoreFile(sortedFiles);
-                    LOG.info("Final merge completed in {}. Created file: {}", FormatingUtils.formatToSeconds(w), flatFileStore.getAbsolutePath());
+                    LOG.info("Final merge completed in {}. Created file: {}", FormattingUtils.formatToSeconds(w), flatFileStore.getAbsolutePath());
                     long ffsSizeBytes = flatFileStore.length();
                     String metrics = MetricsFormatter.newBuilder()
-                            .add("duration", FormatingUtils.formatToSeconds(w))
+                            .add("duration", FormattingUtils.formatToSeconds(w))
                             .add("durationSeconds", w.elapsed(TimeUnit.SECONDS))
                             .add("filesMerged", sortedFiles.size())
                             .add("ffsSizeBytes", ffsSizeBytes)

@@ -38,7 +38,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
-import org.apache.jackrabbit.oak.plugins.index.FormatingUtils;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
@@ -271,7 +271,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         progressReporter.logReport();
         log.info("Completed the indexing in {}", indexerWatch);
         log.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.newBuilder()
-                .add("duration", FormatingUtils.formatToSeconds(indexerWatch))
+                .add("duration", FormattingUtils.formatToSeconds(indexerWatch))
                 .add("durationSeconds", indexerWatch.elapsed(TimeUnit.SECONDS))
                 .build());
 
@@ -279,7 +279,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         log.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.newBuilder()
-                .add("duration", FormatingUtils.formatToSeconds(mergeNodeStoreWatch))
+                .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreWatch))
                 .add("durationSeconds", mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS))
                 .build());
 

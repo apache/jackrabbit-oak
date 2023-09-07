@@ -16,22 +16,20 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.junit.Test;
+import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
-import static org.junit.Assert.*;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 
-public class MetricsFormatterTest {
+public class FormattingUtils {
+    public static String formatToSeconds(Stopwatch stopwatch) {
+        LocalTime seconds = LocalTime.ofSecondOfDay(stopwatch.elapsed(TimeUnit.SECONDS));
+        return DateTimeFormatter.ISO_TIME.format(seconds);
+    }
 
-    @Test
-    public void testAdd() {
-        MetricsFormatter metricsFormatter = MetricsFormatter.newBuilder();
-        metricsFormatter.add("key", "value");
-        metricsFormatter.add("key", 1);
-        metricsFormatter.add("key", 1L);
-        metricsFormatter.add("key", true);
-        String result = metricsFormatter.build();
-        assertEquals("{\"key\":\"value\",\"key\":1,\"key\":1,\"key\":true}", result);
-        assertThrows(IllegalStateException.class, () -> metricsFormatter.add("key", "value"));
-        assertEquals("{\"key\":\"value\",\"key\":1,\"key\":1,\"key\":true}", metricsFormatter.build());
+    public static String formatToMillis(Stopwatch stopwatch) {
+        LocalTime nanoSeconds = LocalTime.ofNanoOfDay(stopwatch.elapsed(TimeUnit.MILLISECONDS)*1000000);
+        return DateTimeFormatter.ISO_TIME.format(nanoSeconds);
     }
 }
