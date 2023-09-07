@@ -194,7 +194,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             double rate = ((double) this.documentsRead) / downloadStartWatch.elapsed(TimeUnit.SECONDS);
             String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
             LOG.info("Dumping from NSET Traversed #{} {} [{}] (Elapsed {})",
-                    this.documentsRead, id, formattedRate, downloadStartWatch);
+                    this.documentsRead, id, formattedRate, FormattingUtils.formatToSeconds(downloadStartWatch));
         }
         traversalLog.trace(id);
     }
