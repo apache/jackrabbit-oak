@@ -68,7 +68,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker.checkTruncateLength;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker.getTruncatedBytesRef;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
 import static org.junit.Assert.assertTrue;
 
@@ -220,6 +220,21 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         assertQuery("select [jcr:path] from [nt:base] where contains(@propa, 'abcd') order by propa", asList("/test/b", "/test/a"));
     }
 
+    /**
+     * Tests the truncation of large Unicode strings during indexing.
+     *
+     * <p>This test creates an index on the {@code propa} property and then adds two nodes with large 
+     * values for this property. The first node's {@code propa} property contains a large string 
+     * with some unicode characters at the start. 
+     * The second node's {@code propa} property contains a large string that ends 
+     * with the Unicode character {@code "\uD800\uDF48"} in Java and takes up 4 bytes in UTF-8.
+     *
+     * <p>After committing the changes, the test asserts that the truncation was performed correctly 
+     * for both nodes. Also verifies that a query ordering the nodes by the {@code propa} property 
+     * returns the nodes in the correct order.
+     *
+     * @throws Exception if any error occurs during the test
+     */
     @Test
     public void truncateLargeUnicodeString() throws Exception {
         Tree idx = createIndex("test1", of("propa"));
@@ -232,7 +247,12 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         Tree test = root.getTree("/").addChild("test");
         int length = LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH;
         String generatedString = RandomStringUtils.random(length, true, true);
+        
+        // Large String with unicode characters which makes the length longer than the max length
         String aVal ="abcd Mình nói tiếng Việt" + generatedString.substring(0, length);
+        
+        // Large String which ends with the unicode char `𐍈` represented by "\uD800\uDF48".
+        //This char is represented by 4 bytes in UTF-8 but only with 2 bytes in Java.
         String bVal = "abcd " + generatedString.substring(0, length - 6) + "\uD800\uDF48";
 
         test.addChild("a").setProperty("propa", aVal);
@@ -252,7 +272,7 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         Random r = new Random(1);
         for (int i = 0; i < 100; i++) {
             String x = randomUnicodeString(r, 5);
-            BytesRef ref = checkTruncateLength("x", x, "/x", 5);
+            BytesRef ref = getTruncatedBytesRef("x", x, "/x", 5);
             assertTrue(ref.length > 0 && ref.length <= 5);
             //assert valid string
             assertTrue(x.startsWith(ref.utf8ToString()));

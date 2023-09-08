@@ -288,7 +288,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                         new BytesRef(property.getValue(Type.BOOLEAN).toString()));
             } else if (tag == Type.STRING.tag()) {
                 String stringValue = property.getValue(Type.STRING);
-                f = new SortedDocValuesField(name, checkTruncateLength(name, stringValue, this.path,
+                f = new SortedDocValuesField(name, getTruncatedBytesRef(name, stringValue, this.path,
                         STRING_PROPERTY_MAX_LENGTH));
             }
 
@@ -313,16 +313,35 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
         return fieldAdded;
     }
-    
-    protected static BytesRef checkTruncateLength(String prop, String value, String path, int maxLength) {
-        log.trace("Property {} at path:[{}] has value {}", prop, path, value);
 
+    /**
+     * Returns a {@code BytesRef} object constructed from the given {@code String} value and also truncates the length
+     * of the {@code BytesRef} object to the specified {@code maxLength}, ensuring that the multi-byte sequences are 
+     * properly truncated.
+     *
+     * <p>The {@code BytesRef} object is created from the provided {@code String} value using UTF-8 encoding. As a result, its length
+     * can exceed that of the {@code String} value, since Java strings use UTF-16 encoding. This necessitates appropriate truncation.
+     *
+     * <p>Multi-byte sequences will be of the form {@code 11xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx}.
+     * The method first truncates continuation bytes, which start with {@code 10} in binary. It then truncates the head byte, which
+     * starts with {@code 11}. Both truncation operations use a binary mask of {@code 11100000}.
+     *
+     * @param prop      the name of the property
+     * @param value     the string property value to convert into a {@code BytesRef} object
+     * @param path      the path of the node
+     * @param maxLength the maximum length for the {@code BytesRef} object
+     * @return the truncated {@code BytesRef} object
+     */
+    protected static BytesRef getTruncatedBytesRef(String prop, String value, String path, int maxLength) {
         BytesRef ref = new BytesRef(value);
         if (ref.length <= maxLength) {
             return ref;
         }
+        
+        log.trace("Property {} at path:[{}] has value {}", prop, path, value);
         log.info("Truncating property {} at path:[{}] as length after encoding {} is > {} ",
             prop, path, ref.length, maxLength);
+        
         int end = maxLength - 1;
         // skip over tails of utf-8 multi-byte sequences (up to 3 bytes)
         while ((ref.bytes[end] & 0b11000000) == 0b10000000) {
@@ -332,10 +351,11 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         if ((ref.bytes[end] & 0b11000000) == 0b11000000) {
             end--;
         }
-        byte[] bytes2 = Arrays.copyOf(ref.bytes, end + 1);
-        String truncated = new String(bytes2, StandardCharsets.UTF_8);
+        byte[] truncatedBytes = Arrays.copyOf(ref.bytes, end + 1);
+        String truncated = new String(truncatedBytes, StandardCharsets.UTF_8);
         ref = new BytesRef(truncated);
         log.trace("Truncated property {} at path:[{}] to {}", prop, path, ref.utf8ToString());
+        
         while (ref.length > maxLength) {
             log.error("Truncation did not work: still {} bytes", ref.length);
             // this may not properly work with unicode surrogates:
