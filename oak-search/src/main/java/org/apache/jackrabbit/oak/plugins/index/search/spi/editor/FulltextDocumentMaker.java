@@ -374,7 +374,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             // Log the warning if the counter goes beyond 1000.
             // We could miss certain paths being logged here since the DocumentMaker is created for each node state for each index.
             // But ideally a warning with the property in question should suffice.
-            if (!throttleWarnLogs || (throttleWarnLogs && WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() > 1000)) {
+            if (!throttleWarnLogs || WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % 1000 == 0) {
                 log.warn(
                         "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
                         getIndexName(), pname,
