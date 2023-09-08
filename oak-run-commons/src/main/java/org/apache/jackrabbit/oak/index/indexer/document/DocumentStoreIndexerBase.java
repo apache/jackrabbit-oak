@@ -38,8 +38,10 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
@@ -68,6 +70,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
@@ -138,7 +141,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     private List<FlatFileStore> buildFlatFileStoreList(NodeState checkpointedState, CompositeIndexer indexer, Predicate<String> pathPredicate, Set<String> preferredPathElements,
-            boolean splitFlatFile, Set<IndexDefinition> indexDefinitions) throws IOException {
+                                                       boolean splitFlatFile, Set<IndexDefinition> indexDefinitions) throws IOException {
         List<FlatFileStore> storeList = new ArrayList<>();
 
         Stopwatch flatFileStoreWatch = Stopwatch.createStarted();
@@ -205,7 +208,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     /**
-     *
      * @return an Instance of FlatFileStore, whose getFlatFileStorePath() method can be used to get the absolute path to this store.
      * @throws IOException
      * @throws CommitFailedException
@@ -220,7 +222,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
-            preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
+                preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
                 flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
         return flatFileStore;
@@ -244,14 +246,15 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         closer.register(indexer);
 
         List<FlatFileStore> flatFileStores = buildFlatFileStoreList(checkpointedState, indexer,
-            indexer::shouldInclude, null, IndexerConfiguration.parallelIndexEnabled(), getIndexDefinitions());
+                indexer::shouldInclude, null, IndexerConfiguration.parallelIndexEnabled(), getIndexDefinitions());
 
         progressReporter.reset();
 
         progressReporter.reindexingTraversalStart("/");
 
-        preIndexOpertaions(indexer.getIndexers());
+        preIndexOperations(indexer.getIndexers());
 
+        log.info("[TASK:INDEXING:START] Starting indexing");
         Stopwatch indexerWatch = Stopwatch.createStarted();
 
         if (flatFileStores.size() > 1) {
@@ -267,14 +270,24 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
         log.info("Completed the indexing in {}", indexerWatch);
+        log.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(indexerWatch))
+                .add("durationSeconds", indexerWatch.elapsed(TimeUnit.SECONDS))
+                .build());
 
+        log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
+        Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        log.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreWatch))
+                .add("durationSeconds", mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS))
+                .build());
 
         indexerSupport.postIndexWork(copyOnWriteStore);
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
-        throws IOException {
+            throws IOException {
         ExecutorService service = Executors.newFixedThreadPool(IndexerConfiguration.indexThreadPoolSize());
         List<Future> futureList = new ArrayList<>();
 
@@ -394,7 +407,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     protected abstract List<NodeStateIndexerProvider> createProviders() throws IOException;
 
-    protected abstract void preIndexOpertaions(List<NodeStateIndexer> indexers);
+    protected abstract void preIndexOperations(List<NodeStateIndexer> indexers);
 
     //TODO OAK-7098 - Taken from IndexUpdate. Refactor to abstract out common logic like this
     private void removeIndexState(NodeBuilder definition) {

@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +32,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
@@ -70,6 +74,8 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMergeSortTask.class);
 
+    private static final String THREAD_NAME = "mongo-merge-sort-files";
+
     private final File storeDir;
     private final Comparator<NodeStateHolder> comparator;
     private final Compression algorithm;
@@ -89,17 +95,28 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
     @Override
     public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
-        Thread.currentThread().setName("mongo-merge-sort-files");
+        Thread.currentThread().setName(THREAD_NAME);
         try {
-            LOG.info("Starting merge sort thread");
+            LOG.info("[TASK:{}:START] Starting merge sort task", THREAD_NAME.toUpperCase(Locale.ROOT));
             while (true) {
                 LOG.info("Waiting for next intermediate sorted file");
                 File sortedIntermediateFile = sortedFilesQueue.take();
                 if (sortedIntermediateFile == SENTINEL_SORTED_FILES_QUEUE) {
-                    LOG.info("Going to sort {} files, total size {}", sortedFiles.size(), humanReadableByteCountBin(sizeOf(sortedFiles)));
+                    long sortedFilesSizeBytes = sizeOf(sortedFiles);
+                    LOG.info("Going to sort {} files, total size {}", sortedFiles.size(), humanReadableByteCountBin(sortedFilesSizeBytes));
+                    Stopwatch w = Stopwatch.createStarted();
                     File flatFileStore = sortStoreFile(sortedFiles);
-                    LOG.info("Terminating sort task. Merged {} files to create the FFS: {} of size {}",
-                            sortedFiles.size(), flatFileStore.getAbsolutePath(), humanReadableByteCountBin(flatFileStore.length()));
+                    LOG.info("Final merge completed in {}. Created file: {}", FormattingUtils.formatToSeconds(w), flatFileStore.getAbsolutePath());
+                    long ffsSizeBytes = flatFileStore.length();
+                    String metrics = MetricsFormatter.newBuilder()
+                            .add("duration", FormattingUtils.formatToSeconds(w))
+                            .add("durationSeconds", w.elapsed(TimeUnit.SECONDS))
+                            .add("filesMerged", sortedFiles.size())
+                            .add("ffsSizeBytes", ffsSizeBytes)
+                            .add("ffsSize", humanReadableByteCountBin(ffsSizeBytes))
+                            .build();
+
+                    LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
                     return new Result(flatFileStore, sortedFiles.size());
                 }
                 sortedFiles.add(sortedIntermediateFile);
@@ -111,7 +128,7 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
             LOG.warn("Thread interrupted", t);
             throw t;
         } catch (Throwable t) {
-            LOG.warn("Thread terminating with exception.", t);
+            LOG.warn("Thread terminating with exception", t);
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);
@@ -119,7 +136,6 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
     }
 
     private File sortStoreFile(List<File> sortedFilesBatch) throws IOException {
-        Stopwatch w = Stopwatch.createStarted();
         File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
         try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
             Function<String, NodeStateHolder> stringToType = (line) -> line == null ? null : new NodeStateHolder(line);
@@ -134,7 +150,6 @@ class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> 
                     stringToType
             );
         }
-        LOG.info("Merging of sorted files completed in {}", w);
         return sortedFile;
     }
 }
