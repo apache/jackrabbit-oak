@@ -384,7 +384,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             // But ideally a warning with the property in question should suffice.
             // Also there is no handling for different indexes having the same property since those are usually different versions of the same index.
             if (!throttleWarnLogs || MV_ORDERED_PROPERTY_SET.add(pname) ||
-                    WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.get() % throttleWarnLogThreshold == 0) {
+                    WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % throttleWarnLogThreshold == 0) {
                 log.warn(
                         "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
                         getIndexName(), pname,
