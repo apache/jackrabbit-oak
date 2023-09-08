@@ -252,7 +252,8 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         String aVal ="abcd Mình nói tiếng Việt" + generatedString.substring(0, length);
         
         // Large String which ends with the unicode char `𐍈` represented by "\uD800\uDF48".
-        //This char is represented by 4 bytes in UTF-8 but only with 2 bytes in Java.
+        //This char is represented by 4 bytes in UTF-8 but only with 2 bytes in Java. The truncation will
+        // truncate the string `..xyz𐍈` to `..xyz`.
         String bVal = "abcd " + generatedString.substring(0, length - 6) + "\uD800\uDF48";
 
         test.addChild("a").setProperty("propa", aVal);
