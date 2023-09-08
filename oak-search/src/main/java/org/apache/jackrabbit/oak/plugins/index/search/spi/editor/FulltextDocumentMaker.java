@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
@@ -60,6 +61,12 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
     private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
+    private static final String THROTTLE_WARN_LOGS_KEY = "oak.repository.property.throttle.warn.logs";
+
+    // Counter for multi valued ordered property warnings.
+    // Each path with a multi valued ordered property adds to the counter for every valid index that indexes this property.
+    private static final AtomicInteger WARN_LOG_COUNTER_MV_ORDERED_PROPERTY = new AtomicInteger();
+
     private static final String DYNAMIC_BOOST_TAG_NAME = "name";
     private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
 
@@ -68,6 +75,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
     private final int logWarnStringSizeThreshold;
+    protected final boolean throttleWarnLogs;
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                  @NotNull IndexDefinition definition,
@@ -79,6 +87,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         this.path = checkNotNull(path);
         this.logWarnStringSizeThreshold = Integer.getInteger(WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
                 DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
+        this.throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
     }
 
     protected abstract D initDoc();
@@ -362,10 +371,15 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                           PropertyDefinition pd) {
         // Ignore and warn if property multi-valued as not supported
         if (property.getType().isArray()) {
-            log.warn(
-                    "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), true), path);
+            // Log the warning if the counter goes beyond 1000.
+            // We could miss certain paths being logged here since the DocumentMaker is created for each node state for each index.
+            // But ideally a warning with the property in question should suffice.
+            if (!throttleWarnLogs || (throttleWarnLogs && WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() > 1000)) {
+                log.warn(
+                        "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
+                        getIndexName(), pname,
+                        Type.fromTag(property.getType().tag(), true), path);
+            }
             return false;
         }
 
