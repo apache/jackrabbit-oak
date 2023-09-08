@@ -288,6 +288,8 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                         new BytesRef(property.getValue(Type.BOOLEAN).toString()));
             } else if (tag == Type.STRING.tag()) {
                 String stringValue = property.getValue(Type.STRING);
+                // Truncate the value as lucene limits the length of a SortedDocValueField string to 
+                // STRING_PROPERTY_MAX_LENGTH(32766 bytes) and throws exception if over the limit
                 f = new SortedDocValuesField(name, getTruncatedBytesRef(name, stringValue, this.path,
                         STRING_PROPERTY_MAX_LENGTH));
             }
@@ -324,7 +326,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
      *
      * <p>Multi-byte sequences will be of the form {@code 11xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx}.
      * The method first truncates continuation bytes, which start with {@code 10} in binary. It then truncates the head byte, which
-     * starts with {@code 11}. Both truncation operations use a binary mask of {@code 11100000}.
+     * starts with {@code 11}. Both truncation operations use a binary mask of {@code 11000000}.
      *
      * @param prop      the name of the property
      * @param value     the string property value to convert into a {@code BytesRef} object
