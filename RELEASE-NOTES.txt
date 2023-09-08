@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.16
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.17
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.16 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.17 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,33 +15,49 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.16
+Changes in Oak 1.22.17
 ----------------------
 
 Technical task
 
-    [OAK-10175] - Reduce currently supported Guava range to 15 - 19
+    [OAK-10415] - AbstractTwoNodeTest: make teardown more robust
+    [OAK-10416] - AbstractTwoNodeTest: ensure RDB fixture uses empty DB
 
 Bug
 
-    [OAK-9660] - NullPointerException When Moving Transient node
+    [OAK-8711] - Queries with facets should not use traversal
+    [OAK-8863] - Oak-doc should cover BinaryUploadOptions usage
+    [OAK-10405] - document-store: potential NPE in AbstractTwoNodeTest teardown
 
-New Feature
+Improvement
 
-    [OAK-10093] - Oak Blob Store support for SSE-C for AWS
-    [OAK-10184] - oak-commons: Support multiple Compression methods
+    [OAK-9567] - Avoid NullPointerException in ReadWriteVersionManager.removeVersion
+    [OAK-9966] - Internal code calls Node.isCheckedOut and VersionManager.isCheckedOut
+    [OAK-9970] - Internal code calls LockManager.isLocked(String)
+    [OAK-10003] - Upgrade tika to 1.28.5
+    [OAK-10225] - Utility to rate limit writes in case async indexing is delayed
 
 Task
 
-    [OAK-10086] - oak-core: bump up logging for deprecated Guava based APIs to ERROR
-    [OAK-10106] - Guava deprecations: set minimal logging level to 'warn'
-    [OAK-10156] - update Tomcat JDBC dependency to 8.5.87
-    [OAK-10157] - examples: update Tomcat dependency to 8.5.87
-    [OAK-10159] - Upgrade jackson-databind dependency to 2.13.5
-    [OAK-10160] - Update commons-codec dependency to 1.15
-    [OAK-10207] - oak-jcr: remove unused test dependency zip4j
-    [OAK-10220] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.10
-    [OAK-10275] - oak-upgrade: remove workaround for Java 1.6
+    [OAK-8659] - Deprecate support for lucene custom scorer
+    [OAK-9669] - Update commons-io dependency to 2.11.0
+    [OAK-10154] - Guava deprecations: set minimal logging level to 'error'
+    [OAK-10201] - oak-blob-plugins: exported packages need to be marked @internal
+    [OAK-10304] - log registration of invalid namespace names
+    [OAK-10316] - Importer exception always should mention path
+    [OAK-10349] - Update Tomcat dependency to 9.0.78
+    [OAK-10366] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.11
+    [OAK-10389] - remove commons-lang dependency
+    [OAK-10390] - Update commons-io dependency to 2.13.0
+    [OAK-10394] - Update commons-lang3 dependency to 3.13.0
+    [OAK-10395] - Update commons-codec dependency to 1.16.0
+    [OAK-10400] - auth-ldap/benchmarks: use default dependency for commons-lang3
+    [OAK-10401] - search-mt/solr-osgi: use default versions of commons-math3
+    [OAK-10402] - benchmarks: remove commons-math dependency (use math3 instead)
+    [OAK-10403] - update Tomcat JDBC dependency to 8.5.92
+    [OAK-10404] - improve TarFilesTest.testCollectBlobReferences diagnostics
+    [OAK-10407] - run/lucene: update gson dependencies to 2.10.1
+    [OAK-10421] - Bump up minimal warning level for deprecated uses of java.security.Group to INFO
 
 
 In addition to the above-mentioned changes, this release contains
