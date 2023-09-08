@@ -90,6 +90,9 @@ public class SplitDocumentCleanUp implements Closeable {
     }
 
     private void removeFromDocumentStore(List<String> ids) {
+        if(VersionGarbageCollector.dryRunDetailedGC) {
+            return;
+        }
         try {
             stats.deleteSplitDocs.start();
             store.remove(Collection.NODES, ids);

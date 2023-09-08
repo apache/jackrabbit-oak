@@ -122,7 +122,7 @@ public class VersionGarbageCollector {
      */
     static final String SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP = "detailedGCId";
 
-    public boolean infoFullGCEnabled = false;
+    public static boolean dryRunDetailedGC = false;
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
     private final boolean detailedGCEnabled;
@@ -686,9 +686,7 @@ public class VersionGarbageCollector {
                                             modified, fromModifiedMs, toModifiedMs);
                                 }
                             }
-                            if (infoFullGCEnabled) {
-                                return;
-                            }
+
                             // now remove the garbage in one go, if any
                             if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
                                 gc.removeGarbage(phases.stats);
@@ -701,7 +699,7 @@ public class VersionGarbageCollector {
                         } finally {
                             Utils.closeIfCloseable(itr);
                             phases.stats.oldestModifiedDocTimeStamp = fromModifiedMs;
-                            if (fromModifiedMs > oldModifiedMs && !infoFullGCEnabled) {
+                            if (fromModifiedMs > oldModifiedMs) {
                                 // we have moved ahead, now we can reset oldestModifiedId to min value
                                 fromId = MIN_ID_VALUE;
                                 phases.stats.oldestModifiedDocId = MIN_ID_VALUE;
@@ -724,7 +722,7 @@ public class VersionGarbageCollector {
                     phases.stop(GCPhase.DETAILED_GC);
                 }
             } finally {
-                if (docsTraversed < PROGRESS_BATCH_SIZE && !infoFullGCEnabled) {
+                if (docsTraversed < PROGRESS_BATCH_SIZE) {
                     // we have traversed all the docs within given time range and nothing is left
                     // lets set oldModifiedDocTimeStamp to upper limit of this cycle
                     phases.stats.oldestModifiedDocTimeStamp = toModifiedMs;
@@ -741,12 +739,10 @@ public class VersionGarbageCollector {
             if (phases.start(GCPhase.SPLITS_CLEANUP)) {
                 int splitDocGCCount = phases.stats.splitDocGCCount;
                 int intermediateSplitDocGCCount = phases.stats.intermediateSplitDocGCCount;
-                if(!infoFullGCEnabled) {
-                    versionStore.deleteSplitDocuments(GC_TYPES, sweepRevisions, rec.scope.toMs, phases.stats);
-                    gcStats.splitDocumentsDeleted(phases.stats.splitDocGCCount - splitDocGCCount);
-                    gcStats.intermediateSplitDocumentsDeleted(phases.stats.intermediateSplitDocGCCount - intermediateSplitDocGCCount);
-                    phases.stop(GCPhase.SPLITS_CLEANUP);
-                }
+                versionStore.deleteSplitDocuments(GC_TYPES, sweepRevisions, rec.scope.toMs, phases.stats);
+                gcStats.splitDocumentsDeleted(phases.stats.splitDocGCCount - splitDocGCCount);
+                gcStats.intermediateSplitDocumentsDeleted(phases.stats.intermediateSplitDocGCCount - intermediateSplitDocGCCount);
+                phases.stop(GCPhase.SPLITS_CLEANUP);
             }
         }
 
@@ -780,20 +776,19 @@ public class VersionGarbageCollector {
                             if (rec.maxCollect > 0 && gc.docIdsToDelete.getSize() > rec.maxCollect) {
                                 throw new LimitExceededException();
                             }
-                            if(!infoFullGCEnabled) {
-                                if (gc.hasLeafBatch()) {
-                                    if (phases.start(GCPhase.DELETING)) {
-                                        gc.removeLeafDocuments(phases.stats);
-                                        phases.stop(GCPhase.DELETING);
-                                    }
-                                }
-                                if (gc.hasRescurrectUpdateBatch()) {
-                                    if (phases.start(GCPhase.UPDATING)) {
-                                        gc.updateResurrectedDocuments(phases.stats);
-                                        phases.stop(GCPhase.UPDATING);
-                                    }
+                            if (gc.hasLeafBatch()) {
+                                if (phases.start(GCPhase.DELETING)) {
+                                    gc.removeLeafDocuments(phases.stats);
+                                    phases.stop(GCPhase.DELETING);
                                 }
                             }
+                            if (gc.hasRescurrectUpdateBatch()) {
+                                if (phases.start(GCPhase.UPDATING)) {
+                                    gc.updateResurrectedDocuments(phases.stats);
+                                    phases.stop(GCPhase.UPDATING);
+                                }
+                            }
+
                         }
                     } finally {
                         Utils.closeIfCloseable(itr);
@@ -801,7 +796,7 @@ public class VersionGarbageCollector {
                     phases.stop(GCPhase.COLLECTING);
                 }
 
-                if (gc.getNumDocuments() != 0 && !infoFullGCEnabled) {
+                if (gc.getNumDocuments() != 0) {
                     if (phases.start(GCPhase.DELETING)) {
                         gc.removeLeafDocuments(phases.stats);
                         phases.stop(GCPhase.DELETING);
@@ -818,7 +813,7 @@ public class VersionGarbageCollector {
                     }
                 }
 
-                if (phases.start(GCPhase.UPDATING) && !infoFullGCEnabled) {
+                if (phases.start(GCPhase.UPDATING)) {
                     gc.updateResurrectedDocuments(phases.stats);
                     phases.stop(GCPhase.UPDATING);
                 }
@@ -880,6 +875,10 @@ public class VersionGarbageCollector {
 
         private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
 
+            if(dryRunDetailedGC){
+                return;
+            }
+
             // get Map of all properties along with their values
             if (phases.start(GCPhase.DETAILED_GC_COLLECT_PROPS)) {
                 final Set<String> properties = doc.getPropertyNames();
@@ -894,21 +893,14 @@ public class VersionGarbageCollector {
                         .map(p -> p.stream().map(Utils::escapePropertyName).collect(toSet()))
                         .orElse(emptySet());
                 int deletedPropsGCCount = 0;
-                if(infoFullGCEnabled) {
-                    deletedPropsGCCount = properties.stream()
-                            .filter(p -> !retainPropSet.contains(p))
-                            .mapToInt(x -> {
-                                return 1;
-                            }).sum();
-                } else {
-                    deletedPropsGCCount = properties.stream()
-                            .filter(p -> !retainPropSet.contains(p))
-                            .mapToInt(x -> {
-                                updateOp.remove(x);
-                                return 1;
-                            })
-                            .sum();
-                }
+                deletedPropsGCCount = properties.stream()
+                        .filter(p -> !retainPropSet.contains(p))
+                        .mapToInt(x -> {
+                            updateOp.remove(x);
+                            return 1;
+                        })
+                        .sum();
+
                 deletedPropsCountMap.put(doc.getId(), deletedPropsGCCount);
 
                 if (log.isDebugEnabled()) {
@@ -936,7 +928,10 @@ public class VersionGarbageCollector {
             totalGarbageDocsCount = 0;
         }
 
-        public void removeGarbage(final VersionGCStats stats) {
+        public void removeGarbage(final VersionGCStats stats) {x
+            if (dryRunDetailedGC) {
+                return;
+            }
 
             if (updateOpList.isEmpty()) {
                 if (log.isDebugEnabled()) {
@@ -1076,6 +1071,9 @@ public class VersionGarbageCollector {
          * @param stats to track the number of removed documents.
          */
         void removeDocuments(VersionGCStats stats) throws IOException {
+            if (dryRunDetailedGC) {
+                return;
+            }
             removeLeafDocuments(stats);
             stats.deletedDocGCCount += removeDeletedDocuments(
                     getDocIdsToDelete(), getDocIdsToDeleteSize(), false, "(other)");
@@ -1092,6 +1090,9 @@ public class VersionGarbageCollector {
         }
 
         void removeLeafDocuments(VersionGCStats stats) throws IOException {
+            if (dryRunDetailedGC) {
+                return;
+            }
             int removeCount = removeDeletedDocuments(
                     getLeafDocIdsToDelete(), getLeafDocIdsToDeleteSize(), true, "(leaf)");
             leafDocIdsToDelete.clear();

@@ -94,7 +94,7 @@ public class RevisionsCommand implements Command {
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
         static final String CMD_SWEEP = "sweep";
-        static final String CMD_INFOFULLGC = "infofullgc";
+        static final String CMD_DRYRUNDETAILEDGC = "dryrundetailedgc";
 
         final OptionSpec<?> once;
         final OptionSpec<Integer> limit;
@@ -177,8 +177,8 @@ public class RevisionsCommand implements Command {
             String subCmd = options.getSubCmd();
             if (RevisionsOptions.CMD_INFO.equals(subCmd)) {
                 info(options, closer);
-            } else if (RevisionsOptions.CMD_INFOFULLGC.equals(subCmd)) {
-                infoFullGC(options, closer);
+            } else if (RevisionsOptions.CMD_DRYRUNDETAILEDGC.equals(subCmd)) {
+                dryRunDetailedGC(options, closer);
             } else if (RevisionsOptions.CMD_COLLECT.equals(subCmd)) {
                 collect(options, closer);
             } else if (RevisionsOptions.CMD_RESET.equals(subCmd)) {
@@ -268,10 +268,10 @@ public class RevisionsCommand implements Command {
                 info.estimatedIterations);
     }
 
-    private void infoFullGC(RevisionsOptions options, Closer closer)
+    private void dryRunDetailedGC(RevisionsOptions options, Closer closer)
             throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
-        gc.infoFullGCEnabled = true;
+        gc.dryRunDetailedGC = true;
         System.out.println("retrieving gc info");
         VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
 
