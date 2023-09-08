@@ -62,6 +62,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
     private static final String THROTTLE_WARN_LOGS_KEY = "oak.repository.property.throttle.warn.logs";
+    private static final String THROTTLE_WARN_LOGS_THRESHOLD_KEY = "oak.repository.throttle.warn.logs.threshold";
+    private static final int DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE = 1000;
 
     // Counter for multi valued ordered property warnings.
     // Each path with a multi valued ordered property adds to the counter for every valid index that indexes this property.
@@ -75,6 +77,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
     private final int logWarnStringSizeThreshold;
+    protected final int throttleWarnLogThreshold;
     protected final boolean throttleWarnLogs;
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
@@ -88,6 +91,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         this.logWarnStringSizeThreshold = Integer.getInteger(WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
                 DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
         this.throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
+        this.throttleWarnLogThreshold = Integer.getInteger(THROTTLE_WARN_LOGS_THRESHOLD_KEY,
+                DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
     }
 
     protected abstract D initDoc();
@@ -371,10 +376,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                           PropertyDefinition pd) {
         // Ignore and warn if property multi-valued as not supported
         if (property.getType().isArray()) {
-            // Log the warning if the counter goes beyond 1000.
+            // Log the warning for every 1000 (default to 1000 but configurable) occurrences
             // We could miss certain paths being logged here since the DocumentMaker is created for each node state for each index.
             // But ideally a warning with the property in question should suffice.
-            if (!throttleWarnLogs || WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % 1000 == 0) {
+            if (!throttleWarnLogs || WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % throttleWarnLogThreshold == 0) {
                 log.warn(
                         "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
                         getIndexName(), pname,
