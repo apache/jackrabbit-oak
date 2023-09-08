@@ -21,7 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -77,8 +79,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
     private final int logWarnStringSizeThreshold;
-    protected final int throttleWarnLogThreshold;
-    protected final boolean throttleWarnLogs;
+    protected static final int throttleWarnLogThreshold = Integer.getInteger(THROTTLE_WARN_LOGS_THRESHOLD_KEY,
+            DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
+    protected static final boolean throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                  @NotNull IndexDefinition definition,
@@ -90,9 +93,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         this.path = checkNotNull(path);
         this.logWarnStringSizeThreshold = Integer.getInteger(WARN_LOG_STRING_SIZE_THRESHOLD_KEY,
                 DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE);
-        this.throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
-        this.throttleWarnLogThreshold = Integer.getInteger(THROTTLE_WARN_LOGS_THRESHOLD_KEY,
-                DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
     }
 
     protected abstract D initDoc();
