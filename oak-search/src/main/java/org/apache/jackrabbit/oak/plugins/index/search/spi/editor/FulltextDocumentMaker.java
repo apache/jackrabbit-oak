@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
@@ -70,7 +71,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     // Counter for multi valued ordered property warnings.
     // Each path with a multi valued ordered property adds to the counter for every valid index that indexes this property.
     private static final AtomicInteger WARN_LOG_COUNTER_MV_ORDERED_PROPERTY = new AtomicInteger();
-    private static final Set<String> MV_ORDERED_PROPERTY_SET = new HashSet<>();
+    private static final Set<String> MV_ORDERED_PROPERTY_SET = ConcurrentHashMap.newKeySet();
 
     private static final String DYNAMIC_BOOST_TAG_NAME = "name";
     private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
