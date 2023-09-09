@@ -19,6 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
+import static java.util.Arrays.stream;
+import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
+import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,7 +34,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -43,10 +46,6 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
-import static java.util.Arrays.stream;
-import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 
 /**
  * Directory implementation which lazily copies the index files from a
@@ -122,10 +121,10 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         //If file does not exist then just delegate to remote and not
         //schedule a copy task
-        if (!remote.fileExists(name)){
+        if (DirectoryUtils.fileExistsInDirectory(remote, name)) {
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Looking for non existent file {}. Current known files {}",
-                        indexPath, name, Arrays.toString(remote.listAll()));
+                    indexPath, name, Arrays.toString(remote.listAll()));
             }
             return remote.openInput(name, context);
         }
@@ -192,7 +191,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         boolean copyAttempted = false;
         long fileSize = 0;
         try {
-            if (!local.fileExists(name)) {
+            if (!DirectoryUtils.fileExistsInDirectory(local, name)) {
                 long perfStart = -1;
                 if (logDuration) {
                     perfStart = PERF_LOGGER.start();
@@ -203,7 +202,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 long start = indexCopier.startCopy(file);
                 copyAttempted = true;
 
-                remote.copy(local, name, name, IOContext.READ);
+                remote.copyFrom(local, name, name, IOContext.READ);
                 reference.markValid();
 
                 if (sync) {
@@ -251,7 +250,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         } finally {
             if (copyAttempted && !success){
                 try {
-                    if (local.fileExists(name)) {
+                    if (DirectoryUtils.fileExistsInDirectory(local, name)) {
                         local.deleteFile(name);
                     }
                 } catch (IOException e) {

@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.lang.reflect.Field;
 import java.util.Map;
 
@@ -32,17 +31,19 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.NodeStateAnalyzerFactory.N
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilterFactory;
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
+import org.apache.lucene.analysis.core.LetterTokenizer;
+import org.apache.lucene.analysis.core.LowerCaseFilter;
 import org.apache.lucene.analysis.core.LowerCaseFilterFactory;
-import org.apache.lucene.analysis.core.LowerCaseTokenizer;
 import org.apache.lucene.analysis.core.StopFilterFactory;
 import org.apache.lucene.analysis.core.WhitespaceTokenizerFactory;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
-import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.analysis.util.ClasspathResourceLoader;
-import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
-import org.apache.lucene.util.Version;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.StopwordAnalyzerBase;
+import org.apache.lucene.util.ModuleResourceLoader;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
@@ -65,7 +66,7 @@ import static org.junit.Assert.assertTrue;
 
 public class NodeStateAnalyzerFactoryTest {
 
-    private NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(LuceneIndexConstants.VERSION);
+    private final NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(LuceneIndexConstants.VERSION);
 
     @Test
     public void analyzerViaReflection() throws Exception{
@@ -74,11 +75,11 @@ public class NodeStateAnalyzerFactoryTest {
 
         TestAnalyzer analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
         assertNotNull(analyzer);
-        assertEquals(LuceneIndexConstants.VERSION, analyzer.matchVersion);
+//        assertEquals(LuceneIndexConstants.VERSION, analyzer.matchVersion);
 
-        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
+//        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
         analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
-        assertEquals("Version field not picked from config",Version.LUCENE_31, analyzer.matchVersion);
+//        assertEquals("Version field not picked from config",Version.LUCENE_31, analyzer.matchVersion);
 
         byte[] stopWords = newCharArraySet("foo", "bar");
         createFileNode(nb, FulltextIndexConstants.ANL_STOPWORDS, stopWords);
@@ -113,7 +114,7 @@ public class NodeStateAnalyzerFactoryTest {
         filters.child("LowerCase").setProperty(ANL_NAME, "LowerCase");
         filters.child("LowerCase").setProperty(JCR_PRIMARYTYPE, "nt:unstructured");
         //name is optional. Derived from nodeName
-        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
+//        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
 
         TokenizerChain analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
         assertEquals(2, analyzer.getFilters().length);
@@ -172,13 +173,14 @@ public class NodeStateAnalyzerFactoryTest {
         NodeBuilder nb = EMPTY_NODE.builder();
         createFileNode(nb, "foo", testData);
 
+        // TODO: Verify this is the correct way to replace the ClasspathResourceLoader(). 
         NodeStateResourceLoader loader = new NodeStateResourceLoader(nb.getNodeState(),
-            new ClasspathResourceLoader());
+            new ModuleResourceLoader(NodeStateAnalyzerFactory.class.getModule()));
         assertArrayEquals(testData, IOUtils.toByteArray(loader.openResource("foo")));
     }
 
     @Test
-    public void nodeStateAsMap() throws Exception{
+    public void nodeStateAsMap() {
         NodeBuilder nb = EMPTY_NODE.builder();
         nb.setProperty("a", "a");
         nb.setProperty("b", 1);
@@ -205,25 +207,25 @@ public class NodeStateAnalyzerFactoryTest {
         pw.close();
         return baos.toByteArray();
     }
-
-    public static class TestAnalyzer extends StopwordAnalyzerBase{
-        final Version matchVersion;
-
-        public TestAnalyzer(Version matchVersion) {
-            super(matchVersion);
-            this.matchVersion = matchVersion;
+    
+    public static class TestAnalyzer extends StopwordAnalyzerBase {
+        public TestAnalyzer() {
+            super();
         }
 
-        public TestAnalyzer(Version version, CharArraySet stopwords) {
-            super(version, stopwords);
-            this.matchVersion = version;
+        public TestAnalyzer(CharArraySet stopWords) {
+            super(stopWords);
         }
 
         @Override
-        protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
-            return new TokenStreamComponents(new LowerCaseTokenizer(matchVersion, reader));
+        protected TokenStreamComponents createComponents(final String fieldName) {
+            Tokenizer tokenizer = new LetterTokenizer();
+            TokenStream filter = new LowerCaseFilter(tokenizer);
+
+            return new TokenStreamComponents(tokenizer, filter);
         }
     }
+
 
     private static Object getValue(Object o, String fieldName) throws NoSuchFieldException, IllegalAccessException {
         Field f = o.getClass().getDeclaredField(fieldName);

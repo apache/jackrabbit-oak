@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,16 +45,16 @@ import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
-import org.apache.lucene.analysis.util.CharArraySet;
-import org.apache.lucene.analysis.util.CharFilterFactory;
-import org.apache.lucene.analysis.util.ClasspathResourceLoader;
-import org.apache.lucene.analysis.util.ResourceLoader;
-import org.apache.lucene.analysis.util.ResourceLoaderAware;
-import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
-import org.apache.lucene.analysis.util.TokenFilterFactory;
-import org.apache.lucene.analysis.util.TokenizerFactory;
-import org.apache.lucene.analysis.util.WordlistLoader;
+import org.apache.lucene.analysis.AbstractAnalysisFactory;
+import org.apache.lucene.analysis.CharArraySet;
+import org.apache.lucene.analysis.CharFilterFactory;
+import org.apache.lucene.util.ModuleResourceLoader;
+import org.apache.lucene.util.ResourceLoader;
+import org.apache.lucene.util.ResourceLoaderAware;
+import org.apache.lucene.analysis.StopwordAnalyzerBase;
+import org.apache.lucene.analysis.TokenFilterFactory;
+import org.apache.lucene.analysis.TokenizerFactory;
+import org.apache.lucene.analysis.WordlistLoader;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
@@ -84,7 +85,7 @@ final class NodeStateAnalyzerFactory {
     private final Version defaultVersion;
 
     NodeStateAnalyzerFactory(Version defaultVersion){
-        this(new ClasspathResourceLoader(NodeStateAnalyzerFactory.class.getClassLoader()), defaultVersion);
+        this(new ModuleResourceLoader(NodeStateAnalyzerFactory.class.getModule()), defaultVersion);
     }
 
     NodeStateAnalyzerFactory(ResourceLoader defaultLoader, Version defaultVersion) {
@@ -159,7 +160,7 @@ final class NodeStateAnalyzerFactory {
                 && state.hasChildNode(FulltextIndexConstants.ANL_STOPWORDS)) {
             try {
                 stopwords = loadStopwordSet(state.getChildNode(FulltextIndexConstants.ANL_STOPWORDS),
-                        FulltextIndexConstants.ANL_STOPWORDS, matchVersion);
+                        FulltextIndexConstants.ANL_STOPWORDS);
             } catch (IOException e) {
                 throw new RuntimeException("Error occurred while loading stopwords", e);
             }
@@ -174,13 +175,8 @@ final class NodeStateAnalyzerFactory {
                 c = analyzerClazz.getConstructor(Version.class);
                 return c.newInstance(matchVersion);
             }
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (InvocationTargetException e) {
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
             throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         }
     }
@@ -229,24 +225,27 @@ final class NodeStateAnalyzerFactory {
 
     @SuppressWarnings("deprecation")
     private static Version parseLuceneVersionString(final String matchVersion) {
-        final Version version = Version.parseLeniently(matchVersion);
-        if (version == Version.LUCENE_CURRENT && !versionWarningAlreadyLogged.getAndSet(true)) {
-            log.warn(
-                    "You should not use LATEST as luceneMatchVersion property: "+
-                            "if you use this setting, and then Solr upgrades to a newer release of Lucene, "+
-                            "sizable changes may happen. If precise back compatibility is important "+
-                            "then you should instead explicitly specify an actual Lucene version."
-            );
+        try {
+            final Version version = Version.parseLeniently(matchVersion);
+            if (version == Version.LUCENE_CURRENT && !versionWarningAlreadyLogged.getAndSet(true)) {
+                log.warn(
+                        "You should not use LATEST as luceneMatchVersion property: "+
+                                "if you use this setting, and then Solr upgrades to a newer release of Lucene, "+
+                                "sizable changes may happen. If precise back compatibility is important "+
+                                "then you should instead explicitly specify an actual Lucene version."
+                );
+            }
+            return version;
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
         }
-        return version;
     }
 
-    private static CharArraySet loadStopwordSet(NodeState file, String name,
-                                                Version matchVersion) throws IOException {
+    private static CharArraySet loadStopwordSet(NodeState file, String name) throws IOException {
         Blob blob = ConfigUtil.getBlob(file, name);
-        Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.CHARSET_UTF_8);
+        Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.UTF_8);
         try {
-            return WordlistLoader.getWordSet(stopwords, matchVersion);
+            return WordlistLoader.getWordSet(stopwords);
         } finally {
             IOUtils.close(stopwords);
         }

@@ -140,9 +140,12 @@ import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.apache.jackrabbit.spi.commons.conversion.NamePathResolver;
 import org.apache.jackrabbit.spi.commons.value.ValueFormat;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermDocs;
-import org.apache.lucene.index.TermEnum;
+import org.apache.lucene.index.MultiTerms;
+import org.apache.lucene.index.PostingsEnum;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.index.Terms;
+import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -990,26 +993,31 @@ public class RepositoryUpgrade {
             if (reader == null) {
                 return;
             }
-            TermEnum terms = reader.terms(new Term(FieldNames.LOCAL_NAME));
-            while (terms.next()) {
-                Term t = terms.term();
-                if (!FieldNames.LOCAL_NAME.equals(t.field())) {
-                    continue;
-                }
-                String name = t.text();
-                if (nameMayBeTooLong(name)) {
-                    TermDocs docs = reader.termDocs(t);
-                    if (docs.next()) {
-                        int docId = docs.doc();
-                        String uuid = reader.document(docId).get(FieldNames.UUID);
-                        Node n = session.getNodeByIdentifier(uuid);
-                        if (isNameTooLong(n.getName(), n.getParent().getPath())) {
-                            logger.warn("Name too long: {}", n.getPath());
-                            longNameFound = true;
+
+            Terms terms = MultiTerms.getTerms(reader, FieldNames.LOCAL_NAME);
+            if (terms != null) {
+                TermsEnum termsEnum = terms.iterator();
+                BytesRef termText;
+                while ((termText = termsEnum.next()) != null) {
+                    String name = termText.utf8ToString();
+
+                    if (nameMayBeTooLong(name)) {
+                        PostingsEnum postings = MultiTerms.getTermPostingsEnum(reader, FieldNames.LOCAL_NAME, termText);
+                        StoredFields storedFields = reader.storedFields();
+                        if (postings.nextDoc() != PostingsEnum.NO_MORE_DOCS) {
+                            int docId = postings.docID();
+                            String uuid = storedFields.document(docId).get(FieldNames.UUID);
+                            Node n = session.getNodeByIdentifier(uuid);
+                            if (isNameTooLong(n.getName(), n.getParent().getPath())) {
+                                logger.warn("Name too long: {}", n.getPath());
+                                longNameFound = true;
+                            }
                         }
                     }
                 }
             }
+            // Updated Lucene code ends here
+
         } catch (IOException e) {
             throw new RepositoryException(e);
         } finally {
@@ -1021,14 +1029,12 @@ public class RepositoryUpgrade {
         }
     }
 
+
     private boolean nameMayBeTooLong(String name) {
         if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
-        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
-            return false;
-        }
-        return true;
+        return name.getBytes(Charsets.UTF_8).length > Utils.NODE_NAME_LIMIT;
     }
 
     private boolean isNameTooLong(String name, String parentPath) {

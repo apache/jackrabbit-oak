@@ -151,7 +151,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         return Iterables.toArray(fileMap.keySet(), String.class);
     }
 
-    @Override
     public boolean fileExists(String name) throws IOException {
         return fileMap.containsKey(name);
     }
@@ -279,7 +278,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         long size = 0;
         for (String name : skippedFiles){
             try{
-                if (local.fileExists(name)){
+                if (DirectoryUtils.fileExistsInDirectory(local, name)){
                     size += local.fileLength(name);
                 }
             } catch (Exception ignore){
@@ -319,7 +318,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 long perfStart = PERF_LOGGER.start();
                 long start = indexCopier.startCopy(file);
 
-                local.copy(remote, name, name, IOContext.DEFAULT);
+                local.copyFrom(remote, name, name, IOContext.DEFAULT);
 
                 indexCopier.doneCopy(file, start);
                 PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} -- size: {}",
@@ -430,7 +429,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         private boolean checkIfLocalValid() throws IOException {
-            boolean validLocalCopyPresent = local.fileExists(name);
+            boolean validLocalCopyPresent = DirectoryUtils.fileExistsInDirectory(local, name);
 
             if (validLocalCopyPresent) {
                 long localFileLength = local.fileLength(name);
@@ -490,12 +489,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             private final IndexOutput delegate;
 
             public CopyOnCloseIndexOutput(IndexOutput delegate) {
+                super(delegate.toString(), delegate.getName());
                 this.delegate = delegate;
-            }
-
-            @Override
-            public void flush() throws IOException {
-                delegate.flush();
             }
 
             @Override
@@ -510,17 +505,11 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 return delegate.getFilePointer();
             }
 
-            @SuppressWarnings("deprecation")
             @Override
-            public void seek(long pos) throws IOException {
-                delegate.seek(pos);
+            public long getChecksum() throws IOException {
+                return delegate.getChecksum();
             }
-
-            @Override
-            public long length() throws IOException {
-                return delegate.length();
-            }
-
+            
             @Override
             public void writeByte(byte b) throws IOException {
                 delegate.writeByte(b);
@@ -529,11 +518,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             @Override
             public void writeBytes(byte[] b, int offset, int length) throws IOException {
                 delegate.writeBytes(b, offset, length);
-            }
-
-            @Override
-            public void setLength(long length) throws IOException {
-                delegate.setLength(length);
             }
         }
     }

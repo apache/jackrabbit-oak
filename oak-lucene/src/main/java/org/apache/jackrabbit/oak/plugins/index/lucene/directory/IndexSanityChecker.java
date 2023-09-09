@@ -59,7 +59,7 @@ public class IndexSanityChecker {
         } else {
             //Remove local files which are not found in remote
             for (String fileName : local.listAll()) {
-                if (!remote.fileExists(fileName)) {
+                if (DirectoryUtils.fileExistsInDirectory(remote, fileName)) {
                     local.deleteFile(fileName);
                 }
             }

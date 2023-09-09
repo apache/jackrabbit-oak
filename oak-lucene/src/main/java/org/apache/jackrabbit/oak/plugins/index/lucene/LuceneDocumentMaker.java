@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.*;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.Nullable;
@@ -202,13 +203,15 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     @Override
     protected void indexAggregateValue(Document doc, Aggregate.NodeIncludeResult result, String value, PropertyDefinition pd) {
         Field field = result.isRelativeNode() ?
-                newFulltextField(result.rootIncludePath, value) : newFulltextField(value) ;
-        if (pd != null) {
-            field.setBoost(pd.boost);
-        }
+                newFulltextField(result.rootIncludePath, value) : newFulltextField(value);
+        
+        // TODO: Add boosting on the query side. Lucene 9.7.0 no longer supports boosting on the indexing side. 
+        // if (pd != null) {
+        //    field.setBoost(pd.boost);
+        // }
         doc.add(field);
     }
-
+    
     @Override
     protected Document initDoc() {
         Document doc = new Document();
@@ -394,17 +397,16 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static class AugmentedField extends Field {
         private static final FieldType ft = new FieldType();
         static {
-            ft.setIndexed(true);
             ft.setStored(false);
             ft.setTokenized(false);
             ft.setOmitNorms(false);
-            ft.setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_ONLY);
+            ft.setIndexOptions(IndexOptions.DOCS);
             ft.freeze();
         }
 
         AugmentedField(String name, double weight) {
             super(name, "1", ft);
-            setBoost((float) weight);
+            // TODO: Use this weight for boosting on the query side
         }
     }
 

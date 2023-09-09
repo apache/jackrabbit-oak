@@ -22,6 +22,7 @@ import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Set;
 
+import jdk.jshell.spi.ExecutionControl.NotImplementedException;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -123,8 +124,7 @@ public class OakDirectory extends Directory {
                         boolean readOnly, BlobFactory blobFactory,
                         @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
                         boolean streamingWriteEnabled) {
-
-        this.lockFactory = NoLockFactory.getNoLockFactory();
+        this.lockFactory = NoLockFactory.INSTANCE;
         this.builder = builder;
         this.dataNodeName = dataNodeName;
         this.directoryBuilder = readOnly ? builder.getChildNode(dataNodeName) : builder.child(dataNodeName);
@@ -143,7 +143,6 @@ public class OakDirectory extends Directory {
         return fileNames.toArray(new String[fileNames.size()]);
     }
 
-    @Override
     public boolean fileExists(String name) throws IOException {
         return fileNames.contains(name);
     }
@@ -226,7 +225,6 @@ public class OakDirectory extends Directory {
         return new OakIndexOutput(name, file, indexName, blobFactory, streamingWriteEnabled);
     }
 
-
     @Override
     public IndexInput openInput(String name, IOContext context)
             throws IOException {
@@ -240,13 +238,8 @@ public class OakDirectory extends Directory {
     }
 
     @Override
-    public Lock makeLock(String name) {
-        return lockFactory.makeLock(name);
-    }
-
-    @Override
-    public void clearLock(String name) throws IOException {
-        lockFactory.clearLock(name);
+    public Lock obtainLock(String s) throws IOException {
+        return this.lockFactory.obtainLock(this, s);
     }
 
     @Override
@@ -267,19 +260,45 @@ public class OakDirectory extends Directory {
         }
     }
 
-    @Override
     public void setLockFactory(LockFactory lockFactory) throws IOException {
         this.lockFactory = lockFactory;
     }
 
-    @Override
     public LockFactory getLockFactory() {
         return lockFactory;
     }
+    
+    @Override
+    public IndexOutput createTempOutput(String prefix, String suffix, IOContext ioContext)
+        throws IOException {
+        // Generate a unique name for the temporary file based on prefix, suffix and a timestamp
+        String tempFileName = prefix + System.currentTimeMillis() + "_" + secureRandom.nextInt(10000) + suffix;
 
+        // Use the existing createOutput method to create the temporary file
+        return createOutput(tempFileName, ioContext);
+    }
+    
     @Override
     public String toString() {
         return "Directory for " + definition.getIndexName();
+    }
+    
+    @Override
+    public void syncMetaData() throws IOException {
+
+    }
+
+    @Override
+    public void rename(String s, String s1) throws IOException {
+
+    }
+    @Override
+    public Set<String> getPendingDeletions() throws IOException {
+        try {
+            throw new NotImplementedException("getPendingDeletions");
+        } catch (NotImplementedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -343,5 +362,4 @@ public class OakDirectory extends Directory {
         PERF_LOGGER.end(start, 100, "Directory listing performed. Total {} files", result.size());
         return result;
     }
-
 }

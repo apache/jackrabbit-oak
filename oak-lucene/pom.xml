@@ -220,7 +220,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-analyzers-common</artifactId>
+      <artifactId>lucene-analysis-common</artifactId>
       <version>${lucene.version}</version>
     </dependency>
     <dependency>
@@ -470,6 +470,22 @@
       <artifactId>system-rules</artifactId>
       <version>1.19.0</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-codecs</artifactId>
+      <version>${lucene.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-backward-codecs</artifactId>
+      <version>${lucene.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.lucene</groupId>
+      <artifactId>lucene-backward-codecs</artifactId>
+      <version>9.7.0</version>
+      <scope>compile</scope>
     </dependency>
   </dependencies>
 </project>

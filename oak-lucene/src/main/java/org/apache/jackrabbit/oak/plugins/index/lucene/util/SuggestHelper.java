@@ -20,15 +20,14 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
 import java.util.Collections;
 import java.util.List;
-
+import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.util.CharTokenizer;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.spell.Dictionary;
 import org.apache.lucene.search.spell.LuceneDictionary;
@@ -36,7 +35,6 @@ import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +49,12 @@ public class SuggestHelper {
 
     private static final Analyzer analyzer = new Analyzer() {
         @Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-            return new TokenStreamComponents(new CRTokenizer(Version.LUCENE_47, reader));
+        protected TokenStreamComponents createComponents(String s) {
+            return new TokenStreamComponents(
+                CharTokenizer.fromTokenCharPredicate(
+                    c -> c != ',' && !Character.isWhitespace(c)
+                )
+            );
         }
     };
 
@@ -134,13 +136,14 @@ public class SuggestHelper {
     }
     public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory, Analyzer analyzer,
                                                     final File tempDir) throws IOException {
-        return new AnalyzingInfixSuggester(Version.LUCENE_47, tempDir, analyzer, analyzer, 3) {
-            @Override
-            protected Directory getDirectory(File path) throws IOException {
+        return new AnalyzingInfixSuggester(suggestDirectory, analyzer) {
+            private Directory getDirectory(File path) throws IOException {
                 if (tempDir == null || tempDir.getAbsolutePath().equals(path.getAbsolutePath())) {
                     return suggestDirectory; // use oak directory for writing suggest index
                 } else {
-                    return FSDirectory.open(path); // use FS for temp index used at build time
+                    return FSDirectory.open(
+                        path.toPath()
+                    ); // use FS for temp index used at build time
                 }
             }
         };

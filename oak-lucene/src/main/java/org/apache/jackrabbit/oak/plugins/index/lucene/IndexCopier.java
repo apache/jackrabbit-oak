@@ -41,7 +41,6 @@ import javax.management.openmbean.TabularData;
 import javax.management.openmbean.TabularDataSupport;
 import javax.management.openmbean.TabularType;
 
-import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.guava.common.util.concurrent.Monitor;
@@ -104,7 +103,8 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     private final Map<String, String> indexPathVersionMapping = newConcurrentMap();
     private final ConcurrentMap<String, LocalIndexFile> failedToDeleteFiles = newConcurrentMap();
-    private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(new ConcurrentHashMap<LocalIndexFile, Boolean>());
+    private final Set<LocalIndexFile> copyInProgressFiles = Collections.newSetFromMap(
+        new ConcurrentHashMap<>());
     private final boolean prefetchEnabled;
     private volatile boolean closed;
     private final IndexRootDirectory indexRootDirectory;
@@ -171,7 +171,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
         //By design indexing in Oak is single threaded so Lucene locking
         //can be disabled
-        Directory dir = FSDirectory.open(indexWriterDir, NoLockFactory.getNoLockFactory());
+        Directory dir = FSDirectory.open(indexWriterDir.toPath(), NoLockFactory.INSTANCE);
 
         log.debug("IndexWriter would use {}", indexWriterDir);
         return dir;
@@ -179,7 +179,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     protected Directory createLocalDirForIndexReader(String indexPath, LuceneIndexDefinition definition, String dirName) throws IOException {
         File indexDir = getIndexDir(definition, indexPath, dirName);
-        Directory result = FSDirectory.open(indexDir);
+        Directory result = FSDirectory.open(indexDir.toPath());
 
         String newPath = indexDir.getAbsolutePath();
         String oldPath = indexPathVersionMapping.put(createIndexPathKey(indexPath, dirName), newPath);
@@ -259,12 +259,21 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         return indexPath.concat(dirName);
     }
 
+    public boolean fileExists(Directory dir, String fileName) throws IOException {
+        for (String file : dir.listAll()) {
+            if (file.equals(fileName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean deleteFile(Directory dir, String fileName, boolean copiedFromRemote){
         LocalIndexFile file = new LocalIndexFile(dir, fileName, DirectoryUtils.getFileLength(dir, fileName), copiedFromRemote);
         boolean successFullyDeleted = false;
         try {
             boolean fileExisted = false;
-            if (dir.fileExists(fileName)) {
+            if (fileExists(dir, fileName)) {
                 fileExisted = true;
                 dir.deleteFile(fileName);
             }
@@ -532,9 +541,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
                         IndexMappingData.FIELD_NAMES,
                         new String[]{indexDir.getJcrPath(), indexDir.getFSPath(), size}));
             }
-        } catch (OpenDataException e){
-            throw new IllegalStateException(e);
-        } catch (IOException e) {
+        } catch (OpenDataException | IOException e){
             throw new IllegalStateException(e);
         }
         return tds;
@@ -612,12 +619,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getGarbageDetails() {
         return toArray(transform(failedToDeleteFiles.values(),
-                new Function<LocalIndexFile, String>() {
-                    @Override
-                    public String apply(LocalIndexFile input) {
-                        return input.deleteLog();
-                    }
-                }), String.class);
+            LocalIndexFile::deleteLog), String.class);
     }
 
     @Override
@@ -661,12 +663,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
     @Override
     public String[] getCopyInProgressDetails() {
         return toArray(transform(copyInProgressFiles,
-                new Function<LocalIndexFile, String>() {
-                    @Override
-                    public String apply(LocalIndexFile input) {
-                        return input.copyLog();
-                    }
-                }), String.class);
+            LocalIndexFile::copyLog), String.class);
     }
 
     @Override
@@ -720,10 +717,10 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
         COWDirectoryTracker NOOP = new COWDirectoryTracker() {
             @Override
-            public void registerOpenedDirectory(CopyOnWriteDirectory directory) {}
+            public void registerOpenedDirectory(@NotNull CopyOnWriteDirectory directory) {}
 
             @Override
-            public void registerReindexingLocalDirectory(File dir) {}
+            public void registerReindexingLocalDirectory(@NotNull File dir) {}
         };
     }
 }

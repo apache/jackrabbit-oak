@@ -66,14 +66,15 @@ public class FacetHelper {
         @SuppressWarnings("unchecked")
         List<String> facetFields = (List<String>) plan.getAttribute(ATTR_FACET_FIELDS);
         if (facetFields != null && facetFields.size() > 0) {
-            Map<String, Facets> facetsMap = new HashMap<String, Facets>();
+            Map<String, Facets> facetsMap = new HashMap<>();
 
             for (String facetField : facetFields) {
                 FacetsCollector facetsCollector = new FacetsCollector();
                 try {
+                    // TODO: This constructor is deprecated. Should update it with a FacetConfig
                     DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
                             searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
-                    FacetsCollector.search(searcher, query, null,1, Sort.INDEXORDER, facetsCollector);
+                    FacetsCollector.search(searcher, query,1, Sort.INDEXORDER, facetsCollector);
 
                     switch (secureFacetConfiguration.getMode()) {
                         case INSECURE:
@@ -109,6 +110,11 @@ public class FacetHelper {
     }
 
     private static final Facets NULL_FACETS = new Facets() {
+        @Override
+        public FacetResult getAllChildren(String s, String... strings) throws IOException {
+            return null;
+        }
+
         @Override
         public FacetResult getTopChildren(int topN, String dim, String... path) {
             return null;

@@ -16,10 +16,17 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
+import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.lucene.analysis.Analyzer;
@@ -27,9 +34,11 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
@@ -39,8 +48,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.lucene.search.BooleanClause.Occur.SHOULD;
 
 /**
  * Utility methods for indexing and searching for similar feature vectors
@@ -140,37 +147,48 @@ public class SimSearchUtils {
 
             if (text != null && !sp.isEmpty()) {
                 log.debug("generating similarity query for {}", text);
-                BooleanQuery booleanQuery = new BooleanQuery(true);
+                BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
                 LSHAnalyzer analyzer = new LSHAnalyzer();
                 IndexSearcher searcher = new IndexSearcher(reader);
                 TermQuery q = new TermQuery(new Term(FieldNames.PATH, text));
                 TopDocs top = searcher.search(q, 1);
-                if (top.totalHits > 0) {
+                if (top.totalHits.value > 0) {
                     ScoreDoc d = top.scoreDocs[0];
-                    Document doc = reader.document(d.doc);
+                    StoredFields storedFields = searcher.storedFields();
+                    Document doc = storedFields.document(d.doc);
+
                     for (PropertyDefinition pd : sp) {
                         log.debug("adding similarity clause for property {}", pd.name);
                         String similarityFieldName = FieldNames.createSimilarityFieldName(pd.name);
                         String fvString = doc.get(similarityFieldName);
+
                         if (fvString != null && fvString.trim().length() > 0) {
-                            log.trace("generating sim query on field {} and text {}", similarityFieldName, fvString);
-                            Query simQuery = SimSearchUtils.getSimQuery(analyzer, similarityFieldName, fvString);
-                            booleanQuery.add(new BooleanClause(simQuery, SHOULD));
+                            log.trace("generating sim query on field {} and text {}",
+                                similarityFieldName, fvString);
+                            Query simQuery = SimSearchUtils.getSimQuery(analyzer,
+                                similarityFieldName, fvString);
+                            booleanQueryBuilder.add(new BooleanClause(simQuery, SHOULD));
                             String[] binaryTags = doc.getValues(FieldNames.SIMILARITY_TAGS);
+
                             if (binaryTags != null && binaryTags.length > 0) {
-                                BooleanQuery tagQuery = new BooleanQuery();
+                                BooleanQuery.Builder tagQuery = new BooleanQuery.Builder();
                                 for (String brt : binaryTags) {
-                                    tagQuery.add(new BooleanClause(new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, brt)), SHOULD));
+                                    tagQuery.add(new BooleanClause(
+                                        new TermQuery(new Term(FieldNames.SIMILARITY_TAGS, brt)),
+                                        SHOULD));
                                 }
-                                tagQuery.setBoost(0.5f);
-                                booleanQuery.add(tagQuery, SHOULD);
+                                BoostQuery bq = new BoostQuery(tagQuery.build(), 0.5f);
+                                booleanQueryBuilder.add(bq, SHOULD);
                             }
                             log.trace("similarity query generated for {}", pd.name);
                         } else {
-                            log.warn("could not create query for similarity field {}", similarityFieldName);
+                            log.warn("could not create query for similarity field {}",
+                                similarityFieldName);
                         }
                     }
                 }
+
+                BooleanQuery booleanQuery = booleanQueryBuilder.build();
                 if (booleanQuery.clauses().size() > 0) {
                     similarityQuery = booleanQuery;
                     log.trace("final similarity query is {}", similarityQuery);
@@ -190,8 +208,8 @@ public class SimSearchUtils {
             bandSize = computeBandSize(minhashes.size(), similarity, expectedTruePositive);
         }
 
-        BooleanQuery builder = new BooleanQuery();
-        BooleanQuery childBuilder = new BooleanQuery();
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        BooleanQuery.Builder childBuilder = new BooleanQuery.Builder();
         int rowInBand = 0;
         for (BytesRef minHash : minhashes) {
             TermQuery tq = new TermQuery(new Term(field, minHash));
@@ -201,22 +219,22 @@ public class SimSearchUtils {
                 childBuilder.add(new ConstantScoreQuery(tq), BooleanClause.Occur.MUST);
                 rowInBand++;
                 if (rowInBand == bandSize) {
-                    builder.add(new ConstantScoreQuery(childBuilder),
-                            BooleanClause.Occur.SHOULD);
-                    childBuilder = new BooleanQuery();
+                    builder.add(new ConstantScoreQuery(childBuilder.build()),
+                        BooleanClause.Occur.SHOULD);
+                    childBuilder = new BooleanQuery.Builder();
                     rowInBand = 0;
                 }
             }
         }
-        // Avoid a dubious narrow band, wrap around and pad with the start
-        if (childBuilder.clauses().size() > 0) {
+        // Avoid a dubious narrow-band, wrap around and pad with the start
+        if (childBuilder.build().clauses().size() > 0) {
             for (BytesRef token : minhashes) {
                 TermQuery tq = new TermQuery(new Term(field, token.toString()));
                 childBuilder.add(new ConstantScoreQuery(tq), BooleanClause.Occur.MUST);
                 rowInBand++;
                 if (rowInBand == bandSize) {
-                    builder.add(new ConstantScoreQuery(childBuilder),
-                            BooleanClause.Occur.SHOULD);
+                    builder.add(new ConstantScoreQuery(childBuilder.build()),
+                        BooleanClause.Occur.SHOULD);
                     break;
                 }
             }
@@ -225,9 +243,12 @@ public class SimSearchUtils {
         if (expectedTruePositive >= 1.0 && similarity < 1) {
             builder.setMinimumNumberShouldMatch((int) (Math.ceil(minhashes.size() * similarity)));
         }
-        log.trace("similarity query with bands : {}, minShouldMatch : {}, no. of clauses : {}", bandSize,
-                builder.getMinimumNumberShouldMatch(), builder.clauses().size());
-        return builder;
+
+        BooleanQuery finalBuilder = builder.build();
+        log.trace("similarity query with bands : {}, minShouldMatch : {}, no. of clauses : {}",
+            bandSize,
+            finalBuilder.getMinimumNumberShouldMatch(), finalBuilder.clauses().size());
+        return finalBuilder;
 
     }
 
@@ -254,9 +275,10 @@ public class SimSearchUtils {
             BytesRef binaryValue = indexSearcher.doc(inputDoc.doc).getBinaryValue(fieldName);
             if (binaryValue != null) {
                 double[] inputVector = toDoubleArray(binaryValue.bytes);
+                StoredFields storedFields = indexSearcher.storedFields();
                 for (int j = 0; j < docs.scoreDocs.length; j++) {
-                    BytesRef featureVectorBinary = indexSearcher.doc(docs.scoreDocs[j].doc)
-                            .getBinaryValue(fieldName);
+                    BytesRef featureVectorBinary = storedFields.document(docs.scoreDocs[j].doc)
+                                                               .getBinaryValue(fieldName);
                     if (featureVectorBinary != null) {
                         double[] currentVector = toDoubleArray(featureVectorBinary.bytes);
                         double distance = dist(inputVector, currentVector) + 1e-10; // constant term to avoid division by zero
@@ -290,10 +312,6 @@ public class SimSearchUtils {
         // retain only the top k nearest neighbours
         if (docs.scoreDocs.length > k) {
             docs.scoreDocs = Arrays.copyOfRange(docs.scoreDocs, 0, k);
-        }
-
-        if (docs.scoreDocs.length > 0) {
-            docs.setMaxScore(docs.scoreDocs[0].score);
         }
     }
 

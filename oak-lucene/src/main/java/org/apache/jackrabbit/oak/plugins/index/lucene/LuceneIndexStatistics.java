@@ -17,14 +17,15 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
-import org.apache.lucene.index.Fields;
+import org.apache.lucene.index.FieldInfos;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.MultiFields;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,32 +57,30 @@ public class LuceneIndexStatistics implements IndexStatistics {
 
         Map<String, Integer> numDocsForField = Maps.newHashMap();
 
-        Fields fields = null;
+        Collection<String> fields = new ArrayList<>();
         try {
             if (failReadingFields) {
                 throw new IOException("Synthetically fail to read fields");
             }
-            fields = MultiFields.getFields(reader);
+            fields = FieldInfos.getIndexedFields(reader);
         } catch (IOException e) {
             LOG.warn("Couldn't open fields for reader ({}). Won't extract doc count per field", reader);
             numDocsForField = null;
         }
 
-
-        if (fields != null) {
-            for(String f : fields) {
-                if (isPropertyField(f)) {
-                    int docCntForField = -1;
-                    try {
-                        if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {
-                            throw new IOException("Synthetically fail to read count for field jcr:title");
-                        }
-                        docCntForField = reader.getDocCount(f);
-                    } catch (IOException e) {
-                        LOG.warn("Couldn't read doc count for field {} via reader ({}).");
+        
+        for(String f : fields) {
+            if (isPropertyField(f)) {
+                int docCntForField = -1;
+                try {
+                    if (failReadingSyntheticallyFalliableField && SYNTHETICALLY_FALLIABLE_FIELD.equals(f)) {
+                        throw new IOException("Synthetically fail to read count for field jcr:title");
                     }
-                    numDocsForField.put(f, docCntForField);
+                    docCntForField = reader.getDocCount(f);
+                } catch (IOException e) {
+                    LOG.warn("Couldn't read doc count for field {} via reader ({}).");
                 }
+                numDocsForField.put(f, docCntForField);
             }
         }
 
