@@ -16,32 +16,36 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
+import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.stats.Clock;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.function.Consumer;
+
 import static java.util.concurrent.TimeUnit.HOURS;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.build;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.mergedBranchCommit;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.unmergedBranchCommit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.function.Consumer;
-
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
-import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.Clock;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
 
 public class BranchCommitGCTest {
 
@@ -72,28 +76,6 @@ public class BranchCommitGCTest {
         Revision.resetClockToDefault();
     }
 
-    private void assertNoEmptyProperties() {
-        for (NodeDocument nd : Utils.getAllDocuments(store.getDocumentStore())) {
-            for (Entry<String, Object> e : nd.data.entrySet()) {
-                Object v = e.getValue();
-                if (v instanceof Map) {
-                    @SuppressWarnings("rawtypes")
-                    Map m = (Map) v;
-                    if (m.isEmpty()
-                            && (e.getKey().equals("_commitRoot")
-                                    || e.getKey().equals("_collisions"))
-                            && nd.getId().equals("0:/")) {
-                        // skip : root document apparently has an empty _commitRoot:{}
-                        continue;
-                    }
-                    assertFalse("document has empty property : id=" + nd.getId()
-                            + ", property=" + e.getKey() + ", document=" + nd.asString(),
-                            m.isEmpty());
-                }
-            }
-        }
-    }
-
     @Test
     public void unmergedAddChildren() throws Exception {
         RevisionVector br = unmergedBranchCommit(b -> {
@@ -102,10 +84,8 @@ public class BranchCommitGCTest {
         });
         assertExists("1:/a");
         assertExists("1:/b");
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
 
         store.runBackgroundOperations();
 
@@ -115,20 +95,20 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertEquals(3, stats.updatedDetailedGCDocsCount);
+        assertEquals(1, stats.deletedUnmergedBCCount);
 
-        assertTrue(
-                store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
-        assertTrue(
-                store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
+        assertTrue(store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
+        assertTrue(store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
 
         // now do another gc to get those documents actually deleted
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(2, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
         assertNotExists("1:/a");
         assertNotExists("1:/b");
-        assertBranchRevisionRemovedFromAllDocuments(br);
+        assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
     @Test
@@ -139,10 +119,8 @@ public class BranchCommitGCTest {
         });
         assertExists("1:/a");
         assertExists("1:/b");
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
 
         store.runBackgroundOperations();
 
@@ -165,11 +143,10 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        assertTrue(
-                "stats.updatedDetailedGCDocsCount expected 1 or less, was: "
-                        + stats.updatedDetailedGCDocsCount,
+        assertTrue("stats.updatedDetailedGCDocsCount expected 1 or less, was: " + stats.updatedDetailedGCDocsCount,
                 stats.updatedDetailedGCDocsCount <= 1);
         assertEquals(2, stats.deletedDocGCCount);
+        assertEquals(1, stats.deletedUnmergedBCCount);
 
         assertNotExists("1:/a");
         assertNotExists("1:/b");
@@ -178,7 +155,50 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
-        assertBranchRevisionRemovedFromAllDocuments(br);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br);
+    }
+
+    @Test
+    public void testDeletedPropsAndUnmergedBC() throws Exception {
+        // create a node with property.
+        NodeBuilder nb = store.getRoot().builder();
+        nb.child("bar").setProperty("prop", "value");
+        nb.child("bar").setProperty("x", "y");
+        store.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        // remove the property
+        nb = store.getRoot().builder();
+        nb.child("bar").removeProperty("prop");
+        store.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+
+        // create branch commits
+        mergedBranchCommit(b -> b.child("foo").setProperty("p", "prop"));
+        RevisionVector br1 = unmergedBranchCommit(b -> b.child("foo").setProperty("a", "b"));
+        RevisionVector br2 = unmergedBranchCommit(b -> b.child("foo").setProperty("a", "c"));
+        RevisionVector br3 = unmergedBranchCommit(b -> b.child("foo").setProperty("a", "d"));
+        RevisionVector br4 = unmergedBranchCommit(b -> b.child("bar").setProperty("x", "z"));
+        mergedBranchCommit(b -> b.child("foo").removeProperty("p"));
+        store.runBackgroundOperations();
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
+
+        assertEquals(3, stats.updatedDetailedGCDocsCount);
+        // deleted properties are : 1:/foo -> prop, a, _collisions & p && 1:/bar -> _bc
+        assertEquals(5, stats.deletedPropsCount);
+        assertEquals(4, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br1);
+        assertBranchRevisionRemovedFromAllDocuments(store, br2);
+        assertBranchRevisionRemovedFromAllDocuments(store, br3);
+        assertBranchRevisionRemovedFromAllDocuments(store, br4);
     }
 
     @Test
@@ -193,27 +213,24 @@ public class BranchCommitGCTest {
         });
         assertExists("1:/a");
         assertExists("1:/b");
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
 
         store.runBackgroundOperations();
 
-        Long originalModified = store.getDocumentStore().find(Collection.NODES, "1:/a")
-                .getModified();
+        Long originalModified = store.getDocumentStore().find(Collection.NODES, "1:/a").getModified();
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        Long laterModified = store.getDocumentStore().find(Collection.NODES, "1:/a")
-                .getModified();
+        Long laterModified = store.getDocumentStore().find(Collection.NODES, "1:/a").getModified();
         assertNotEquals(originalModified, laterModified);
 
         assertEquals(3, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(2, stats.deletedUnmergedBCCount);
 
         assertExists("1:/a");
         assertExists("1:/b");
@@ -223,8 +240,9 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(2, stats.deletedDocGCCount);
-        assertBranchRevisionRemovedFromAllDocuments(br1);
-        assertBranchRevisionRemovedFromAllDocuments(br2);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br1);
+        assertBranchRevisionRemovedFromAllDocuments(store, br2);
     }
 
     @Test
@@ -239,10 +257,8 @@ public class BranchCommitGCTest {
         });
         assertExists("1:/a");
         assertExists("1:/b");
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
 
         store.runBackgroundOperations();
 
@@ -255,12 +271,13 @@ public class BranchCommitGCTest {
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hours
+        // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertTrue("should have been 2 or more, was: " + stats.updatedDetailedGCDocsCount,
                 stats.updatedDetailedGCDocsCount >= 2);
         assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(2, stats.deletedUnmergedBCCount);
 
         assertExists("1:/a");
         assertExists("1:/b");
@@ -270,8 +287,9 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
-        assertBranchRevisionRemovedFromAllDocuments(br1);
-        assertBranchRevisionRemovedFromAllDocuments(br2);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br1);
+        assertBranchRevisionRemovedFromAllDocuments(store, br2);
     }
 
     @Test
@@ -286,10 +304,8 @@ public class BranchCommitGCTest {
         });
         assertExists("1:/a");
         assertExists("1:/b");
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
-        assertFalse(
-                store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
+        assertFalse(store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
 
         store.runBackgroundOperations();
 
@@ -318,6 +334,7 @@ public class BranchCommitGCTest {
 
         assertEquals(3, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(4, stats.deletedUnmergedBCCount);
 
         assertExists("1:/a");
         assertExists("1:/b");
@@ -327,20 +344,11 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
-        assertBranchRevisionRemovedFromAllDocuments(br1);
-        assertBranchRevisionRemovedFromAllDocuments(br2);
-        assertBranchRevisionRemovedFromAllDocuments(br3);
-        assertBranchRevisionRemovedFromAllDocuments(br4);
-    }
-
-    private void assertNotExists(String id) {
-        NodeDocument doc = store.getDocumentStore().find(Collection.NODES, id);
-        assertNull("doc exists but was expected not to : id=" + id, doc);
-    }
-
-    private void assertExists(String id) {
-        NodeDocument doc = store.getDocumentStore().find(Collection.NODES, id);
-        assertNotNull("doc does not exist : id=" + id, doc);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br1);
+        assertBranchRevisionRemovedFromAllDocuments(store, br2);
+        assertBranchRevisionRemovedFromAllDocuments(store, br3);
+        assertBranchRevisionRemovedFromAllDocuments(store, br4);
     }
 
     @Test
@@ -351,18 +359,19 @@ public class BranchCommitGCTest {
         });
         RevisionVector br = unmergedBranchCommit(b -> {
             b.child("test").remove();
-            b.getChildNode("foo").child("childfoo");
+            b.getChildNode("foo").child("childFoo");
         });
         store.runBackgroundOperations();
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hours
+        // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         // first gc round will only mark document for deleting by second round
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(4, stats.updatedDetailedGCDocsCount);
+        assertEquals(1, stats.deletedUnmergedBCCount);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -370,25 +379,8 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(1, stats.deletedDocGCCount);
-        assertBranchRevisionRemovedFromAllDocuments(br);
-    }
-
-    private void assertBranchRevisionRemovedFromAllDocuments(RevisionVector br) {
-        assertTrue(br.isBranch());
-        Revision br1 = br.getRevision(1);
-        Revision r1 = br1.asTrunkRevision();
-        for (NodeDocument nd : Utils.getAllDocuments(store.getDocumentStore())) {
-            if (nd.getId().equals("0:/")) {
-                NodeDocument target = new NodeDocument(store.getDocumentStore());
-                nd.deepCopy(target);
-            }
-            System.out.println("nd=" + nd.asString());
-            if (nd.asString().contains(r1.toString())) {
-                System.out.println("break");
-            }
-            assertFalse("document not fully cleaned up: " + nd.asString(),
-                    nd.asString().contains(r1.toString()));
-        }
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
     @Test
@@ -406,27 +398,30 @@ public class BranchCommitGCTest {
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hours
+        // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertBranchRevisionRemovedFromAllDocuments(br);
+        assertEquals(0, stats.deletedPropsCount);
+        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
     @Test
     public void unmergedAddProperty() throws Exception {
         mergedBranchCommit(b -> b.child("foo"));
-        RevisionVector br = unmergedBranchCommit(
-                b -> b.child("foo").setProperty("a", "b"));
+        RevisionVector br = unmergedBranchCommit(b -> b.child("foo").setProperty("a", "b"));
         store.runBackgroundOperations();
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hours
+        // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertBranchRevisionRemovedFromAllDocuments(br);
+        assertEquals(1, stats.deletedPropsCount);
+        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
     @Test
@@ -439,6 +434,7 @@ public class BranchCommitGCTest {
         store.runBackgroundOperations();
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
 
         final List<RevisionVector> brs = new LinkedList<>();
         for (int j = 0; j < 10; j++) {
@@ -451,10 +447,11 @@ public class BranchCommitGCTest {
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hours
+        // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
+        assertEquals(10, stats.deletedUnmergedBCCount);
 
         doc = store.getDocumentStore().find(Collection.NODES, "1:/foo");
         Long finalModified = doc.getModified();
@@ -462,7 +459,7 @@ public class BranchCommitGCTest {
         assertEquals(originalModified, finalModified);
 
         for (RevisionVector br : brs) {
-            assertBranchRevisionRemovedFromAllDocuments(br);
+            assertBranchRevisionRemovedFromAllDocuments(store, br);
         }
     }
 
@@ -476,6 +473,7 @@ public class BranchCommitGCTest {
         store.runBackgroundOperations();
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
 
         for (int i = 0; i < 50; i++) {
             mergedBranchCommit(b -> b.child("foo").remove());
@@ -489,12 +487,13 @@ public class BranchCommitGCTest {
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hours
+        // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
+        assertEquals(10, stats.deletedUnmergedBCCount);
         for (RevisionVector br : brs) {
-            assertBranchRevisionRemovedFromAllDocuments(br);
+            assertBranchRevisionRemovedFromAllDocuments(store, br);
         }
     }
 
@@ -507,6 +506,8 @@ public class BranchCommitGCTest {
         store.runBackgroundOperations();
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropsCount);
 
         RevisionVector br = unmergedBranchCommit(b -> {
             b.setProperty("rootProp", "v");
@@ -514,19 +515,25 @@ public class BranchCommitGCTest {
         });
         store.runBackgroundOperations();
         DocumentNodeStore store2 = newStore(2);
-        mergedBranchCommit(store2, b -> b.child("foo").removeProperty("a"));
+        DetailGCHelper.mergedBranchCommit(store2, b -> b.child("foo").removeProperty("a"));
         store2.runBackgroundOperations();
         store2.dispose();
         store.runBackgroundOperations();
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hours
+        // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertBranchRevisionRemovedFromAllDocuments(br);
+        assertEquals(1, stats.deletedUnmergedBCCount);
+        // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
+        assertEquals(3, stats.deletedPropsCount);
+        assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
+
+
+    // helper methods
 
     private DocumentNodeStore newStore(int clusterId) {
         Builder builder = builderProvider.newBuilder().clock(clock)
@@ -535,50 +542,46 @@ public class BranchCommitGCTest {
         if (clusterId > 0) {
             builder.setClusterId(clusterId);
         }
-        DocumentNodeStore store2 = builder.getNodeStore();
-        return store2;
+        return builder.getNodeStore();
     }
 
-    private RevisionVector mergedBranchCommit(Consumer<NodeBuilder> buildFunction)
-            throws Exception {
+    private RevisionVector mergedBranchCommit(Consumer<NodeBuilder> buildFunction) throws Exception {
         return build(store, true, true, buildFunction);
     }
 
-    private RevisionVector mergedBranchCommit(NodeStore store,
-            Consumer<NodeBuilder> buildFunction) throws Exception {
-        return build(store, true, true, buildFunction);
-    }
-
-    private RevisionVector unmergedBranchCommit(Consumer<NodeBuilder> buildFunction)
-            throws Exception {
+    private RevisionVector unmergedBranchCommit(Consumer<NodeBuilder> buildFunction) throws Exception {
         RevisionVector result = build(store, true, false, buildFunction);
         assertTrue(result.isBranch());
         return result;
     }
 
-    private RevisionVector build(NodeStore store, boolean persistToBranch, boolean merge,
-            Consumer<NodeBuilder> buildFunction) throws Exception {
-        if (!persistToBranch && !merge) {
-            throw new IllegalArgumentException("must either persistToBranch or merge");
-        }
-        NodeBuilder b = store.getRoot().builder();
-        buildFunction.accept(b);
-        RevisionVector result = null;
-        if (persistToBranch) {
-            DocumentRootBuilder drb = (DocumentRootBuilder) b;
-            drb.persist();
-            DocumentNodeState ns = (DocumentNodeState) drb.getNodeState();
-            result = ns.getLastRevision();
-        }
-        if (merge) {
-            DocumentNodeState dns = (DocumentNodeState) merge(b);
-            result = dns.getLastRevision();
-        }
-        return result;
+    private void assertNotExists(String id) {
+        NodeDocument doc = store.getDocumentStore().find(Collection.NODES, id);
+        assertNull("doc exists but was expected not to : id=" + id, doc);
     }
 
-    private NodeState merge(NodeBuilder builder) throws Exception {
-        return store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    private void assertExists(String id) {
+        NodeDocument doc = store.getDocumentStore().find(Collection.NODES, id);
+        assertNotNull("doc does not exist : id=" + id, doc);
+    }
+
+    private void assertNoEmptyProperties() {
+        for (NodeDocument nd : Utils.getAllDocuments(store.getDocumentStore())) {
+            for (Entry<String, Object> e : nd.data.entrySet()) {
+                Object v = e.getValue();
+                if (v instanceof Map) {
+                    @SuppressWarnings("rawtypes")
+                    Map m = (Map) v;
+                    if (m.isEmpty() && (e.getKey().equals("_commitRoot") || e.getKey().equals("_collisions"))
+                            && Objects.equals(nd.getId(), "0:/")) {
+                        // skip : root document apparently has an empty _commitRoot:{}
+                        continue;
+                    }
+                    assertFalse("document has empty property : id=" + nd.getId() +
+                            ", property=" + e.getKey() + ", document=" + nd.asString(), m.isEmpty());
+                }
+            }
+        }
     }
 
 }
