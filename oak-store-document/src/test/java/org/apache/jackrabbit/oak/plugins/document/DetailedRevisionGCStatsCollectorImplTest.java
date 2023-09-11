@@ -40,6 +40,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStats
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_UNMERGED_BC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COUNTER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_UNMERGED_BC;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETE_DETAILED_GC_DOCS_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DETAILED_GC;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DETAILED_GC_ACTIVE_TIMER;
@@ -78,7 +79,7 @@ public class DetailedRevisionGCStatsCollectorImplTest {
     public void getDocumentsSkippedUpdationCount() throws IllegalAccessException {
         Meter m = getMeter(SKIPPED_DOC);
         long count = m.getCount();
-        stats.documentsSkippedUpdation(17);
+        stats.documentsUpdateSkipped(17);
         assertEquals(count + 17, m.getCount());
         assertEquals(count + 17, ((MeterStats) readField(stats, "skippedDoc", true)).getCount());
     }
@@ -90,6 +91,15 @@ public class DetailedRevisionGCStatsCollectorImplTest {
         stats.propertiesDeleted(10);
         assertEquals(count + 10, m.getCount());
         assertEquals(count + 10, ((MeterStats) readField(stats, "deletedProperty", true)).getCount());
+    }
+
+    @Test
+    public void getUnmergedBCDeletedCount() throws IllegalAccessException {
+        Meter m = getMeter(DELETED_UNMERGED_BC);
+        long count = m.getCount();
+        stats.unmergedBranchCommitsDeleted(10);
+        assertEquals(count + 10, m.getCount());
+        assertEquals(count + 10, ((MeterStats) readField(stats, "deletedUnmergedBC", true)).getCount());
     }
 
     @Test
