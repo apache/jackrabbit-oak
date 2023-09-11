@@ -36,6 +36,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     static final String DETAILED_GC = "DetailedGC";
     static final String READ_DOC = "READ_DOC";
     static final String DELETED_PROPERTY = "DELETED_PROPERTY";
+    static final String DELETED_UNMERGED_BC = "DELETED_UNMERGED_BC";
     static final String UPDATED_DOC = "UPDATED_DOC";
     static final String SKIPPED_DOC = "SKIPPED_DOC";
     static final String DETAILED_GC_ACTIVE_TIMER = "DETAILED_GC_ACTIVE_TIMER";
@@ -51,6 +52,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
 
     private final MeterStats readDoc;
     private final MeterStats deletedProperty;
+    private final MeterStats deletedUnmergedBC;
     private final MeterStats updatedDoc;
     private final MeterStats skippedDoc;
     private final TimerStats detailedGCActiveTimer;
@@ -68,6 +70,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
 
         readDoc = meter(provider, READ_DOC);
         deletedProperty = meter(provider, DELETED_PROPERTY);
+        deletedUnmergedBC = meter(provider, DELETED_UNMERGED_BC);
         updatedDoc = meter(provider, UPDATED_DOC);
         skippedDoc = meter(provider, SKIPPED_DOC);
 
@@ -96,12 +99,17 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     }
 
     @Override
+    public void unmergedBranchCommitsDeleted(long numCommits) {
+        deletedUnmergedBC.mark(numCommits);
+    }
+
+    @Override
     public void documentsUpdated(long numDocs) {
         updatedDoc.mark(numDocs);
     }
 
     @Override
-    public void documentsSkippedUpdation(long numDocs) {
+    public void documentsUpdateSkipped(long numDocs) {
         skippedDoc.mark(numDocs);
     }
 

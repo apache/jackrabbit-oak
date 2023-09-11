@@ -26,15 +26,44 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
  */
 public interface DetailedRevisionGCStatsCollector {
 
+    /**
+     * Total No. of documents read during DetailedGC phase
+     */
     void documentRead();
 
+    /**
+     * No. of properties deleted during DetailedGC
+     * @param numProps no. of properties deleted in current cycle
+     */
     void propertiesDeleted(long numProps);
 
+    /**
+     * No. of unmerged (unique) branch commits deleted during DetailedGC
+     * @param numCommits no. of unmerged branch commits deleted in current cycle
+     */
+    void unmergedBranchCommitsDeleted(long numCommits);
+
+    /**
+     * No. of documents updated (i.e. have garbage removed) during DetailedGC
+     * @param numDocs no. of documents updated in current cycle
+     */
     void documentsUpdated(long numDocs);
 
-    void documentsSkippedUpdation(long numDocs);
+    /**
+     * No. of documents which had skipped update (i.e. have been updated between garbage collection & removal)
+     * during DetailedGC
+     * @param numDocs No. of documents which had skipped update in current cycle
+     */
+    void documentsUpdateSkipped(long numDocs);
 
+    /**
+     * No. of times the DetailedGC has started
+     */
     void started();
 
+    /**
+     * Timer for different phases in DetailedGC
+     * @param stats {@link VersionGCStats} containing DetailedGC phases timer
+     */
     void finished(VersionGCStats stats);
 }
