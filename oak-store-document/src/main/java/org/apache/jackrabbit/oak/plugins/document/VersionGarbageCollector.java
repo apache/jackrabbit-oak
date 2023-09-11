@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.document;
 
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
