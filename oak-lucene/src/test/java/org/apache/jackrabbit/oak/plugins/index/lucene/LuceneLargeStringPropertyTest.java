@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
+import org.apache.lucene.util.BytesRef;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,6 +57,7 @@ import org.slf4j.event.Level;
 import java.io.File;
 import java.io.IOException;
 import java.text.MessageFormat;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -66,6 +68,7 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NODE_TYPE;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneDocumentMaker.getTruncatedBytesRef;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_NODE;
 import static org.junit.Assert.assertTrue;
 
@@ -212,19 +215,112 @@ public class LuceneLargeStringPropertyTest extends AbstractQueryTest {
         test.addChild("a").setProperty("propa", aVal);
         test.addChild("b").setProperty("propa", bVal);
         root.commit();
-
-        boolean truncationLogPresent = false;
-        String failureLog = MessageFormat.format("Truncating property :dv{0} having length {1,number,#} at path:[{2}] as it is > {3,number,#}",
-                "propa", aVal.length(), "/test/a", LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
-        for (String log : customizer.getLogs()) {
-            if (log.equals(failureLog)) {
-                truncationLogPresent = true;
-                break;
-            }
-        }
-        assertTrue(truncationLogPresent);
+        assertTruncation("propa", aVal, "/test/a", customizer);
         // order of result should be first b and then a i.e. sorted on propa
         assertQuery("select [jcr:path] from [nt:base] where contains(@propa, 'abcd') order by propa", asList("/test/b", "/test/a"));
     }
 
+    /**
+     * Tests the truncation of large Unicode strings during indexing.
+     *
+     * <p>This test creates an index on the {@code propa} property and then adds two nodes with large 
+     * values for this property. The first node's {@code propa} property contains a large string 
+     * with some unicode characters at the start. 
+     * The second node's {@code propa} property contains a large string that ends 
+     * with the Unicode character {@code "\uD800\uDF48"} in Java and takes up 4 bytes in UTF-8.
+     *
+     * <p>After committing the changes, the test asserts that the truncation was performed correctly 
+     * for both nodes. Also verifies that a query ordering the nodes by the {@code propa} property 
+     * returns the nodes in the correct order.
+     *
+     * @throws Exception if any error occurs during the test
+     */
+    @Test
+    public void truncateLargeUnicodeString() throws Exception {
+        Tree idx = createIndex("test1", of("propa"));
+        Tree tr = idx.addChild(PROP_NODE).addChild("propa");
+        tr.setProperty("ordered", true, Type.BOOLEAN); // in case of ordered throws error that it can't index node
+        tr.setProperty("analyzed", true, Type.BOOLEAN);
+        idx.addChild(PROP_NODE).addChild("propa");
+        root.commit();
+
+        Tree test = root.getTree("/").addChild("test");
+        int length = LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH;
+        String generatedString = RandomStringUtils.random(length, true, true);
+        
+        // Large String with unicode characters which makes the length longer than the max length
+        String aVal ="abcd Mình nói tiếng Việt" + generatedString.substring(0, length);
+        
+        // Large String which ends with the unicode char `𐍈` represented by "\uD800\uDF48".
+        //This char is represented by 4 bytes in UTF-8 but only with 2 bytes in Java. The truncation will
+        // truncate the string `..xyz𐍈` to `..xyz`.
+        String bVal = "abcd " + generatedString.substring(0, length - 6) + "\uD800\uDF48";
+
+        test.addChild("a").setProperty("propa", aVal);
+        test.addChild("b").setProperty("propa", bVal);
+        root.commit();
+
+        assertTruncation("propa", aVal, "/test/a", customizer);
+        assertExtendedTruncation("propa", aVal, "/test/a", customizer);
+        assertTruncation("propa", bVal, "/test/b", customizer);
+        assertExtendedTruncation("propa", bVal, "/test/b", customizer);
+        // order of result should be first b and then a i.e. sorted on propa
+        assertQuery("select [jcr:path] from [nt:base] where contains(@propa, 'abcd') order by propa", asList("/test/b", "/test/a"));
+    }
+
+    @Test
+    public void randomStringTruncation() {
+        Random r = new Random(1);
+        for (int i = 0; i < 100; i++) {
+            String x = randomUnicodeString(r, 5);
+            BytesRef ref = getTruncatedBytesRef("x", x, "/x", 5);
+            assertTrue(ref.length > 0 && ref.length <= 5);
+            //assert valid string
+            assertTrue(x.startsWith(ref.utf8ToString()));
+        }
+    }
+
+    private String randomUnicodeString(Random r, int len) {
+        StringBuilder buff = new StringBuilder();
+        for(int i=0; i<len; i++) {
+            // see https://en.wikipedia.org/wiki/UTF-8
+            switch (r.nextInt(6)) {
+                case 2:
+                    // 2 UTF-8 bytes
+                    buff.append('£');
+                    break;
+                case 3:
+                    // 3 UTF-8 bytes
+                    buff.append('€');
+                    break;
+                case 4:
+                    // 4 UTF-8 bytes
+                    buff.append("\uD800\uDF48");
+                    break;
+                default:
+                    // most cases:
+                    // 1 UTF-8 byte (ASCII)
+                    buff.append('$');
+            }
+        }
+        return buff.toString();
+    }
+    
+    private static boolean assertTruncation(String prop, String val, String path, LogCustomizer customizer) {
+        String errorMsg = "Truncating property :dv{0} having length {1,number,#} at path:[{2}] as it is > {3,number,#}";
+        String failureLog = MessageFormat.format(errorMsg,
+            prop, val.length(), path, LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
+        
+        return customizer.getLogs().contains(failureLog);
+    }
+
+    private static boolean assertExtendedTruncation(String prop, String val, String path, LogCustomizer customizer) {
+        String errorMsg = "Further truncating property :dv{0} at path:[{1}] as length after encoding {2,number,#} > " 
+            + "{3,number,#}";
+        BytesRef bytesRef = new BytesRef(val.substring(0, LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH));
+        String failureLog = MessageFormat.format(errorMsg,
+            prop, path, bytesRef.length, LuceneDocumentMaker.STRING_PROPERTY_MAX_LENGTH);
+
+        return customizer.getLogs().contains(failureLog);
+    }
 }
