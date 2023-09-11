@@ -57,7 +57,6 @@ import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDe
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGCDryRun;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.mergedBranchCommit;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.unmergedBranchCommit;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
