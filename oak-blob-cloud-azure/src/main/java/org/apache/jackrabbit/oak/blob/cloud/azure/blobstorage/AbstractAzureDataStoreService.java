@@ -19,10 +19,12 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import org.osgi.service.component.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -36,6 +38,12 @@ public abstract class AbstractAzureDataStoreService extends AbstractDataStoreSer
     private static final String DESCRIPTION = "oak.datastore.description";
 
     private ServiceRegistration delegateReg;
+
+    // OAK-6759: we redeclare "statisticsProvider" (from
+    // AbstractDataStoreService) so that we do not gave to rely on annotation
+    // inheritance
+    @Reference
+    private StatisticsProvider statisticsProvider;
 
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
