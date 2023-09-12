@@ -65,6 +65,7 @@
               !org.apache.lucene.search.suggest.document.*,
               !jakarta.json.bind.*,
               !com.carrotsearch.randomizedtesting.*,
+              !org.yaml.snakeyaml.*,
               *
             </Import-Package>
             <Embed-Dependency>
