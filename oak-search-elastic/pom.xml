@@ -33,8 +33,8 @@
   <description>Oak Elasticsearch integration subproject</description>
 
   <properties>
-    <elasticsearch.hlrc.version>7.17.9</elasticsearch.hlrc.version>
-    <elasticsearch.java.client.version>8.7.0</elasticsearch.java.client.version>
+    <elasticsearch.hlrc.version>7.17.13</elasticsearch.hlrc.version>
+    <elasticsearch.java.client.version>8.7.1</elasticsearch.java.client.version>
   </properties>
 
   <build>
@@ -193,6 +193,17 @@
         <exclusion>
           <groupId>org.apache.lucene</groupId>
           <artifactId>lucene-suggest</artifactId>
+        </exclusion>
+        <!--
+          elasticsearch-xcontent depends on snakeyaml 1.33 which is vulnerable to remote code execution
+          (https://nvd.nist.gov/vuln/detail/CVE-2022-1471)
+          elasticsearch-xcontent is used in this module but only with the json parser which does not use snakeyaml
+          so we can safely exclude it.
+          This exclusion, like the others above, can be removed once we will remove the elasticsearch high level rest client
+        -->
+        <exclusion>
+          <groupId>org.yaml</groupId>
+          <artifactId>snakeyaml</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
