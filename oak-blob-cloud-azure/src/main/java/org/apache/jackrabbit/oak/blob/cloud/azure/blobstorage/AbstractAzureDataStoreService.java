@@ -39,9 +39,6 @@ public abstract class AbstractAzureDataStoreService extends AbstractDataStoreSer
 
     private ServiceRegistration delegateReg;
 
-    // OAK-6759: we redeclare "statisticsProvider" (from
-    // AbstractDataStoreService) so that we do not gave to rely on annotation
-    // inheritance
     @Reference
     private StatisticsProvider statisticsProvider;
 
@@ -71,6 +68,14 @@ public abstract class AbstractAzureDataStoreService extends AbstractDataStoreSer
             delegateReg.unregister();
         }
         super.deactivate();
+    }
+
+    protected StatisticsProvider getStatisticsProvider(){
+        return statisticsProvider;
+    }
+
+    protected void setStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
     }
 
     @Override
