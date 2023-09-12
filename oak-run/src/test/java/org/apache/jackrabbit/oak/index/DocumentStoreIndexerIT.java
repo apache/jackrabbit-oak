@@ -102,7 +102,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
 
 public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
-    private final Logger LOG = LoggerFactory.getLogger(getClass());
+    private static final Logger LOG = LoggerFactory.getLogger(DocumentStoreIndexerIT.class);
 
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
@@ -262,10 +262,45 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
 
         //Lock should also be released
         ClusterNodeStoreLock clusterLock = new ClusterNodeStoreLock(fixture3.getNodeStore());
-        assertFalse(clusterLock.isLocked("async"));
+
+        assertEventually(() -> {
+            assertFalse(clusterLock.isLocked("async"));
+        }, 200);
         
         fixture3.close();
         dns.dispose();
+    }
+
+    public static void assertEventually(Runnable r, long timeoutMillis) {
+        final long start = System.currentTimeMillis();
+        long lastAttempt = 0;
+        int attempts = 0;
+
+        while (true) {
+            try {
+                attempts++;
+                LOG.info("assertEventually attempt count:{}", attempts);
+                lastAttempt = System.currentTimeMillis();
+                r.run();
+                return;
+            } catch (Throwable e) {
+                long elapsedTime = lastAttempt - start;
+                LOG.trace("assertEventually attempt {} failed because of {}", attempts, e.getMessage());
+                if (elapsedTime >= timeoutMillis) {
+                    String msg = String.format("Condition not satisfied after %1.2f seconds and %d attempts",
+                            elapsedTime / 1000d, attempts);
+                    LOG.error(msg, attempts, e.getMessage());
+                    throw new AssertionError(msg, e);
+                }
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ex) {
+                    LOG.error("Thread interrupted", ex);
+                    throw new AssertionError("Thread interrupted", e);
+                }
+
+            }
+        }
     }
 
     private int getFooCount(IndexRepositoryFixture fixture, String propName) throws IOException, RepositoryException {
