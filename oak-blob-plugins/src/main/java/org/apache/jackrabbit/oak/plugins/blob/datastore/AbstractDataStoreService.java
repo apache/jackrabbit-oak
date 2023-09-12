@@ -30,6 +30,8 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Maps;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.api.blob.BlobAccessProvider;
@@ -51,6 +53,7 @@ import org.osgi.service.component.ComponentContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Component(componentAbstract = true)
 public abstract class AbstractDataStoreService {
     private static final String PROP_HOME = "repository.home";
     private static final String PATH = "path";
@@ -63,6 +66,9 @@ public abstract class AbstractDataStoreService {
     private Registration mbeanReg;
 
     private Logger log = LoggerFactory.getLogger(getClass());
+
+    @Reference
+    private StatisticsProvider statisticsProvider;
 
     private DataStoreBlobStore dataStore;
 
@@ -118,12 +124,16 @@ public abstract class AbstractDataStoreService {
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
 
-    protected abstract StatisticsProvider getStatisticsProvider();
-
-    protected abstract void setStatisticsProvider(StatisticsProvider statisticsProvider);
+    protected StatisticsProvider getStatisticsProvider(){
+        return statisticsProvider;
+    }
 
     protected String[] getDescription(){
         return new String[] {"type=unknown"};
+    }
+
+    void setStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
     }
 
     protected static String lookup(ComponentContext context, String property) {

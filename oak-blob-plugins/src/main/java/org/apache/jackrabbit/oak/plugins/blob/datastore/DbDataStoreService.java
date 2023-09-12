@@ -27,7 +27,6 @@ import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.db.DbDataStore;
 import org.apache.jackrabbit.core.util.db.ConnectionFactory;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.service.component.ComponentContext;
 
 @Component(policy = ConfigurationPolicy.REQUIRE, name = DbDataStoreService.NAME)
@@ -36,17 +35,6 @@ public class DbDataStoreService extends AbstractDataStoreService{
 
     @Reference
     private ConnectionFactory connectionFactory;
-
-    @Reference
-    private StatisticsProvider statisticsProvider;
-
-    protected StatisticsProvider getStatisticsProvider(){
-        return statisticsProvider;
-    }
-
-    protected void setStatisticsProvider(StatisticsProvider statisticsProvider) {
-        this.statisticsProvider = statisticsProvider;
-    }
 
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
