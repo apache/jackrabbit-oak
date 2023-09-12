@@ -19,10 +19,24 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
 
 @Component(configurationPolicy = ConfigurationPolicy.REQUIRE, name = AzureDataStoreService.NAME)
 public class AzureDataStoreService extends AbstractAzureDataStoreService {
+
+    @Reference
+    private StatisticsProvider statisticsProvider;
+
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.AzureDataStore";
+
+    protected StatisticsProvider getStatisticsProvider(){
+        return statisticsProvider;
+    }
+
+    protected void setStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
+    }
 }
