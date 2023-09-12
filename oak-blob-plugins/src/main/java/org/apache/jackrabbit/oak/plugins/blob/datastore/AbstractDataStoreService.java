@@ -25,6 +25,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
+import java.util.Objects;
 
 import javax.jcr.RepositoryException;
 
@@ -44,6 +45,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.CompositeRegistration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -83,7 +85,8 @@ public abstract class AbstractDataStoreService {
         PropertiesUtil.populate(ds, config, false);
         ds.init(homeDir);
 
-        BlobStoreStats stats = new BlobStoreStats(getStatisticsProvider());
+        BlobStoreStats stats = new BlobStoreStats(
+                Objects.requireNonNull(getStatisticsProvider(), "statisticsProvider must be non-null"));
         this.dataStore = new DataStoreBlobStore(ds, encodeLengthInId, cacheSizeInMB);
         this.dataStore.setBlobStatsCollector(stats);
         PropertiesUtil.populate(dataStore, config, false);
@@ -118,7 +121,7 @@ public abstract class AbstractDataStoreService {
 
     protected abstract DataStore createDataStore(ComponentContext context, Map<String, Object> config);
 
-    protected abstract StatisticsProvider getStatisticsProvider();
+    @NotNull protected abstract StatisticsProvider getStatisticsProvider();
 
     protected abstract void setStatisticsProvider(StatisticsProvider statisticsProvider);
 
