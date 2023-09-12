@@ -19,12 +19,10 @@
 
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.AbstractDataStoreService;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -38,9 +36,6 @@ public abstract class AbstractAzureDataStoreService extends AbstractDataStoreSer
     private static final String DESCRIPTION = "oak.datastore.description";
 
     private ServiceRegistration delegateReg;
-
-    @Reference
-    private StatisticsProvider statisticsProvider;
 
     @Override
     protected DataStore createDataStore(ComponentContext context, Map<String, Object> config) {
@@ -68,14 +63,6 @@ public abstract class AbstractAzureDataStoreService extends AbstractDataStoreSer
             delegateReg.unregister();
         }
         super.deactivate();
-    }
-
-    protected StatisticsProvider getStatisticsProvider(){
-        return statisticsProvider;
-    }
-
-    protected void setStatisticsProvider(StatisticsProvider statisticsProvider) {
-        this.statisticsProvider = statisticsProvider;
     }
 
     @Override

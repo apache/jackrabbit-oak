@@ -22,11 +22,9 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.AbstractSharedCachingDataStore;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.ComponentContext;
@@ -50,9 +48,6 @@ public class FileDataStoreService extends AbstractDataStoreService {
     public static final String PATH = "path";
 
     private ServiceRegistration delegateReg;
-
-    @Reference
-    private StatisticsProvider statisticsProvider;
 
     private Logger log = LoggerFactory.getLogger(getClass());
 
@@ -100,14 +95,6 @@ public class FileDataStoreService extends AbstractDataStoreService {
             AbstractSharedCachingDataStore.class.getName()
         }, dataStore , config);
         return dataStore;
-    }
-
-    protected StatisticsProvider getStatisticsProvider(){
-        return statisticsProvider;
-    }
-
-    protected void setStatisticsProvider(StatisticsProvider statisticsProvider) {
-        this.statisticsProvider = statisticsProvider;
     }
 
     @Override
