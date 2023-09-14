@@ -30,8 +30,6 @@
       <includes>
         <include>javax.jcr:jcr</include>
         <include>javax.servlet:javax.servlet-api</include>
-        <!-- to be removed when OAK-10371 is resolved -->
-        <include>com.google.guava:guava</include>
         <include>org.slf4j:slf4j-api</include>
         <include>ch.qos.logback:logback-core</include>
         <include>ch.qos.logback:logback-classic</include>
