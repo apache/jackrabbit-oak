@@ -660,6 +660,8 @@ Oak allows you to define index aggregates based on relative path patterns and
 primary node types. Changes to aggregated items cause the main item to be
 reindexed, even if it was not modified.
 
+<b>Please note that aggregation does not support nodeType inheritance. To support aggregation on child nodeTypes, they need to be explicitly defined as a separate aggregation configuration in the index definition.</b>
+
 Aggregation configuration is defined under the `aggregates` node under index
 configuration. The following example creates an index aggregate on nt:file that
 includes the content of the jcr:content node:
