@@ -275,7 +275,7 @@ Limitations:
 
 NOTE: The principal executing the query must have been granted the repository privilege `rep:insecureQueryOptions` (see [Privilege Management / Query Execution](../security/privilege/mappingtoprivileges.md#query-execution)).
 
-Enabling this option activates the same Compatibility behavior for NodeIterator.getSize() as described in [Result Size](#result-size), but only for the query being executed.
+Enabling this option activates the same compatibility behavior for NodeIterator.getSize() as described in [Result Size](#result-size), but only for the query being executed.
 
 #### Query Option Insecure Facets
 

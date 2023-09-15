@@ -112,44 +112,52 @@ public class ResultSizeTest extends AbstractQueryTest {
         long result;
         NodeIterator it;
         StringBuilder buff;
-        
-        // fast (insecure) case
-        // enabled by default now, in LuceneOakRepositoryStub 
-        System.clearProperty("oak.fastQuerySize");
-        q = qm.createQuery(xpath, "xpath");
-        it = q.execute().getNodes();
-        result = it.getSize();
-        assertTrue("size: " + result + " expected around " + expected, 
-                result > expected - 50 && 
-                result < expected + 50);
-        buff = new StringBuilder();
-        while (it.hasNext()) {
-            Node n = it.nextNode();
-            buff.append(n.getPath()).append('\n');
+
+        final String oldFQSProperty = System.getProperty("oak.fastQuerySize");
+        try {
+            // fast (insecure) case
+            // enabled by default now, in LuceneOakRepositoryStub
+            System.clearProperty("oak.fastQuerySize");
+            q = qm.createQuery(xpath, "xpath");
+            it = q.execute().getNodes();
+            result = it.getSize();
+            assertTrue("size: " + result + " expected around " + expected,
+                    result > expected - 50 &&
+                            result < expected + 50);
+            buff = new StringBuilder();
+            while (it.hasNext()) {
+                Node n = it.nextNode();
+                buff.append(n.getPath()).append('\n');
+            }
+            String fastSizeResult = buff.toString();
+            q = qm.createQuery(xpath, "xpath");
+            q.setLimit(90);
+            it = q.execute().getNodes();
+            assertEquals(90, it.getSize());
+
+
+            // default (secure) case
+            // manually disabled
+            System.setProperty("oak.fastQuerySize", "false");
+            q = qm.createQuery(xpath, "xpath");
+            it = q.execute().getNodes();
+            result = it.getSize();
+            assertEquals(-1, result);
+            buff = new StringBuilder();
+            while (it.hasNext()) {
+                Node n = it.nextNode();
+                buff.append(n.getPath()).append('\n');
+            }
+            String regularResult = buff.toString();
+            assertEquals(regularResult, fastSizeResult);
+        } finally {
+            if (oldFQSProperty != null) {
+                System.setProperty("oak.fastQuerySize", oldFQSProperty);
+            } else {
+                System.clearProperty("oak.fastQuerySize");
+            }
         }
-        String fastSizeResult = buff.toString();
-        q = qm.createQuery(xpath, "xpath");
-        q.setLimit(90);
-        it = q.execute().getNodes();
-        assertEquals(90, it.getSize());
-        
-        
-        // default (secure) case
-        // manually disabled
-        System.setProperty("oak.fastQuerySize", "false");
-        q = qm.createQuery(xpath, "xpath");
-        it = q.execute().getNodes();
-        result = it.getSize();
-        assertEquals(-1, result);
-        buff = new StringBuilder();
-        while (it.hasNext()) {
-            Node n = it.nextNode();
-            buff.append(n.getPath()).append('\n');
-        }
-        String regularResult = buff.toString();
-        assertEquals(regularResult, fastSizeResult);
-        System.clearProperty("oak.fastQuerySize");
-        
+
     }
 
     private void doTestResultSizeOption(boolean aggregateAtQueryTime) throws RepositoryException {
@@ -186,55 +194,63 @@ public class ResultSizeTest extends AbstractQueryTest {
         NodeIterator it;
         StringBuilder buff;
 
-        // enabled by default now, in LuceneOakRepositoryStub. Disable global
-        System.setProperty("oak.fastQuerySize", "false");
+        final String oldFQSProperty = System.getProperty("oak.fastQuerySize");
+        try {
+            System.setProperty("oak.fastQuerySize", "false");
 
-        // fast (insecure) case
-        String fastSizeResult = "";
-        q = qm.createQuery(statement + " option (insecure result size)", Query.JCR_SQL2);
-        if (expected < 0) {
-            // if expected < 0, i.e. insufficient permissions, expect a InvalidQueryException on execute().
-            try {
+            // fast (insecure) case
+            String fastSizeResult = "";
+            q = qm.createQuery(statement + " option (insecure result size)", Query.JCR_SQL2);
+            if (expected < 0) {
+                // if expected < 0, i.e. insufficient permissions, expect a InvalidQueryException on execute().
+                try {
+                    it = q.execute().getNodes();
+                    fail("expected an InvalidQueryException caused by a IllegalArgumentException");
+                } catch (InvalidQueryException e) {
+                    assertTrue("expected an InvalidQueryException caused by a ParseException",
+                            e.getCause() instanceof IllegalArgumentException);
+                }
+            } else {
                 it = q.execute().getNodes();
-                fail("expected an InvalidQueryException caused by a IllegalArgumentException");
-            } catch (InvalidQueryException e) {
-                assertTrue("expected an InvalidQueryException caused by a ParseException",
-                        e.getCause() instanceof IllegalArgumentException);
+                result = it.getSize();
+                assertTrue("size: " + result + " expected around " + expected,
+                        result > expected - 50 &&
+                                result < expected + 50);
+                buff = new StringBuilder();
+                while (it.hasNext()) {
+                    Node n = it.nextNode();
+                    buff.append(n.getPath()).append('\n');
+                }
+                fastSizeResult = buff.toString();
+                q = qm.createQuery(statement + " option (insecure result size)", Query.JCR_SQL2);
+                q.setLimit(90);
+                it = q.execute().getNodes();
+                assertEquals(90, it.getSize());
             }
-        } else {
+
+            // default (secure) case
+            q = qm.createQuery(statement, Query.JCR_SQL2);
             it = q.execute().getNodes();
             result = it.getSize();
-            assertTrue("size: " + result + " expected around " + expected,
-                    result > expected - 50 &&
-                            result < expected + 50);
+            assertEquals(-1, result);
             buff = new StringBuilder();
             while (it.hasNext()) {
                 Node n = it.nextNode();
                 buff.append(n.getPath()).append('\n');
             }
-            fastSizeResult = buff.toString();
-            q = qm.createQuery(statement + " option (insecure result size)", Query.JCR_SQL2);
-            q.setLimit(90);
-            it = q.execute().getNodes();
-            assertEquals(90, it.getSize());
+            String regularResult = buff.toString();
+            if (expected >= 0) {
+                assertEquals(regularResult, fastSizeResult);
+            }
+        } finally {
+            if (oldFQSProperty != null) {
+                System.setProperty("oak.fastQuerySize", oldFQSProperty);
+            } else {
+                System.clearProperty("oak.fastQuerySize");
+            }
         }
 
-        // default (secure) case
-        q = qm.createQuery(statement, Query.JCR_SQL2);
-        it = q.execute().getNodes();
-        result = it.getSize();
-        assertEquals(-1, result);
-        buff = new StringBuilder();
-        while (it.hasNext()) {
-            Node n = it.nextNode();
-            buff.append(n.getPath()).append('\n');
-        }
-        String regularResult = buff.toString();
-        if (expected >= 0) {
-            assertEquals(regularResult, fastSizeResult);
-        }
 
-        System.clearProperty("oak.fastQuerySize");
     }
     
 }
