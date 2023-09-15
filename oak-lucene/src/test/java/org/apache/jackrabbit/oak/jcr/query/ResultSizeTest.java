@@ -249,8 +249,6 @@ public class ResultSizeTest extends AbstractQueryTest {
                 System.clearProperty("oak.fastQuerySize");
             }
         }
-
-
     }
     
 }
