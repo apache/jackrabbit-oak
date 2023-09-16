@@ -53,6 +53,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -192,6 +193,7 @@ public class IncrementalStoreIT {
                 sortFolder.getRoot(),
                 Compression.NONE,
                 pathPredicate,
+                Collections.emptyList(),
                 checkpoint
         );
     }
