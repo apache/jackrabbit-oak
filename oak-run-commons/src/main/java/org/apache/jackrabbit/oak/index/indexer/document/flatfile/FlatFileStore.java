@@ -19,9 +19,9 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
@@ -100,7 +100,7 @@ public class FlatFileStore implements IndexStore {
             @Override
             protected NodeStateEntry computeNext() {
                 if (itr.hasNext()) {
-                   return convert(itr.nextLine());
+                    return convert(itr.nextLine());
                 }
 
                 //End of iterator then close it

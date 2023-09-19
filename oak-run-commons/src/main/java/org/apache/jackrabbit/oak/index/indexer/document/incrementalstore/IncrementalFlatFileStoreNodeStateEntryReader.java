@@ -16,32 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
-import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import java.io.File;
-import java.util.Set;
+import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
-public class IncrementalFlatFileStore extends FlatFileStore implements IndexStore {
+public class IncrementalFlatFileStoreNodeStateEntryReader extends NodeStateEntryReader {
 
-    private static final String STORE_TYPE = "IncrementalFlatFileStore";
-
-    public IncrementalFlatFileStore(BlobStore blobStore, File storeFile, File metadataFile, IncrementalFlatFileStoreNodeStateEntryReader entryReader, Set<String> preferredPathElements, Compression algorithm) {
-        super(blobStore, storeFile, metadataFile, entryReader, preferredPathElements, algorithm);
+    public IncrementalFlatFileStoreNodeStateEntryReader(BlobStore blobStore) {
+        super(blobStore);
     }
 
-    @Override
-    public String getIndexStoreType() {
-        return STORE_TYPE;
+    public NodeStateEntry read(String line) {
+        String[] parts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(line);
+        long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
+        return new NodeStateEntryBuilder(parseState(parts[1]), parts[0]).withMemUsage(memUsage).build();
     }
-
-    @Override
-    public boolean isIncremental() {
-        return true;
-    }
-
 }

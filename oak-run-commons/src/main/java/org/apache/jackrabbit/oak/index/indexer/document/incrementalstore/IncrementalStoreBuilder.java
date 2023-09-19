@@ -24,7 +24,6 @@ import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
@@ -125,7 +124,7 @@ public class IncrementalStoreBuilder {
             File incrementalStoreFile = strategy.createSortedStoreFile();
             long entryCount = strategy.getEntryCount();
             IndexStore store = new IncrementalFlatFileStore(blobStore, incrementalStoreFile, metadataFile,
-                    new NodeStateEntryReader(blobStore),
+                    new IncrementalFlatFileStoreNodeStateEntryReader(blobStore),
                     unmodifiableSet(preferredPathElements), algorithm);
             if (entryCount > 0) {
                 store.setEntryCount(entryCount);
