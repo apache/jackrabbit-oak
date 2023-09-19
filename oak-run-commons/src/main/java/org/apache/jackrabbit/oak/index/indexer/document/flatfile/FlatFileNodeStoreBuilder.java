@@ -21,8 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
@@ -40,7 +38,6 @@ import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +53,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.unmodifiableSet;
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 /**
  * This class is where the strategy being selected for building FlatFileStore.
@@ -243,9 +241,9 @@ public class FlatFileNodeStoreBuilder {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
-        Pair<List<File>, List<File>> pair = createdSortedStoreFiles();
-        File metadataFile = pair.getValue() == null || pair.getValue().size() == 0 ? null : pair.getValue().get(0);
-        FlatFileStore store = new FlatFileStore(blobStore, pair.getKey().get(0), metadataFile,
+        IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
+        File metadataFile = indexStoreFiles.metadataFile;
+        FlatFileStore store = new FlatFileStore(blobStore, indexStoreFiles.storeFiles.get(0), metadataFile,
                 new NodeStateEntryReader(blobStore),
                 unmodifiableSet(preferredPathElements), algorithm);
         if (entryCount > 0) {
@@ -260,9 +258,9 @@ public class FlatFileNodeStoreBuilder {
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
 
-        Pair<List<File>, List<File>> pair = createdSortedStoreFiles();
-        List<File> fileList = pair.getKey();
-        File metadataFile = pair.getValue() == null || pair.getValue().isEmpty() ? null : pair.getValue().get(0);
+        IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
+        List<File> fileList = indexStoreFiles.storeFiles;
+        File metadataFile = indexStoreFiles.metadataFile;
 
         long start = System.currentTimeMillis();
         // If not already split, split otherwise skip splitting
@@ -295,7 +293,7 @@ public class FlatFileNodeStoreBuilder {
      * @throws IOException
      * @throws CompositeException
      */
-    private Pair<List<File>, List<File>> createdSortedStoreFiles() throws IOException, CompositeException {
+    private IndexStoreFiles createdSortedStoreFiles() throws IOException, CompositeException {
         // Check system property defined path
         String sortedFilePath = System.getProperty(OAK_INDEXER_SORTED_FILE_PATH);
         if (StringUtils.isNotBlank(sortedFilePath)) {
@@ -303,7 +301,7 @@ public class FlatFileNodeStoreBuilder {
             log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
                     sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
             // List of storefiles, List of metadatafile
-            Pair<List<File>, List<File>> storeFiles = getIndexStoreFiles(sortedDir);
+            IndexStoreFiles storeFiles = getIndexStoreFiles(sortedDir);
             if (storeFiles != null) {
                 return storeFiles;
             }
@@ -316,22 +314,37 @@ public class FlatFileNodeStoreBuilder {
         File result = strategy.createSortedStoreFile();
         File metadata = strategy.createMetadataFile();
         entryCount = strategy.getEntryCount();
-        return new ImmutablePair<>(Collections.singletonList(result), Collections.singletonList(metadata));
+        return new IndexStoreFiles(Collections.singletonList(result), metadata);
     }
 
-    @Nullable
-    private Pair<List<File>, List<File>> getIndexStoreFiles(File sortedDir) {
+    private class IndexStoreFiles {
+        private final List<File> storeFiles;
+        private final File metadataFile;
+
+        public IndexStoreFiles(List<File> storeFiles, File metadataFile) {
+            this.storeFiles = storeFiles;
+            this.metadataFile = metadataFile;
+        }
+    }
+
+    private IndexStoreFiles getIndexStoreFiles(File sortedDir) {
+        File metadataFile = null;
         if (sortedDir.exists() && sortedDir.canRead() && sortedDir.isDirectory()) {
             File[] storeFiles = sortedDir.listFiles(
                     (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
             File[] metadataFiles = sortedDir.listFiles(
                     (dir, name) -> name.endsWith(FlatFileStoreUtils.getMetadataFileName(algorithm)));
-            // Not throwing error for backward compatibility
-            if (metadataFiles == null || metadataFiles.length == 0) {
-                log.error("Unable to find metadata file in files directory:{}", sortedDir.getAbsolutePath());
-            }
+
             if (storeFiles != null && storeFiles.length != 0) {
-                return new ImmutablePair<>(Arrays.asList(storeFiles), Arrays.asList(metadataFiles));
+                // Not throwing error for backward compatibility
+                if (metadataFiles == null || metadataFiles.length == 0) {
+                    log.error("Unable to find metadata file in directory:{}", sortedDir.getAbsolutePath());
+                    return new IndexStoreFiles(Arrays.asList(storeFiles), null);
+                } else {
+                    checkState(metadataFiles.length == 1, "Multiple metadata files available at path:{}, metadataFiles:{}", sortedDir.getAbsolutePath(),
+                            Arrays.asList(metadataFiles));
+                    return new IndexStoreFiles(Arrays.asList(storeFiles), metadataFiles[0]);
+                }
             }
         } else {
             String msg = String.format("Cannot read sorted files directory at [%s]", sortedDir.getAbsolutePath());

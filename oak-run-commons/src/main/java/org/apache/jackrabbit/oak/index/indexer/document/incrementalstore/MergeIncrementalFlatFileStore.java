@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateHolder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.PathElementComparator;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SimpleNodeStateHolder;
@@ -64,91 +63,78 @@ public class MergeIncrementalFlatFileStore {
         try (BufferedWriter writer = FlatFileStoreUtils.createWriter(merged, algorithm);
              BufferedReader baseFFSBufferedReader = FlatFileStoreUtils.createReader(baseFFS, algorithm);
              BufferedReader incrementalFFSBufferedReader = FlatFileStoreUtils.createReader(incrementalFFS, algorithm)) {
-            String baseLine = baseFFSBufferedReader.readLine();
-            String incLine = incrementalFFSBufferedReader.readLine();
+            String baseFFSLine = baseFFSBufferedReader.readLine();
+            String incrementalFFSLine = incrementalFFSBufferedReader.readLine();
 
             Comparator<NodeStateHolder> comparator = (e1, e2) -> new PathElementComparator(preferredPathElements).compare(e1.getPathElements(), e2.getPathElements());
             int compared;
-            while (baseLine != null || incLine != null) {
-                if (baseLine != null && incLine != null) {
-                    compared = comparator.compare(new SimpleNodeStateHolder(baseLine), new SimpleNodeStateHolder(incLine));
-                    if (compared < 0) {
-                        writer.write(baseLine);
-                        writer.write("\n");
-                        baseLine = baseFFSBufferedReader.readLine();
-                    } else if (compared > 0) {
-                        writer.write(removeOperand(incLine));
-                        writer.write("\n");
-                        incLine = incrementalFFSBufferedReader.readLine();
+            while (baseFFSLine != null || incrementalFFSLine != null) {
+                if (baseFFSLine != null && incrementalFFSLine != null) {
+                    compared = comparator.compare(new SimpleNodeStateHolder(baseFFSLine), new SimpleNodeStateHolder(incrementalFFSLine));
+                    if (compared < 0) { // write baseFFSLine in merged file and advance line in baseFFS
+                        baseFFSLine = writeAndAdvance(writer, baseFFSBufferedReader, baseFFSLine);
+                    } else if (compared > 0) { // write incrementalFFSline and advance line in incrementalFFS
+                        String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
+                        checkState(IncrementalStoreOperand.ADD.toString().equals(getOperand(incrementalFFSParts)));
+                        incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
+                                getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
                     } else {
-                        String operand = NodeStateEntryWriter.getParts(incLine)[3];
-                        checkState(IncrementalStoreOperand.DELETE.toString().equals(operand)
-                                        || IncrementalStoreOperand.ADD.toString().equals(operand)
-                                        || IncrementalStoreOperand.MODIFY.toString().equals(operand),
-                                "wrong operand in incremental ffs: {} ", operand);
-                        if (!(IncrementalStoreOperand.DELETE.toString().equals(operand))) {
-                            writer.write(removeOperand(incLine));
-                            writer.write("\n");
+                        String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
+                        String operand = getOperand(incrementalFFSParts);
+                        if (IncrementalStoreOperand.MODIFY.toString().equals(operand)) {
+                            incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
+                                    getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
+                        } else if (IncrementalStoreOperand.DELETE.toString().equals(operand)) {
+                            incrementalFFSLine = incrementalFFSBufferedReader.readLine();
+                        } else {
+                            log.error("wrong operand in incremental ffs: operand:{}, line:{}", operand, incrementalFFSLine);
+                            throw new RuntimeException("wrong operand in incremental ffs: operand:" + operand + ", line:" + incrementalFFSLine);
                         }
-                        baseLine = baseFFSBufferedReader.readLine();
-                        incLine = incrementalFFSBufferedReader.readLine();
+                        baseFFSLine = baseFFSBufferedReader.readLine();
                     }
                 } else {
-                    if (incLine == null) {
-                        writer.write(baseLine);
-                        writer.write("\n");
-                        writeRestOfFile(writer, baseFFSBufferedReader, false);
-                        baseLine = baseFFSBufferedReader.readLine();
+                    if (incrementalFFSLine == null) {
+                        baseFFSLine = writeRestOfFFSFileAndAdvance(writer, baseFFSBufferedReader, baseFFSLine);
                     } else {
-                        String operand = getOperand(incLine);
-                        if (IncrementalStoreOperand.MODIFY.toString().equals(operand) || IncrementalStoreOperand.DELETE.toString().equals(operand)) {
-                            log.error("incremental ffs should not have modify and delete operands: {}", incLine);
-                            throw new RuntimeException("incremental ffs should not have modify and delete operands" + incLine);
-                        }
-                        writer.write(removeOperand(incLine));
-                        writer.write("\n");
-                        writeRestOfFile(writer, incrementalFFSBufferedReader, true);
-                        incLine = incrementalFFSBufferedReader.readLine();
+                        incrementalFFSLine = writeRestOfIncrementalFileAndAdvance(writer, incrementalFFSBufferedReader, incrementalFFSLine);
                     }
                 }
             }
         }
     }
 
-    private void writeRestOfFile(BufferedWriter writer, BufferedReader bufferedReader, boolean isIncrementalFile) {
-        if (isIncrementalFile) {
-            bufferedReader.lines().forEach((n) -> {
-                String operand = getOperand(n);
-                if (IncrementalStoreOperand.MODIFY.toString().equals(operand) || IncrementalStoreOperand.DELETE.toString().equals(operand)) {
-                    log.error("incremental ffs should not have modify and delete operands: {}", n);
-                    throw new RuntimeException("incremental ffs should not have modify and delete operands" + n);
-                }
-                try {
-                    writer.write(removeOperand(n));
-                    writer.write("\n");
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        } else {
-            bufferedReader.lines().forEach(n -> {
-                try {
-                    writer.write(n);
-                    writer.write("\n");
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            });
-        }
+    private static String writeAndAdvance(BufferedWriter writer, BufferedReader bufferedReader, String stringToWriteInMergeFile) throws IOException {
+        writer.write(stringToWriteInMergeFile);
+        writer.write("\n");
+        stringToWriteInMergeFile = bufferedReader.readLine();
+        return stringToWriteInMergeFile;
     }
 
-    private static String getOperand(String incLine) {
-        String[] parts = NodeStateEntryWriter.getParts(incLine);
-        return parts[2];
+    private String writeRestOfFFSFileAndAdvance(BufferedWriter writer, BufferedReader bufferedReader,
+                                                String baseFFSLine) throws IOException {
+        do {
+            baseFFSLine = writeAndAdvance(writer, bufferedReader, baseFFSLine);
+        } while (baseFFSLine != null);
+        return bufferedReader.readLine();
     }
 
-    private String removeOperand(String line) {
-        String[] parts = NodeStateEntryWriter.getParts(line);
-        return parts[0] + "|" + parts[1];
+    private String writeRestOfIncrementalFileAndAdvance(BufferedWriter writer, BufferedReader bufferedReader, String incrementalFFSLine) throws IOException {
+        do {
+            String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
+            String operand = getOperand(incrementalFFSParts);
+            checkState(!IncrementalStoreOperand.MODIFY.toString().equals(operand)
+                            && !IncrementalStoreOperand.DELETE.toString().equals(operand),
+                    "incremental ffs should not have modify or delete operands: {}", incrementalFFSLine);
+            incrementalFFSLine = writeAndAdvance(writer, bufferedReader, getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
+        } while (incrementalFFSLine != null);
+        return bufferedReader.readLine();
+    }
+
+    private static String getOperand(String[] incrementalFFSParts) {
+        return incrementalFFSParts[3];
+    }
+
+    private String getFFSLineFromIncrementalFFSParts(String[] incrementalFFSParts) {
+        return incrementalFFSParts[0] + "|" + incrementalFFSParts[1];
     }
 }

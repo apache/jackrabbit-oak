@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
+package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 
@@ -24,7 +24,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
-public interface IncrementalStore extends Closeable {
+public interface IndexStore extends Iterable<NodeStateEntry>, Closeable {
 
     Iterator<NodeStateEntry> iterator();
 
@@ -35,4 +35,9 @@ public interface IncrementalStore extends Closeable {
     void setEntryCount(long entryCount);
 
     void close() throws IOException;
+
+    String getIndexStoreType();
+
+    boolean isIncremental();
+
 }

@@ -25,7 +25,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -110,12 +110,12 @@ public class IncrementalStoreBuilder {
     }
 
 
-    public IncrementalStore build() throws IOException, CompositeException {
+    public IndexStore build() throws IOException, CompositeException {
         logFlags();
         File dir = createStoreDir();
 
         if (Objects.requireNonNull(sortStrategyType) == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE) {
-            NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
+            IncrementalFlatFileStoreNodeStateEntryWriter entryWriter = new IncrementalFlatFileStoreNodeStateEntryWriter(blobStore);
             IncrementalIndexStoreSortStrategy strategy = new IncrementalFlatFileStoreStrategy(
                     indexHelper.getNodeStore(),
                     initialCheckpoint,
@@ -124,7 +124,7 @@ public class IncrementalStoreBuilder {
             File metadataFile = strategy.createMetadataFile();
             File incrementalStoreFile = strategy.createSortedStoreFile();
             long entryCount = strategy.getEntryCount();
-            IncrementalStore store = new IncrementalFlatFileStore(blobStore, incrementalStoreFile, metadataFile,
+            IndexStore store = new IncrementalFlatFileStore(blobStore, incrementalStoreFile, metadataFile,
                     new NodeStateEntryReader(blobStore),
                     unmodifiableSet(preferredPathElements), algorithm);
             if (entryCount > 0) {
@@ -140,7 +140,7 @@ public class IncrementalStoreBuilder {
     }
 
     private String getDirNamePrefix() {
-        return INCREMENTAL_STORE_DIR_NAME_PREFIX + sortStrategyTypeString;
+        return INCREMENTAL_STORE_DIR_NAME_PREFIX + sortStrategyType;
     }
 
     private void logFlags() {

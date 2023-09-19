@@ -21,13 +21,27 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
 import java.io.File;
 import java.util.Set;
 
-public class IncrementalFlatFileStore extends FlatFileStore implements IncrementalStore {
+public class IncrementalFlatFileStore extends FlatFileStore implements IndexStore {
+
+    private static final String STORE_TYPE = "IncrementalFlatFileStore";
+
     public IncrementalFlatFileStore(BlobStore blobStore, File storeFile, File metadataFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, Compression algorithm) {
         super(blobStore, storeFile, metadataFile, entryReader, preferredPathElements, algorithm);
+    }
+
+    @Override
+    public String getIndexStoreType() {
+        return STORE_TYPE;
+    }
+
+    @Override
+    public boolean isIncremental() {
+        return true;
     }
 }

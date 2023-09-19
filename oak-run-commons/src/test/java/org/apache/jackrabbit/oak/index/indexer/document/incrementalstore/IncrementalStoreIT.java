@@ -208,7 +208,7 @@ public class IncrementalStoreIT {
         NodeState finalNodeState = readOnlyNodeStore.retrieve(finalCheckpoint);
         return new IncrementalFlatFileStoreStrategy(
                 readOnlyNodeStore, initialCheckpoint, finalCheckpoint, sortFolder.getRoot(), preferredPathElements,
-                Compression.NONE, pathPredicate, new NodeStateEntryWriter(fileBlobStore));
+                Compression.NONE, pathPredicate, new IncrementalFlatFileStoreNodeStateEntryWriter(fileBlobStore));
     }
 
     private void createBaseContent(NodeStore rwNodeStore) throws CommitFailedException {

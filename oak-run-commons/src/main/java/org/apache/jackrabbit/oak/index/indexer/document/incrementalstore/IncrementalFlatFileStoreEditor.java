@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -38,12 +37,12 @@ public class IncrementalFlatFileStoreEditor implements Editor {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final BufferedWriter bufferedWriter;
-    private final NodeStateEntryWriter entryWriter;
+    private final IncrementalFlatFileStoreNodeStateEntryWriter entryWriter;
     private final Predicate<String> predicate;
     private final IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy;
     private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
 
-    public IncrementalFlatFileStoreEditor(BufferedWriter bufferedWriter, NodeStateEntryWriter entryWriter, Predicate<String> predicate,
+    public IncrementalFlatFileStoreEditor(BufferedWriter bufferedWriter, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter, Predicate<String> predicate,
                                           IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy) {
         this.bufferedWriter = bufferedWriter;
         this.entryWriter = entryWriter;

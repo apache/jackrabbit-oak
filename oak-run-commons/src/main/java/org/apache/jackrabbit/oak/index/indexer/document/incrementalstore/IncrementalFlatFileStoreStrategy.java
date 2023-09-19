@@ -24,7 +24,6 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntrySorter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.PathElementComparator;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
@@ -57,7 +56,7 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
     private final String beforeCheckpoint;
     private final String afterCheckpoint;
     private final PathElementComparator comparator;
-    private final NodeStateEntryWriter entryWriter;
+    private final IncrementalFlatFileStoreNodeStateEntryWriter entryWriter;
     private final File storeDir;
     private final NodeStore nodeStore;
     private final Compression algorithm;
@@ -69,7 +68,8 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
     private final Set<String> preferredPathElements;
 
     public IncrementalFlatFileStoreStrategy(NodeStore nodeStore, @NotNull String beforeCheckpoint, @NotNull String afterCheckpoint, File storeDir,
-                                            Set<String> preferredPathElements, @NotNull Compression algorithm, Predicate<String> pathPredicate, NodeStateEntryWriter entryWriter) {
+                                            Set<String> preferredPathElements, @NotNull Compression algorithm,
+                                            Predicate<String> pathPredicate, IncrementalFlatFileStoreNodeStateEntryWriter entryWriter) {
         this.nodeStore = nodeStore;
         this.beforeCheckpoint = beforeCheckpoint;
         this.afterCheckpoint = afterCheckpoint;

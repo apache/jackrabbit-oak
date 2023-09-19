@@ -24,9 +24,9 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.LineIterator;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -34,7 +34,7 @@ import java.util.Set;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 
-public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
+public class FlatFileStore implements IndexStore {
     private final Closer closer = Closer.create();
     private final BlobStore blobStore;
     private final File storeFile;
@@ -43,6 +43,8 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     private final Set<String> preferredPathElements;
     private final Compression algorithm;
     private long entryCount = -1;
+
+    private static final String STORE_TYPE = "FlatFileStore";
 
     public FlatFileStore(BlobStore blobStore, File storeFile, File metadataFile, NodeStateEntryReader entryReader, Set<String> preferredPathElements, Compression algorithm) {
         this.blobStore = blobStore;
@@ -115,5 +117,15 @@ public class FlatFileStore implements Iterable<NodeStateEntry>, Closeable {
     @Override
     public void close() throws IOException {
         closer.close();
+    }
+
+    @Override
+    public String getIndexStoreType() {
+        return STORE_TYPE;
+    }
+
+    @Override
+    public boolean isIncremental() {
+        return false;
     }
 }

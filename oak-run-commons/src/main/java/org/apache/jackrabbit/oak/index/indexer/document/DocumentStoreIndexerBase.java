@@ -31,7 +31,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeSto
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
-import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStore;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -212,9 +212,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return storeList;
     }
 
-    public IncrementalStore buildIncrementalStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
+    public IndexStore buildIncrementalStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
         IncrementalStoreBuilder builder;
-        IncrementalStore incrementalStore;
+        IndexStore incrementalStore;
         Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
         Set<String> preferredPathElements = indexDefinitions.stream()
                 .flatMap(indexDef -> indexDef.getRelativeNodeNames().stream())

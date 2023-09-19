@@ -38,6 +38,7 @@ public class MergeIncrementalFFSTest {
     private static final Compression algorithm = Compression.GZIP;
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File(BUILD_TARGET_FOLDER));
+
     @Test
     public void test1() throws IOException {
 
@@ -45,7 +46,7 @@ public class MergeIncrementalFFSTest {
         File inc = folder.newFile("inc.gz");
         File merged = folder.newFile("merged.gz");
 
-        try(BufferedWriter baseBW = FlatFileStoreUtils.createWriter(base, algorithm)) {
+        try (BufferedWriter baseBW = FlatFileStoreUtils.createWriter(base, algorithm)) {
             baseBW.write("/tmp|{prop1=\"foo\"}");
             baseBW.newLine();
             baseBW.write("/tmp/a|{prop2=\"foo\"}");
@@ -59,7 +60,7 @@ public class MergeIncrementalFFSTest {
             baseBW.write("/tmp/c|{prop3=\"foo\"}");
         }
 
-        try(BufferedWriter baseInc = FlatFileStoreUtils.createWriter(inc, algorithm)) {
+        try (BufferedWriter baseInc = FlatFileStoreUtils.createWriter(inc, algorithm)) {
             baseInc.write("/tmp/a|{prop2=\"fooModified\"}|r1|M");
             baseInc.newLine();
             baseInc.write("/tmp/b|{prop1=\"foo\"}|r1|D");
@@ -88,7 +89,7 @@ public class MergeIncrementalFFSTest {
 
         merge.doMerge();
 
-        try(BufferedReader br = FlatFileStoreUtils.createReader(merged, algorithm)) {
+        try (BufferedReader br = FlatFileStoreUtils.createReader(merged, algorithm)) {
             for (String line : expectedList) {
                 String actual = br.readLine();
                 System.out.println(actual);
