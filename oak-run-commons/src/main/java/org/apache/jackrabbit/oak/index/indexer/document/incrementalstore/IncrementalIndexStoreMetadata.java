@@ -23,13 +23,13 @@ import java.util.function.Predicate;
 
 public class IncrementalIndexStoreMetadata {
 
-    private String beforeCheckpoint;
-    private String afterCheckpoint;
-    private String storeType;
-    private String strategy;
+    private final String beforeCheckpoint;
+    private final String afterCheckpoint;
+    private final String storeType;
+    private final String strategy;
 
-    private List<String> preferredPaths;
-    private Predicate<String> pathPredicate;
+    private final List<String> preferredPaths;
+    private final Predicate<String> pathPredicate;
 
     public IncrementalIndexStoreMetadata(IncrementalIndexStoreSortStrategy indexStoreSortStrategy) {
         this.beforeCheckpoint = indexStoreSortStrategy.getBeforeCheckpoint();

@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -93,6 +92,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private File sortWorkDir;
     private List<File> sortedFiles = new ArrayList<>();
     private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
+
     TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, Set<String> preferredPaths,
                              NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
                              Predicate<String> pathPredicate, String checkpoint) {
@@ -118,7 +118,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         ) {
             logFlags();
             configureMemoryListener();
-            sortWorkDir = createdSortWorkDir(storeDir);
+            sortWorkDir = createdSortWorkDir(this.getStoreDir());
             writeToSortedFiles(nodeStates);
             return sortStoreFile();
         }
@@ -132,8 +132,8 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
-        try (BufferedWriter writer = createWriter(sortedFile, algorithm)) {
+        File sortedFile = new File(this.getStoreDir(), getSortedStoreFileName(this.getAlgorithm()));
+        try (BufferedWriter writer = createWriter(sortedFile, this.getAlgorithm())) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
@@ -141,7 +141,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
                     comparator,
                     charset,
                     true, //distinct
-                    algorithm,
+                    this.getAlgorithm(),
                     func2,
                     func1
             );
@@ -176,7 +176,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         }
 
         String path = e.getPath();
-        if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
+        if (!NodeStateUtils.isHiddenPath(path) && this.getPathPredicate().test(path)) {
             String jsonText = entryWriter.asJson(e.getNodeState());
             //Here logic differs from NodeStateEntrySorter in sense that
             //Holder line consist only of json and not 'path|json'
@@ -200,7 +200,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
-        try (BufferedWriter writer = createWriter(newtmpfile, algorithm)) {
+        try (BufferedWriter writer = createWriter(newtmpfile, this.getAlgorithm())) {
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());

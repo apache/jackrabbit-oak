@@ -144,12 +144,11 @@ public class MergeIncrementalFlatFileStore {
 
     private static String getOperand(String incLine) {
         String[] parts = NodeStateEntryWriter.getParts(incLine);
-        String operand = parts[2];
-        return operand;
+        return parts[2];
     }
 
     private String removeOperand(String line) {
         String[] parts = NodeStateEntryWriter.getParts(line);
-        return new StringBuilder().append(parts[0]).append("|").append(parts[1]).toString();
+        return parts[0] + "|" + parts[1];
     }
 }

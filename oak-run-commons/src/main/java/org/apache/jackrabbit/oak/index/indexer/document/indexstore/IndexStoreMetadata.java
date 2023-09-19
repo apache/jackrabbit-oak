@@ -23,11 +23,11 @@ import java.util.function.Predicate;
 
 public class IndexStoreMetadata {
 
-    private String checkpoint;
-    private String storeType;
-    private String strategy;
-    private Set<String> preferredPaths;
-    private Predicate<String> pathPredicate;
+    private final String checkpoint;
+    private final String storeType;
+    private final String strategy;
+    private final Set<String> preferredPaths;
+    private final Predicate<String> pathPredicate;
 
     public IndexStoreMetadata(String checkpoint, String storeType, String strategy,
                               Set<String> preferredPaths, Predicate<String> pathPredicate) {

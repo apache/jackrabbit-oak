@@ -44,7 +44,7 @@ import static java.util.Collections.unmodifiableSet;
 public class IncrementalStoreBuilder {
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final String INCREMENTAL_STORE_DIR_NAME_PREFIX = "inc-store";
+    private static final String INCREMENTAL_STORE_DIR_NAME_PREFIX = "inc-store";
 
     private final File workDir;
     private final IndexHelper indexHelper;
@@ -114,24 +114,23 @@ public class IncrementalStoreBuilder {
         logFlags();
         File dir = createStoreDir();
 
-        switch (sortStrategyType) {
-            case INCREMENTAL_FFS_STORE:
-                NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                IncrementalIndexStoreSortStrategy strategy = new IncrementalFlatFileStoreStrategy(
-                        indexHelper.getNodeStore(),
-                        initialCheckpoint,
-                        finalCheckpoint,
-                        dir, preferredPathElements, algorithm, pathPredicate, entryWriter);
-                File metadataFile = strategy.createMetadataFile();
-                File incrementalStoreFile = strategy.createSortedStoreFile();
-                long entryCount = strategy.getEntryCount();
-                IncrementalStore store = new IncrementalFlatFileStore(blobStore, incrementalStoreFile, metadataFile,
-                        new NodeStateEntryReader(blobStore),
-                        unmodifiableSet(preferredPathElements), algorithm);
-                if (entryCount > 0) {
-                    store.setEntryCount(entryCount);
-                }
-                return store;
+        if (Objects.requireNonNull(sortStrategyType) == IncrementalSortStrategyType.INCREMENTAL_FFS_STORE) {
+            NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
+            IncrementalIndexStoreSortStrategy strategy = new IncrementalFlatFileStoreStrategy(
+                    indexHelper.getNodeStore(),
+                    initialCheckpoint,
+                    finalCheckpoint,
+                    dir, preferredPathElements, algorithm, pathPredicate, entryWriter);
+            File metadataFile = strategy.createMetadataFile();
+            File incrementalStoreFile = strategy.createSortedStoreFile();
+            long entryCount = strategy.getEntryCount();
+            IncrementalStore store = new IncrementalFlatFileStore(blobStore, incrementalStoreFile, metadataFile,
+                    new NodeStateEntryReader(blobStore),
+                    unmodifiableSet(preferredPathElements), algorithm);
+            if (entryCount > 0) {
+                store.setEntryCount(entryCount);
+            }
+            return store;
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }

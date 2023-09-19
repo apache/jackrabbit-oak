@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSor
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
@@ -343,9 +342,9 @@ public class MultithreadedTraverseWithSortStrategy extends IndexStoreSortStrateg
 
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
-        taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                algorithm, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
-                memoryManager, dumpThreshold, sortedFiles, pathPredicate));
+        taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, this.getStoreDir(),
+                this.getAlgorithm(), completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
+                memoryManager, dumpThreshold, sortedFiles, this.getPathPredicate()));
     }
 
     @Override
@@ -355,10 +354,10 @@ public class MultithreadedTraverseWithSortStrategy extends IndexStoreSortStrateg
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
         watcher.setDaemon(true);
         watcher.start();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
+        File sortedFile = new File(this.getStoreDir(), getSortedStoreFileName(this.getAlgorithm()));
         int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
         int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, algorithm);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, this.getAlgorithm());
         Thread merger = new Thread(mergeRunner, mergerThreadName);
         merger.setDaemon(true);
         merger.start();

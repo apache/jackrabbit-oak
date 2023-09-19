@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -54,18 +53,17 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private final PathElementComparator comparator;
     private final NodeStateEntryWriter entryWriter;
     private long entryCount;
-    private boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
-    private int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
+    private final boolean deleteOriginal = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_DELETE_ORIGINAL, "true"));
+    private final int maxMemory = Integer.getInteger(OAK_INDEXER_MAX_SORT_MEMORY_IN_GB, OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT);
     private long textSize;
 
     public StoreAndSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, Set<String> preferredPaths,
                                 NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
                                 Predicate<String> pathPredicate, String checkpoint) {
-        super(storeDir, algorithm, pathPredicate,preferredPaths, checkpoint);
+        super(storeDir, algorithm, pathPredicate, preferredPaths, checkpoint);
         this.nodeStatesFactory = nodeStatesFactory;
         this.comparator = new PathElementComparator(preferredPaths);
         this.entryWriter = entryWriter;
-
     }
 
     @Deprecated
@@ -82,7 +80,7 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
         try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(
                 new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null))
         ) {
-            File storeFile = writeToStore(nodeStates, storeDir, getSortedStoreFileName(algorithm));
+            File storeFile = writeToStore(nodeStates, this.getStoreDir(), getSortedStoreFileName(this.getAlgorithm()));
             return sortStoreFile(storeFile);
         }
     }
@@ -95,13 +93,13 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private File sortStoreFile(File storeFile) throws IOException {
         File sortWorkDir = new File(storeFile.getParent(), "sort-work-dir");
         FileUtils.forceMkdir(sortWorkDir);
-        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(algorithm));
+        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(this.getAlgorithm()));
         NodeStateEntrySorter sorter =
                 new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
 
         logFlags();
 
-        sorter.setCompressionAlgorithm(algorithm);
+        sorter.setCompressionAlgorithm(this.getAlgorithm());
         sorter.setMaxMemoryInGB(maxMemory);
         sorter.setDeleteOriginal(deleteOriginal);
         sorter.setActualFileSize(textSize);
@@ -113,10 +111,10 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
         entryCount = 0;
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();
-        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, algorithm)) {
+        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, this.getAlgorithm())) {
             for (NodeStateEntry e : nodeStates) {
                 String path = e.getPath();
-                if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
+                if (!NodeStateUtils.isHiddenPath(path) && this.getPathPredicate().test(path)) {
                     String line = entryWriter.toString(e);
                     w.append(line);
                     w.newLine();
@@ -125,7 +123,7 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
                 }
             }
         }
-        String sizeStr = !algorithm.equals(Compression.NONE) ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";
+        String sizeStr = !this.getAlgorithm().equals(Compression.NONE) ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";
         log.info("Dumped {} nodestates in json format in {} ({} {})", entryCount, sw, humanReadableByteCount(file.length()), sizeStr);
         return file;
     }

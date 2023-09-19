@@ -95,7 +95,7 @@ public class MergeIncrementalFFSTest {
                 Assert.assertEquals(line, actual);
 
             }
-            Assert.assertEquals(null, br.readLine());
+            Assert.assertNull(br.readLine());
         }
     }
 

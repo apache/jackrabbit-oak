@@ -28,7 +28,7 @@ public interface IncrementalStore extends Closeable {
 
     Iterator<NodeStateEntry> iterator();
 
-    String getFlatFileStorePath();
+    String getStorePath();
 
     long getEntryCount();
 

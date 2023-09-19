@@ -34,16 +34,18 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 
 public abstract class IndexStoreSortStrategyBase implements IndexStoreSortStrategy {
     private final Logger log = LoggerFactory.getLogger(getClass());
+
     /**
      * Directory where sorted files will be created.
      */
-    protected File storeDir;
-    protected Compression algorithm;
-    protected Predicate<String> pathPredicate;
-    protected Set<String> preferredPaths;
-    protected String checkpoint;
+    private final File storeDir;
 
-    private final String DEFAULT_INDEX_STORE_TYPE = "FlatFileStore";
+    private final Compression algorithm;
+    private final Predicate<String> pathPredicate;
+    private final Set<String> preferredPaths;
+    private final String checkpoint;
+
+    private static final String DEFAULT_INDEX_STORE_TYPE = "FlatFileStore";
 
     public IndexStoreSortStrategyBase(File storeDir, Compression algorithm, Predicate<String> pathPredicate,
                                       Set<String> preferredPaths, String checkpoint) {
@@ -52,6 +54,16 @@ public abstract class IndexStoreSortStrategyBase implements IndexStoreSortStrate
         this.pathPredicate = pathPredicate;
         this.preferredPaths = preferredPaths;
         this.checkpoint = checkpoint;
+    }
+
+    @Override
+    public File getStoreDir() {
+        return storeDir;
+    }
+
+    @Override
+    public Compression getAlgorithm() {
+        return algorithm;
     }
 
     @Override

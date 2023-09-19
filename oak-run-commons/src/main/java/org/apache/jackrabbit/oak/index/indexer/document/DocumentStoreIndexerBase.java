@@ -75,6 +75,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
@@ -214,11 +215,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     public IncrementalStore buildIncrementalStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
         IncrementalStoreBuilder builder;
         IncrementalStore incrementalStore;
-        Set<String> preferredPathElements = new HashSet<>();
         Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
-        for (IndexDefinition indexDf : indexDefinitions) {
-            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
-        }
+        Set<String> preferredPathElements = indexDefinitions.stream()
+                .flatMap(indexDef -> indexDef.getRelativeNodeNames().stream())
+                .collect(Collectors.toUnmodifiableSet());
         Stopwatch incrementalStoreWatch = Stopwatch.createStarted();
         Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
         try {
@@ -252,7 +252,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
                 preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
-                flatFileStore.getFlatFileStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getFlatFileStorePath());
+                flatFileStore.getStorePath(), OAK_INDEXER_SORTED_FILE_PATH, flatFileStore.getStorePath());
         return flatFileStore;
     }
 

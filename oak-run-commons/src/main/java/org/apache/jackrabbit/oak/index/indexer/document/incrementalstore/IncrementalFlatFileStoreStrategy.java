@@ -52,7 +52,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSortStrategy {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private final String STORE_TYPE = "IncrementalFlatFileStore";
+    private static final String STORE_TYPE = "IncrementalFlatFileStore";
     public static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
     private final String beforeCheckpoint;
     private final String afterCheckpoint;
@@ -69,7 +69,7 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
     private final Set<String> preferredPathElements;
 
     public IncrementalFlatFileStoreStrategy(NodeStore nodeStore, @NotNull String beforeCheckpoint, @NotNull String afterCheckpoint, File storeDir,
-                                            Set<String> preferredPathElements, Compression algorithm, Predicate<String> pathPredicate, NodeStateEntryWriter entryWriter) {
+                                            Set<String> preferredPathElements, @NotNull Compression algorithm, Predicate<String> pathPredicate, NodeStateEntryWriter entryWriter) {
         this.nodeStore = nodeStore;
         this.beforeCheckpoint = beforeCheckpoint;
         this.afterCheckpoint = afterCheckpoint;
@@ -90,7 +90,7 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
             NodeState after = Objects.requireNonNull(nodeStore.retrieve(afterCheckpoint));
             EditorDiff.process(VisibleEditor.wrap(new IncrementalFlatFileStoreEditor(w, entryWriter, pathPredicate, this)), before, after);
         }
-        String sizeStr = algorithm == null || algorithm.equals(Compression.NONE) ? "" : String.format("compressed/%s actual size", humanReadableByteCount(textSize));
+        String sizeStr = algorithm.equals(Compression.NONE) ? "" : String.format("compressed/%s actual size", humanReadableByteCount(textSize));
         log.info("Dumped {} nodestates in json format in {} ({} {})", entryCount, sw, humanReadableByteCount(file.length()), sizeStr);
         return sortStoreFile(file);
     }

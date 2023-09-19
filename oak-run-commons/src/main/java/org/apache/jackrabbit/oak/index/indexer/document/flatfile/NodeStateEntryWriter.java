@@ -20,10 +20,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-
-import java.util.LinkedList;
-import java.util.List;
-
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -34,8 +30,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
 import java.io.Writer;
-
 import java.util.Comparator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -135,7 +132,7 @@ public class NodeStateEntryWriter {
         } else {
             // file is IncrementalFlatFileStore
             List<Integer> positions = getDelimiterPositions(line);
-            checkState(positions.size() >= 2, "Invalid path entry [%s]", line);
+            checkState(positions.size() >= 3, "Invalid path entry [%s]", line);
             // there are 4 parts in incrementalFFS and default delimiter is |
             // path|nodeData|checkpoint|operand
             // Node's data can itself have many | so we split based on first and last 2 |

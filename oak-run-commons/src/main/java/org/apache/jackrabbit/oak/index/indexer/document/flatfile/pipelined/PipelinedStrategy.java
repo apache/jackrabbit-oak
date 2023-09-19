@@ -221,15 +221,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                              Compression algorithm,
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters) {
-        super(storeDir, algorithm, pathPredicate, preferredPathElements, null);
-        this.docStore = documentStore;
-        this.documentNodeStore = documentNodeStore;
-        this.rootRevision = rootRevision;
-        this.blobStore = blobStore;
-        this.pathComparator = new PathElementComparator(preferredPathElements);
-        this.pathFilters = pathFilters;
-
-        Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
+        this(documentStore, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
+                algorithm, pathPredicate, pathFilters, null);
     }
 
     public PipelinedStrategy(MongoDocumentStore documentStore,
@@ -359,7 +352,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         documentNodeStore,
                         Collection.NODES,
                         rootRevision,
-                        pathPredicate,
+                        this.getPathPredicate(),
                         entryWriter,
                         mongoDocQueue,
                         emptyBatchesQueue,
@@ -370,11 +363,12 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             }
 
             PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                    storeDir, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+                    this.getStoreDir(), pathComparator, this.getAlgorithm(), emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
             );
             ecs.submit(sortTask);
 
-            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(storeDir, pathComparator, algorithm, sortedFilesQueue);
+            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(this.getStoreDir(), pathComparator,
+                    this.getAlgorithm(), sortedFilesQueue);
             ecs.submit(mergeSortTask);
 
 

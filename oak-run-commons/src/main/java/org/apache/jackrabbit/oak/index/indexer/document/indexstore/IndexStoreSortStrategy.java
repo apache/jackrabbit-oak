@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 
 import java.io.File;
@@ -38,5 +39,9 @@ public interface IndexStoreSortStrategy extends SortStrategy {
     Predicate<String> getPathPredicate();
 
     File createMetadataFile() throws IOException;
+
+    File getStoreDir();
+
+    Compression getAlgorithm();
 
 }

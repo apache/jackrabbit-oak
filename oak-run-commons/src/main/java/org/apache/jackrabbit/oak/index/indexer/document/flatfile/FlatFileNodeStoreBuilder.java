@@ -262,7 +262,7 @@ public class FlatFileNodeStoreBuilder {
 
         Pair<List<File>, List<File>> pair = createdSortedStoreFiles();
         List<File> fileList = pair.getKey();
-        File metadataFile = pair.getValue() == null || pair.getValue().size() == 0 ? null : pair.getValue().get(0);
+        File metadataFile = pair.getValue() == null || pair.getValue().isEmpty() ? null : pair.getValue().get(0);
 
         long start = System.currentTimeMillis();
         // If not already split, split otherwise skip splitting
