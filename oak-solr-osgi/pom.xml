@@ -48,6 +48,7 @@
                             org.apache.hadoop.*;resolution:=optional,
                             org.apache.regexp.*;resolution:=optional,
                             org.apache.log4j.*;resolution:=optional,
+                            org.apache.yetus.audience.*;resolution:=optional,
                             org.jboss.netty.*;resolution:=optional,
                             org.restlet.*;resolution:=optional,
                             org.joda.time.*;resolution:=optional,
@@ -176,12 +177,6 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.yetus</groupId>
-            <artifactId>audience-annotations</artifactId>
-            <version>0.5.0</version>
             <scope>runtime</scope>
         </dependency>
     </dependencies>
