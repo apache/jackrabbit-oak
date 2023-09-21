@@ -26,8 +26,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.plugins.memory.LongPropertyState;
-import org.apache.jackrabbit.oak.spi.commit.ThreeWayConflictHandler;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
@@ -35,13 +33,11 @@ import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import javax.security.auth.Subject;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
-import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 
@@ -87,9 +83,6 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(PARAM_CACHE_EXPIRATION, 3600 * 1000)
         );
-//        return ConfigurationParameters.of(UserConfiguration.NAME, ConfigurationParameters
-//                .of(ProtectedItemImporter.PARAM_IMPORT_BEHAVIOR, ImportBehavior.NAME_BESTEFFORT,
-//               PARAM_CACHE_EXPIRATION, 3600 * 1000));
     }
 
     @Test
@@ -104,11 +97,11 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
         PrincipalProvider theirsPP = pc.getPrincipalProvider(theirsRoot, namePathMapper);
 
         // set of principals that read from user + membership-provider -> cache being filled
-        Set<? extends Principal> ourPrincipals = oursPP.getPrincipals(getTestUser().getID());
+        oursPP.getPrincipals(getTestUser().getID());
         assertTrue(getCacheTree(oursRoot).exists());
-        long ourExpiration = getCacheTree(oursRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
+        getCacheTree(oursRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
 
-        Set<? extends Principal> theirPrincipals = theirsPP.getPrincipals(getTestUser().getID());
+        theirsPP.getPrincipals(getTestUser().getID());
         assertTrue(getCacheTree(theirsRoot).exists());
         long theirExpiration = getCacheTree(theirsRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
 
@@ -136,7 +129,7 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
         // set of principals that read from user + membership-provider -> cache being filled
         Set<? extends Principal> ourPrincipals = oursPP.getPrincipals(getTestUser().getID());
         assertTrue(getCacheTree(oursRoot).exists());
-        long ourExpiration = getCacheTree(oursRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
+        getCacheTree(oursRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
 
         Set<? extends Principal> theirPrincipals = theirsPP.getPrincipals(getTestUser().getID());
         assertTrue(getCacheTree(theirsRoot).exists());
