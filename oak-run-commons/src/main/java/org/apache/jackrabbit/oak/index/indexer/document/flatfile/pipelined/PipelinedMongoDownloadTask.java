@@ -287,7 +287,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private void downloadAncestors(String basePath) throws InterruptedException, TimeoutException {
         Bson ancestorQuery = ancestorsFilter(basePath);
-        LOG.info("Downloading using regex path filtering. Base path: {}, Ancestors: {}.", basePath, ancestorQuery);
+        LOG.info("Downloading using regex path filtering. Base path: {}, Ancestors query: {}.", basePath, ancestorQuery);
         FindIterable<BasicDBObject> ancestorsIterable = dbCollection
                 .withReadPreference(readPreference)
                 .find(ancestorQuery)
