@@ -205,21 +205,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // If regex filtering is enabled, start by downloading the ancestors of the path used for filtering.
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
-        Bson childrenFilter = null;
         String regexBasePath = getPathForRegexFiltering();
-        if (regexBasePath != null) {
+        Bson childrenFilter;
+        if (regexBasePath == null) {
+            childrenFilter = null;
+        } else {
             // Regex path filtering is enabled
             // Download the ancestors in a separate query. No retrials done on this query, as it will take only a few
             // seconds and is done at the start of the job, so if it fails, the job can be retried without losing much work
-            LOG.info("Using regex filtering with path {}", regexBasePath);
-            Bson ancestorsQuery = ancestorsFilter(regexBasePath);
-            LOG.info("Downloading ancestors of {}", regexBasePath);
-            // Let Mongo decide which index to use for this query, it will return very few documents
-            FindIterable<BasicDBObject> mongoIterable = dbCollection
-                    .withReadPreference(readPreference)
-                    .find(ancestorsQuery)
-                    .hint(ID_INDEX_HINT);
-            download(mongoIterable);
+            downloadAncestors(regexBasePath);
+
             // Filter to apply to the main query
             childrenFilter = descendantsFilter(regexBasePath);
         }
@@ -290,6 +285,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         download(mongoIterable);
     }
 
+    private void downloadAncestors(String basePath) throws InterruptedException, TimeoutException {
+        Bson ancestorQuery = ancestorsFilter(basePath);
+        LOG.info("Downloading using regex path filtering. Base path: {}, Ancestors: {}.", basePath, ancestorQuery);
+        FindIterable<BasicDBObject> ancestorsIterable = dbCollection
+                .withReadPreference(readPreference)
+                .find(ancestorQuery)
+                // Use the index on _id: this query returns very few documents and the filter condition is on _id.
+                .hint(ID_INDEX_HINT);
+        download(ancestorsIterable);
+    }
+
     private void downloadWithNaturalOrdering() throws InterruptedException, TimeoutException {
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
@@ -303,15 +309,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             download(mongoIterable);
 
         } else {
-            Bson ancestorQuery = ancestorsFilter(regexBasePath);
-            // Do not use natural order to download ancestors. The number of ancestors will always be small, likely less
-            // than 10, so let MongoDB use an index to find them.
-            LOG.info("Downloading using regex path filtering. Downloading ancestors: {}.", ancestorQuery);
-            FindIterable<BasicDBObject> ancestorsIterable = dbCollection
-                    .withReadPreference(readPreference)
-                    .find(ancestorQuery)
-                    .hint(ID_INDEX_HINT);
-            download(ancestorsIterable);
+            downloadAncestors(regexBasePath);
 
             Bson childrenQuery = descendantsFilter(regexBasePath);
             LOG.info("Downloading using regex path filtering. Downloading children: {}.", childrenQuery);
