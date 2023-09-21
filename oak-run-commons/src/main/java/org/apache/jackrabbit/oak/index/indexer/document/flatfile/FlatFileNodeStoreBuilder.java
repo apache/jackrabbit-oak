@@ -28,9 +28,11 @@ import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategyNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -105,7 +107,7 @@ public class FlatFileNodeStoreBuilder {
      * System property for specifying number of files for batch merge task when using {@link MultithreadedTraverseWithSortStrategy}
      */
     static final String PROP_MERGE_TASK_BATCH_SIZE = "oak.indexer.mergeTaskBatchSize";
-    
+
     /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */
@@ -131,7 +133,7 @@ public class FlatFileNodeStoreBuilder {
     private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
     private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
     private final Compression algorithm = compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) :
-        Compression.NONE;
+            Compression.NONE;
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
@@ -139,8 +141,8 @@ public class FlatFileNodeStoreBuilder {
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
+    private MongoConnection mongoConnection = null;
     private Set<IndexDefinition> indexDefinitions = null;
-
 
     public enum SortStrategyType {
         /**
@@ -155,6 +157,7 @@ public class FlatFileNodeStoreBuilder {
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
          */
         MULTITHREADED_TRAVERSE_WITH_SORT,
+        PIPELINED2,
         /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
          */
@@ -229,13 +232,17 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
+    public FlatFileNodeStoreBuilder withMongoConnection(MongoConnection mongoConnection) {
+        this.mongoConnection = mongoConnection;
+        return this;
+    }
 
     public FlatFileStore build() throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
         FlatFileStore store = new FlatFileStore(blobStore, createdSortedStoreFiles().get(0),
-            new NodeStateEntryReader(blobStore),
+                new NodeStateEntryReader(blobStore),
                 unmodifiableSet(preferredPathElements), algorithm);
         if (entryCount > 0) {
             store.setEntryCount(entryCount);
@@ -244,20 +251,20 @@ public class FlatFileNodeStoreBuilder {
     }
 
     public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
-            Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
+                                         Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
         comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
 
         List<File> fileList = createdSortedStoreFiles();
-        
+
         long start = System.currentTimeMillis();
         // If not already split, split otherwise skip splitting
         if (!fileList.stream().allMatch(FlatFileSplitter.IS_SPLIT)) {
             NodeStore nodeStore = new MemoryNodeStore(indexerSupport.retrieveNodeStateForCheckpoint());
             FlatFileSplitter splitter = new FlatFileSplitter(fileList.get(0), indexHelper.getWorkDir(),
-                new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
-                indexDefinitions);
+                    new NodeStateNodeTypeInfoProvider(nodeStore.getRoot()), new NodeStateEntryReader(blobStore),
+                    indexDefinitions);
             fileList = splitter.split();
             log.info("Split flat file to result files '{}' is done, took {} ms", fileList, System.currentTimeMillis() - start);
         }
@@ -272,14 +279,14 @@ public class FlatFileNodeStoreBuilder {
     }
 
     /**
-     * Returns the existing list of store files if it can read from system property OAK_INDEXER_SORTED_FILE_PATH which 
-     * defines the existing folder where the flat file store files are present. Will throw an exception if it cannot 
+     * Returns the existing list of store files if it can read from system property OAK_INDEXER_SORTED_FILE_PATH which
+     * defines the existing folder where the flat file store files are present. Will throw an exception if it cannot
      * read or the path in the system property is not a directory.
-     * If the system property OAK_INDEXER_SORTED_FILE_PATH in undefined, or it cannot read relevant files it 
+     * If the system property OAK_INDEXER_SORTED_FILE_PATH in undefined, or it cannot read relevant files it
      * initializes the flat file store.
-     * 
+     *
      * @return list of flat files
-     * @throws IOException 
+     * @throws IOException
      * @throws CompositeException
      */
     private List<File> createdSortedStoreFiles() throws IOException, CompositeException {
@@ -288,7 +295,7 @@ public class FlatFileNodeStoreBuilder {
         if (StringUtils.isNotBlank(sortedFilePath)) {
             File sortedDir = new File(sortedFilePath);
             log.info("Attempting to read from provided sorted files directory [{}] (via system property '{}')",
-                sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
+                    sortedDir.getAbsolutePath(), OAK_INDEXER_SORTED_FILE_PATH);
             List<File> files = getFiles(sortedDir);
             if (files != null) {
                 return files;
@@ -308,7 +315,7 @@ public class FlatFileNodeStoreBuilder {
     private List<File> getFiles(File sortedDir) {
         if (sortedDir.exists() && sortedDir.canRead() && sortedDir.isDirectory()) {
             File[] files = sortedDir.listFiles(
-                (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
+                    (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
             if (files != null && files.length != 0) {
                 return Arrays.asList(files);
             }
@@ -334,8 +341,13 @@ public class FlatFileNodeStoreBuilder {
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
-                return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
+                return new PipelinedStrategy(mongoDocumentStore, mongoConnection, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters);
+            case PIPELINED2:
+                log.info("Using PipelinedStrategy woth NodeDocument optimization");
+                List<PathFilter> pathFilters2 = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
+                return new PipelinedStrategyNodeDocument(mongoDocumentStore, mongoConnection, nodeStore, rootRevision,
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters2);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
@@ -355,6 +367,7 @@ public class FlatFileNodeStoreBuilder {
     /**
      * Returns the flat file store dir.
      * NOTE - Only works after flat file store dir has been built (i.e. after a call to {@link #build()}
+     *
      * @return flat file store dir or <code>null</code> if it has not been built
      */
     public File getFlatFileStoreDir() {

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -175,10 +175,10 @@ public class PipelinedIT {
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected)
             throws CommitFailedException, IOException {
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Backend roStore = createNodeStore(true);
 
         PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
 
@@ -189,10 +189,10 @@ public class PipelinedIT {
 
     @Test
     public void createFFS_pathPredicateDoesNotMatch() throws Exception {
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Backend roStore = createNodeStore(true);
         Predicate<String> pathPredicate = s -> s.startsWith("/content/dam/does-not-exist");
         PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, null);
 
@@ -206,15 +206,14 @@ public class PipelinedIT {
     public void createFFS_badNumberOfTransformThreads() throws CommitFailedException {
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, "0");
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore);
+        Backend roStore = createNodeStore(true);
 
         assertThrows("Invalid value for property " + PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": 0. Must be > 0",
                 IllegalArgumentException.class,
-                pipelinedStrategy::createSortedStoreFile
+                () -> createStrategy(roStore)
         );
     }
 
@@ -222,46 +221,84 @@ public class PipelinedIT {
     public void createFFS_badWorkingMemorySetting() throws CommitFailedException {
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, "-1");
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore);
+        Backend roStore = createNodeStore(true);
 
         assertThrows("Invalid value for property " + PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": -1. Must be >= 0",
                 IllegalArgumentException.class,
-                pipelinedStrategy::createSortedStoreFile
+                () -> createStrategy(roStore)
         );
     }
+
+
+    // TODO: maxEntriesPerBatch is reached
+
+    @Test
+    public void createFFS_largeMongoDocuments() throws Exception {
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, "1");
+
+        Predicate<String> pathPredicate = s -> true;
+        List<PathFilter> pathFilters = List.of(contentDamPathFilter);
+
+        Backend rwStore = createNodeStore(false);
+        @NotNull NodeBuilder rootBuilder = rwStore.documentNodeStore.getRoot().builder();
+        // This property does not fit in the reserved memory, but must still be processed without errors
+        String longString = RandomStringUtils.random(2 * 1024 * 1024, true, true);
+        @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
+        contentDamBuilder.child("2021").child("01").setProperty("p1", "v202101");
+        contentDamBuilder.child("2022").child("01").setProperty("p1", longString);
+        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
+        rwStore.documentNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        List<String> expected = List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/2021|{}",
+                "/content/dam/2021/01|{\"p1\":\"v202101\"}",
+                "/content/dam/2022|{}",
+                "/content/dam/2022/01|{\"p1\":\"" + longString + "\"}",
+                "/content/dam/2023|{}",
+                "/content/dam/2023/01|{\"p1\":\"v202301\"}"
+        );
+
+        Backend roStore = createNodeStore(true);
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
+
+        File file = pipelinedStrategy.createSortedStoreFile();
+        assertTrue(file.exists());
+        assertEquals(expected, Files.readAllLines(file.toPath()));
+    }
+
 
     @Ignore("This test is for manual execution only. It allocates two byte buffers of 2GB each, which might exceed the memory available in the CI")
     public void createFFSWithPipelinedStrategy_veryLargeWorkingMemorySetting() throws Exception {
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, "1");
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, "8000");
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Backend roStore = createNodeStore(true);
         Predicate<String> pathPredicate = s -> s.startsWith("/content/dam");
         PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, null);
 
         pipelinedStrategy.createSortedStoreFile();
     }
 
-    private PipelinedStrategy createStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore) {
+    private PipelinedStrategy createStrategy(Backend roStore) {
         return createStrategy(roStore, s -> true, null);
     }
 
-    private PipelinedStrategy createStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
-        DocumentNodeStore readOnlyNodeStore = roStore.right;
-        MongoDocumentStore readOnlyMongoDocStore = roStore.left;
-
+    private PipelinedStrategy createStrategy(Backend backend, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
         Set<String> preferredPathElements = Set.of();
-        RevisionVector rootRevision = readOnlyNodeStore.getRoot().getRootRevision();
+        RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         return new PipelinedStrategy(
-                readOnlyMongoDocStore,
-                readOnlyNodeStore,
+                backend.mongoDocumentStore,
+                backend.mongoConnection,
+                backend.documentNodeStore,
                 rootRevision,
                 preferredPathElements,
                 new MemoryBlobStore(),
@@ -314,7 +351,7 @@ public class PipelinedIT {
             "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
     ));
 
-    private ImmutablePair<MongoDocumentStore, DocumentNodeStore> createNodeStore(boolean readOnly) {
+    private Backend createNodeStore(boolean readOnly) {
         MongoConnection c = connectionFactory.getConnection();
         DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setMongoDB(c.getMongoClient(), c.getDBName());
@@ -323,6 +360,18 @@ public class PipelinedIT {
         }
         builder.setAsyncDelay(1);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        return new ImmutablePair<>((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore);
+        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c);
+    }
+
+    static class Backend {
+        final MongoDocumentStore mongoDocumentStore;
+        final DocumentNodeStore documentNodeStore;
+        final MongoConnection mongoConnection;
+
+        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoConnection mongoConnection) {
+            this.mongoDocumentStore = mongoDocumentStore;
+            this.documentNodeStore = documentNodeStore;
+            this.mongoConnection = mongoConnection;
+        }
     }
 }

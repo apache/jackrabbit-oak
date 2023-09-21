@@ -25,6 +25,8 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.util.CompositeCommandListener;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
@@ -58,6 +60,10 @@ public class PipelinedMongoDownloadTaskTest {
         @SuppressWarnings("unchecked")
         MongoCollection<BasicDBObject> dbCollection = mock(MongoCollection.class);
 
+        MongoConnection mongoConnection = mock(MongoConnection.class);
+        CompositeCommandListener compositeCommandListener = new CompositeCommandListener();
+        when(mongoConnection.getCompositeCommandListener()).thenReturn(compositeCommandListener);
+
         List<BasicDBObject> documents = List.of(
                 newBasicDBObject("1", 123_000),
                 newBasicDBObject("2", 123_000),
@@ -85,9 +91,10 @@ public class PipelinedMongoDownloadTaskTest {
         when(dbCollection.find()).thenReturn(findIterable);
         when(dbCollection.find(any(Bson.class))).thenReturn(findIterable);
 
-        int batchSize = 100;
+        int batchMaxMemorySize = 512;
+        int batchMaxElements = 10;
         BlockingQueue<BasicDBObject[]> queue = new ArrayBlockingQueue<>(100);
-        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(dbCollection, batchSize, queue, null);
+        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoConnection, dbCollection, batchMaxMemorySize, batchMaxElements, queue, null);
 
         // Execute
         PipelinedMongoDownloadTask.Result result = task.call();

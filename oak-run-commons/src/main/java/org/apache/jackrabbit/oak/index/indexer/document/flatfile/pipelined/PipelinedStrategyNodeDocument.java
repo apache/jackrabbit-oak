@@ -18,8 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.client.MongoCollection;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
@@ -27,11 +25,10 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
@@ -43,8 +40,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -59,6 +54,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
 
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:
@@ -76,7 +73,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  * configurable size, at which point it sorts the data and writes it to a file. The data is accumulated in instances of
  * {@link NodeStateEntryBatch}. This class contains two data structures:
  * <ul>
- * <li>A {@link java.nio.ByteBuffer} for the binary representation of the entry, that is, the byte array that will be written to the file.
+ * <li>A {@link ByteBuffer} for the binary representation of the entry, that is, the byte array that will be written to the file.
  * This buffer contains length-prefixed byte arrays, that is, each entry is {@code <size><data>}, where size is a 4 byte int.
  * <li>An array of {@link SortKey} instances, which contain the paths of each entry and are used to sort the entries. Each element
  * in this array also contains the position in the ByteBuffer of the serialized representation of the entry.
@@ -84,7 +81,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  * This representation has several advantages:
  * <ul>
  * <li>It is compact, as a String object in the heap requires more memory than a length-prefixed byte array in the ByteBuffer.
- * <li>Predictable memory usage - the memory used by the {@link java.nio.ByteBuffer} is fixed and allocated at startup
+ * <li>Predictable memory usage - the memory used by the {@link ByteBuffer} is fixed and allocated at startup
  * (more on this later). The memory used by the array of {@link SortKey} is not bounded, but these objects are small,
  * as they contain little more than the path of the entry, and we can easily put limits on the maximum number of entries
  * kept in a buffer.
@@ -115,26 +112,23 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  *
  * <h2>Retrials on broken MongoDB connections</h2>
  */
-public class PipelinedStrategy implements SortStrategy {
+public class PipelinedStrategyNodeDocument implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = "oak.indexer.pipelined.mongoDocQueueSize";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = 10;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = "oak.indexer.pipelined.mongoDocBatchSize";
-    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = 10000;
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = 20000;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = "oak.indexer.pipelined.mongoDocQueueReservedMemoryMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = 128;
 
     public static final String OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = "oak.indexer.pipelined.transformThreads";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = 2;
-    public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
+
     // 0 means autodetect
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = 0;
+    public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
+    static final NodeDocument[] SENTINEL_MONGO_DOCUMENT = new NodeDocument[0];
 
-    static final BasicDBObject[] SENTINEL_MONGO_DOCUMENT = new BasicDBObject[0];
-    static final NodeStateEntryBatch SENTINEL_NSE_BUFFER = new NodeStateEntryBatch(ByteBuffer.allocate(0), 0);
-    static final File SENTINEL_SORTED_FILES_QUEUE = new File("SENTINEL");
-    static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
-
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategyNodeDocument.class);
     // A MongoDB document is at most 16MB, so the buffer that holds node state entries must be at least that big
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 16;
     private static final int MIN_AUTODETECT_WORKING_MEMORY_MB = 128;
@@ -150,8 +144,7 @@ public class PipelinedStrategy implements SortStrategy {
         final int nseMaxPerBuffer;
 
         public MemoryAllocation(int memoryArenasCount, int memoryArenaSizeBytes, int mongoDocQueueMaxBatchMemorySizeBytes,
-                                int nseBuffersSizeBytes, int nseMaxGlobal, int nseMaxPerBuffer)
-        {
+                                int nseBuffersSizeBytes, int nseMaxGlobal, int nseMaxPerBuffer) {
             this.memoryArenasCount = memoryArenasCount;
             this.memoryArenaSizeBytes = memoryArenaSizeBytes;
             this.mongoDocQueueMaxBatchMemorySizeBytes = mongoDocQueueMaxBatchMemorySizeBytes;
@@ -216,16 +209,16 @@ public class PipelinedStrategy implements SortStrategy {
      * @param pathFilters     If non-empty, the download stage will use these filters to try to create a query that downloads
      *                        only the matching MongoDB documents.
      */
-    public PipelinedStrategy(MongoDocumentStore documentStore,
-                             MongoConnection mongoConnection,
-                             DocumentNodeStore documentNodeStore,
-                             RevisionVector rootRevision,
-                             Set<String> preferredPathElements,
-                             BlobStore blobStore,
-                             File storeDir,
-                             Compression algorithm,
-                             Predicate<String> pathPredicate,
-                             List<PathFilter> pathFilters) {
+    public PipelinedStrategyNodeDocument(MongoDocumentStore documentStore,
+                                         MongoConnection mongoConnection,
+                                         DocumentNodeStore documentNodeStore,
+                                         RevisionVector rootRevision,
+                                         Set<String> preferredPathElements,
+                                         BlobStore blobStore,
+                                         File storeDir,
+                                         Compression algorithm,
+                                         Predicate<String> pathPredicate,
+                                         List<PathFilter> pathFilters) {
         this.docStore = documentStore;
         this.mongoConnection = mongoConnection;
         this.documentNodeStore = documentNodeStore;
@@ -339,7 +332,6 @@ public class PipelinedStrategy implements SortStrategy {
         );
     }
 
-
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
@@ -356,7 +348,7 @@ public class PipelinedStrategy implements SortStrategy {
         );
         try {
             // download -> transform thread.
-            ArrayBlockingQueue<BasicDBObject[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocQueueSize);
+            ArrayBlockingQueue<NodeDocument[]> mongoDocQueue = new ArrayBlockingQueue<>(mongoDocQueueSize);
 
             // transform <-> sort and save threads
             // Queue with empty buffers, used by the transform task
@@ -380,10 +372,9 @@ public class PipelinedStrategy implements SortStrategy {
 
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
-            MongoCollection<BasicDBObject> dbCollection = MongoDocumentStoreHelper.getDBCollection(docStore, Collection.NODES);
-            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(
+            PipelinedMongoDownloadTaskNodeDocument downloadTask = new PipelinedMongoDownloadTaskNodeDocument(
                     mongoConnection,
-                    dbCollection,
+                    docStore,
                     allocation.mongoDocQueueMaxBatchMemorySizeBytes,
                     mongoDocQueueMaxBatchElements,
                     mongoDocQueue,
@@ -395,10 +386,9 @@ public class PipelinedStrategy implements SortStrategy {
 
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                PipelinedTransformTask transformTask = new PipelinedTransformTask(
+                PipelinedTransformTaskNodeDocument transformTask = new PipelinedTransformTaskNodeDocument(
                         docStore,
                         documentNodeStore,
-                        Collection.NODES,
                         rootRevision,
                         pathPredicate,
                         entryWriter,
@@ -508,11 +498,11 @@ public class PipelinedStrategy implements SortStrategy {
     }
 
     private <T> void printStatistics(ArrayBlockingQueue<T[]> mongoDocQueue,
-                                 ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
-                                 ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
-                                 ArrayBlockingQueue<File> sortedFilesQueue,
-                                 TransformStageStatistics transformStageStatistics,
-                                 boolean printHistogramsAtInfo) {
+                                     ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
+                                     ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
+                                     ArrayBlockingQueue<File> sortedFilesQueue,
+                                     TransformStageStatistics transformStageStatistics,
+                                     boolean printHistogramsAtInfo) {
 
         String queueSizeStats = MetricsFormatter.newBuilder()
                 .add("mongoDocQueue", mongoDocQueue.size())
