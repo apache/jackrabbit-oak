@@ -31,6 +31,7 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -103,7 +104,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     // TODO: Revise this timeout. It is used to prevent the indexer from blocking forever if the queue is full.
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(30);
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
-    private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural:1}");
+    private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
+    private final static BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
 
     private static final String THREAD_NAME = "mongo-dump";
 
@@ -215,10 +217,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             // Let Mongo decide which index to use for this query, it will return very few documents
             FindIterable<BasicDBObject> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
-                    .find(ancestorsQuery);
+                    .find(ancestorsQuery)
+                    .hint(ID_INDEX_HINT);
             download(mongoIterable);
             // Filter to apply to the main query
-            childrenFilter = childrenFilter(regexBasePath);
+            childrenFilter = descendantsFilter(regexBasePath);
         }
 
         Instant failuresStartTimestamp = null; // When the last series of failures started
@@ -306,10 +309,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.info("Downloading using regex path filtering. Downloading ancestors: {}.", ancestorQuery);
             FindIterable<BasicDBObject> ancestorsIterable = dbCollection
                     .withReadPreference(readPreference)
-                    .find(ancestorQuery);
+                    .find(ancestorQuery)
+                    .hint(ID_INDEX_HINT);
             download(ancestorsIterable);
 
-            Bson childrenQuery = childrenFilter(regexBasePath);
+            Bson childrenQuery = descendantsFilter(regexBasePath);
             LOG.info("Downloading using regex path filtering. Downloading children: {}.", childrenQuery);
             FindIterable<BasicDBObject> childrenIterable = dbCollection
                     .withReadPreference(readPreference)
@@ -350,7 +354,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static Bson childrenFilter(String path) {
+    private static Bson descendantsFilter(String path) {
         if (!path.endsWith("/")) {
             path = path + "/";
         }
@@ -366,16 +370,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private static Bson ancestorsFilter(String path) {
         ArrayList<Bson> parentFilters = new ArrayList<>();
-        int depth = PathUtils.getDepth(path);
-        // Explicitly list all ancestors in a or query.
+        String currentPath = path;
         while (true) {
-            parentFilters.add(Filters.eq(NodeDocument.ID, depth + ":" + path));
-            parentFilters.add(Filters.eq(NodeDocument.PATH, path));
-            if (depth == 0) {
+            String currentId = Utils.getIdFromPath(currentPath);
+            parentFilters.add(Filters.eq(NodeDocument.ID, currentId));
+            if (PathUtils.denotesRoot(currentPath)) {
                 break;
             }
-            path = PathUtils.getParentPath(path);
-            depth--;
+            currentPath = PathUtils.getParentPath(currentPath);
         }
         return Filters.or(parentFilters);
     }
