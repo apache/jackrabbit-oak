@@ -18,26 +18,27 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import java.util.List;
-import java.util.function.Predicate;
+import java.util.Set;
 
 public class IncrementalIndexStoreMetadata {
 
-    private final String beforeCheckpoint;
-    private final String afterCheckpoint;
-    private final String storeType;
-    private final String strategy;
+    private String beforeCheckpoint;
+    private String afterCheckpoint;
+    private String storeType;
+    private String strategy;
 
-    private final List<String> preferredPaths;
-    private final Predicate<String> pathPredicate;
+    private Set<String> preferredPaths;
 
-    public IncrementalIndexStoreMetadata(IncrementalIndexStoreSortStrategy indexStoreSortStrategy) {
-        this.beforeCheckpoint = indexStoreSortStrategy.getBeforeCheckpoint();
-        this.afterCheckpoint = indexStoreSortStrategy.getAfterCheckpoint();
-        this.storeType = indexStoreSortStrategy.getStoreType();
-        this.strategy = indexStoreSortStrategy.getStrategyName();
-        this.preferredPaths = indexStoreSortStrategy.getPreferredPaths();
-        this.pathPredicate = indexStoreSortStrategy.getPathPredicate();
+    public IncrementalIndexStoreMetadata() {
+    }
+
+    public IncrementalIndexStoreMetadata(String beforeCheckpoint, String afterCheckpoint, String storeType,
+                                         String strategy, Set<String> preferredPaths) {
+        this.beforeCheckpoint = beforeCheckpoint;
+        this.afterCheckpoint = afterCheckpoint;
+        this.storeType = storeType;
+        this.strategy = strategy;
+        this.preferredPaths = preferredPaths;
     }
 
     public String getBeforeCheckpoint() {
@@ -56,12 +57,8 @@ public class IncrementalIndexStoreMetadata {
         return storeType;
     }
 
-
-    public List<String> getPreferredPaths() {
+    public Set<String> getPreferredPaths() {
         return preferredPaths;
     }
 
-    public Predicate<String> getPathPredicate() {
-        return pathPredicate;
-    }
 }

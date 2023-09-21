@@ -22,11 +22,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
-
 public class IncrementalFlatFileStoreNodeStateEntryWriter extends NodeStateEntryWriter {
 
     /**
@@ -42,28 +37,34 @@ public class IncrementalFlatFileStoreNodeStateEntryWriter extends NodeStateEntry
     }
 
     public static String[] getParts(String line) {
-        List<Integer> positions = getDelimiterPositions(line);
-        checkState(positions.size() >= 3, "Invalid path entry [%s]", line);
         // there are 4 parts in incrementalFFS and default delimiter is |
         // path|nodeData|checkpoint|operand
         // Node's data can itself have many | so we split based on first and last 2 |
+        int startIndex = -1;
+        int lastIndex = -1;
+
+        StringBuilder stringBuilder = new StringBuilder(line);
+
+        startIndex = stringBuilder.indexOf(NodeStateEntryWriter.DELIMITER);
+        String path = stringBuilder.substring(0, startIndex);
+        stringBuilder.delete(0, startIndex + 1);
+
+        lastIndex = stringBuilder.lastIndexOf(NodeStateEntryWriter.DELIMITER);
+        String operand = stringBuilder.substring(lastIndex + 1);
+        stringBuilder.delete(lastIndex, stringBuilder.length());
+
+        lastIndex = stringBuilder.lastIndexOf(NodeStateEntryWriter.DELIMITER);
+        String checkpoint = stringBuilder.substring(lastIndex + 1);
+        stringBuilder.delete(lastIndex, stringBuilder.length());
+
+        String nodeData = stringBuilder.toString();
+
         String[] parts = new String[4];
-        parts[0] = line.substring(0, positions.get(0));
-        parts[1] = line.substring(positions.get(0) + 1, positions.get(positions.size() - 2));
-        parts[2] = line.substring(positions.get(positions.size() - 2) + 1, positions.get(positions.size() - 1));
-        parts[3] = line.substring(positions.get(positions.size() - 1) + 1);
+        parts[0] = path;
+        parts[1] = nodeData;
+        parts[2] = checkpoint;
+        parts[3] = operand;
         return parts;
-    }
-
-    private static List<Integer> getDelimiterPositions(String entryLine) {
-        List<Integer> indexPositions = new ArrayList<>(3);
-
-        int index = 0;
-        while ((index = entryLine.indexOf(NodeStateEntryWriter.DELIMITER, index)) != -1) {
-            indexPositions.add(index);
-            index++;
-        }
-        return indexPositions;
     }
 
 }

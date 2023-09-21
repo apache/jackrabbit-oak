@@ -42,11 +42,15 @@ public class MergeIncrementalFFSTest {
     @Test
     public void test1() throws IOException {
 
-        File base = folder.newFile("base.gz");
-        File inc = folder.newFile("inc.gz");
-        File merged = folder.newFile("merged.gz");
+        File baseFFS = folder.newFile("base.gz");
+        File baseFFSMetadata = folder.newFile("base.metadata.gz");
+        File incFFS = folder.newFile("inc.gz");
+        File incFFSMetadata = folder.newFile("inc.metadata.gz");
+        File mergedFFS = folder.newFile("merged.gz");
+        File mergedFFSMetadata = folder.newFile("merged.metadata.gz");
 
-        try (BufferedWriter baseBW = FlatFileStoreUtils.createWriter(base, algorithm)) {
+
+        try (BufferedWriter baseBW = FlatFileStoreUtils.createWriter(baseFFS, algorithm)) {
             baseBW.write("/tmp|{prop1=\"foo\"}");
             baseBW.newLine();
             baseBW.write("/tmp/a|{prop2=\"foo\"}");
@@ -59,8 +63,13 @@ public class MergeIncrementalFFSTest {
             baseBW.newLine();
             baseBW.write("/tmp/c|{prop3=\"foo\"}");
         }
+        try (BufferedWriter baseBW = FlatFileStoreUtils.createWriter(baseFFSMetadata, algorithm)) {
+            baseBW.write("{\"checkpoint\":\"" + "r0" + "\",\"storeType\":\"FlatFileStore\"," +
+                    "\"strategy\":\"" + "BaseFFSCreationStrategy" + "\",\"preferredPaths\":[]}");
+            baseBW.newLine();
+        }
 
-        try (BufferedWriter baseInc = FlatFileStoreUtils.createWriter(inc, algorithm)) {
+        try (BufferedWriter baseInc = FlatFileStoreUtils.createWriter(incFFS, algorithm)) {
             baseInc.write("/tmp/a|{prop2=\"fooModified\"}|r1|M");
             baseInc.newLine();
             baseInc.write("/tmp/b|{prop1=\"foo\"}|r1|D");
@@ -73,24 +82,33 @@ public class MergeIncrementalFFSTest {
             baseInc.newLine();
             baseInc.write("/tmp/e|{prop3=\"bar\"}|r1|A");
         }
+        try (BufferedWriter baseInc = FlatFileStoreUtils.createWriter(incFFSMetadata, algorithm)) {
+            baseInc.write("{\"beforeCheckpoint\":\"" + "r0" + "\",\"afterCheckpoint\":\"" + "r1" + "\"," +
+                    "\"storeType\":\"" + "IncrementalFFSType" + "\"," +
+                    "\"strategy\":\"" + "pipelineStrategy" + "\"," +
+                    "\"preferredPaths\":[]}");
+            baseInc.newLine();
+        }
 
-        List<String> expectedList = new LinkedList<>();
+        List<String> expectedMergedList = new LinkedList<>();
 
-        expectedList.add("/tmp|{prop1=\"foo\"}");
-        expectedList.add("/tmp/a|{prop2=\"fooModified\"}");
-        expectedList.add("/tmp/a/b|{prop3=\"foo\"}");
-        expectedList.add("/tmp/b/c|{prop2=\"foo\"}");
-        expectedList.add("/tmp/b/c/d|{prop2=\"fooNew\"}");
-        expectedList.add("/tmp/c|{prop3=\"fooModified\"}");
-        expectedList.add("/tmp/d|{prop3=\"bar\"}");
-        expectedList.add("/tmp/e|{prop3=\"bar\"}");
+        expectedMergedList.add("/tmp|{prop1=\"foo\"}");
+        expectedMergedList.add("/tmp/a|{prop2=\"fooModified\"}");
+        expectedMergedList.add("/tmp/a/b|{prop3=\"foo\"}");
+        expectedMergedList.add("/tmp/b/c|{prop2=\"foo\"}");
+        expectedMergedList.add("/tmp/b/c/d|{prop2=\"fooNew\"}");
+        expectedMergedList.add("/tmp/c|{prop3=\"fooModified\"}");
+        expectedMergedList.add("/tmp/d|{prop3=\"bar\"}");
+        expectedMergedList.add("/tmp/e|{prop3=\"bar\"}");
 
-        MergeIncrementalFlatFileStore merge = new MergeIncrementalFlatFileStore(Collections.emptySet(), base, inc, merged, algorithm);
-
+        List<String> expectedMergedMetadataList = new LinkedList<>();
+        expectedMergedMetadataList.add("{\"checkpoint\":\"" + "r1" + "\",\"storeType\":\"FlatFileStore\"," +
+                "\"strategy\":\"" + MergeIncrementalFlatFileStore.MERGE_BASE_AND_INCREMENTAL_FLAT_FILE_STORE + "\",\"preferredPaths\":[]}");
+        MergeIncrementalFlatFileStore merge = new MergeIncrementalFlatFileStore(Collections.emptySet(), baseFFS, incFFS, mergedFFS, algorithm);
         merge.doMerge();
 
-        try (BufferedReader br = FlatFileStoreUtils.createReader(merged, algorithm)) {
-            for (String line : expectedList) {
+        try (BufferedReader br = FlatFileStoreUtils.createReader(mergedFFS, algorithm)) {
+            for (String line : expectedMergedList) {
                 String actual = br.readLine();
                 System.out.println(actual);
                 Assert.assertEquals(line, actual);
@@ -98,7 +116,15 @@ public class MergeIncrementalFFSTest {
             }
             Assert.assertNull(br.readLine());
         }
-    }
 
+        try (BufferedReader br = FlatFileStoreUtils.createReader(FlatFileStoreUtils.getMetadataFile(mergedFFS, algorithm), algorithm)) {
+            for (String line : expectedMergedMetadataList) {
+                String actual = br.readLine();
+                System.out.println(actual);
+                Assert.assertEquals(line, actual);
+            }
+            Assert.assertNull(br.readLine());
+        }
+    }
 
 }

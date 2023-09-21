@@ -80,7 +80,7 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
         try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(
                 new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null))
         ) {
-            File storeFile = writeToStore(nodeStates, this.getStoreDir(), getSortedStoreFileName(this.getAlgorithm()));
+            File storeFile = writeToStore(nodeStates, getStoreDir(), getSortedStoreFileName(getAlgorithm()));
             return sortStoreFile(storeFile);
         }
     }
@@ -93,13 +93,13 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private File sortStoreFile(File storeFile) throws IOException {
         File sortWorkDir = new File(storeFile.getParent(), "sort-work-dir");
         FileUtils.forceMkdir(sortWorkDir);
-        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(this.getAlgorithm()));
+        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(getAlgorithm()));
         NodeStateEntrySorter sorter =
                 new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
 
         logFlags();
 
-        sorter.setCompressionAlgorithm(this.getAlgorithm());
+        sorter.setCompressionAlgorithm(getAlgorithm());
         sorter.setMaxMemoryInGB(maxMemory);
         sorter.setDeleteOriginal(deleteOriginal);
         sorter.setActualFileSize(textSize);
@@ -111,10 +111,10 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
         entryCount = 0;
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();
-        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, this.getAlgorithm())) {
+        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, getAlgorithm())) {
             for (NodeStateEntry e : nodeStates) {
                 String path = e.getPath();
-                if (!NodeStateUtils.isHiddenPath(path) && this.getPathPredicate().test(path)) {
+                if (!NodeStateUtils.isHiddenPath(path) && getPathPredicate().test(path)) {
                     String line = entryWriter.toString(e);
                     w.append(line);
                     w.newLine();
@@ -123,7 +123,7 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
                 }
             }
         }
-        String sizeStr = !this.getAlgorithm().equals(Compression.NONE) ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";
+        String sizeStr = !getAlgorithm().equals(Compression.NONE) ? String.format("compressed/%s actual size", humanReadableByteCount(textSize)) : "";
         log.info("Dumped {} nodestates in json format in {} ({} {})", entryCount, sw, humanReadableByteCount(file.length()), sizeStr);
         return file;
     }

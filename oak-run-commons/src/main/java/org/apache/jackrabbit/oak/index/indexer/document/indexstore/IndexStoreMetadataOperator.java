@@ -18,39 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
-import java.util.Set;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.jackrabbit.oak.commons.Compression;
 
-public class IndexStoreMetadata {
-    private String checkpoint;
-    private String storeType;
-    private String strategy;
-    private Set<String> preferredPaths;
+import java.io.File;
+import java.io.IOException;
 
-    public IndexStoreMetadata() {
-    }
+public interface IndexStoreMetadataOperator<M> {
+    File createMetadataFile(M t, File storeDir, Compression algorithm) throws IOException;
 
-    public IndexStoreMetadata(String checkpoint, String storeType, String strategy,
-                              Set<String> preferredPaths) {
-        this.checkpoint = checkpoint;
-        this.storeType = storeType;
-        this.strategy = strategy;
-        this.preferredPaths = preferredPaths;
-    }
-
-    public String getCheckpoint() {
-        return checkpoint;
-    }
-
-    public String getStoreType() {
-        return storeType;
-    }
-
-    public String getStrategy() {
-        return strategy;
-    }
-
-    public Set<String> getPreferredPaths() {
-        return preferredPaths;
-    }
-
+    M getIndexStoreMetadata(File metadataFile, Compression algorithm, TypeReference<M> clazz) throws IOException;
 }

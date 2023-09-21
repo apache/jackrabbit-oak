@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -34,10 +35,13 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.util.List;
 
+import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+
 /**
  * This class provides common utility functions for building FlatFileStore.
  */
 public class FlatFileStoreUtils {
+    public static final String METADATA_SUFFIX = ".metadata";
 
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.
@@ -90,4 +94,37 @@ public class FlatFileStoreUtils {
     public static String getMetadataFileName(Compression algorithm) {
         return algorithm.addSuffix("store-sorted.json.metadata");
     }
+
+    /*
+        Metadata file is placed in same folder as FFS file with following naming convention.
+        e.g. <filename.json>.<compression suffix> then metadata file is atored as <filename.json>.metadata.<compression suffix>
+     */
+    public static File getMetadataFile(File indexStoreFile, Compression algorithm) {
+        File metadataFile;
+        if (algorithm.equals(Compression.NONE)) {
+            metadataFile = new File(indexStoreFile.getAbsolutePath() + METADATA_SUFFIX);
+        } else {
+            String fileName = indexStoreFile.getName();
+            String compressionSuffix = getCompressionSuffix(indexStoreFile);
+            checkState(algorithm.addSuffix("").equals(compressionSuffix));
+            String fileNameWithoutCompressionSuffix = fileName.substring(0, fileName.lastIndexOf("."));
+            metadataFile = new File(algorithm.addSuffix(indexStoreFile.getParent() + "/"
+                    + fileNameWithoutCompressionSuffix + METADATA_SUFFIX));
+        }
+        return metadataFile;
+    }
+
+    private static String getCompressionSuffix(File file) {
+        return file.getName().substring(file.getName().lastIndexOf("."));
+    }
+
+    public static void validateFlatFileStoreFileName(File file, @NotNull Compression algorithm) {
+        if (!algorithm.equals(Compression.NONE)) {
+            checkState(algorithm.addSuffix("")
+                            .equals(file.getName().substring(file.getName().lastIndexOf("."))),
+                    "File suffix should be in correspondence with compression algorithm. Filename:{}, Compression suffix:{} ",
+                    file.getAbsolutePath(), algorithm.addSuffix(""));
+        }
+    }
+
 }

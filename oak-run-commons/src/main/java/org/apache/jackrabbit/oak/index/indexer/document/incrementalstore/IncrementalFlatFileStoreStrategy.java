@@ -18,13 +18,13 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Stopwatch;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntrySorter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.PathElementComparator;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadataOperatorImpl;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
 import org.apache.jackrabbit.oak.spi.commit.VisibleEditor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -36,16 +36,13 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getMetadataFileName;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSortStrategy {
@@ -97,19 +94,11 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
 
     @Override
     public File createMetadataFile() throws IOException {
-        File metadataFile = new File(storeDir, getMetadataFileName(algorithm));
-        IncrementalIndexStoreMetadata indexStoreMetadata = new IncrementalIndexStoreMetadata(this);
-        try (BufferedWriter metadataWriter = FlatFileStoreUtils.createWriter(metadataFile, algorithm)) {
-            writeMetadataToFile(metadataWriter, indexStoreMetadata);
-        }
+        IncrementalIndexStoreMetadata indexStoreMetadata = new IncrementalIndexStoreMetadata(beforeCheckpoint, afterCheckpoint,
+                getStoreType(), getStrategyName(), getPreferredPaths());
+        File metadataFile = new IndexStoreMetadataOperatorImpl<IncrementalIndexStoreMetadata>().createMetadataFile(indexStoreMetadata, storeDir, algorithm);
         log.info("Created metadataFile:{} with strategy:{} ", metadataFile.getPath(), indexStoreMetadata.getStoreType());
         return metadataFile;
-    }
-
-
-    private void writeMetadataToFile(BufferedWriter w, IncrementalIndexStoreMetadata indexStoreMetadata) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(w, indexStoreMetadata);
     }
 
     @Override
@@ -133,8 +122,8 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
     }
 
     @Override
-    public List<String> getPreferredPaths() {
-        return preferredPathElements.stream().sorted().collect(Collectors.toList());
+    public Set<String> getPreferredPaths() {
+        return preferredPathElements;
     }
 
     public Predicate<String> getPathPredicate() {

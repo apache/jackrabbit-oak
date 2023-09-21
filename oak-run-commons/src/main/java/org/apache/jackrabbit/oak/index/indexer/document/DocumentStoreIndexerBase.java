@@ -212,7 +212,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         return storeList;
     }
 
-    public IndexStore buildIncrementalStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
+    public IndexStore buildStore() throws IOException, CommitFailedException {
+        return buildFlatFileStore();
+    }
+
+    public IndexStore buildStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
         IncrementalStoreBuilder builder;
         IndexStore incrementalStore;
         Set<IndexDefinition> indexDefinitions = getIndexDefinitions();

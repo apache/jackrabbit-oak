@@ -22,7 +22,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public interface IncrementalIndexStoreSortStrategy extends SortStrategy {
@@ -33,7 +33,7 @@ public interface IncrementalIndexStoreSortStrategy extends SortStrategy {
 
     String getAfterCheckpoint();
 
-    List<String> getPreferredPaths();
+    Set<String> getPreferredPaths();
 
     Predicate<String> getPathPredicate();
 

@@ -18,11 +18,15 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadata;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadataOperatorImpl;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -47,6 +51,7 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -56,6 +61,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -69,6 +75,8 @@ public class IncrementalStoreIT {
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
     @Rule
     public final TemporaryFolder sortFolder = new TemporaryFolder();
+
+    private Compression algorithm = Compression.GZIP;
 
     @BeforeClass
     public static void checkMongoDbAvailable() {
@@ -88,6 +96,24 @@ public class IncrementalStoreIT {
         c.getDatabase().drop();
     }
 
+    @Test
+    public void testWithNoCompression() throws Exception {
+        algorithm = Compression.NONE;
+        incrementalFFSTest();
+    }
+
+    @Test
+    public void testWithGzipCompression() throws Exception {
+        algorithm = Compression.GZIP;
+        incrementalFFSTest();
+    }
+
+    @Test
+    public void testWithLz4Compression() throws Exception {
+        algorithm = new LZ4Compression();
+        incrementalFFSTest();
+    }
+
     /**
      * This test creates:
      * 1. base ffs at checkpoint1
@@ -96,7 +122,6 @@ public class IncrementalStoreIT {
      * 4. merge baseffs at checkpoint1 and incremental ffs between checkpoint1 and checkpoint2
      * 5. merged file is compared with base ffs at checkpoint2
      */
-    @Test
     public void incrementalFFSTest() throws Exception {
         ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
         createBaseContent(rwStore.right);
@@ -109,27 +134,41 @@ public class IncrementalStoreIT {
         File metadataAtCheckpoint1 = pipelinedStrategy.createMetadataFile();
         assertTrue(baseFFSAtCheckpoint1.exists());
         assertTrue(metadataAtCheckpoint1.exists());
-        assertEquals(Arrays.asList(new String[]{"/content/dam|{}",
-                        "/content/dam/1000|{}",
-                        "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-                        "/content/dam/2022|{}",
-                        "/content/dam/2022/02|{\"p1\":\"v202202\"}",
-                        "/content/dam/2023|{\"p2\":\"v2023\"}",
-                        "/content/dam/2023/01|{\"p1\":\"v202301\"}",
-                        "/content/dam/2023/02|{}",
-                        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}",
-                        "/content/dam/2023/04|{}",
-                        "/content/dam/2023/04/29|{\"p1\":\"v20230429\"}",
-                        "/content/dam/2023/04/30|{\"p1\":\"v20230430\"}"
+        try (BufferedReader bufferedReaderBaseFFSAtCheckpoint1 = FlatFileStoreUtils.createReader(baseFFSAtCheckpoint1, algorithm);
+             BufferedReader bufferedReaderMetadataAtCheckpoint1 = FlatFileStoreUtils.createReader(metadataAtCheckpoint1, algorithm);
+        ) {
 
-                }),
-                Files.readAllLines(baseFFSAtCheckpoint1.toPath()));
-        assertEquals(Arrays.asList("{\"checkpoint\":\"" + initialCheckpoint + "\",\"storeType\":\"FlatFileStore\"," +
-                        "\"strategy\":\"" + pipelinedStrategy.getClass().getSimpleName() + "\",\"preferredPaths\":[],\"pathPredicate\":{}}"),
-                Files.readAllLines(metadataAtCheckpoint1.toPath()));
 
-        Path initialFilePath = Files.move(baseFFSAtCheckpoint1.toPath(), new File(baseFFSAtCheckpoint1.getParent(), "initial.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
-        Files.move(new File(baseFFSAtCheckpoint1.getParent() + "/sort-work-dir").toPath(), new File(baseFFSAtCheckpoint1.getParent(), "/initial-sort-work-dir").toPath(), StandardCopyOption.REPLACE_EXISTING);
+            assertEquals(Arrays.asList(new String[]{"/content/dam|{}",
+                            "/content/dam/1000|{}",
+                            "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+                            "/content/dam/2022|{}",
+                            "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+                            "/content/dam/2023|{\"p2\":\"v2023\"}",
+                            "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+                            "/content/dam/2023/02|{}",
+                            "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}",
+                            "/content/dam/2023/04|{}",
+                            "/content/dam/2023/04/29|{\"p1\":\"v20230429\"}",
+                            "/content/dam/2023/04/30|{\"p1\":\"v20230430\"}"
+
+                    }),
+                    bufferedReaderBaseFFSAtCheckpoint1.lines().collect(Collectors.toList()));
+
+            assertEquals(Arrays.asList("{\"checkpoint\":\"" + initialCheckpoint + "\",\"storeType\":\"FlatFileStore\"," +
+                            "\"strategy\":\"" + pipelinedStrategy.getClass().getSimpleName() + "\",\"preferredPaths\":[]}"),
+                    bufferedReaderMetadataAtCheckpoint1.lines().collect(Collectors.toList()));
+        }
+
+        Path initialFilePath = Files.move(baseFFSAtCheckpoint1.toPath(),
+                new File(baseFFSAtCheckpoint1.getParent(), algorithm.addSuffix("initial.json")).toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
+        Path initialMetadataFilePath = Files.move(metadataAtCheckpoint1.toPath(),
+                new File(baseFFSAtCheckpoint1.getParent(), algorithm.addSuffix("initial.json.metadata")).toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
+        Files.move(new File(baseFFSAtCheckpoint1.getParent() + "/sort-work-dir").toPath(),
+                new File(baseFFSAtCheckpoint1.getParent(), "/initial-sort-work-dir").toPath(),
+                StandardCopyOption.REPLACE_EXISTING);
 
 
         createIncrementalContent(rwStore.right);
@@ -139,43 +178,88 @@ public class IncrementalStoreIT {
         PipelinedStrategy pipelinedStrategy1 = createPipelinedStrategy(roStore1, pathPredicate1, finalCheckpoint);
 
         File baseFFSCheckpoint2 = pipelinedStrategy1.createSortedStoreFile();
-        assertTrue(baseFFSCheckpoint2.exists());
-        assertEquals(Arrays.asList(new String[]{"/content/dam|{}",
-                        "/content/dam/1000|{}",
-                        "/content/dam/1000/12|{\"p1\":\"v100012\",\"p2\":\"v100012\"}",
-                        "/content/dam/2022|{}",
-                        "/content/dam/2022/02|{\"p1\":\"v202202-new\"}",
-                        "/content/dam/2023|{}",
-                        "/content/dam/2023/02|{}",
-                        "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}",
-                        "/content/dam/2023/03|{\"p1\":\"v202301\"}",
-                        "/content/dam/2023/04|{}",
-                        "/content/dam/2023/04/29|{\"p1\":\"v20230429\"}",
-                        "/content/dam/2023/04/30|{\"p1\":\"v20230430\"}",
-                }),
-                Files.readAllLines(baseFFSCheckpoint2.toPath()));
-        Path finalFilePath = Files.move(baseFFSAtCheckpoint1.toPath(), new File(baseFFSAtCheckpoint1.getParent(),
-                "final.json").toPath(), StandardCopyOption.REPLACE_EXISTING);
-        Files.move(new File(baseFFSAtCheckpoint1.getParent() + "/sort-work-dir").toPath(),
-                new File(baseFFSAtCheckpoint1.getParent(), "/final-sort-work-dir").toPath(),
+        File metadataAtCheckpoint2 = pipelinedStrategy1.createMetadataFile();
+
+        try (
+                BufferedReader bufferedReaderBaseFFSAtCheckpoint2 = FlatFileStoreUtils.createReader(baseFFSCheckpoint2, algorithm);
+                BufferedReader bufferedReaderMetadataAtCheckpoint2 = FlatFileStoreUtils.createReader(metadataAtCheckpoint2, algorithm)
+        ) {
+
+            assertTrue(baseFFSCheckpoint2.exists());
+
+            assertEquals(Arrays.asList(new String[]{"/content/dam|{}",
+                            "/content/dam/1000|{}",
+                            "/content/dam/1000/12|{\"p1\":\"v100012\",\"p2\":\"v100012\"}",
+                            "/content/dam/2022|{}",
+                            "/content/dam/2022/02|{\"p1\":\"v202202-new\"}",
+                            "/content/dam/2023|{}",
+                            "/content/dam/2023/02|{}",
+                            "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}",
+                            "/content/dam/2023/03|{\"p1\":\"v202301\"}",
+                            "/content/dam/2023/04|{}",
+                            "/content/dam/2023/04/29|{\"p1\":\"v20230429\"}",
+                            "/content/dam/2023/04/30|{\"p1\":\"v20230430\"}",
+                    }),
+                    bufferedReaderBaseFFSAtCheckpoint2.lines().collect(Collectors.toList()));
+
+            assertEquals(Arrays.asList("{\"checkpoint\":\"" + finalCheckpoint + "\",\"storeType\":\"FlatFileStore\"," +
+                            "\"strategy\":\"" + pipelinedStrategy.getClass().getSimpleName() + "\",\"preferredPaths\":[]}"),
+                    bufferedReaderMetadataAtCheckpoint2.lines().collect(Collectors.toList()));
+        }
+
+
+        Path finalFilePath = Files.move(baseFFSCheckpoint2.toPath(), new File(baseFFSCheckpoint2.getParent(),
+                algorithm.addSuffix("final.json")).toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Path finalMetadataFilePath = Files.move(metadataAtCheckpoint2.toPath(), new File(baseFFSCheckpoint2.getParent(),
+                algorithm.addSuffix("final.json.metadata")).toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.move(new File(baseFFSCheckpoint2.getParent() + "/sort-work-dir").toPath(),
+                new File(baseFFSCheckpoint2.getParent(), "/final-sort-work-dir").toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
 
-        IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy = createIncrementalStrategy(roStore, pathPredicate, initialCheckpoint, finalCheckpoint);
+        IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy = createIncrementalStrategy(roStore,
+                pathPredicate, initialCheckpoint, finalCheckpoint);
         File incrementalFile = incrementalFlatFileStoreStrategy.createSortedStoreFile();
         File incrementalStoreMetadata = incrementalFlatFileStoreStrategy.createMetadataFile();
-        assertTrue(baseFFSCheckpoint2.exists());
-        assertEquals(Arrays.asList("{\"beforeCheckpoint\":\"" + initialCheckpoint + "\",\"afterCheckpoint\":\"" + finalCheckpoint + "\"," +
-                        "\"storeType\":\"" + incrementalFlatFileStoreStrategy.getStoreType() + "\"," +
-                        "\"strategy\":\"" + incrementalFlatFileStoreStrategy.getClass().getSimpleName() + "\"," +
-                        "\"preferredPaths\":[],\"pathPredicate\":{}}"),
-                Files.readAllLines(incrementalStoreMetadata.toPath()));
+        try (
+                BufferedReader BufferedReaderIncrementalStoreMetadata = FlatFileStoreUtils.createReader(incrementalStoreMetadata, algorithm)
+        ) {
+            assertTrue(baseFFSCheckpoint2.exists());
+            assertEquals(Arrays.asList("{\"beforeCheckpoint\":\"" + initialCheckpoint + "\",\"afterCheckpoint\":\"" + finalCheckpoint + "\"," +
+                            "\"storeType\":\"" + incrementalFlatFileStoreStrategy.getStoreType() + "\"," +
+                            "\"strategy\":\"" + incrementalFlatFileStoreStrategy.getClass().getSimpleName() + "\"," +
+                            "\"preferredPaths\":[]}"),
+                    BufferedReaderIncrementalStoreMetadata.lines().collect(Collectors.toList()));
 
-        File mergedFile = new File(incrementalFile.getParentFile(), "/merged.json");
-        new MergeIncrementalFlatFileStore(Set.of(),
-                new File(initialFilePath.toString()), incrementalFile, mergedFile, Compression.NONE).doMerge();
+        }
+        File mergedFile = new File(incrementalFile.getParentFile(), algorithm.addSuffix("/merged.json"));
+        assertTrue(mergedFile.createNewFile());
+        MergeIncrementalFlatFileStore mergedStore = new MergeIncrementalFlatFileStore(Set.of(),
+                new File(initialFilePath.toString()), incrementalFile, mergedFile, algorithm);
+        mergedStore.doMerge();
 
-        assertEquals(Files.readAllLines(finalFilePath), Files.readAllLines(mergedFile.toPath()));
+        try (
+                BufferedReader bufferedReaderFinalFilePath = FlatFileStoreUtils.createReader(finalFilePath.toFile(), algorithm);
+                BufferedReader bufferedReaderMergedFile = FlatFileStoreUtils.createReader(mergedFile, algorithm)
+        ) {
+            assertEquals(bufferedReaderFinalFilePath.lines().collect(Collectors.toList()),
+                    bufferedReaderMergedFile.lines().collect(Collectors.toList()));
+        }
+        IndexStoreMetadata mergedIndexStoreMetadata = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>()
+                .getIndexStoreMetadata(FlatFileStoreUtils.getMetadataFile(mergedFile, algorithm),
+                        algorithm, new TypeReference<IndexStoreMetadata>() {
+                        });
+
+        IndexStoreMetadata indexStoreMetadataAtCheckpoint2 = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>()
+                .getIndexStoreMetadata(finalMetadataFilePath.toFile(),
+                        algorithm, new TypeReference<IndexStoreMetadata>() {
+                        });
+
+        assertEquals(mergedIndexStoreMetadata.getCheckpoint(), indexStoreMetadataAtCheckpoint2.getCheckpoint());
+        assertEquals(mergedIndexStoreMetadata.getStoreType(), indexStoreMetadataAtCheckpoint2.getStoreType());
+        assertEquals(mergedIndexStoreMetadata.getPreferredPaths(), indexStoreMetadataAtCheckpoint2.getPreferredPaths());
+        assertEquals(mergedIndexStoreMetadata.getStrategy(), MergeIncrementalFlatFileStore.MERGE_BASE_AND_INCREMENTAL_FLAT_FILE_STORE);
     }
+
 
     private PipelinedStrategy createPipelinedStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore,
                                                       Predicate<String> pathPredicate, String checkpoint) {
@@ -191,7 +275,7 @@ public class IncrementalStoreIT {
                 preferredPathElements,
                 fileBlobStore,
                 sortFolder.getRoot(),
-                Compression.NONE,
+                algorithm,
                 pathPredicate,
                 Collections.emptyList(),
                 checkpoint
@@ -208,7 +292,7 @@ public class IncrementalStoreIT {
         NodeState finalNodeState = readOnlyNodeStore.retrieve(finalCheckpoint);
         return new IncrementalFlatFileStoreStrategy(
                 readOnlyNodeStore, initialCheckpoint, finalCheckpoint, sortFolder.getRoot(), preferredPathElements,
-                Compression.NONE, pathPredicate, new IncrementalFlatFileStoreNodeStateEntryWriter(fileBlobStore));
+                algorithm, pathPredicate, new IncrementalFlatFileStoreNodeStateEntryWriter(fileBlobStore));
     }
 
     private void createBaseContent(NodeStore rwNodeStore) throws CommitFailedException {
