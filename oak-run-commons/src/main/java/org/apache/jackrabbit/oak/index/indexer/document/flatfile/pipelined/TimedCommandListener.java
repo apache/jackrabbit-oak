@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 public final class TimedCommandListener implements com.mongodb.event.CommandListener {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
     private final String threadName;
-    private Stopwatch clock = Stopwatch.createUnstarted();
+    private final Stopwatch clock = Stopwatch.createUnstarted();
 
     public TimedCommandListener(String threadName) {
         this.threadName = threadName;
@@ -41,7 +41,6 @@ public final class TimedCommandListener implements com.mongodb.event.CommandList
                     clock.elapsed(TimeUnit.MILLISECONDS)
             );
             clock.reset().start();
-
         }
     }
 

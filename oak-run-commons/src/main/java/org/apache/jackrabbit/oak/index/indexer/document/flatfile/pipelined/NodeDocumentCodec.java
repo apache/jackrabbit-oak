@@ -16,17 +16,11 @@ import org.bson.codecs.Codec;
 import org.bson.codecs.DecoderContext;
 import org.bson.codecs.EncoderContext;
 import org.bson.codecs.configuration.CodecRegistry;
-import org.jetbrains.annotations.NotNull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
 public class NodeDocumentCodec implements Codec<NodeDocument> {
-    private final static Logger log = LoggerFactory.getLogger(NodeDocumentCodec.class);
-
     public final static String SIZE_FIELD = "__SIZE__";
     private final MongoDocumentStore store;
     private final Collection<NodeDocument> col;
@@ -43,6 +37,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         this.store = store;
         this.col = col;
         this.bsonTypeCodecMap = new BsonTypeCodecMap(new BsonTypeClassMap(), defaultRegistry);
+        // Retrieve references to the most commonly used codecs, to avoid the map lookup in the common case
         this.stringCoded = (Codec<String>) bsonTypeCodecMap.get(BsonType.STRING);
         this.longCoded = (Codec<Long>) bsonTypeCodecMap.get(BsonType.INT64);
         this.booleanCoded = (Codec<Boolean>) bsonTypeCodecMap.get(BsonType.BOOLEAN);
@@ -50,9 +45,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
 
     @Override
     public NodeDocument decode(BsonReader reader, DecoderContext decoderContext) {
-        NodeDocument nodeDoc = convertFromDBObject(store, col, reader);
-//        log.info("typeCounts: {}", typeCounts);
-        return nodeDoc;
+        return convertFromDBObject(store, col, reader);
     }
 
     @Override
@@ -72,28 +65,23 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String fieldName = reader.readName();
             Object value = readValue(reader, fieldName);
-//                log.info("read: {}: {} = {}: {}", fieldName, value, currentType, value.getClass());
             nodeDocument.put(fieldName, value);
         }
         reader.readEndDocument();
-//        Main.log.info("$copy size: $size")
         nodeDocument.put(SIZE_FIELD, size);
         return nodeDocument;
     }
 
-//    private HashMap<BsonType, Integer> typeCounts = new HashMap<>();
 
     private Object readValue(BsonReader reader, String fieldName) {
         size += 16 + fieldName.length();
         BsonType bsonType = reader.getCurrentBsonType();
-//        Integer previousCount = typeCounts.getOrDefault(bsonType, 0);
-//        typeCounts.put(bsonType, previousCount + 1);
         Object value;
-        int valSize = 0;
+        int valSize;
         switch (bsonType) {
             case STRING:
                 String sValue = stringCoded.decode(reader, decoderContext);
-                valSize = 16 + sValue.length();
+                valSize = 16 + sValue.length() * 2;
                 value = sValue;
                 break;
             case INT64:
@@ -102,6 +90,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 break;
             case DOCUMENT:
                 value = convertMongoMap(reader);
+                valSize = 0; // the size is updated by the recursive calls done inside the method above
                 break;
             case BOOLEAN:
                 value = booleanCoded.decode(reader, decoderContext);
@@ -122,7 +111,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 throw new UnsupportedOperationException("BINARY");
             default:
                 value = bsonTypeCodecMap.get(bsonType).decode(reader, decoderContext);
-                valSize += 16;
+                valSize = 16;
                 if (value instanceof Number &&
                         (NodeDocument.MODIFIED_IN_SECS.equals(fieldName) || Document.MOD_COUNT.equals(fieldName))) {
                     value = Utils.asLong((Number) value);
@@ -130,7 +119,6 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 break;
         }
         size += valSize;
-        //                log.info("Value: {}: {} / {}, size: {}", value, bsonType, value.getClass(), valSize);
         return value;
     }
 

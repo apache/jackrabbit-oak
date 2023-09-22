@@ -233,11 +233,10 @@ public class PipelinedIT {
     }
 
 
-    // TODO: maxEntriesPerBatch is reached
-
     @Test
     public void createFFS_largeMongoDocuments() throws Exception {
-        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, "1");
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, "1");
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, "32");
 
         Predicate<String> pathPredicate = s -> true;
         List<PathFilter> pathFilters = List.of(contentDamPathFilter);

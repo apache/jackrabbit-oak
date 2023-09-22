@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.index.IndexerSupport;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategyNodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -343,11 +342,6 @@ public class FlatFileNodeStoreBuilder {
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
                 return new PipelinedStrategy(mongoDocumentStore, mongoConnection, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters);
-            case PIPELINED2:
-                log.info("Using PipelinedStrategy woth NodeDocument optimization");
-                List<PathFilter> pathFilters2 = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
-                return new PipelinedStrategyNodeDocument(mongoDocumentStore, mongoConnection, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters2);
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
     }
