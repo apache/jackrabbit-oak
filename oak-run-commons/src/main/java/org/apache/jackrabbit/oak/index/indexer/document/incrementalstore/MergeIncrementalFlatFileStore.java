@@ -34,6 +34,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Map;
@@ -54,12 +55,17 @@ public class MergeIncrementalFlatFileStore {
     private final Comparator<NodeStateHolder> comparator;
 
     public MergeIncrementalFlatFileStore(Set<String> preferredPathElements, File baseFFS, File incrementalFFS,
-                                         File merged, Compression algorithm) {
+                                         File merged, Compression algorithm) throws IOException {
         this.baseFFS = baseFFS;
         this.incrementalFFS = incrementalFFS;
         this.merged = merged;
         this.algorithm = algorithm;
         comparator = (e1, e2) -> new PathElementComparator(preferredPathElements).compare(e1.getPathElements(), e2.getPathElements());
+
+        if (merged.exists()) {
+            log.warn("merged file:{} exists, this file will be replaced with new mergedFFS file", merged.getAbsolutePath());
+        }
+        Files.createDirectories(merged.getParentFile().toPath());
         basicFileValidation(algorithm, baseFFS, incrementalFFS, merged);
     }
 
