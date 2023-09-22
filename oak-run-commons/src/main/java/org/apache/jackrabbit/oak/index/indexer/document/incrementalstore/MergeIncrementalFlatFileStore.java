@@ -64,8 +64,10 @@ public class MergeIncrementalFlatFileStore {
 
         if (merged.exists()) {
             log.warn("merged file:{} exists, this file will be replaced with new mergedFFS file", merged.getAbsolutePath());
+        } else {
+            Files.createDirectories(merged.getParentFile().toPath());
+            Files.createFile(merged.toPath());
         }
-        Files.createDirectories(merged.getParentFile().toPath());
         basicFileValidation(algorithm, baseFFS, incrementalFFS, merged);
     }
 
