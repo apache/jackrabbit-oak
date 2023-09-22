@@ -116,7 +116,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private static final String THREAD_NAME = "mongo-dump";
 
-    private final int maxBatchNumberOfElements;
+    private final int maxBatchNumberOfDocuments;
     private final BlockingQueue<NodeDocument[]> mongoDocQueue;
     private final List<PathFilter> pathFilters;
     private final int retryDuringSeconds;
@@ -139,7 +139,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     public PipelinedMongoDownloadTask(MongoConnection mongoConnection,
                                       MongoDocumentStore mongoDocStore,
                                       int maxBatchSizeBytes,
-                                      int maxBatchNumberOfElements,
+                                      int maxBatchNumberOfDocuments,
                                       BlockingQueue<NodeDocument[]> queue,
                                       List<PathFilter> pathFilters) {
         this.mongoConnection = mongoConnection;
@@ -152,7 +152,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 .withCodecRegistry(nodeDocumentCodecRegistry)
                 .getCollection(Collection.NODES.toString(), NodeDocument.class);
         this.maxBatchSizeBytes = maxBatchSizeBytes;
-        this.maxBatchNumberOfElements = maxBatchNumberOfElements;
+        this.maxBatchNumberOfDocuments = maxBatchNumberOfDocuments;
         this.mongoDocQueue = queue;
         this.pathFilters = pathFilters;
 
@@ -173,8 +173,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         //So caller must ensure that its safe to read from secondary
 //        this.readPreference = MongoDocumentStoreHelper.getConfiguredReadPreference(mongoStore, collection);
         this.readPreference = ReadPreference.secondaryPreferred();
-        LOG.info("maxBatchMemorySize: {}, maxBatchNumberOfElements: {}, readPreference: {}",
-                maxBatchSizeBytes, maxBatchNumberOfElements, readPreference.getName());
+        LOG.info("maxBatchSizeBytes: {}, maxBatchNumberOfDocuments: {}, readPreference: {}",
+                maxBatchSizeBytes, maxBatchNumberOfDocuments, readPreference.getName());
     }
 
     @Override
@@ -411,7 +411,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private void download(FindIterable<NodeDocument> mongoIterable) throws InterruptedException, TimeoutException {
         try (MongoCursor<NodeDocument> cursor = mongoIterable.iterator()) {
-            NodeDocument[] batch = new NodeDocument[maxBatchNumberOfElements];
+            NodeDocument[] batch = new NodeDocument[maxBatchNumberOfDocuments];
             int nextIndex = 0;
             int batchSize = 0;
             try {

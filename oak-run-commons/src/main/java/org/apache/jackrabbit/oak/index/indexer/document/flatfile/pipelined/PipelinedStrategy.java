@@ -115,6 +115,8 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
 public class PipelinedStrategy implements SortStrategy {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB = "oak.indexer.pipelined.mongoDocBatchSizeMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB = 4;
+    public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS = "oak.indexer.pipelined.mongoDocBatchMaxNumberOfDocuments";
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS = 10000;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = "oak.indexer.pipelined.mongoDocQueueReservedMemoryMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = 128;
     public static final String OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = "oak.indexer.pipelined.transformThreads";
@@ -135,7 +137,6 @@ public class PipelinedStrategy implements SortStrategy {
     private static final int MIN_AUTODETECT_WORKING_MEMORY_MB = 128;
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 32;
     private static final int MAX_AUTODETECT_WORKING_MEMORY_MB = 4000;
-    private static final int BATCH_MAX_NUMBER_OF_DOCUMENTS = 10000;
 
 
     private class MonitorTask<T> implements Runnable {
@@ -178,6 +179,7 @@ public class PipelinedStrategy implements SortStrategy {
     private final List<PathFilter> pathFilters;
     private final Predicate<String> pathPredicate;
     private final int mongoDocBatchMaxSizeMB;
+    private final int mongoDocBatchMaxNumberOfDocuments;
     private final int numberOfTransformThreads;
 
     // Derived values for mongo-dump <-> transform threads
@@ -224,6 +226,10 @@ public class PipelinedStrategy implements SortStrategy {
         this.mongoDocBatchMaxSizeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB);
         Preconditions.checkArgument(mongoDocBatchMaxSizeMB > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB + ": " + mongoDocBatchMaxSizeMB + ". Must be > 0");
+
+        this.mongoDocBatchMaxNumberOfDocuments = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS);
+        Preconditions.checkArgument(mongoDocBatchMaxNumberOfDocuments > 0,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS + ": " + mongoDocBatchMaxNumberOfDocuments + ". Must be > 0");
 
         this.numberOfTransformThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS);
         Preconditions.checkArgument(numberOfTransformThreads > 0,
@@ -361,7 +367,7 @@ public class PipelinedStrategy implements SortStrategy {
                     mongoConnection,
                     docStore,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
-                    BATCH_MAX_NUMBER_OF_DOCUMENTS,
+                    mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
                     pathFilters
             );

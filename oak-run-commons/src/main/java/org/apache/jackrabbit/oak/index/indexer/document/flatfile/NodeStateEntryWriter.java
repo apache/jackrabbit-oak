@@ -67,7 +67,7 @@ public class NodeStateEntryWriter {
     }
 
     public void writeTo(Writer writer, NodeStateEntry nse) throws IOException {
-        writeTo(writer, nse.getPath(), asSortedJson(nse.getNodeState()));
+        writeTo(writer, nse.getPath(), asJson(nse.getNodeState()));
     }
 
     public void writeTo(Writer writer, String path, String value) throws IOException {

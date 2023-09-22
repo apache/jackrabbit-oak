@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -232,6 +233,15 @@ public class PipelinedIT {
         );
     }
 
+    @Test
+    public void createFFS_smallNumberOfDocsPerBatch() throws Exception {
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, "2");
+
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        List<PathFilter> pathFilters = null;
+
+        testSuccessfulDownload(pathPredicate, pathFilters);
+    }
 
     @Test
     public void createFFS_largeMongoDocuments() throws Exception {
@@ -244,7 +254,7 @@ public class PipelinedIT {
         Backend rwStore = createNodeStore(false);
         @NotNull NodeBuilder rootBuilder = rwStore.documentNodeStore.getRoot().builder();
         // This property does not fit in the reserved memory, but must still be processed without errors
-        String longString = RandomStringUtils.random(2 * 1024 * 1024, true, true);
+        String longString = RandomStringUtils.random((int) (10 * FileUtils.ONE_MB), true, true);
         @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
         contentDamBuilder.child("2021").child("01").setProperty("p1", "v202101");
         contentDamBuilder.child("2022").child("01").setProperty("p1", longString);
