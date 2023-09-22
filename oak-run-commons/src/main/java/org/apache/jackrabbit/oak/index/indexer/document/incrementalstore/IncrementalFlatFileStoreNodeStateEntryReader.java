@@ -32,9 +32,4 @@ public class IncrementalFlatFileStoreNodeStateEntryReader extends NodeStateEntry
         super(blobStore);
     }
 
-    public NodeStateEntry read(String line) {
-        String[] parts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(line);
-        long memUsage = estimateMemoryUsage(parts[0]) + estimateMemoryUsage(parts[1]);
-        return new NodeStateEntryBuilder(parseState(parts[1]), parts[0]).withMemUsage(memUsage).build();
-    }
 }

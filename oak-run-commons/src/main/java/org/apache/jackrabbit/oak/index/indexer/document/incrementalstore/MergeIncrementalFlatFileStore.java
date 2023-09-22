@@ -66,9 +66,9 @@ public class MergeIncrementalFlatFileStore {
             log.warn("merged file:{} exists, this file will be replaced with new mergedFFS file", merged.getAbsolutePath());
         } else {
             Files.createDirectories(merged.getParentFile().toPath());
-            Files.createFile(merged.toPath());
         }
-        basicFileValidation(algorithm, baseFFS, incrementalFFS, merged);
+        FlatFileStoreUtils.validateFlatFileStoreFileName(merged, algorithm);
+        basicFileValidation(algorithm, baseFFS, incrementalFFS);
     }
 
     public void doMerge() throws IOException {
@@ -83,6 +83,9 @@ public class MergeIncrementalFlatFileStore {
         for (File file : files) {
             checkState(file.isFile(), "File doesn't exist {}", file.getAbsolutePath());
             FlatFileStoreUtils.validateFlatFileStoreFileName(file, algorithm);
+            checkState(FlatFileStoreUtils.getMetadataFile(file, algorithm).exists(),
+                    "metadata file is not present in same directory as indexStore. indexStoreFile:{}, metadataFile should be available at:{}",
+                    file.getAbsolutePath(), FlatFileStoreUtils.getMetadataFile(file, algorithm));
         }
     }
 
