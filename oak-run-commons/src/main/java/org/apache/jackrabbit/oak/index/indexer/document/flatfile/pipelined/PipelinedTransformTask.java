@@ -111,7 +111,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     }
 
     @Override
-    public PipelinedTransformTask.Result call() throws Exception {
+    public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
         String threadName = THREAD_NAME_PREFIX + threadId;
         Thread.currentThread().setName(threadName);
@@ -152,7 +152,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     //Save the last batch
                     nseBatch.getBuffer().flip();
                     tryEnqueue(nseBatch);
-                    return new PipelinedTransformTask.Result(threadId, totalEntryCount);
+                    return new Result(threadId, totalEntryCount);
                 } else {
                     for (NodeDocument nodeDoc : dbObjectBatch) {
                         statistics.incrementMongoDocumentsProcessed();
@@ -235,7 +235,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     private void getEntries(NodeDocument doc, ArrayList<NodeStateEntry> nodeStateEntries) {
         nodeStateEntries.clear();
         Path path = doc.getPath();
-//        LOG.info("[getEntries] Doc: {}, docId: {}, path: {}", doc.asString(), doc.getId(), path);
         DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null
         if (nodeState == null || !nodeState.exists()) {

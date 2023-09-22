@@ -73,7 +73,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  * configurable size, at which point it sorts the data and writes it to a file. The data is accumulated in instances of
  * {@link NodeStateEntryBatch}. This class contains two data structures:
  * <ul>
- * <li>A {@link ByteBuffer} for the binary representation of the entry, that is, the byte array that will be written to the file.
+ * <li>A {@link java.nio.ByteBuffer} for the binary representation of the entry, that is, the byte array that will be written to the file.
  * This buffer contains length-prefixed byte arrays, that is, each entry is {@code <size><data>}, where size is a 4 byte int.
  * <li>An array of {@link SortKey} instances, which contain the paths of each entry and are used to sort the entries. Each element
  * in this array also contains the position in the ByteBuffer of the serialized representation of the entry.
@@ -81,7 +81,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  * This representation has several advantages:
  * <ul>
  * <li>It is compact, as a String object in the heap requires more memory than a length-prefixed byte array in the ByteBuffer.
- * <li>Predictable memory usage - the memory used by the {@link ByteBuffer} is fixed and allocated at startup
+ * <li>Predictable memory usage - the memory used by the {@link java.nio.ByteBuffer} is fixed and allocated at startup
  * (more on this later). The memory used by the array of {@link SortKey} is not bounded, but these objects are small,
  * as they contain little more than the path of the entry, and we can easily put limits on the maximum number of entries
  * kept in a buffer.
@@ -321,7 +321,6 @@ public class PipelinedStrategy implements SortStrategy {
         }
     }
 
-
     @Override
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
@@ -359,7 +358,6 @@ public class PipelinedStrategy implements SortStrategy {
             for (int i = 0; i < nseBuffersCount; i++) {
                 emptyBatchesQueue.add(NodeStateEntryBatch.createNodeStateEntryBatch(nseBuffersSizeBytes, nseBufferMaxEntriesPerBuffer));
             }
-
 
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
@@ -518,5 +516,4 @@ public class PipelinedStrategy implements SortStrategy {
             LOG.debug("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
         }
     }
-
 }
