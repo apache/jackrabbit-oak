@@ -156,7 +156,7 @@ class ElasticBulkProcessorHandler {
     }
 
     private void checkFailures() throws IOException {
-        if (suppressedExceptions.size() > 0) {
+        if (!suppressedExceptions.isEmpty()) {
             IOException ioe = new IOException("Exception while indexing. See suppressed for details");
             suppressedExceptions.forEach(ioe::addSuppressed);
             throw ioe;
