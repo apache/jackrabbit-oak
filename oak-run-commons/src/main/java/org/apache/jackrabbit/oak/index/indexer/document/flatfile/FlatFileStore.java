@@ -68,6 +68,10 @@ public class FlatFileStore implements IndexStore {
         return storeFile.getParentFile().getAbsolutePath();
     }
 
+    /**
+     *
+     * @deprecated use {@link #getStorePath()} instead
+     */
     @Deprecated
     public String getFlatFileStorePath() {
         return storeFile.getParentFile().getAbsolutePath();

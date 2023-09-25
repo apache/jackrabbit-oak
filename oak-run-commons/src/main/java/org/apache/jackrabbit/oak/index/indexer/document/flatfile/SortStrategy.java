@@ -24,6 +24,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * @deprecated depending on what type of store it is use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy}  or {@link org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalIndexStoreSortStrategy} instead
+ */
 @Deprecated
 public interface SortStrategy {
 

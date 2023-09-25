@@ -66,6 +66,10 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
         this.entryWriter = entryWriter;
     }
 
+    /**
+     *
+     * @deprecated use {@link StoreAndSortStrategy#StoreAndSortStrategy(NodeStateEntryTraverserFactory, Set, NodeStateEntryWriter, File, Compression, Predicate, String)} instead
+     */
     @Deprecated
     public StoreAndSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator comparator,
                                 NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm, Predicate<String> pathPredicate) {

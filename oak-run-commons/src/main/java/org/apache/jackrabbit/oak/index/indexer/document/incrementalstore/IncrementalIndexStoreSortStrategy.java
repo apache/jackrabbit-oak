@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
+import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 
 import java.io.File;
@@ -40,4 +41,8 @@ public interface IncrementalIndexStoreSortStrategy extends SortStrategy {
     File createMetadataFile() throws IOException;
 
     String getStoreType();
+
+    File createSortedStoreFile() throws IOException, CompositeException;
+
+    long getEntryCount();
 }
