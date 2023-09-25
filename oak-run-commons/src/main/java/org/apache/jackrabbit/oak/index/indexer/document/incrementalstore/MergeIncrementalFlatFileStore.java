@@ -53,6 +53,7 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
     private final File merged;
     private final Compression algorithm;
     private final Comparator<NodeStateHolder> comparator;
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     public MergeIncrementalFlatFileStore(Set<String> preferredPathElements, File baseFFS, File incrementalFFS,
                                          File merged, Compression algorithm) throws IOException {
@@ -151,29 +152,28 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
 
         if (baseFFSMetadataFile.exists() && incrementalMetadataFile.exists()) {
             IndexStoreMetadata indexStoreMetadata = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>()
-                    .getIndexStoreMetadata(baseFFSMetadataFile, algorithm, new TypeReference<IndexStoreMetadata>() {
+                    .getIndexStoreMetadata(baseFFSMetadataFile, algorithm, new TypeReference<>() {
                     });
             IncrementalIndexStoreMetadata incrementalIndexStoreMetadata = new IndexStoreMetadataOperatorImpl<IncrementalIndexStoreMetadata>()
-                    .getIndexStoreMetadata(incrementalMetadataFile, algorithm, new TypeReference<IncrementalIndexStoreMetadata>() {
+                    .getIndexStoreMetadata(incrementalMetadataFile, algorithm, new TypeReference<>() {
                     });
             return mergeIndexStores(indexStoreMetadata, incrementalIndexStoreMetadata);
         } else {
-            throw new RuntimeException("either one or both metadataFiles donot exist at path: " +
+            throw new RuntimeException("either one or both metadataFiles don't exist at path: " +
                     baseFFSMetadataFile.getAbsolutePath() + ", " + incrementalMetadataFile.getAbsolutePath());
         }
     }
 
     private void mergeMetadataFiles() throws IOException {
         try (BufferedWriter writer = IndexStoreUtils.createWriter(IndexStoreUtils.getMetadataFile(merged, algorithm), algorithm)) {
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.writeValue(writer, getIndexStoreMetadataForMergedFile());
+            JSON_MAPPER.writeValue(writer, getIndexStoreMetadataForMergedFile());
         }
     }
 
     /**
      * We only merge indexStore and incrementalStore if:
      * 1. IndexStore's checkpoint equals incrementalStore's before checkpoint.
-     * 2. IndexStore's preferredPaths equals incrementalStore's prefferedPaths.
+     * 2. IndexStore's preferredPaths equals incrementalStore's preferredPaths.
      */
     private IndexStoreMetadata mergeIndexStores(IndexStoreMetadata indexStoreMetadata,
                                                 IncrementalIndexStoreMetadata incrementalIndexStoreMetadata) {

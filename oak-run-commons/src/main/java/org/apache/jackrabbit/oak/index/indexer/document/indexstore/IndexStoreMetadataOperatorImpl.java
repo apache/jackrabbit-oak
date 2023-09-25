@@ -32,6 +32,7 @@ import java.io.IOException;
 
 public class IndexStoreMetadataOperatorImpl<M> implements IndexStoreMetadataOperator<M> {
     private static final Logger log = LoggerFactory.getLogger(IndexStoreMetadataOperatorImpl.class);
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     @Override
     public File createMetadataFile(M m, File file, Compression algorithm) throws IOException {
@@ -50,20 +51,18 @@ public class IndexStoreMetadataOperatorImpl<M> implements IndexStoreMetadataOper
     }
 
     private void writeMetadataToFile(BufferedWriter bufferedWriter, M m) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(bufferedWriter, m);
+        JSON_MAPPER.writeValue(bufferedWriter, m);
     }
 
     /*
-        deserialization with generic type doesnot happen automatically. So we explicitly added this 3rd argument to
+        deserialization with generic type doesn't happen automatically. So we explicitly added this 3rd argument to
         provide JavaType info to jackson.
      */
     @Override
     public M getIndexStoreMetadata(File metadataFile, Compression algorithm, TypeReference<M> clazz) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
-        JavaType javaType = mapper.getTypeFactory().constructType(clazz);
+        JavaType javaType = JSON_MAPPER.getTypeFactory().constructType(clazz);
         try (BufferedReader metadataFilebufferedReader = IndexStoreUtils.createReader(metadataFile, algorithm)){
-            return mapper.readValue(metadataFilebufferedReader.readLine(), javaType);
+            return JSON_MAPPER.readValue(metadataFilebufferedReader.readLine(), javaType);
         }
     }
 

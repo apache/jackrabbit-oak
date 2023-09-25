@@ -246,12 +246,12 @@ public class IncrementalStoreIT {
         }
         IndexStoreMetadata mergedIndexStoreMetadata = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>()
                 .getIndexStoreMetadata(IndexStoreUtils.getMetadataFile(mergedFile, algorithm),
-                        algorithm, new TypeReference<IndexStoreMetadata>() {
+                        algorithm, new TypeReference<>() {
                         });
 
         IndexStoreMetadata indexStoreMetadataAtCheckpoint2 = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>()
                 .getIndexStoreMetadata(finalMetadataFilePath.toFile(),
-                        algorithm, new TypeReference<IndexStoreMetadata>() {
+                        algorithm, new TypeReference<>() {
                         });
 
         assertEquals(mergedIndexStoreMetadata.getCheckpoint(), indexStoreMetadataAtCheckpoint2.getCheckpoint());
