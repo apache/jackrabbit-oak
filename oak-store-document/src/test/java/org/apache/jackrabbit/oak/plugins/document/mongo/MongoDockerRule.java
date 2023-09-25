@@ -21,8 +21,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
-import com.github.dockerjava.api.DockerClient;
-import com.github.dockerjava.api.command.PullImageResultCallback;
+import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 
 import org.junit.Assume;
 import org.junit.rules.TestRule;
@@ -30,7 +30,6 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.DockerClientFactory;
 
 /**
  * A MongoDB {@link DockerRule}.
@@ -49,12 +48,14 @@ public class MongoDockerRule implements TestRule {
 
     static {
         boolean available = false;
-        try {
-            DockerClient client = DockerClientFactory.instance().client();
-            client.pingCmd().exec();
-            client.pullImageCmd(IMAGE).exec(new PullImageResultCallback()).awaitCompletion();
+        try (DefaultDockerClient client = DefaultDockerClient.fromEnv()
+                .connectTimeoutMillis(5000L).readTimeoutMillis(20000L)
+                .registryAuthSupplier(new FixedRegistryAuthSupplier())
+                .build()) {
+            client.ping();
+            client.pull(IMAGE);
             available = true;
-        } catch (Exception t) {
+        } catch (Throwable t) {
             LOG.info("Cannot connect to docker or pull image", t);
         }
         DOCKER_AVAILABLE = available;
