@@ -20,7 +20,7 @@ public final class TimedCommandListener implements com.mongodb.event.CommandList
 
     @Override
     public void commandStarted(CommandStartedEvent event) {
-        if (isMongoDumpThread()) {
+        if (isMongoDumpThread() && LOG.isDebugEnabled()) {
             String elapsed;
             if (clock.isRunning()) {
                 elapsed = Long.toString(clock.elapsed(TimeUnit.MILLISECONDS));
@@ -28,14 +28,14 @@ public final class TimedCommandListener implements com.mongodb.event.CommandList
                 elapsed = "N/A";
             }
             clock.reset().start();
-            LOG.info("Command started: {}, processing time: {}", event.getCommand(), elapsed);
+            LOG.debug("Command started: {}, processing time: {}", event.getCommand(), elapsed);
         }
     }
 
     @Override
     public void commandSucceeded(CommandSucceededEvent event) {
-        if (isMongoDumpThread()) {
-            LOG.info("Command succeeded: {}, Time: {} ms, client time: {}",
+        if (isMongoDumpThread() && LOG.isDebugEnabled()) {
+            LOG.debug("Command succeeded: {}, Time: {} ms, client time: {}",
                     event.getCommandName(),
                     event.getElapsedTime(TimeUnit.MILLISECONDS),
                     clock.elapsed(TimeUnit.MILLISECONDS)
@@ -47,7 +47,7 @@ public final class TimedCommandListener implements com.mongodb.event.CommandList
     @Override
     public void commandFailed(CommandFailedEvent event) {
         if (isMongoDumpThread()) {
-            LOG.info("Command failed: {}", event);
+            LOG.debug("Command failed: {}", event);
         }
     }
 

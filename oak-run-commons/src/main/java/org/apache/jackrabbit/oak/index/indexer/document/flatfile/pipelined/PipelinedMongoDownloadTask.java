@@ -33,10 +33,10 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.CompositeCommandListener;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -180,7 +180,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     @Override
-    public PipelinedMongoDownloadTask.Result call() throws Exception {
+    public Result call() throws Exception {
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         LOG.info("[TASK:{}:START] Starting to download from MongoDB", THREAD_NAME.toUpperCase(Locale.ROOT));
@@ -207,7 +207,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .build();
 
             LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
-            return new PipelinedMongoDownloadTask.Result(documentsRead);
+            return new Result(documentsRead);
         } catch (InterruptedException t) {
             LOG.warn("Thread interrupted", t);
             throw t;
@@ -426,7 +426,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     this.documentsRead++;
                     reportProgress(id);
 
-                    traversalLog.trace(id);
                     batch[nextIndex] = next;
                     nextIndex++;
                     int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);

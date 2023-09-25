@@ -58,7 +58,6 @@ public class NodeStateEntryBatch {
             throw new IllegalStateException("Sort buffer size exceeded max entries: " + sortBuffer.size() + " > " + maxEntries);
         }
         int bufferPos = buffer.position();
-        buffer.mark();
         buffer.putInt(entryData.length);
         buffer.put(entryData);
         String[] key = SortKey.genSortKeyPathElements(path);
