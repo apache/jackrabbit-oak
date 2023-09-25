@@ -178,12 +178,11 @@ public class PipelinedStrategy implements SortStrategy {
     private final Compression algorithm;
     private final List<PathFilter> pathFilters;
     private final Predicate<String> pathPredicate;
-    private final int mongoDocBatchMaxSizeMB;
-    private final int mongoDocBatchMaxNumberOfDocuments;
     private final int numberOfTransformThreads;
 
-    // Derived values for mongo-dump <-> transform threads
     private final int mongoDocQueueSize;
+    private final int mongoDocBatchMaxSizeMB;
+    private final int mongoDocBatchMaxNumberOfDocuments;
 
     private final int nseBuffersCount;
     private long nodeStateEntriesExtracted;
@@ -261,7 +260,7 @@ public class PipelinedStrategy implements SortStrategy {
 
         // Assuming 1 instance of SortKey takes around 256 bytes. We have #transformThreads + 1 regions of nseBufferSizeBytes.
         // The extra region is for the SortKey instances. Below we compute the total number of SortKey instances that
-        // fit on the memory region reserved for them, assuming that each SortKey instance takes 256 bytes. Then we
+        // fit in the memory region reserved for them, assuming that each SortKey instance takes 256 bytes. Then we
         // distribute equally these available entries among the nse buffers
         this.nseBufferMaxEntriesPerBuffer = (this.nseBuffersSizeBytes / 256) / this.nseBuffersCount;
 

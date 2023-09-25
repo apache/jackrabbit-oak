@@ -134,9 +134,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             Stopwatch docQueueWaitStopwatch = Stopwatch.createUnstarted();
             while (true) {
                 docQueueWaitStopwatch.reset().start();
-                NodeDocument[] dbObjectBatch = mongoDocQueue.take();
+                NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
-                if (dbObjectBatch == SENTINEL_MONGO_DOCUMENT) {
+                if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
                     String totalDocumentQueueWaitPercentage = String.format("%1.2f", (100.0 * totalDocumentQueueWaitTimeMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
                     String totalEnqueueDelayPercentage = String.format("%1.2f", (100.0 * totalEnqueueDelayMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
                     String metrics = MetricsFormatter.newBuilder()
@@ -154,7 +154,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     tryEnqueue(nseBatch);
                     return new Result(threadId, totalEntryCount);
                 } else {
-                    for (NodeDocument nodeDoc : dbObjectBatch) {
+                    for (NodeDocument nodeDoc : nodeDocumentBatch) {
                         statistics.incrementMongoDocumentsProcessed();
                         mongoObjectsProcessed++;
                         if (mongoObjectsProcessed % 50000 == 0) {
@@ -170,7 +170,8 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                         if (nodeDoc.isSplitDocument()) {
                             statistics.addSplitDocument(nodeDoc.getId());
                         } else {
-                            getEntries(nodeDoc, nodeStateEntries);
+                            nodeStateEntries.clear();
+                            extractNodeStateEntries(nodeDoc, nodeStateEntries);
                             if (nodeStateEntries.isEmpty()) {
                                 statistics.addEmptyNodeStateEntry(nodeDoc.getId());
                             } else {
@@ -232,8 +233,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
         }
     }
 
-    private void getEntries(NodeDocument doc, ArrayList<NodeStateEntry> nodeStateEntries) {
-        nodeStateEntries.clear();
+    private void extractNodeStateEntries(NodeDocument doc, ArrayList<NodeStateEntry> nodeStateEntries) {
         Path path = doc.getPath();
         DocumentNodeState nodeState = documentNodeStore.getNode(path, rootRevision);
         //At DocumentNodeState api level the nodeState can be null
