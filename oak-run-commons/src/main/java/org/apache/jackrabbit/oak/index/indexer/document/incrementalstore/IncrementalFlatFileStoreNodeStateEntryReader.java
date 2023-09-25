@@ -19,12 +19,8 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
-import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry.NodeStateEntryBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-
-import static org.apache.jackrabbit.oak.commons.StringUtils.estimateMemoryUsage;
 
 public class IncrementalFlatFileStoreNodeStateEntryReader extends NodeStateEntryReader {
 

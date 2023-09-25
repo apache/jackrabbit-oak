@@ -21,12 +21,12 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateHolder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.PathElementComparator;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SimpleNodeStateHolder;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadata;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadataOperatorImpl;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,10 +44,10 @@ import java.util.stream.Collectors;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 
-public class MergeIncrementalFlatFileStore {
+public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
-    public final static String MERGE_BASE_AND_INCREMENTAL_FLAT_FILE_STORE = "MergeBaseAndIncrementalFlatFileStore";
+    private final static String MERGE_BASE_AND_INCREMENTAL_FLAT_FILE_STORE = "MergeBaseAndIncrementalFlatFileStore";
     private final File baseFFS;
     private final File incrementalFFS;
     private final File merged;
@@ -67,10 +67,11 @@ public class MergeIncrementalFlatFileStore {
         } else {
             Files.createDirectories(merged.getParentFile().toPath());
         }
-        FlatFileStoreUtils.validateFlatFileStoreFileName(merged, algorithm);
+        IndexStoreUtils.validateFlatFileStoreFileName(merged, algorithm);
         basicFileValidation(algorithm, baseFFS, incrementalFFS);
     }
 
+    @Override
     public void doMerge() throws IOException {
         log.info("base FFS " + baseFFS.getAbsolutePath());
         log.info("incremental FFS " + incrementalFFS.getAbsolutePath());
@@ -79,13 +80,18 @@ public class MergeIncrementalFlatFileStore {
         mergeIndexStoreFiles();
     }
 
+    @Override
+    public String getStrategyName() {
+        return MERGE_BASE_AND_INCREMENTAL_FLAT_FILE_STORE;
+    }
+
     private void basicFileValidation(Compression algorithm, File... files) {
         for (File file : files) {
             checkState(file.isFile(), "File doesn't exist {}", file.getAbsolutePath());
-            FlatFileStoreUtils.validateFlatFileStoreFileName(file, algorithm);
-            checkState(FlatFileStoreUtils.getMetadataFile(file, algorithm).exists(),
+            IndexStoreUtils.validateFlatFileStoreFileName(file, algorithm);
+            checkState(IndexStoreUtils.getMetadataFile(file, algorithm).exists(),
                     "metadata file is not present in same directory as indexStore. indexStoreFile:{}, metadataFile should be available at:{}",
-                    file.getAbsolutePath(), FlatFileStoreUtils.getMetadataFile(file, algorithm));
+                    file.getAbsolutePath(), IndexStoreUtils.getMetadataFile(file, algorithm));
         }
     }
 
@@ -93,9 +99,9 @@ public class MergeIncrementalFlatFileStore {
         Map<String, IncrementalStoreOperand> enumMap = Arrays.stream(IncrementalStoreOperand.values())
                 .collect(Collectors.toUnmodifiableMap(IncrementalStoreOperand::toString, k -> IncrementalStoreOperand.valueOf(k.name())));
 
-        try (BufferedWriter writer = FlatFileStoreUtils.createWriter(merged, algorithm);
-             BufferedReader baseFFSBufferedReader = FlatFileStoreUtils.createReader(baseFFS, algorithm);
-             BufferedReader incrementalFFSBufferedReader = FlatFileStoreUtils.createReader(incrementalFFS, algorithm)) {
+        try (BufferedWriter writer = IndexStoreUtils.createWriter(merged, algorithm);
+             BufferedReader baseFFSBufferedReader = IndexStoreUtils.createReader(baseFFS, algorithm);
+             BufferedReader incrementalFFSBufferedReader = IndexStoreUtils.createReader(incrementalFFS, algorithm)) {
             String baseFFSLine = baseFFSBufferedReader.readLine();
             String incrementalFFSLine = incrementalFFSBufferedReader.readLine();
 
@@ -140,8 +146,8 @@ public class MergeIncrementalFlatFileStore {
     }
 
     private IndexStoreMetadata getIndexStoreMetadataForMergedFile() throws IOException {
-        File baseFFSMetadataFile = FlatFileStoreUtils.getMetadataFile(baseFFS, algorithm);
-        File incrementalMetadataFile = FlatFileStoreUtils.getMetadataFile(incrementalFFS, algorithm);
+        File baseFFSMetadataFile = IndexStoreUtils.getMetadataFile(baseFFS, algorithm);
+        File incrementalMetadataFile = IndexStoreUtils.getMetadataFile(incrementalFFS, algorithm);
 
         if (baseFFSMetadataFile.exists() && incrementalMetadataFile.exists()) {
             IndexStoreMetadata indexStoreMetadata = new IndexStoreMetadataOperatorImpl<IndexStoreMetadata>()
@@ -158,18 +164,23 @@ public class MergeIncrementalFlatFileStore {
     }
 
     private void mergeMetadataFiles() throws IOException {
-        try (BufferedWriter writer = FlatFileStoreUtils.createWriter(FlatFileStoreUtils.getMetadataFile(merged, algorithm), algorithm)) {
+        try (BufferedWriter writer = IndexStoreUtils.createWriter(IndexStoreUtils.getMetadataFile(merged, algorithm), algorithm)) {
             ObjectMapper mapper = new ObjectMapper();
             mapper.writeValue(writer, getIndexStoreMetadataForMergedFile());
         }
     }
 
+    /**
+     * We only merge indexStore and incrementalStore if:
+     * 1. IndexStore's checkpoint equals incrementalStore's before checkpoint.
+     * 2. IndexStore's preferredPaths equals incrementalStore's prefferedPaths.
+     */
     private IndexStoreMetadata mergeIndexStores(IndexStoreMetadata indexStoreMetadata,
                                                 IncrementalIndexStoreMetadata incrementalIndexStoreMetadata) {
         checkState(indexStoreMetadata.getCheckpoint().equals(incrementalIndexStoreMetadata.getBeforeCheckpoint()));
         checkState(indexStoreMetadata.getPreferredPaths().equals(incrementalIndexStoreMetadata.getPreferredPaths()));
         return new IndexStoreMetadata(incrementalIndexStoreMetadata.getAfterCheckpoint(), indexStoreMetadata.getStoreType(),
-                MERGE_BASE_AND_INCREMENTAL_FLAT_FILE_STORE, indexStoreMetadata.getPreferredPaths());
+                getStrategyName(), indexStoreMetadata.getPreferredPaths());
     }
 
     private String writeAndAdvance(BufferedWriter writer, BufferedReader bufferedReader, String stringToWriteInMergeFile) throws IOException {

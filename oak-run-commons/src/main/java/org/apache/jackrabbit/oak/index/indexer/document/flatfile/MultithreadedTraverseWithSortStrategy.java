@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSor
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
@@ -58,7 +59,6 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_TASK_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_THREAD_POOL_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_THREAD_POOL_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 /**
  * This class implements a sort strategy where node store is concurrently traversed for downloading node states by
@@ -228,6 +228,7 @@ public class MultithreadedTraverseWithSortStrategy extends IndexStoreSortStrateg
      *                             be merged with the result from current run, if the current run has resumed from the point where
      *                             previous runs stopped). If this is not null and not empty, the {@code lastModifiedBreakPoints} parameter is ignored.
      * @param algorithm string representation of the compression algorithm, use "none" for disable compression.
+     * @deprecated use {@link MultithreadedTraverseWithSortStrategy#MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory, List, Set, BlobStore, File, List, Compression, MemoryManager, long, Predicate, String)} instead
      */
     @Deprecated
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
@@ -354,7 +355,7 @@ public class MultithreadedTraverseWithSortStrategy extends IndexStoreSortStrateg
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
         watcher.setDaemon(true);
         watcher.start();
-        File sortedFile = new File(this.getStoreDir(), getSortedStoreFileName(this.getAlgorithm()));
+        File sortedFile = new File(this.getStoreDir(), IndexStoreUtils.getSortedStoreFileName(this.getAlgorithm()));
         int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
         int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
         Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, this.getAlgorithm());

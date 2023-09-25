@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -60,9 +61,6 @@ import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.sizeOf;
 
 class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
@@ -90,8 +88,8 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private long entryCount;
     private long memoryUsed;
     private File sortWorkDir;
-    private List<File> sortedFiles = new ArrayList<>();
-    private ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
+    private final List<File> sortedFiles = new ArrayList<>();
+    private final ArrayList<NodeStateHolder> entryBatch = new ArrayList<>();
 
     TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, Set<String> preferredPaths,
                              NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm,
@@ -102,6 +100,9 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         this.comparator = (e1, e2) -> new PathElementComparator(preferredPaths).compare(e1.getPathElements(), e2.getPathElements());
     }
 
+    /**
+     * @deprecated use {@link TraverseWithSortStrategy#TraverseWithSortStrategy(NodeStateEntryTraverserFactory, Set, NodeStateEntryWriter, File, Compression, Predicate, String)} instead
+     */
     @Deprecated
     TraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStatesFactory, PathElementComparator pathComparator,
                              NodeStateEntryWriter entryWriter, File storeDir, Compression algorithm, Predicate<String> pathPredicate) {
@@ -132,8 +133,8 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private File sortStoreFile() throws IOException {
         log.info("Proceeding to perform merge of {} sorted files", sortedFiles.size());
         Stopwatch w = Stopwatch.createStarted();
-        File sortedFile = new File(this.getStoreDir(), getSortedStoreFileName(this.getAlgorithm()));
-        try (BufferedWriter writer = createWriter(sortedFile, this.getAlgorithm())) {
+        File sortedFile = new File(this.getStoreDir(), IndexStoreUtils.getSortedStoreFileName(this.getAlgorithm()));
+        try (BufferedWriter writer = IndexStoreUtils.createWriter(sortedFile, this.getAlgorithm())) {
             Function<String, NodeStateHolder> func1 = (line) -> line == null ? null : new SimpleNodeStateHolder(line);
             Function<NodeStateHolder, String> func2 = holder -> holder == null ? null : holder.getLine();
             ExternalSort.mergeSortedFiles(sortedFiles,
@@ -166,7 +167,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
 
         log.info("Dumped {} nodestates in json format in {}", entryCount, w);
         log.info("Created {} sorted files of size {} to merge",
-                sortedFiles.size(), humanReadableByteCount(sizeOf(sortedFiles)));
+                sortedFiles.size(), humanReadableByteCount(IndexStoreUtils.sizeOf(sortedFiles)));
     }
 
     private void addEntry(NodeStateEntry e) throws IOException {
@@ -200,7 +201,7 @@ class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
         Stopwatch w = Stopwatch.createStarted();
         File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
         long textSize = 0;
-        try (BufferedWriter writer = createWriter(newtmpfile, this.getAlgorithm())) {
+        try (BufferedWriter writer = IndexStoreUtils.createWriter(newtmpfile, this.getAlgorithm())) {
             for (NodeStateHolder h : entryBatch) {
                 //Here holder line only contains nodeState json
                 String text = entryWriter.toString(h.getPathElements(), h.getLine());

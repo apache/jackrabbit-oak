@@ -243,7 +243,9 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
      * @return an Instance of FlatFileStore, whose getFlatFileStorePath() method can be used to get the absolute path to this store.
      * @throws IOException
      * @throws CommitFailedException
+     * @deprecated replaced by {@link #buildStore()}
      */
+    @Deprecated
     public FlatFileStore buildFlatFileStore() throws IOException, CommitFailedException {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
         Set<String> preferredPathElements = new HashSet<>();

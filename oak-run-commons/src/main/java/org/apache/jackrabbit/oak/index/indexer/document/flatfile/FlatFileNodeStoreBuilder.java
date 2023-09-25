@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -120,7 +121,6 @@ public class FlatFileNodeStoreBuilder {
     private final List<File> existingDataDumpDirs = new ArrayList<>();
     private Set<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
-    private PathElementComparator comparator;
     private NodeStateEntryWriter entryWriter;
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
@@ -239,7 +239,6 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileStore build() throws IOException, CompositeException {
         logFlags();
-        comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
         IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
         File metadataFile = indexStoreFiles.metadataFile;
@@ -255,7 +254,6 @@ public class FlatFileNodeStoreBuilder {
     public List<FlatFileStore> buildList(IndexHelper indexHelper, IndexerSupport indexerSupport,
                                          Set<IndexDefinition> indexDefinitions) throws IOException, CompositeException {
         logFlags();
-        comparator = new PathElementComparator(preferredPathElements);
         entryWriter = new NodeStateEntryWriter(blobStore);
 
         IndexStoreFiles indexStoreFiles = createdSortedStoreFiles();
@@ -317,7 +315,7 @@ public class FlatFileNodeStoreBuilder {
         return new IndexStoreFiles(Collections.singletonList(result), metadata);
     }
 
-    private class IndexStoreFiles {
+    private static class IndexStoreFiles {
         private final List<File> storeFiles;
         private final File metadataFile;
 
@@ -328,12 +326,11 @@ public class FlatFileNodeStoreBuilder {
     }
 
     private IndexStoreFiles getIndexStoreFiles(File sortedDir) {
-        File metadataFile = null;
         if (sortedDir.exists() && sortedDir.canRead() && sortedDir.isDirectory()) {
             File[] storeFiles = sortedDir.listFiles(
-                    (dir, name) -> name.endsWith(FlatFileStoreUtils.getSortedStoreFileName(algorithm)));
+                    (dir, name) -> name.endsWith(IndexStoreUtils.getSortedStoreFileName(algorithm)));
             File[] metadataFiles = sortedDir.listFiles(
-                    (dir, name) -> name.endsWith(FlatFileStoreUtils.getMetadataFileName(algorithm)));
+                    (dir, name) -> name.endsWith(IndexStoreUtils.getMetadataFileName(algorithm)));
 
             if (storeFiles != null && storeFiles.length != 0) {
                 // Not throwing error for backward compatibility

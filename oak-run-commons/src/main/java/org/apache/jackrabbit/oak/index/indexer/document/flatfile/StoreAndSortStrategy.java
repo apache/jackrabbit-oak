@@ -22,11 +22,12 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
@@ -42,7 +43,6 @@ import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LIN
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
@@ -80,7 +80,7 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
         try (NodeStateEntryTraverser nodeStates = nodeStatesFactory.create(
                 new TraversingRange(new LastModifiedRange(0, Long.MAX_VALUE), null))
         ) {
-            File storeFile = writeToStore(nodeStates, getStoreDir(), getSortedStoreFileName(getAlgorithm()));
+            File storeFile = writeToStore(nodeStates, getStoreDir(), IndexStoreUtils.getSortedStoreFileName(getAlgorithm()));
             return sortStoreFile(storeFile);
         }
     }
@@ -93,7 +93,7 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private File sortStoreFile(File storeFile) throws IOException {
         File sortWorkDir = new File(storeFile.getParent(), "sort-work-dir");
         FileUtils.forceMkdir(sortWorkDir);
-        File sortedFile = new File(storeFile.getParentFile(), getSortedStoreFileName(getAlgorithm()));
+        File sortedFile = new File(storeFile.getParentFile(), IndexStoreUtils.getSortedStoreFileName(getAlgorithm()));
         NodeStateEntrySorter sorter =
                 new NodeStateEntrySorter(comparator, storeFile, sortWorkDir, sortedFile);
 
@@ -111,7 +111,7 @@ class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
         entryCount = 0;
         File file = new File(dir, fileName);
         Stopwatch sw = Stopwatch.createStarted();
-        try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, getAlgorithm())) {
+        try (BufferedWriter w = IndexStoreUtils.createWriter(file, getAlgorithm())) {
             for (NodeStateEntry e : nodeStates) {
                 String path = e.getPath();
                 if (!NodeStateUtils.isHiddenPath(path) && getPathPredicate().test(path)) {
