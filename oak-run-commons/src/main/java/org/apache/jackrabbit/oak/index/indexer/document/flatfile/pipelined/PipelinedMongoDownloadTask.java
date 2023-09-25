@@ -185,7 +185,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         Thread.currentThread().setName(THREAD_NAME);
         LOG.info("[TASK:{}:START] Starting to download from MongoDB", THREAD_NAME.toUpperCase(Locale.ROOT));
         CompositeCommandListener listener = mongoConnection.getCompositeCommandListener();
-        TimedCommandListener mongoCommandListerner = new TimedCommandListener(THREAD_NAME);
+        MongoCommandListener mongoCommandListerner = new MongoCommandListener(THREAD_NAME);
         try {
             listener.addListener(mongoCommandListerner);
             this.nextLastModified = 0;

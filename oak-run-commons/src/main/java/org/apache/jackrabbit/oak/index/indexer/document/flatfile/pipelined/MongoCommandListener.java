@@ -19,43 +19,53 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import com.mongodb.event.CommandFailedEvent;
+import com.mongodb.event.CommandListener;
 import com.mongodb.event.CommandStartedEvent;
 import com.mongodb.event.CommandSucceededEvent;
+import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
-public final class TimedCommandListener implements com.mongodb.event.CommandListener {
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class);
+/**
+ * Logs the commands executed by the Mongo client, including the time between a request and its response and between a
+ * response and the next request (processing time). These metrics are useful to have an idea of the ratio between
+ * time spent waiting for Mongo responses and time spent parsing and processing the responses.
+ */
+public final class MongoCommandListener implements CommandListener {
+    private static final Logger LOG = LoggerFactory.getLogger(MongoCommandListener.class);
     private final String threadName;
     private final Stopwatch clock = Stopwatch.createUnstarted();
 
-    public TimedCommandListener(String threadName) {
+    /**
+     * @param threadName the name of the thread that will be traced. Events from other threads will be ignored.
+     */
+    public MongoCommandListener(String threadName) {
+        Preconditions.checkNotNull(threadName, "threadName cannot be null");
         this.threadName = threadName;
     }
 
     @Override
     public void commandStarted(CommandStartedEvent event) {
-        if (isMongoDumpThread() && LOG.isDebugEnabled()) {
+        if (LOG.isTraceEnabled() && isMongoDumpThread()) {
             String elapsed;
             if (clock.isRunning()) {
-                elapsed = Long.toString(clock.elapsed(TimeUnit.MILLISECONDS));
+                elapsed = clock.elapsed(TimeUnit.MILLISECONDS) + " ms";
             } else {
                 elapsed = "N/A";
             }
             clock.reset().start();
-            LOG.debug("Command started: {}, processing time: {}", event.getCommand(), elapsed);
+            LOG.trace("Command started: {}. Processing time of previous response: {}", event.getCommand(), elapsed);
         }
     }
 
     @Override
     public void commandSucceeded(CommandSucceededEvent event) {
-        if (isMongoDumpThread() && LOG.isDebugEnabled()) {
-            LOG.debug("Command succeeded: {}, Time: {} ms, client time: {}",
+        if (LOG.isTraceEnabled() && isMongoDumpThread()) {
+            LOG.trace("Command succeeded: {}, Time waiting for Mongo response: {} ms",
                     event.getCommandName(),
-                    event.getElapsedTime(TimeUnit.MILLISECONDS),
                     clock.elapsed(TimeUnit.MILLISECONDS)
             );
             clock.reset().start();
@@ -64,8 +74,8 @@ public final class TimedCommandListener implements com.mongodb.event.CommandList
 
     @Override
     public void commandFailed(CommandFailedEvent event) {
-        if (isMongoDumpThread()) {
-            LOG.debug("Command failed: {}", event);
+        if (LOG.isTraceEnabled() && isMongoDumpThread()) {
+            LOG.trace("Command failed: {}", event);
         }
     }
 
