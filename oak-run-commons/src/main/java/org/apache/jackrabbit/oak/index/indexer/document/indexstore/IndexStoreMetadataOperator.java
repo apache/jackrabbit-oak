@@ -16,21 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
-
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.jackrabbit.oak.commons.Compression;
 
 import java.io.File;
 import java.io.IOException;
 
-/**
- * @deprecated depending on what type of store it is use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy}  or {@link org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalIndexStoreSortStrategy} instead
- */
-@Deprecated
-public interface SortStrategy {
+public interface IndexStoreMetadataOperator<M> {
+    File createMetadataFile(M t, File storeDir, Compression algorithm) throws IOException;
 
-    File createSortedStoreFile() throws IOException, CompositeException;
-
-    long getEntryCount();
+    M getIndexStoreMetadata(File metadataFile, Compression algorithm, TypeReference<M> clazz) throws IOException;
 }

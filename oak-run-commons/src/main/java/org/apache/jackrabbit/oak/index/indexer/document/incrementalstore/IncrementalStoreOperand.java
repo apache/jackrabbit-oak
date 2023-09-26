@@ -16,21 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
+public enum IncrementalStoreOperand {
+    ADD("A"),
+    MODIFY("M"),
+    DELETE("D");
+    private final String operand;
 
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+    IncrementalStoreOperand(String operand) {
+        this.operand = operand;
+    }
 
-import java.io.File;
-import java.io.IOException;
-
-/**
- * @deprecated depending on what type of store it is use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy}  or {@link org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalIndexStoreSortStrategy} instead
- */
-@Deprecated
-public interface SortStrategy {
-
-    File createSortedStoreFile() throws IOException, CompositeException;
-
-    long getEntryCount();
+    @Override
+    public String toString() {
+        return operand;
+    }
 }

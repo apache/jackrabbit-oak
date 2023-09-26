@@ -65,7 +65,7 @@ public class IndexerSupport {
     protected final IndexHelper indexHelper;
     private File localIndexDir;
     private File indexDefinitions;
-    private String checkpoint;
+    private final String checkpoint;
     private File existingDataDumpDir;
 
     public IndexerSupport(IndexHelper indexHelper, String checkpoint) {
@@ -98,6 +98,10 @@ public class IndexerSupport {
 
     public void writeMetaInfo(String checkpoint) throws IOException {
         new IndexerInfo(getLocalIndexDir(), checkpoint).save();
+    }
+
+    public String getCheckpoint() {
+        return checkpoint;
     }
 
     public NodeState retrieveNodeStateForCheckpoint() {
