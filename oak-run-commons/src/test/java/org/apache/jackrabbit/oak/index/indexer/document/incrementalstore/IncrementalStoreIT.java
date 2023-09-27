@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
@@ -36,8 +35,10 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
@@ -57,7 +58,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -123,12 +123,12 @@ public class IncrementalStoreIT {
      * 5. merged file is compared with base ffs at checkpoint2
      */
     public void incrementalFFSTest() throws Exception {
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createBaseContent(rwStore.right);
-        String initialCheckpoint = rwStore.right.checkpoint(3600000);
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Backend rwBackend = createNodeStore(false);
+        createBaseContent(rwBackend.documentNodeStore);
+        String initialCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
+        Backend roBackend = createNodeStore(true);
         Predicate<String> pathPredicate = s -> s.startsWith("/content/dam");
-        PipelinedStrategy pipelinedStrategy = createPipelinedStrategy(roStore, pathPredicate, initialCheckpoint);
+        PipelinedStrategy pipelinedStrategy = createPipelinedStrategy(roBackend, pathPredicate, null, initialCheckpoint);
 
         File baseFFSAtCheckpoint1 = pipelinedStrategy.createSortedStoreFile();
         File metadataAtCheckpoint1 = pipelinedStrategy.createMetadataFile();
@@ -171,11 +171,11 @@ public class IncrementalStoreIT {
                 StandardCopyOption.REPLACE_EXISTING);
 
 
-        createIncrementalContent(rwStore.right);
-        String finalCheckpoint = rwStore.right.checkpoint(3600000);
+        createIncrementalContent(rwBackend.documentNodeStore);
+        String finalCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
         Predicate<String> pathPredicate1 = s -> s.startsWith("/content/dam");
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore1 = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy1 = createPipelinedStrategy(roStore1, pathPredicate1, finalCheckpoint);
+        Backend roStore1 = createNodeStore(true);
+        PipelinedStrategy pipelinedStrategy1 = createPipelinedStrategy(roStore1, pathPredicate1, null, finalCheckpoint);
 
         File baseFFSCheckpoint2 = pipelinedStrategy1.createSortedStoreFile();
         File metadataAtCheckpoint2 = pipelinedStrategy1.createMetadataFile();
@@ -216,8 +216,7 @@ public class IncrementalStoreIT {
                 new File(baseFFSCheckpoint2.getParent(), "/final-sort-work-dir").toPath(),
                 StandardCopyOption.REPLACE_EXISTING);
 
-        IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy = createIncrementalStrategy(roStore,
-                pathPredicate, initialCheckpoint, finalCheckpoint);
+        IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy = createIncrementalStrategy(roBackend, pathPredicate, initialCheckpoint, finalCheckpoint);
         File incrementalFile = incrementalFlatFileStoreStrategy.createSortedStoreFile();
         File incrementalStoreMetadata = incrementalFlatFileStoreStrategy.createMetadataFile();
         try (
@@ -260,31 +259,26 @@ public class IncrementalStoreIT {
         assertEquals(mergedIndexStoreMetadata.getStrategy(), mergedStore.getStrategyName());
     }
 
-
-    private PipelinedStrategy createPipelinedStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore,
-                                                      Predicate<String> pathPredicate, String checkpoint) {
-        DocumentNodeStore readOnlyNodeStore = roStore.right;
-        MongoDocumentStore readOnlyMongoDocStore = roStore.left;
-
+    private PipelinedStrategy createPipelinedStrategy(Backend backend, Predicate<String> pathPredicate, List<PathFilter> pathFilters,  String checkpoint) {
         Set<String> preferredPathElements = Set.of();
-        RevisionVector rootRevision = RevisionVector.fromString(checkpoint);
+        RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         return new PipelinedStrategy(
-                readOnlyMongoDocStore,
-                readOnlyNodeStore,
+                backend.mongoDocumentStore,
+                backend.mongoConnection,
+                backend.documentNodeStore,
                 rootRevision,
                 preferredPathElements,
-                fileBlobStore,
+                new MemoryBlobStore(),
                 sortFolder.getRoot(),
                 algorithm,
                 pathPredicate,
-                Collections.emptyList(),
-                checkpoint
-        );
+                pathFilters,
+                checkpoint);
     }
 
-    private IncrementalFlatFileStoreStrategy createIncrementalStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore,
+    private IncrementalFlatFileStoreStrategy createIncrementalStrategy(Backend backend,
                                                                        Predicate<String> pathPredicate, String initialCheckpoint, String finalCheckpoint) {
-        DocumentNodeStore readOnlyNodeStore = roStore.right;
+        DocumentNodeStore readOnlyNodeStore = backend.documentNodeStore;
         Set<String> preferredPathElements = Set.of();
         readOnlyNodeStore.retrieve(initialCheckpoint);
         readOnlyNodeStore.retrieve(finalCheckpoint);
@@ -321,7 +315,7 @@ public class IncrementalStoreIT {
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
-    private ImmutablePair<MongoDocumentStore, DocumentNodeStore> createNodeStore(boolean readOnly) {
+    private Backend createNodeStore(boolean readOnly) {
         MongoConnection c = connectionFactory.getConnection();
         DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setMongoDB(c.getMongoClient(), c.getDBName());
@@ -330,6 +324,19 @@ public class IncrementalStoreIT {
         }
         builder.setAsyncDelay(1);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        return new ImmutablePair<>((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore);
+        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c);
+    }
+
+
+    static class Backend {
+        final MongoDocumentStore mongoDocumentStore;
+        final DocumentNodeStore documentNodeStore;
+        final MongoConnection mongoConnection;
+
+        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoConnection mongoConnection) {
+            this.mongoDocumentStore = mongoDocumentStore;
+            this.documentNodeStore = documentNodeStore;
+            this.mongoConnection = mongoConnection;
+        }
     }
 }

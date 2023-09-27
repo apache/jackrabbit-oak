@@ -25,12 +25,11 @@ import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -113,7 +112,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  *
  * <h2>Retrials on broken MongoDB connections</h2>
  */
-public class PipelinedStrategy implements IndexStoreSortStrategyBase {
+public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB = "oak.indexer.pipelined.mongoDocBatchSizeMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB = 4;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS = "oak.indexer.pipelined.mongoDocBatchMaxNumberOfDocuments";
@@ -174,10 +173,8 @@ public class PipelinedStrategy implements IndexStoreSortStrategyBase {
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
-    private final File storeDir;
     private final PathElementComparator pathComparator;
     private final List<PathFilter> pathFilters;
-    private final Predicate<String> pathPredicate;
     private final int numberOfTransformThreads;
 
     private final int mongoDocQueueSize;
@@ -191,10 +188,10 @@ public class PipelinedStrategy implements IndexStoreSortStrategyBase {
 
 
     /**
-     * @param pathPredicate   Used by the transform stage to test if a node should be kept or discarded.
-     * @param pathFilters     If non-empty, the download stage will use these filters to try to create a query that downloads
-     *                        only the matching MongoDB documents.
-     * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
+     * @param pathPredicate Used by the transform stage to test if a node should be kept or discarded.
+     * @param pathFilters   If non-empty, the download stage will use these filters to try to create a query that downloads
+     *                      only the matching MongoDB documents.
+     * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, MongoConnection, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
      */
 
     @Deprecated
@@ -208,11 +205,12 @@ public class PipelinedStrategy implements IndexStoreSortStrategyBase {
                              Compression algorithm,
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters) {
-        this(documentStore, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
+        this(documentStore, mongoConnection, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
                 algorithm, pathPredicate, pathFilters, null);
     }
 
     public PipelinedStrategy(MongoDocumentStore documentStore,
+                             MongoConnection mongoConnection,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
                              Set<String> preferredPathElements,
