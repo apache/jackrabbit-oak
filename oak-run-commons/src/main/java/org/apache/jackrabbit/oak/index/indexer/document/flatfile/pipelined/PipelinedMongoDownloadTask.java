@@ -431,7 +431,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);
                     batchSize += docSize;
                     if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
-                        LOG.debug("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
+                        LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
                         tryEnqueueCopy(batch, nextIndex);
                         // Clear array to release references to the documents
                         Arrays.fill(batch, 0, nextIndex, null);
