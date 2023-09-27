@@ -24,12 +24,13 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -112,7 +113,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  *
  * <h2>Retrials on broken MongoDB connections</h2>
  */
-public class PipelinedStrategy implements SortStrategy {
+public class PipelinedStrategy implements IndexStoreSortStrategyBase {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB = "oak.indexer.pipelined.mongoDocBatchSizeMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB = 4;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS = "oak.indexer.pipelined.mongoDocBatchMaxNumberOfDocuments";
@@ -175,7 +176,6 @@ public class PipelinedStrategy implements SortStrategy {
     private final BlobStore blobStore;
     private final File storeDir;
     private final PathElementComparator pathComparator;
-    private final Compression algorithm;
     private final List<PathFilter> pathFilters;
     private final Predicate<String> pathPredicate;
     private final int numberOfTransformThreads;
@@ -194,7 +194,10 @@ public class PipelinedStrategy implements SortStrategy {
      * @param pathPredicate   Used by the transform stage to test if a node should be kept or discarded.
      * @param pathFilters     If non-empty, the download stage will use these filters to try to create a query that downloads
      *                        only the matching MongoDB documents.
+     * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
      */
+
+    @Deprecated
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              MongoConnection mongoConnection,
                              DocumentNodeStore documentNodeStore,
@@ -205,17 +208,28 @@ public class PipelinedStrategy implements SortStrategy {
                              Compression algorithm,
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters) {
+        this(documentStore, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
+                algorithm, pathPredicate, pathFilters, null);
+    }
+
+    public PipelinedStrategy(MongoDocumentStore documentStore,
+                             DocumentNodeStore documentNodeStore,
+                             RevisionVector rootRevision,
+                             Set<String> preferredPathElements,
+                             BlobStore blobStore,
+                             File storeDir,
+                             Compression algorithm,
+                             Predicate<String> pathPredicate,
+                             List<PathFilter> pathFilters,
+                             String checkpoint) {
+        super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
         this.docStore = documentStore;
         this.mongoConnection = mongoConnection;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
         this.blobStore = blobStore;
-        this.storeDir = storeDir;
         this.pathComparator = new PathElementComparator(preferredPathElements);
-        this.pathPredicate = pathPredicate;
-        this.algorithm = algorithm;
         this.pathFilters = pathFilters;
-
         Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
 
         int mongoDocQueueReservedMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
@@ -378,7 +392,7 @@ public class PipelinedStrategy implements SortStrategy {
                         docStore,
                         documentNodeStore,
                         rootRevision,
-                        pathPredicate,
+                        this.getPathPredicate(),
                         entryWriter,
                         mongoDocQueue,
                         emptyBatchesQueue,
@@ -389,11 +403,12 @@ public class PipelinedStrategy implements SortStrategy {
             }
 
             PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                    storeDir, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+                    this.getStoreDir(), pathComparator, this.getAlgorithm(), emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
             );
             ecs.submit(sortTask);
 
-            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(storeDir, pathComparator, algorithm, sortedFilesQueue);
+            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(this.getStoreDir(), pathComparator,
+                    this.getAlgorithm(), sortedFilesQueue);
             ecs.submit(mergeSortTask);
 
 

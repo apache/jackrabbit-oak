@@ -17,20 +17,15 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
+package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryReader;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 
-import java.io.File;
-import java.io.IOException;
+public class IncrementalFlatFileStoreNodeStateEntryReader extends NodeStateEntryReader {
 
-/**
- * @deprecated depending on what type of store it is use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy}  or {@link org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalIndexStoreSortStrategy} instead
- */
-@Deprecated
-public interface SortStrategy {
+    public IncrementalFlatFileStoreNodeStateEntryReader(BlobStore blobStore) {
+        super(blobStore);
+    }
 
-    File createSortedStoreFile() throws IOException, CompositeException;
-
-    long getEntryCount();
 }

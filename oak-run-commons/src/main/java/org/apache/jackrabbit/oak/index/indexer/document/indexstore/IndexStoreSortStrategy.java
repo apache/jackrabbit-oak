@@ -16,21 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
-
-import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Set;
+import java.util.function.Predicate;
 
-/**
- * @deprecated depending on what type of store it is use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategy}  or {@link org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalIndexStoreSortStrategy} instead
- */
-@Deprecated
-public interface SortStrategy {
+public interface IndexStoreSortStrategy extends SortStrategy {
 
-    File createSortedStoreFile() throws IOException, CompositeException;
+    String getStrategyName();
 
-    long getEntryCount();
+    String getStoreType();
+
+    String getCheckpoint();
+
+    Set<String> getPreferredPaths();
+
+    Predicate<String> getPathPredicate();
+
+    File createMetadataFile() throws IOException;
+
+    File getStoreDir();
+
+    Compression getAlgorithm();
+
 }

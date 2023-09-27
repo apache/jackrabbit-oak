@@ -103,6 +103,7 @@ public class ElasticTestServer implements AutoCloseable {
                         MountableFile.forHostPath(localPluginPath),
                         "/tmp/plugins/elastiknn.zip")
                 .withNetwork(network)
+                .withNetworkAliases("elasticsearch")
                 .withStartupAttempts(3);
         CONTAINER.start();
 
