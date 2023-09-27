@@ -426,8 +426,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
                         LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
                         tryEnqueueCopy(batch, nextIndex);
-                        // Clear array to release references to the documents
-                        Arrays.fill(batch, 0, nextIndex, null);
                         nextIndex = 0;
                         batchSize = 0;
                     }

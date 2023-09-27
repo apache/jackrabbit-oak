@@ -119,6 +119,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS = 10000;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = "oak.indexer.pipelined.mongoDocQueueReservedMemoryMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = 128;
+    public static final int MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = 16;
     public static final String OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = "oak.indexer.pipelined.transformThreads";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS = 2;
     public static final String OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB = "oak.indexer.pipelined.workingMemoryMB";
@@ -131,15 +132,13 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
-
-    public static final int MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = 16;
     // A MongoDB document is at most 16MB, so the buffer that holds node state entries must be at least that big
     private static final int MIN_AUTODETECT_WORKING_MEMORY_MB = 128;
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 32;
     private static final int MAX_AUTODETECT_WORKING_MEMORY_MB = 4000;
 
 
-    private class MonitorTask<T> implements Runnable {
+    private static class MonitorTask<T> implements Runnable {
         private final ArrayBlockingQueue<T[]> mongoDocQueue;
         private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
         private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
@@ -168,6 +167,37 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         }
     }
 
+    private static <T> void printStatistics(ArrayBlockingQueue<T[]> mongoDocQueue,
+                                            ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
+                                            ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
+                                            ArrayBlockingQueue<File> sortedFilesQueue,
+                                            TransformStageStatistics transformStageStatistics,
+                                            boolean printHistogramsAtInfo) {
+
+        String queueSizeStats = MetricsFormatter.newBuilder()
+                .add("mongoDocQueue", mongoDocQueue.size())
+                .add("emptyBuffersQueue", emptyBuffersQueue.size())
+                .add("nonEmptyBuffersQueue", nonEmptyBuffersQueue.size())
+                .add("sortedFilesQueue", sortedFilesQueue.size())
+                .build();
+
+        LOG.info("Queue sizes: {}", queueSizeStats);
+        LOG.info("Transform stats: {}", transformStageStatistics.formatStats());
+        prettyPrintTransformStatisticsHistograms(transformStageStatistics, printHistogramsAtInfo);
+    }
+
+    private static void prettyPrintTransformStatisticsHistograms(TransformStageStatistics transformStageStatistics, boolean printHistogramAtInfo) {
+        if (printHistogramAtInfo) {
+            LOG.info("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
+            LOG.info("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
+            LOG.info("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
+        } else {
+            LOG.debug("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
+            LOG.debug("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
+            LOG.debug("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
+        }
+    }
+
     private final MongoDocumentStore docStore;
     private final MongoConnection mongoConnection;
     private final DocumentNodeStore documentNodeStore;
@@ -176,15 +206,14 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private final PathElementComparator pathComparator;
     private final List<PathFilter> pathFilters;
     private final int numberOfTransformThreads;
-
     private final int mongoDocQueueSize;
     private final int mongoDocBatchMaxSizeMB;
     private final int mongoDocBatchMaxNumberOfDocuments;
-
     private final int nseBuffersCount;
-    private long nodeStateEntriesExtracted;
     private final int nseBufferMaxEntriesPerBuffer;
     private final int nseBuffersSizeBytes;
+
+    private long nodeStateEntriesExtracted;
 
 
     /**
@@ -193,7 +222,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
      *                      only the matching MongoDB documents.
      * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, MongoConnection, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
      */
-
     @Deprecated
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              MongoConnection mongoConnection,
@@ -496,36 +524,5 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     @Override
     public long getEntryCount() {
         return nodeStateEntriesExtracted;
-    }
-
-    private <T> void printStatistics(ArrayBlockingQueue<T[]> mongoDocQueue,
-                                     ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
-                                     ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
-                                     ArrayBlockingQueue<File> sortedFilesQueue,
-                                     TransformStageStatistics transformStageStatistics,
-                                     boolean printHistogramsAtInfo) {
-
-        String queueSizeStats = MetricsFormatter.newBuilder()
-                .add("mongoDocQueue", mongoDocQueue.size())
-                .add("emptyBuffersQueue", emptyBuffersQueue.size())
-                .add("nonEmptyBuffersQueue", nonEmptyBuffersQueue.size())
-                .add("sortedFilesQueue", sortedFilesQueue.size())
-                .build();
-
-        LOG.info("Queue sizes: {}", queueSizeStats);
-        LOG.info("Transform stats: {}", transformStageStatistics.formatStats());
-        prettyPrintTransformStatisticsHistograms(transformStageStatistics, printHistogramsAtInfo);
-    }
-
-    private void prettyPrintTransformStatisticsHistograms(TransformStageStatistics transformStageStatistics, boolean printHistogramAtInfo) {
-        if (printHistogramAtInfo) {
-            LOG.info("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
-            LOG.info("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
-            LOG.info("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
-        } else {
-            LOG.debug("Top hidden paths rejected: {}", transformStageStatistics.getHiddenPathsRejectedHistogram().prettyPrint());
-            LOG.debug("Top paths filtered: {}", transformStageStatistics.getFilteredPathsRejectedHistogram().prettyPrint());
-            LOG.debug("Top empty node state documents: {}", transformStageStatistics.getEmptyNodeStateHistogram().prettyPrint());
-        }
     }
 }
