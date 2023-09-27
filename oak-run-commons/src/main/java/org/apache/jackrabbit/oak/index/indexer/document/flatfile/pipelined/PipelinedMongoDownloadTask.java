@@ -34,7 +34,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.CompositeCommandListener;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
@@ -125,7 +124,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final boolean retryOnConnectionErrors;
     private final boolean regexPathFiltering;
     private final Logger traversalLog = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class.getName() + ".traversal");
-    private final MongoConnection mongoConnection;
     private final MongoCollection<NodeDocument> dbCollection;
     private final ReadPreference readPreference;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
@@ -144,13 +142,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       int maxBatchNumberOfDocuments,
                                       BlockingQueue<NodeDocument[]> queue,
                                       List<PathFilter> pathFilters) {
-        this.mongoConnection = mongoConnection;
         NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
         CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
                 CodecRegistries.fromProviders(nodeDocumentCodecProvider),
                 MongoClientSettings.getDefaultCodecRegistry()
         );
-        this.dbCollection = this.mongoConnection.getDatabase()
+        this.dbCollection = mongoConnection.getDatabase()
                 .withCodecRegistry(nodeDocumentCodecRegistry)
                 .getCollection(Collection.NODES.toString(), NodeDocument.class);
         this.maxBatchSizeBytes = maxBatchSizeBytes;
@@ -184,10 +181,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         LOG.info("[TASK:{}:START] Starting to download from MongoDB", THREAD_NAME.toUpperCase(Locale.ROOT));
-        CompositeCommandListener listener = mongoConnection.getCompositeCommandListener();
-        MongoCommandListener mongoCommandListerner = new MongoCommandListener(THREAD_NAME);
         try {
-            listener.addListener(mongoCommandListerner);
             this.nextLastModified = 0;
             this.lastIdDownloaded = null;
 
@@ -215,7 +209,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.warn("Thread terminating with exception.", t);
             throw t;
         } finally {
-            listener.removeListener(mongoCommandListerner);
             Thread.currentThread().setName(originalName);
         }
     }

@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.CompositeCommandListener;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
@@ -66,8 +65,6 @@ public class PipelinedMongoDownloadTaskTest {
         MongoCollection<NodeDocument> dbCollection = mock(MongoCollection.class);
 
         MongoConnection mongoConnection = mock(MongoConnection.class);
-        CompositeCommandListener compositeCommandListener = new CompositeCommandListener();
-        when(mongoConnection.getCompositeCommandListener()).thenReturn(compositeCommandListener);
         MongoDatabase mongoDatabase = mock(MongoDatabase.class);
         when(mongoDatabase.withCodecRegistry(any())).thenReturn(mongoDatabase);
         when(mongoConnection.getDatabase()).thenReturn(mongoDatabase);

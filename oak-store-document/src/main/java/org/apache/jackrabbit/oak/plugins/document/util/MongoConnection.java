@@ -46,8 +46,6 @@ public class MongoConnection {
     private final MongoClientURI mongoURI;
     private final MongoClient mongo;
 
-    private final CompositeCommandListener compositeListener = new CompositeCommandListener();
-
     /**
      * Constructs a new connection using the specified MongoDB connection string.
      * See also http://docs.mongodb.org/manual/reference/connection-string/
@@ -69,7 +67,6 @@ public class MongoConnection {
      */
     public MongoConnection(String uri, MongoClientOptions.Builder builder)
             throws MongoException {
-        builder.addCommandListener(compositeListener);
         mongoURI = new MongoClientURI(uri, builder);
         mongo = new MongoClient(mongoURI);
     }
@@ -103,10 +100,6 @@ public class MongoConnection {
      */
     public MongoClient getMongoClient() {
         return mongo;
-    }
-
-    public CompositeCommandListener getCompositeCommandListener() {
-        return compositeListener;
     }
 
     /**
