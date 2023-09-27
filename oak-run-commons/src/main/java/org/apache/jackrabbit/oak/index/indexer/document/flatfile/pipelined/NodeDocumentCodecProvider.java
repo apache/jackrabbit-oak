@@ -27,17 +27,17 @@ import org.bson.codecs.configuration.CodecRegistry;
 
 public class NodeDocumentCodecProvider implements CodecProvider {
     private final MongoDocumentStore store;
-    private final Collection<NodeDocument> col;
+    private final Collection<NodeDocument> collection;
 
-    public NodeDocumentCodecProvider(MongoDocumentStore store, Collection<NodeDocument> col) {
+    public NodeDocumentCodecProvider(MongoDocumentStore store, Collection<NodeDocument> collection) {
         this.store = store;
-        this.col = col;
+        this.collection = collection;
     }
 
     @Override
     public <T> Codec<T> get(Class<T> clazz, CodecRegistry registry) {
         if (clazz == NodeDocument.class) {
-            NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(store, col, registry);
+            NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(store, collection, registry);
             return (Codec<T>) nodeDocumentCodec;
         }
         return null;
