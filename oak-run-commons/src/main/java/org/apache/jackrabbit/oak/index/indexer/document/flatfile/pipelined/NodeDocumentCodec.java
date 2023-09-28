@@ -42,7 +42,7 @@ import java.util.TreeMap;
  * Custom codec for MongoDB to transform a stream of BSON tokens into a NodeDocument. This custom codec provides two
  * benefits compared to using a standard Mongo codec.
  * <ul>
- *   <li>The standard codecs produce objects from the Mongo client API (BasicDBOject or BsonDocument or Document) which have
+ *   <li>The standard codecs produce objects from the Mongo client API (BasicDBObject or BsonDocument or Document) which have
  *   then to be converted into NodeDocuments (OAK API). This custom codec creates directly a NodeDocument, thereby
  *   skipping the intermediate object. This should be more efficient and reduce the pressure on the GC.</li>
  *   <li>Allows estimating the size of the document while reading it, which will have a negligible overhead (as compared
@@ -115,7 +115,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 break;
             case DOCUMENT:
                 value = readDocument(reader);
-                valSize = 0; // the size is updated by the recursive calls inside convertMongoMap
+                valSize = 0; // the size is updated by the recursive calls inside readDocument
                 break;
             case BOOLEAN:
                 value = booleanCoded.decode(reader, decoderContext);
