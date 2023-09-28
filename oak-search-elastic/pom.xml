@@ -43,7 +43,7 @@
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
         <configuration>
-          <instructions>
+          <instructions combine.self="override">
             <_exportcontents>
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
@@ -74,6 +74,8 @@
               *;scope=compile|runtime
             </Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
+            <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
+            <_plugin/>
           </instructions>
         </configuration>
       </plugin>
