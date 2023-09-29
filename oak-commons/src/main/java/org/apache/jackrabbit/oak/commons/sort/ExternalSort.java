@@ -38,6 +38,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static java.util.function.Function.identity;
 
@@ -100,7 +101,7 @@ public class ExternalSort {
     }
 
     private static long estimateBestSizeOfBlocks(long sizeoffile, int maxtmpfiles, long maxMemory) {
-        /**
+        /*
          * We multiply by two because later on someone insisted on counting the memory usage as 2
          * bytes per character. By this model, loading a file with 1 character will use 2 bytes.
          */
@@ -127,12 +128,18 @@ public class ExternalSort {
      *
      * @param file
      *            some flat file
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      * @return a list of temporary flat files
      */
+    public static List<File> sortInBatch(File file, Predicate<String> filterPredicate) throws IOException {
+        return sortInBatch(file, defaultcomparator, DEFAULTMAXTEMPFILES, DEFAULT_MAX_MEM_BYTES,
+                Charset.defaultCharset(), null, false, filterPredicate);
+    }
+
     public static List<File> sortInBatch(File file)
             throws IOException {
-        return sortInBatch(file, defaultcomparator, DEFAULTMAXTEMPFILES, DEFAULT_MAX_MEM_BYTES,
-                Charset.defaultCharset(), null, false);
+        return sortInBatch(file, t -> true);
     }
 
     /**
@@ -143,12 +150,19 @@ public class ExternalSort {
      *            some flat file
      * @param cmp
      *            string comparator
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      * @return a list of temporary flat files
      */
-    public static List<File> sortInBatch(File file, Comparator<String> cmp)
+    public static List<File> sortInBatch(File file, Comparator<String> cmp, Predicate<String> filterPredicate)
             throws IOException {
         return sortInBatch(file, cmp, DEFAULTMAXTEMPFILES, DEFAULT_MAX_MEM_BYTES,
-                Charset.defaultCharset(), null, false);
+                Charset.defaultCharset(), null, false, filterPredicate);
+    }
+
+    public static List<File> sortInBatch(File file, Comparator<String> cmp)
+            throws IOException {
+        return sortInBatch(file, cmp, t -> true);
     }
 
     /**
@@ -161,12 +175,19 @@ public class ExternalSort {
      *            string comparator
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded.
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
-                                         boolean distinct) throws IOException {
+                                         boolean distinct, Predicate<String> filterPredicate) throws IOException {
         return sortInBatch(file, cmp, DEFAULTMAXTEMPFILES, DEFAULT_MAX_MEM_BYTES,
-                Charset.defaultCharset(), null, distinct);
+                Charset.defaultCharset(), null, distinct, filterPredicate);
+    }
+
+    public static List<File> sortInBatch(File file, Comparator<String> cmp,
+                                         boolean distinct) throws IOException {
+        return sortInBatch(file, cmp, distinct, t -> true);
     }
 
     /**
@@ -189,14 +210,25 @@ public class ExternalSort {
      * @param numHeader
      *            number of lines to preclude before sorting starts
      * @param usegzip use gzip compression for the temporary files
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      * @return a list of temporary flat files
      */
+    public static List<File> sortInBatch(File file, Comparator<String> cmp,
+                                         int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                         boolean distinct, int numHeader, boolean usegzip,
+                                         Predicate<String> filterPredicate)
+            throws IOException {
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct,
+                numHeader, usegzip ? Compression.GZIP : Compression.NONE, identity(), identity(), filterPredicate);
+    }
+
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
                                          int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
                                          boolean distinct, int numHeader, boolean usegzip)
             throws IOException {
         return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct,
-                numHeader, usegzip ? Compression.GZIP : Compression.NONE, identity(), identity());
+                numHeader, usegzip, t -> true);
     }
 
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
@@ -204,7 +236,16 @@ public class ExternalSort {
                                          boolean distinct, int numHeader, Compression algorithm)
             throws IOException {
         return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct,
-                numHeader, algorithm, identity(), identity());
+                numHeader, algorithm, t -> true);
+    }
+
+    public static List<File> sortInBatch(File file, Comparator<String> cmp,
+                                         int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                         boolean distinct, int numHeader, Compression algorithm,
+                                         Predicate<String> filterPredicate)
+            throws IOException {
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct,
+                numHeader, algorithm, identity(), identity(), filterPredicate);
     }
 
     /**
@@ -232,27 +273,52 @@ public class ExternalSort {
      *            purpose of sorting
      * @param stringToType
      *          function to map custom type to string. Used for storing sorted content back to file
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      * @return a list of temporary flat files
      */
+    public static <T> List<File> sortInBatch(File file, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean usegzip,
+                                             Function<T, String> typeToString, Function<String, T> stringToType,
+                                             Predicate<T> filterPredicate)
+            throws IOException {
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader,
+                usegzip ? Compression.GZIP : Compression.NONE, typeToString, stringToType, filterPredicate);
+    }
+
     public static <T> List<File> sortInBatch(File file, Comparator<T> cmp,
                                              int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
                                              boolean distinct, int numHeader, boolean usegzip,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
         return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader,
-                usegzip ? Compression.GZIP : Compression.NONE, typeToString, stringToType);
+                usegzip, typeToString, stringToType, t -> true);
     }
+
     public static <T> List<File> sortInBatch(File file, Comparator<T> cmp,
                                              int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
                                              boolean distinct, int numHeader, Compression algorithm,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
+        return sortInBatch(file, cmp,
+                maxtmpfiles, maxMemory, cs, tmpdirectory,
+                distinct, numHeader, algorithm,
+                typeToString, stringToType,
+                t -> true);
+    }
+
+    public static <T> List<File> sortInBatch(File file, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, Compression algorithm,
+                                             Function<T, String> typeToString, Function<String, T> stringToType,
+                                             Predicate<T> filterPredicate)
+            throws IOException {
         // in bytes
         long blocksize = estimateBestSizeOfBlocks(file, maxtmpfiles, maxMemory);
-        try (BufferedReader fbr = new BufferedReader(new InputStreamReader(
-                new FileInputStream(file), cs))) {
+        try (BufferedReader fbr = new BufferedReader(new InputStreamReader(algorithm.getInputStream(new FileInputStream(file)), cs))) {
             return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader,
-                    algorithm, typeToString, stringToType);
+                    algorithm, typeToString, stringToType, filterPredicate);
         }
     }
 
@@ -261,21 +327,43 @@ public class ExternalSort {
                                              boolean distinct, int numHeader, boolean usegzip,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
-        return sortInBatch(fbr, actualFileSize, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader,
-                usegzip ? Compression.GZIP : Compression.NONE, typeToString, stringToType);
+        return sortInBatch(fbr, actualFileSize, cmp,
+                maxtmpfiles, maxMemory, cs, tmpdirectory,
+                distinct, numHeader, usegzip,
+                typeToString, stringToType, t -> true);
     }
+
+    public static <T> List<File> sortInBatch(BufferedReader fbr, long actualFileSize, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, boolean usegzip,
+                                             Function<T, String> typeToString, Function<String, T> stringToType,
+                                             Predicate<T> filterPredicate)
+            throws IOException {
+        return sortInBatch(fbr, actualFileSize, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory, distinct, numHeader,
+                usegzip ? Compression.GZIP : Compression.NONE, typeToString, stringToType, filterPredicate);
+    }
+
     public static <T> List<File> sortInBatch(BufferedReader fbr, long actualFileSize, Comparator<T> cmp,
                                              int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
                                              boolean distinct, int numHeader, Compression algorithm,
                                              Function<T, String> typeToString, Function<String, T> stringToType)
             throws IOException {
+        return sortInBatch(fbr, actualFileSize, cmp, maxtmpfiles, maxMemory, cs,
+                tmpdirectory, distinct, numHeader, algorithm,
+                typeToString, stringToType, t -> true);
+    }
+
+    public static <T> List<File> sortInBatch(BufferedReader fbr, long actualFileSize, Comparator<T> cmp,
+                                             int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory,
+                                             boolean distinct, int numHeader, Compression algorithm,
+                                             Function<T, String> typeToString, Function<String, T> stringToType,
+                                             Predicate<T> filterPredicate)
+            throws IOException {
         // in bytes
         long blocksize = estimateBestSizeOfBlocks(actualFileSize, maxtmpfiles, maxMemory);
-        try {
+        try (fbr) {
             return sortInBatch(fbr, blocksize, cmp, cs, tmpdirectory, distinct, numHeader, algorithm,
-                    typeToString, stringToType);
-        } finally {
-            fbr.close();
+                    typeToString, stringToType, filterPredicate);
         }
     }
 
@@ -283,7 +371,6 @@ public class ExternalSort {
      * This will simply load the file by blocks of lines, then sort them in-memory, and write the
      * result to temporary files that have to be merged later. You can specify a bound on the number
      * of temporary files that will be created.
-     *
      *
      * @param fbr
      *            buffered read for file to be sorted
@@ -303,15 +390,18 @@ public class ExternalSort {
      *            purpose of sorting
      * @param stringToType
      *          function to map custom type to string. Used for storing sorted content back to file
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      * @return a list of temporary flat files
      */
     private static <T> List<File> sortInBatch(BufferedReader fbr, long blocksize, Comparator<T> cmp,
                                               Charset cs, File tmpdirectory,
                                               boolean distinct, int numHeader, Compression algorithm,
-                                              Function<T, String> typeToString, Function<String, T> stringToType)
+                                              Function<T, String> typeToString, Function<String, T> stringToType,
+                                              Predicate<T> filterPredicate)
             throws IOException {
         List<File> files = new ArrayList<File>();
-        try {
+        try (fbr) {
             List<T> tmplist = new ArrayList<>();
             String line = "";
             try {
@@ -335,18 +425,16 @@ public class ExternalSort {
                                 .estimatedSizeOf(line);
                     }
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, algorithm, typeToString));
+                            tmpdirectory, distinct, algorithm, typeToString, filterPredicate));
                     tmplist.clear();
                 }
             } catch (EOFException oef) {
                 if (tmplist.size() > 0) {
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, algorithm, typeToString));
+                            tmpdirectory, distinct, algorithm, typeToString, filterPredicate));
                     tmplist.clear();
                 }
             }
-        } finally {
-            fbr.close();
         }
         return files;
     }
@@ -368,13 +456,23 @@ public class ExternalSort {
      *            location of the temporary files (set to null for default location)
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded.
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      * @return a list of temporary flat files
      */
+    public static List<File> sortInBatch(File file, Comparator<String> cmp,
+                                         int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory, boolean distinct,
+                                         Predicate<String> filterPredicate)
+            throws IOException {
+        return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory,
+                distinct, 0, false, filterPredicate);
+    }
+
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
                                          int maxtmpfiles, long maxMemory, Charset cs, File tmpdirectory, boolean distinct)
             throws IOException {
         return sortInBatch(file, cmp, maxtmpfiles, maxMemory, cs, tmpdirectory,
-                distinct, 0, false);
+                distinct, t -> true);
     }
 
     /**
@@ -389,11 +487,19 @@ public class ExternalSort {
      *            charset to use for output (can use Charset.defaultCharset())
      * @param tmpdirectory
      *            location of the temporary files (set to null for default location)
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      */
+    public static File sortAndSave(List<String> tmplist,
+                                   Comparator<String> cmp, Charset cs, File tmpdirectory, Predicate<String> filterPredicate)
+            throws IOException {
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, false, false, filterPredicate);
+    }
+
     public static File sortAndSave(List<String> tmplist,
                                    Comparator<String> cmp, Charset cs, File tmpdirectory)
             throws IOException {
-        return sortAndSave(tmplist, cmp, cs, tmpdirectory, false, false);
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, t -> true);
     }
 
     /**
@@ -410,11 +516,19 @@ public class ExternalSort {
      *            location of the temporary files (set to null for default location)
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded.
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      */
+    public static <T> File sortAndSave(List<String> tmplist,
+                                       Comparator<String> cmp, Charset cs, File tmpdirectory,
+                                       boolean distinct, boolean usegzip, Predicate<String> filterPredicate) throws IOException {
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip, identity(), filterPredicate);
+    }
+
     public static File sortAndSave(List<String> tmplist,
                                    Comparator<String> cmp, Charset cs, File tmpdirectory,
                                    boolean distinct, boolean usegzip) throws IOException {
-        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip, identity());
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip, (Predicate<String>) t -> true);
     }
 
     /**
@@ -435,11 +549,19 @@ public class ExternalSort {
      * @param typeToString
      *        function to map string to custom type. User for coverting line to custom type for the
      *        purpose of sorting
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      */
     public static <T> File sortAndSave(List<T> tmplist,
                                        Comparator<T> cmp, Charset cs, File tmpdirectory,
+                                       boolean distinct, boolean usegzip, Function<T, String> typeToString, Predicate<T> filterPredicate) throws IOException {
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip ? Compression.GZIP : Compression.NONE, typeToString, filterPredicate);
+    }
+
+    public static <T> File sortAndSave(List<T> tmplist,
+                                       Comparator<T> cmp, Charset cs, File tmpdirectory,
                                        boolean distinct, boolean usegzip, Function<T, String> typeToString) throws IOException {
-        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip ? Compression.GZIP : Compression.NONE, typeToString);
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip, typeToString, t -> true);
     }
 
     /**
@@ -460,10 +582,15 @@ public class ExternalSort {
      * @param typeToString
      *        function to map string to custom type. User for coverting line to custom type for the
      *        purpose of sorting
+     * @param filterPredicate
+     *            predicate to filter out data which need to be sorted
      */
     public static <T> File sortAndSave(List<T> tmplist,
                                        Comparator<T> cmp, Charset cs, File tmpdirectory,
-                                       boolean distinct, Compression algorithm, Function<T, String> typeToString) throws IOException {
+                                       boolean distinct, Compression algorithm,
+                                       Function<T, String> typeToString,
+                                       Predicate<T> filterPredicate
+    ) throws IOException {
         Collections.sort(tmplist, cmp);
         File newtmpfile = File.createTempFile("sortInBatch",
                 "flatfile", tmpdirectory);
@@ -473,8 +600,8 @@ public class ExternalSort {
         T lastLine = null;
         try {
             for (T r : tmplist) {
-                // Skip duplicate lines
-                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
+                // Write if  filterPredicate return true and line is not duplicate
+                if (filterPredicate.test(r) && (!distinct || lastLine == null || cmp.compare(r, lastLine) != 0)) {
                     fbw.write(typeToString.apply(r));
                     fbw.newLine();
                     lastLine = r;
@@ -484,6 +611,12 @@ public class ExternalSort {
             fbw.close();
         }
         return newtmpfile;
+    }
+
+    public static <T> File sortAndSave(List<T> tmplist,
+                                       Comparator<T> cmp, Charset cs, File tmpdirectory,
+                                       boolean distinct, Compression algorithm, Function<T, String> typeToString) throws IOException {
+        return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, algorithm, typeToString, t -> true);
     }
 
     /**
