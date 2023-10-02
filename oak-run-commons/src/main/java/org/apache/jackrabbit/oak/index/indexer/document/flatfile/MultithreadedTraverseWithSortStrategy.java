@@ -23,9 +23,11 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.slf4j.Logger;
@@ -39,6 +41,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -56,7 +59,6 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_TASK_BATCH_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_MERGE_THREAD_POOL_SIZE;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.PROP_THREAD_POOL_SIZE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 
 /**
  * This class implements a sort strategy where node store is concurrently traversed for downloading node states by
@@ -151,13 +153,9 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  *     </li>
  * </ol>
  */
-public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
+public class MultithreadedTraverseWithSortStrategy extends IndexStoreSortStrategyBase {
 
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
-    /**
-     * Directory where sorted files will be created.
-     */
-    private final File storeDir;
     private final File mergeDir;
     private final String mergeDirName = "merge";
 
@@ -188,9 +186,6 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
     private final MemoryManager memoryManager;
 
     private final long dumpThreshold;
-    private final Compression algorithm;
-
-    private Predicate<String> pathPredicate = path -> true;
 
     /**
      * Indicates the various phases of {@link #phaser}
@@ -233,19 +228,44 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
      *                             be merged with the result from current run, if the current run has resumed from the point where
      *                             previous runs stopped). If this is not null and not empty, the {@code lastModifiedBreakPoints} parameter is ignored.
      * @param algorithm string representation of the compression algorithm, use "none" for disable compression.
+     * @deprecated use {@link MultithreadedTraverseWithSortStrategy#MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory, List, Set, BlobStore, File, List, Compression, MemoryManager, long, Predicate, String)} instead
      */
+    @Deprecated
     MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
                                           List<Long> lastModifiedBreakPoints, PathElementComparator pathComparator,
                                           BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
                                           Compression algorithm, MemoryManager memoryManager, long dumpThreshold,
                                           Predicate<String> pathPredicate) throws IOException {
-        this.storeDir = storeDir;
+        super(storeDir, algorithm, pathPredicate, null, null);
         this.mergeDir = new File(storeDir, mergeDirName);
-        this.algorithm = algorithm;
         this.sortedFiles = new LinkedBlockingQueue<>();
         this.throwables = new ConcurrentLinkedQueue<>();
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
-        this.pathPredicate = pathPredicate;
+        taskQueue = new LinkedBlockingQueue<>();
+        phaser = new Phaser() {
+            @Override
+            protected boolean onAdvance(int phase, int registeredParties) {
+                //terminate phaser only if it is advancing from last phase and there are no registered parties
+                return phase == Phases.WAITING_FOR_RESULTS.value && registeredParties == 0;
+            }
+        };
+        // arrives on final file sorted
+        mergePhaser = new Phaser(1);
+        this.memoryManager = memoryManager;
+        this.dumpThreshold = dumpThreshold;
+        createInitialTasks(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, blobStore, existingDataDumpDirs);
+    }
+
+    public MultithreadedTraverseWithSortStrategy(NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory,
+                                                 List<Long> lastModifiedBreakPoints, Set<String> preferredPaths,
+                                                 BlobStore blobStore, File storeDir, List<File> existingDataDumpDirs,
+                                                 Compression algorithm, MemoryManager memoryManager, long dumpThreshold,
+                                                 Predicate<String> pathPredicate, String checkpoint) throws IOException {
+        super(storeDir, algorithm, pathPredicate, preferredPaths, checkpoint);
+        this.mergeDir = new File(storeDir, mergeDirName);
+        this.sortedFiles = new LinkedBlockingQueue<>();
+        this.throwables = new ConcurrentLinkedQueue<>();
+        this.comparator = (e1, e2) -> new PathElementComparator(preferredPaths).compare(e1.getPathElements(), e2.getPathElements());
         taskQueue = new LinkedBlockingQueue<>();
         phaser = new Phaser() {
             @Override
@@ -323,9 +343,9 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
 
     void addTask(TraversingRange range, NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory, BlobStore blobStore,
                          ConcurrentLinkedQueue<String> completedTasks) throws IOException {
-        taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, storeDir,
-                algorithm, completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
-                memoryManager, dumpThreshold, sortedFiles, pathPredicate));
+        taskQueue.add(new TraverseAndSortTask(range, comparator, blobStore, this.getStoreDir(),
+                this.getAlgorithm(), completedTasks, taskQueue, phaser, nodeStateEntryTraverserFactory,
+                memoryManager, dumpThreshold, sortedFiles, this.getPathPredicate()));
     }
 
     @Override
@@ -335,10 +355,10 @@ public class MultithreadedTraverseWithSortStrategy implements SortStrategy {
         Thread watcher = new Thread(new TaskRunner(), watcherThreadName);
         watcher.setDaemon(true);
         watcher.start();
-        File sortedFile = new File(storeDir, getSortedStoreFileName(algorithm));
+        File sortedFile = new File(this.getStoreDir(), IndexStoreUtils.getSortedStoreFileName(this.getAlgorithm()));
         int threadPoolSize = Integer.getInteger(PROP_MERGE_THREAD_POOL_SIZE, DEFAULT_NUMBER_OF_MERGE_TASK_THREADS);
         int batchMergeSize = Integer.getInteger(PROP_MERGE_TASK_BATCH_SIZE, DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK);
-        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, algorithm);
+        Runnable mergeRunner = new MergeRunner(sortedFile, sortedFiles, mergeDir, comparator, mergePhaser, batchMergeSize, threadPoolSize, this.getAlgorithm());
         Thread merger = new Thread(mergeRunner, mergerThreadName);
         merger.setDaemon(true);
         merger.start();

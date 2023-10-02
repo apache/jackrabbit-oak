@@ -31,6 +31,7 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
@@ -103,7 +104,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     // TODO: Revise this timeout. It is used to prevent the indexer from blocking forever if the queue is full.
     private static final Duration MONGO_QUEUE_OFFER_TIMEOUT = Duration.ofMinutes(30);
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
-    private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural:1}");
+    private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
+    private final static BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
 
     private static final String THREAD_NAME = "mongo-dump";
 
@@ -203,22 +205,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // If regex filtering is enabled, start by downloading the ancestors of the path used for filtering.
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
-        Bson childrenFilter = null;
         String regexBasePath = getPathForRegexFiltering();
-        if (regexBasePath != null) {
+        Bson childrenFilter;
+        if (regexBasePath == null) {
+            childrenFilter = null;
+        } else {
             // Regex path filtering is enabled
             // Download the ancestors in a separate query. No retrials done on this query, as it will take only a few
             // seconds and is done at the start of the job, so if it fails, the job can be retried without losing much work
-            LOG.info("Using regex filtering with path {}", regexBasePath);
-            Bson ancestorsQuery = ancestorsFilter(regexBasePath);
-            LOG.info("Downloading ancestors of {}", regexBasePath);
-            // Let Mongo decide which index to use for this query, it will return very few documents
-            FindIterable<BasicDBObject> mongoIterable = dbCollection
-                    .withReadPreference(readPreference)
-                    .find(ancestorsQuery);
-            download(mongoIterable);
+            downloadAncestors(regexBasePath);
+
             // Filter to apply to the main query
-            childrenFilter = childrenFilter(regexBasePath);
+            childrenFilter = descendantsFilter(regexBasePath);
         }
 
         Instant failuresStartTimestamp = null; // When the last series of failures started
@@ -287,6 +285,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         download(mongoIterable);
     }
 
+    private void downloadAncestors(String basePath) throws InterruptedException, TimeoutException {
+        Bson ancestorQuery = ancestorsFilter(basePath);
+        LOG.info("Downloading using regex path filtering. Base path: {}, Ancestors query: {}.", basePath, ancestorQuery);
+        FindIterable<BasicDBObject> ancestorsIterable = dbCollection
+                .withReadPreference(readPreference)
+                .find(ancestorQuery)
+                // Use the index on _id: this query returns very few documents and the filter condition is on _id.
+                .hint(ID_INDEX_HINT);
+        download(ancestorsIterable);
+    }
+
     private void downloadWithNaturalOrdering() throws InterruptedException, TimeoutException {
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
@@ -300,16 +309,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             download(mongoIterable);
 
         } else {
-            Bson ancestorQuery = ancestorsFilter(regexBasePath);
-            // Do not use natural order to download ancestors. The number of ancestors will always be small, likely less
-            // than 10, so let MongoDB use an index to find them.
-            LOG.info("Downloading using regex path filtering. Downloading ancestors: {}.", ancestorQuery);
-            FindIterable<BasicDBObject> ancestorsIterable = dbCollection
-                    .withReadPreference(readPreference)
-                    .find(ancestorQuery);
-            download(ancestorsIterable);
+            downloadAncestors(regexBasePath);
 
-            Bson childrenQuery = childrenFilter(regexBasePath);
+            Bson childrenQuery = descendantsFilter(regexBasePath);
             LOG.info("Downloading using regex path filtering. Downloading children: {}.", childrenQuery);
             FindIterable<BasicDBObject> childrenIterable = dbCollection
                     .withReadPreference(readPreference)
@@ -350,7 +352,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static Bson childrenFilter(String path) {
+    private static Bson descendantsFilter(String path) {
         if (!path.endsWith("/")) {
             path = path + "/";
         }
@@ -366,16 +368,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private static Bson ancestorsFilter(String path) {
         ArrayList<Bson> parentFilters = new ArrayList<>();
-        int depth = PathUtils.getDepth(path);
-        // Explicitly list all ancestors in a or query.
+        String currentPath = path;
         while (true) {
-            parentFilters.add(Filters.eq(NodeDocument.ID, depth + ":" + path));
-            parentFilters.add(Filters.eq(NodeDocument.PATH, path));
-            if (depth == 0) {
+            String currentId = Utils.getIdFromPath(currentPath);
+            parentFilters.add(Filters.eq(NodeDocument.ID, currentId));
+            if (PathUtils.denotesRoot(currentPath)) {
                 break;
             }
-            path = PathUtils.getParentPath(path);
-            depth--;
+            currentPath = PathUtils.getParentPath(currentPath);
         }
         return Filters.or(parentFilters);
     }

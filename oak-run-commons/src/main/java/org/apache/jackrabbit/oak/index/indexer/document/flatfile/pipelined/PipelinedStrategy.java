@@ -25,15 +25,15 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SortStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStoreHelper;
+import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
+import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.slf4j.Logger;
@@ -114,7 +114,7 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBi
  *
  * <h2>Retrials on broken MongoDB connections</h2>
  */
-public class PipelinedStrategy implements SortStrategy {
+public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = "oak.indexer.pipelined.mongoDocQueueSize";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_SIZE = 100;
     public static final String OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_SIZE = "oak.indexer.pipelined.mongoDocBatchSize";
@@ -200,20 +200,19 @@ public class PipelinedStrategy implements SortStrategy {
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
-    private final File storeDir;
-
     private final PathElementComparator pathComparator;
-    private final Compression algorithm;
     private final List<PathFilter> pathFilters;
     private long entryCount;
-    private final Predicate<String> pathPredicate;
+
 
     /**
-     *
      * @param pathPredicate Used by the transform stage to test if a node should be kept or discarded.
-     * @param pathFilters If non-empty, the download stage will use these filters to try to create a query that downloads
-     *                    only the matching MongoDB documents.
+     * @param pathFilters   If non-empty, the download stage will use these filters to try to create a query that downloads
+     *                      only the matching MongoDB documents.
+     * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
      */
+
+    @Deprecated
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
@@ -223,16 +222,27 @@ public class PipelinedStrategy implements SortStrategy {
                              Compression algorithm,
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters) {
+        this(documentStore, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
+                algorithm, pathPredicate, pathFilters, null);
+    }
+
+    public PipelinedStrategy(MongoDocumentStore documentStore,
+                             DocumentNodeStore documentNodeStore,
+                             RevisionVector rootRevision,
+                             Set<String> preferredPathElements,
+                             BlobStore blobStore,
+                             File storeDir,
+                             Compression algorithm,
+                             Predicate<String> pathPredicate,
+                             List<PathFilter> pathFilters,
+                             String checkpoint) {
+        super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
         this.docStore = documentStore;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
         this.blobStore = blobStore;
-        this.storeDir = storeDir;
         this.pathComparator = new PathElementComparator(preferredPathElements);
-        this.pathPredicate = pathPredicate;
-        this.algorithm = algorithm;
         this.pathFilters = pathFilters;
-
         Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
     }
 
@@ -343,7 +353,7 @@ public class PipelinedStrategy implements SortStrategy {
                         documentNodeStore,
                         Collection.NODES,
                         rootRevision,
-                        pathPredicate,
+                        this.getPathPredicate(),
                         entryWriter,
                         mongoDocQueue,
                         emptyBatchesQueue,
@@ -354,11 +364,12 @@ public class PipelinedStrategy implements SortStrategy {
             }
 
             PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                    storeDir, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+                    this.getStoreDir(), pathComparator, this.getAlgorithm(), emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
             );
             ecs.submit(sortTask);
 
-            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(storeDir, pathComparator, algorithm, sortedFilesQueue);
+            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(this.getStoreDir(), pathComparator,
+                    this.getAlgorithm(), sortedFilesQueue);
             ecs.submit(mergeSortTask);
 
 

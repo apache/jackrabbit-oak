@@ -120,7 +120,7 @@ public abstract class ReadOnlyVersionManager {
         // it is in fact read-only because of a checked-in (but non-accessible) ancestor.
         // if this turns out to be an issue see NodeImpl#getReadOnlyTree for an potential fix
         PropertyState p = tree.getProperty(VersionConstants.JCR_ISCHECKEDOUT);
-        if (p != null) {
+        if (p != null && isVersionable(tree)) {
             return p.getValue(Type.BOOLEAN);
         }
         if (tree.isRoot()) {
