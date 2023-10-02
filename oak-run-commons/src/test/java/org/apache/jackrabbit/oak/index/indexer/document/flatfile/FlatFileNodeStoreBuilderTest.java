@@ -125,6 +125,7 @@ public class FlatFileNodeStoreBuilderTest {
     @Test
     public void testBuildGZIP() throws CompositeException, IOException {
         System.setProperty(OAK_INDEXER_USE_ZIP, "true");
+        System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         File newFlatFile = getFile("simple-split.json", Compression.GZIP);
         System.setProperty(OAK_INDEXER_SORTED_FILE_PATH, newFlatFile.getParentFile().getAbsolutePath());
         
@@ -167,6 +168,7 @@ public class FlatFileNodeStoreBuilderTest {
     @Test
     public void testBuildListSplitGZIP() throws CompositeException, IOException {
         System.setProperty(OAK_INDEXER_USE_ZIP, "true");
+        System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD, "0");
         
         File newFlatFile = getFile("complex-split.json", Compression.GZIP);
