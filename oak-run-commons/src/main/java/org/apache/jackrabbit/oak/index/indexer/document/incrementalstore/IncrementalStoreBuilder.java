@@ -54,7 +54,7 @@ public class IncrementalStoreBuilder {
     private BlobStore blobStore;
 
     private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "true"));
-    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4, "false"));
+    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4, FlatFileNodeStoreBuilder.DEFAULT_OAK_INDEXER_USE_LZ4 ));
     private final Compression algorithm = compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) :
             Compression.NONE;
 

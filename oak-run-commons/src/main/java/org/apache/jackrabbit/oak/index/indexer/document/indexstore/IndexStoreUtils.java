@@ -76,13 +76,6 @@ public class IndexStoreUtils {
         return sortedFiles.stream().mapToLong(File::length).sum();
     }
 
-    /**
-     * This function by default uses GNU zip as compression algorithm for backward compatibility.
-     */
-    public static String getSortedStoreFileName(boolean compressionEnabled) {
-        return getSortedStoreFileName(compressionEnabled ? Compression.GZIP : Compression.NONE);
-    }
-
     public static String getSortedStoreFileName(Compression algorithm) {
         return algorithm.addSuffix("store-sorted.json");
     }

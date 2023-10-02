@@ -65,6 +65,7 @@ public class FlatFileNodeStoreBuilder {
 
     public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
     public static final String OAK_INDEXER_USE_LZ4 = "oak.indexer.useLZ4";
+    public static final String DEFAULT_OAK_INDEXER_USE_LZ4 = "true";
     /**
      * System property name for sort strategy. If this is true, we use {@link MultithreadedTraverseWithSortStrategy}, else
      * {@link StoreAndSortStrategy} strategy is used.
@@ -130,7 +131,7 @@ public class FlatFileNodeStoreBuilder {
     private Predicate<String> pathPredicate = path -> true;
 
     private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
+    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, DEFAULT_OAK_INDEXER_USE_LZ4));
     private final Compression algorithm = compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) :
             Compression.NONE;
     private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
