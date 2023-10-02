@@ -36,8 +36,11 @@ import java.util.List;
 
 /**
  * This class provides common utility functions for building FlatFileStore.
+ *
+ * @deprecated Use {@link org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils} instead
  */
 public class FlatFileStoreUtils {
+    public static final String METADATA_SUFFIX = ".metadata";
 
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.
@@ -86,4 +89,5 @@ public class FlatFileStoreUtils {
     public static String getSortedStoreFileName(Compression algorithm) {
         return algorithm.addSuffix("store-sorted.json");
     }
+
 }

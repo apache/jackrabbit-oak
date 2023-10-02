@@ -251,7 +251,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             if (blobOptions.getUpload() == SYNCHRONOUS
                 || !cache.stage(identifier.toString(), tmpFile)) {
                 backend.write(identifier, tmpFile);
-                LOG.info("Added blob [{}] to backend", identifier);
+                LOG.debug("Added blob [{}] to backend", identifier);
                 // offer to download cache
                 cache.getDownloadCache().put(identifier.toString(), tmpFile);
 

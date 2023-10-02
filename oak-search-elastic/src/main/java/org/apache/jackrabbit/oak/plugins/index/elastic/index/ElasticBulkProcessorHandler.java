@@ -156,7 +156,7 @@ class ElasticBulkProcessorHandler {
     }
 
     private void checkFailures() throws IOException {
-        if (suppressedExceptions.size() > 0) {
+        if (!suppressedExceptions.isEmpty()) {
             IOException ioe = new IOException("Exception while indexing. See suppressed for details");
             suppressedExceptions.forEach(ioe::addSuppressed);
             throw ioe;
@@ -263,8 +263,9 @@ class ElasticBulkProcessorHandler {
                             isFailedDocSetFull = true;
                         }
                         // Log entry to be used to parse logs to get the failed doc id/path if needed
-                        LOG.error("ElasticIndex Update Doc Failure: Error while adding/updating doc with id : [{}]", bulkItemResponse.getId());
-                        LOG.error("Failure Details: BulkItem ID: " + failure.getId() + ", Failure Cause: {}", failure.getCause());
+                        LOG.error("ElasticIndex Update Doc Failure: Error while adding/updating doc with id: [{}]", bulkItemResponse.getId());
+                        LOG.error("Failure Details: BulkItem ID: {}, Index: {}, Failure Cause: {}",
+                                failure.getId(), failure.getIndex(), failure.getCause());
                     } else if (!hasSuccesses) {
                         // Set indexUpdated to true even if 1 item was updated successfully
                         updatesMap.put(executionId, Boolean.TRUE);

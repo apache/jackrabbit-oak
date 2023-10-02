@@ -48,6 +48,15 @@ public class IndexName implements Comparable<IndexName> {
 
     private final static Logger LOG = LoggerFactory.getLogger(IndexName.class);
 
+    /**
+     * The maximum number of recursion levels when checking whether an index is
+     * active or not. We stop at a certain point, because there is a risk that the
+     * configuration contains a loop. If we use a very high value (e.g. 1000), then
+     * Java will throw a StackOverflowError. So using a maximum depth of 50 seems
+     * save.
+     */
+    private static final int MAX_ACTIVE_CHECK_RECURSION_DEPTH = 50;
+
     // already logged index names
     private static final HashSet<String> LOGGED_WARN = new HashSet<>();
     // when LOGGED_WARN will be cleared
@@ -231,26 +240,39 @@ public class IndexName implements Comparable<IndexName> {
     }
 
     public static boolean isIndexActive(String indexPath, NodeState rootState) {
-        // An index is active if it has a hidden child node that starts with ":oak:mount-",
-        // OR if it is an active merged index
-        try {
-            NodeState indexNode = rootState;
-            for (String e : PathUtils.elements(indexPath)) {
-                indexNode = indexNode.getChildNode(e);
-            }
-            for (String c : indexNode.getChildNodeNames()) {
-                if (c.startsWith(":oak:mount-")) {
-                    return true;
-                }
-            }
-            return isIndexActiveMerged(indexNode, rootState);
-        } catch (StackOverflowError e) {
-            LOG.error("Fail to check index activeness for {} due to StackOverflowError", indexPath, e);
-            return true;
-        }
+        return isIndexActive(indexPath, rootState, 0);
     }
 
-    private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState) {
+    private static boolean isIndexActive(String indexPath, NodeState rootState, int recursionDepth) {
+        // An index is active if it has a hidden child node that starts with ":oak:mount-",
+        // OR if it is an active merged index
+        if (recursionDepth > MAX_ACTIVE_CHECK_RECURSION_DEPTH) {
+            LOG.warn("Fail to check index activeness for {} due to high recursion depth: {}", indexPath,
+                    recursionDepth);
+            return true;
+        }
+        NodeState indexNode = rootState;
+        for (String e : PathUtils.elements(indexPath)) {
+            indexNode = indexNode.getChildNode(e);
+        }
+        for (String c : indexNode.getChildNodeNames()) {
+            if (c.startsWith(":oak:mount-")) {
+                return true;
+            }
+        }
+        if (recursionDepth >= 2) {
+            // special case OAK-10399: the _previous_ base index
+            // is always considered active
+            // level 1 (the first lookup) we still need to check.
+            IndexName n = IndexName.parse(PathUtils.getName(indexPath));
+            if (n.getCustomerVersion() == 0) {
+                return true;
+            }
+        }
+        return isIndexActiveMerged(indexNode, rootState, recursionDepth);
+    }
+
+    private static boolean isIndexActiveMerged(NodeState indexNode, NodeState rootState, int recursionDepth) {
         // An index is an active merged index if it has the property "merges",
         // and that property points to index definitions,
         // and each of those indexes is either active, disabled, or removed.
@@ -274,7 +296,7 @@ public class IndexName implements Comparable<IndexName> {
             if (IndexConstants.TYPE_DISABLED.equals(indexType)) {
                 continue;
             }
-            if (isIndexActive(merges, rootState)) {
+            if (isIndexActive(merges, rootState, recursionDepth + 1)) {
                 continue;
             }
             return false;

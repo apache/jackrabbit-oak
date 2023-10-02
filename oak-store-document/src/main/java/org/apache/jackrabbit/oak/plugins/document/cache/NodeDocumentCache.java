@@ -340,9 +340,11 @@ public class NodeDocumentCache implements Closeable {
 
     @Override
     public void close() throws IOException {
+        prevDocumentsCache.invalidateAll();
         if (prevDocumentsCache instanceof Closeable) {
             ((Closeable) prevDocumentsCache).close();
         }
+        nodeDocumentsCache.invalidateAll();
         if (nodeDocumentsCache instanceof Closeable) {
             ((Closeable) nodeDocumentsCache).close();
         }
