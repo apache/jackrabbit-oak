@@ -74,6 +74,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -219,12 +220,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     public IndexStore buildStore(String initialCheckpoint, String finalCheckpoint) throws IOException, CommitFailedException {
         IncrementalStoreBuilder builder;
         IndexStore incrementalStore;
-        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
-        Set<String> preferredPathElements = indexDefinitions.stream()
-                .flatMap(indexDef -> indexDef.getRelativeNodeNames().stream())
-                .collect(Collectors.toUnmodifiableSet());
+        Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
+        Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
         Stopwatch incrementalStoreWatch = Stopwatch.createStarted();
-        Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
+        Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
         try {
             builder = new IncrementalStoreBuilder(indexHelper.getWorkDir(), indexHelper, initialCheckpoint, finalCheckpoint)
                     .withPreferredPathElements(preferredPathElements)
@@ -248,13 +247,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     @Deprecated
     public FlatFileStore buildFlatFileStore() throws IOException, CommitFailedException {
         NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-        Set<String> preferredPathElements = new HashSet<>();
-        Set<IndexDefinition> indexDefinitions = getIndexDefinitions();
-        for (IndexDefinition indexDf : indexDefinitions) {
-            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
-        }
+        Set<IndexDefinition> indexDefinitions = indexerSupport.getIndexDefinitions();
 
-        Predicate<String> predicate = s -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(s) != PathFilter.Result.EXCLUDE);
+        Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
+
+        Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
         FlatFileStore flatFileStore = buildFlatFileStoreList(checkpointedState, null, predicate,
                 preferredPathElements, IndexerConfiguration.parallelIndexEnabled(), indexDefinitions).get(0);
         log.info("FlatFileStore built at {}. To use this flatFileStore in a reindex step, set System Property-{} with value {}",
@@ -279,7 +276,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         closer.register(indexer);
 
         List<FlatFileStore> flatFileStores = buildFlatFileStoreList(checkpointedState, indexer,
-                indexer::shouldInclude, null, IndexerConfiguration.parallelIndexEnabled(), getIndexDefinitions());
+                indexer::shouldInclude, null, IndexerConfiguration.parallelIndexEnabled(), indexerSupport.getIndexDefinitions());
 
         progressReporter.reset();
 
@@ -348,24 +345,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         } finally {
             new ExecutorCloser(service).close();
         }
-    }
-
-    private Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
-        NodeState checkpointedState = indexerSupport.retrieveNodeStateForCheckpoint();
-        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
-        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
-        NodeState root = builder.getNodeState();
-        indexerSupport.updateIndexDefinitions(builder);
-        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
-
-        Set<IndexDefinition> indexDefinitions = new HashSet<>();
-
-        for (String indexPath : indexHelper.getIndexPaths()) {
-            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
-            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
-            indexDefinitions.add(indexDf);
-        }
-        return indexDefinitions;
     }
 
     private MongoDocumentStore getMongoDocumentStore() {
