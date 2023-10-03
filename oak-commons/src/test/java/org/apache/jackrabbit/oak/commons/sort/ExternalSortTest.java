@@ -99,7 +99,9 @@ public class ExternalSortTest {
     private static final String TEST_FILE2_CSV = "test-file-2.csv";
 
     private static final String[] EXPECTED_SORT_RESULTS = {"a", "b", "b", "e",
-            "f", "i", "m", "o", "u", "u", "x", "y", "z"};
+            "f", "i", "m", "o", "u", "u", "x", "y", "z", "za", "zb", "zc"};
+    private static final String[] EXPECTED_SORT_RESULTS_WITH_FILTER_PREDICATE = {"a", "b", "b", "e",
+            "f", "i", "m", "o", "u", "u", "x", "y"};
     private static final String[] EXPECTED_MERGE_RESULTS = {"a", "a", "b",
             "c", "c", "d", "e", "e", "f", "g", "g", "h", "i", "j", "k"};
     private static final String[] EXPECTED_MERGE_DISTINCT_RESULTS = {"a", "b",
@@ -107,9 +109,12 @@ public class ExternalSortTest {
     private static final String[] EXPECTED_HEADER_RESULTS = {"HEADER, HEADER",
             "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k"};
     private static final String[] EXPECTED_DISTINCT_RESULTS = {"a", "b", "e",
-            "f", "i", "m", "o", "u", "x", "y", "z"};
+            "f", "i", "m", "o", "u", "x", "y", "z", "za", "zb", "zc"};
+
+    private static final String[] EXPECTED_DISTINCT_RESULTS_WITH_FILTER_PREDICATE = {"a", "b", "e",
+            "f", "i", "m", "o", "u", "x", "y"};
     private static final String[] SAMPLE = {"f", "m", "b", "e", "i", "o", "u",
-            "x", "a", "y", "z", "b", "u"};
+            "x", "a", "y", "z", "b", "u", "za", "zb", "zc"};
     private static final String[] EXPECTED_CSV_DISTINCT_RESULTS = {"a,1", "b,2a", "e,3", "f,4", "five,5", "four,4",
             "i,5", "m,6", "o,7", "one,1", "three,3", "two,2", "u,8a", "x,9", "y,10", "z,11"};
     private static final String[] EXPECTED_CSV_DISTINCT_RESULTS_WITH_FILTER = {"a,1", "b,2a", "e,3", "f,4", "five,5",
@@ -273,62 +278,52 @@ public class ExternalSortTest {
 
     @Test
     public void testSortAndSave() throws Exception {
-        File f;
-        String line;
-        List<String> result;
-        BufferedReader bf;
+        Predicate<String> filterPredicate = n -> !n.startsWith("z");
 
-        List<String> sample = Arrays.asList(SAMPLE);
-        Comparator<String> cmp = new Comparator<String>() {
-            @Override
-            public int compare(String o1, String o2) {
-                return o1.compareTo(o2);
-            }
-        };
-        f = ExternalSort.sortAndSave(sample, cmp, Charset.defaultCharset(),
-                null, false, false);
-        assertNotNull(f);
-        assertTrue(f.exists());
-        assertTrue(f.length() > 0);
-        bf = new BufferedReader(new FileReader(f));
-
-        result = new ArrayList<String>();
-        while ((line = bf.readLine()) != null) {
-            result.add(line);
-        }
-        bf.close();
-        assertArrayEquals(Arrays.toString(result.toArray()),
-                EXPECTED_SORT_RESULTS, result.toArray());
-    }
-
-    @Test
-    public void testSortAndSaveDistinct() throws Exception {
-        File f;
-        String line;
-        List<String> result;
-        BufferedReader bf;
-        List<String> sample = Arrays.asList(SAMPLE);
-        Comparator<String> cmp = new Comparator<String>() {
-            @Override
-            public int compare(String o1, String o2) {
-                return o1.compareTo(o2);
-            }
-        };
-
-        f = ExternalSort.sortAndSave(sample, cmp, Charset.defaultCharset(),
-                null, true, false);
-        assertNotNull(f);
-        assertTrue(f.exists());
-        assertTrue(f.length() > 0);
-        bf = new BufferedReader(new FileReader(f));
-
-        result = new ArrayList<String>();
-        while ((line = bf.readLine()) != null) {
-            result.add(line);
-        }
-        bf.close();
+        List<String> result = testSortAndSaveWithParameters(true, null);
         assertArrayEquals(Arrays.toString(result.toArray()),
                 EXPECTED_DISTINCT_RESULTS, result.toArray());
+
+        result = testSortAndSaveWithParameters(true,  filterPredicate);
+        assertArrayEquals(Arrays.toString(result.toArray()),
+                EXPECTED_DISTINCT_RESULTS_WITH_FILTER_PREDICATE, result.toArray());
+
+        result = testSortAndSaveWithParameters(false, null);
+        assertArrayEquals(Arrays.toString(result.toArray()),
+                EXPECTED_SORT_RESULTS, result.toArray());
+
+        result = testSortAndSaveWithParameters(false, filterPredicate);
+        assertArrayEquals(Arrays.toString(result.toArray()),
+                EXPECTED_SORT_RESULTS_WITH_FILTER_PREDICATE, result.toArray());
+
+    }
+
+    public List<String> testSortAndSaveWithParameters(boolean distinct, Predicate <String> filterPredicate) throws Exception {
+        File f;
+        String line;
+        List<String> result;
+        BufferedReader bf;
+        List<String> sample = Arrays.asList(SAMPLE);
+        Comparator<String> cmp = new Comparator<String>() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        };
+
+        f = ExternalSort.sortAndSave(sample, cmp, Charset.defaultCharset(),
+                null, distinct, false, filterPredicate);
+        assertNotNull(f);
+        assertTrue(f.exists());
+        assertTrue(f.length() > 0);
+        bf = new BufferedReader(new FileReader(f));
+
+        result = new ArrayList<String>();
+        while ((line = bf.readLine()) != null) {
+            result.add(line);
+        }
+        bf.close();
+        return result;
     }
 
     @Test

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.commons.sort;
 // filename: ExternalSort.java
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -39,6 +40,7 @@ import java.util.List;
 import java.util.PriorityQueue;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static java.util.function.Function.identity;
 
@@ -416,7 +418,13 @@ public class ExternalSort {
                             counter++;
                             continue;
                         }
-                        tmplist.add(stringToType.apply(line));
+                        // filter entries only where predicate is true
+                        T t = stringToType.apply(line);
+                        if (filterPredicate.test(t)) {
+                            tmplist.add(t);
+                        } else {
+                            continue;
+                        }
                         // ram usage estimation, not
                         // very accurate, still more
                         // realistic that the simple 2 *
@@ -424,14 +432,26 @@ public class ExternalSort {
                         currentblocksize += StringSizeEstimator
                                 .estimatedSizeOf(line);
                     }
+                    /*
+                       We are setting filterPredicate as null as we already filtered the results based
+                       on filterPredicate and there is no need to again filter in sortAndSave method.
+                        Another reason to do it here is to avoid creating empty files in sortAndSave
+                        method as filtering remove all entries in tmplist.
+                     */
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, algorithm, typeToString, filterPredicate));
+                            tmpdirectory, distinct, algorithm, typeToString, null));
                     tmplist.clear();
                 }
             } catch (EOFException oef) {
                 if (tmplist.size() > 0) {
+                    /*
+                       We are setting filterPredicate as null as we already filtered the results based
+                       on filterPredicate and there is no need to again filter in sortAndSave method.
+                        Another reason to do it here is to avoid creating empty files in sortAndSave
+                        method as filtering remove all entries in tmplist.
+                     */
                     files.add(sortAndSave(tmplist, cmp, cs,
-                            tmpdirectory, distinct, algorithm, typeToString, filterPredicate));
+                            tmpdirectory, distinct, algorithm, typeToString, null));
                     tmplist.clear();
                 }
             }
@@ -589,9 +609,13 @@ public class ExternalSort {
                                        Comparator<T> cmp, Charset cs, File tmpdirectory,
                                        boolean distinct, Compression algorithm,
                                        Function<T, String> typeToString,
-                                       Predicate<T> filterPredicate
+                                       @Nullable Predicate<T> filterPredicate
     ) throws IOException {
-        Collections.sort(tmplist, cmp);
+        if ( filterPredicate == null){
+            Collections.sort(tmplist, cmp);
+        } else {
+            tmplist =  tmplist.stream().filter(t -> filterPredicate.test(t)).sorted(cmp).collect(Collectors.toList());
+        }
         File newtmpfile = File.createTempFile("sortInBatch",
                 "flatfile", tmpdirectory);
         newtmpfile.deleteOnExit();
@@ -601,7 +625,7 @@ public class ExternalSort {
         try {
             for (T r : tmplist) {
                 // Write if  filterPredicate return true and line is not duplicate
-                if (filterPredicate.test(r) && (!distinct || lastLine == null || cmp.compare(r, lastLine) != 0)) {
+                if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     fbw.write(typeToString.apply(r));
                     fbw.newLine();
                     lastLine = r;
