@@ -193,7 +193,6 @@ public class IncrementalStoreIT {
 
         createIncrementalContent(rwStore.right);
         String finalCheckpoint = rwStore.right.checkpoint(3600000);
-        Predicate<String> pathPredicate1 = s -> true;
 
         Path finalFfsPath = createFFS(roStore, pathPredicate, finalCheckpoint, "final", getNodeStateAtCheckpoint2());
 
@@ -207,7 +206,7 @@ public class IncrementalStoreIT {
 
         File finalFFSForIndexing = createFFSFromBaseFFSUsingPreferredPathElementsAndFilterPredicate(mergedFile);
         assertEquals(List.of(getNodeStatesWithPrefferedPathsAndPathPredicatesOverBaseFFSAfterMerging()),
-                Files.readAllLines(finalFFSForIndexing.toPath()));
+                IndexStoreUtils.createReader(finalFFSForIndexing, algorithm).lines().collect(Collectors.toList()));
     }
 
     private File createFFSFromBaseFFSUsingPreferredPathElementsAndFilterPredicate(File mergedFile) throws IOException {

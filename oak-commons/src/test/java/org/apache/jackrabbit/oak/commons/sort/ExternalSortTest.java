@@ -437,7 +437,7 @@ public class ExternalSortTest {
         }
 
         // write to the file
-        writeStringToFile(outputFileForTest, head + "\n");
+        writeStringToFile(outputFileForTest, head + "\n", algorithm);
 
         // omit the first line, which is the header
         List<File> listOfFiles = ExternalSort.sortInBatch(inputFileForTest, cmp,
@@ -450,7 +450,7 @@ public class ExternalSortTest {
         ExternalSort.mergeSortedFiles(listOfFiles, outputFileForTest, cmp,
                 Charset.defaultCharset(), false, true, algorithm);
 
-        ArrayList<String> result = readLines(outputFileForTest);
+        ArrayList<String> result = readLines(outputFileForTest, algorithm);
 
         assertEquals(12, result.size());
         assertArrayEquals(Arrays.toString(result.toArray()),
@@ -572,9 +572,25 @@ public class ExternalSortTest {
         return answer;
     }
 
+    public static ArrayList<String> readLines(File f, Compression algorithm) throws IOException {
+        ArrayList<String> answer = new ArrayList<String>();
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(
+                algorithm.getInputStream(new FileInputStream(f)), Charset.defaultCharset()))) {
+            String line;
+            while ((line = r.readLine()) != null) {
+                answer.add(line);
+            }
+        }
+        return answer;
+    }
+
     public static void writeStringToFile(File f, String s) throws IOException {
-        try (FileOutputStream out = new FileOutputStream(f)) {
-            out.write(s.getBytes());
+        writeStringToFile(f, s, Compression.NONE);
+    }
+
+    public static void writeStringToFile(File f, String s, Compression algorithm) throws IOException {
+        try (BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(algorithm.getOutputStream(new FileOutputStream(f)), Charset.defaultCharset()))) {
+            fbw.write(s);
         }
     }
 

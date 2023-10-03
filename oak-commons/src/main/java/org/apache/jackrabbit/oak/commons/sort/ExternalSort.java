@@ -519,7 +519,7 @@ public class ExternalSort {
      * @param filterPredicate
      *            predicate to filter out data which need to be sorted
      */
-    public static <T> File sortAndSave(List<String> tmplist,
+    public static File sortAndSave(List<String> tmplist,
                                        Comparator<String> cmp, Charset cs, File tmpdirectory,
                                        boolean distinct, boolean usegzip, Predicate<String> filterPredicate) throws IOException {
         return sortAndSave(tmplist, cmp, cs, tmpdirectory, distinct, usegzip, identity(), filterPredicate);
@@ -682,12 +682,12 @@ public class ExternalSort {
      * @return The number of lines sorted. (P. Beaudoin)
      * @since v0.1.4
      */
-    public static <T> int mergeSortedFiles(List<File> files, File outputfile,
+    public static int mergeSortedFiles(List<File> files, File outputfile,
                                            final Comparator<String> cmp, Charset cs, boolean distinct,
                                            boolean append, boolean usegzip) throws IOException {
         return mergeSortedFiles(files, outputfile, cmp, cs, distinct, append, usegzip, Function.identity(), Function.identity());
     }
-    public static <T> int mergeSortedFiles(List<File> files, File outputfile,
+    public static int mergeSortedFiles(List<File> files, File outputfile,
                                            final Comparator<String> cmp, Charset cs, boolean distinct,
                                            boolean append, Compression algorithm) throws IOException {
         return mergeSortedFiles(files, outputfile, cmp, cs, distinct, append, algorithm, Function.identity(), Function.identity());
@@ -730,7 +730,7 @@ public class ExternalSort {
                                            boolean append, Compression algorithm, Function<T, String> typeToString,
                                            Function<String, T> stringToType) throws IOException {
         boolean success = false;
-        try (BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputfile, append), cs))){
+        try (BufferedWriter fbw = new BufferedWriter(new OutputStreamWriter(algorithm.getOutputStream(new FileOutputStream(outputfile, append)), cs))) {
             int result = mergeSortedFiles(files, fbw, cmp, cs, distinct, algorithm, typeToString, stringToType);
             success = true;
             return result;
