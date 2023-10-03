@@ -267,9 +267,3 @@ Note: privileges for repository operations need to be granted|denied on the _nul
 |----------------------------------------------|--------------------------------|
 | `Workspace.createWorkspace`                  | `jcr:workspaceManagement`      |
 | `Workspace.deleteWorkspace`                  | `jcr:workspaceManagement`      |
-
-##### Query Execution
-
-| API Call                                                             | Privilege(s)               |
-|----------------------------------------------------------------------|----------------------------|
-| `Query.execute` for statements specifying `OPTION(... INSECURE ...)` | `rep:insecureQueryOptions` |

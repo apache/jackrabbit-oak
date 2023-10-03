@@ -26,9 +26,13 @@ import javax.jcr.query.InvalidQueryException;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryManager;
 
+import org.apache.jackrabbit.api.JackrabbitWorkspace;
+import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.core.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
+
+import java.util.Arrays;
 
 public class ResultSizeTest extends AbstractQueryTest {
 
@@ -161,6 +165,14 @@ public class ResultSizeTest extends AbstractQueryTest {
     }
 
     private void doTestResultSizeOption(boolean aggregateAtQueryTime) throws RepositoryException {
+        JackrabbitWorkspace workspace = (JackrabbitWorkspace) superuser.getWorkspace();
+        PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
+        if (Arrays.stream(privilegeManager.getRegisteredPrivileges())
+                .noneMatch(priv -> "test:insecureQueryOptions".equals(priv.getName()))) {
+            // "test:insecureQueryOptions" is pre-configured in the QueryEngineSettings in BaseRepositoryStub, but is not yet registered.
+            privilegeManager.registerPrivilege("test:insecureQueryOptions", false, null);
+        }
+
         createData();
         int expectedForUnion = 400;
         int expectedForTwoConditions = aggregateAtQueryTime ? 400 : 200;

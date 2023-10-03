@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider
 import org.apache.jackrabbit.oak.plugins.index.solr.server.EmbeddedSolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.util.SolrIndexInitializer;
+import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.solr.client.solrj.SolrClient;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -103,8 +104,12 @@ public class SolrOakRepositoryStub extends OakSegmentTarRepositoryStub {
             }
         };
         OakSolrConfigurationProvider oakSolrConfigurationProvider = new DefaultSolrConfigurationProvider(configuration);
+        QueryEngineSettings queryLimits = new QueryEngineSettings();
+        // pre-set an insecure query options privilege name for testing
+        queryLimits.setInsecureQueryOptionsPrivilegeName("test:insecureQueryOptions");
         jcr.with(new SolrIndexInitializer(false))
                 .with(AggregateIndexProvider.wrap(new SolrQueryIndexProvider(solrServerProvider, oakSolrConfigurationProvider)))
+                .with(queryLimits)
                 .with(new NodeStateSolrServersObserver())
                 .with(new SolrIndexEditorProvider(solrServerProvider, oakSolrConfigurationProvider));
     }

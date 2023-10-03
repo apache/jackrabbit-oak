@@ -273,7 +273,7 @@ Limitations:
 
 `@since Oak 1.60.0 (OAK-10424)`
 
-NOTE: The principal executing the query must have been granted the repository privilege `rep:insecureQueryOptions` (see [Privilege Management / Query Execution](../security/privilege/mappingtoprivileges.md#query-execution)).
+NOTE: The QueryEngineSettings must be configured with an `insecureQueryOptionsPrivilegeName` and the principal executing the query must have been granted a repository privilege registered with that name.
 
 Enabling this option activates the same compatibility behavior for NodeIterator.getSize() as described in [Result Size](#result-size), but only for the query being executed.
 
@@ -281,7 +281,7 @@ Enabling this option activates the same compatibility behavior for NodeIterator.
 
 `@since Oak 1.60.0 (OAK-10424)`
 
-NOTE: The principal executing the query must have been granted the repository privilege `rep:insecureQueryOptions` (see [Privilege Management / Query Execution](../security/privilege/mappingtoprivileges.md#query-execution)).
+NOTE: The QueryEngineSettings must be configured with an `insecureQueryOptionsPrivilegeName` and the principal executing the query must have been granted a repository privilege registered with that name.
 
 Enabling this option overrides the value of the selected index definition's `facets/@secure` property to use a value of `insecure` instead, as described in [Lucene Index / Facets](./lucene.md#facets), but only for the query being executed.
 

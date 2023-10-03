@@ -188,4 +188,21 @@ public interface QueryEngineSettingsMBean {
     // @Description("Get the Java package / fully qualified class names to ignore when finding the caller of query")
     @NotNull
     String[] getIgnoredClassNamesInCallTrace();
+
+    /**
+     * Set the name of a JCR privilege that grants a repository permission to use insecure query options.
+     *
+     * @param privilegeName the insecure query options privilege name
+     * @since 1.60
+     */
+    @Description("Set the name of a JCR privilege that grants a repository permission to use insecure query options.")
+    void setInsecureQueryOptionsPrivilegeName(@NotNull String privilegeName);
+
+    /**
+     * Get the configured name of a JCR privilege that grants a repository permission to use insecure query options.
+     *
+     * @return the insecure query options privilege name
+     * @since 1.60
+     */
+    String getInsecureQueryOptionsPrivilegeName();
 }

@@ -51,6 +51,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
                 new NodeCounterEditorProvider()
         )));
         queryEngineSettings = new QueryEngineSettings();
+        queryEngineSettings.setInsecureQueryOptionsPrivilegeName(TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE);
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }
 

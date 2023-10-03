@@ -95,6 +95,7 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryLimits;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -1425,15 +1426,18 @@ public class QueryImpl implements Query {
     }
 
     /**
-     * Check whether the execution context has been granted the rep:insecureQueryOptions repository permission.
+     * Check whether the execution context has been granted the privilege represented by
+     * {@link org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean#getInsecureQueryOptionsPrivilegeName()} as a
+     * repository permission.
      *
-     * @return true if the context has the rep:insecureQueryOptions repository permission
+     * @return true if the context has the insecure query options privilege granted as a repository permission
      */
     boolean isAllowedInsecureOptions() {
-        return Optional.ofNullable(context)
-                .map(ExecutionContext::getPermissionProvider)
-                .map(PermissionProvider::getRepositoryPermission)
-                .map(repoPerms -> repoPerms.isGranted(Permissions.INSECURE_QUERY_OPTIONS))
+        return Optional.ofNullable(context.getSettings().getInsecureQueryOptionsPrivilegeName())
+                .filter(name -> !name.isEmpty())
+                .flatMap(privilegeName -> Optional.ofNullable(context)
+                        .map(ExecutionContext::getPermissionProvider)
+                        .map(provider -> provider.hasPrivileges(null, privilegeName)))
                 .orElse(false);
     }
 

@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFINITIONS_NAME;
 
 public abstract class TestRepositoryBuilder {
-
+    public static final String TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE = "test:insecureQueryOptions";
     protected int defaultAsyncIndexingTimeInSeconds = 5;
     protected long indexCorruptIntervalInMillis = 100;
     protected boolean isAsync;
