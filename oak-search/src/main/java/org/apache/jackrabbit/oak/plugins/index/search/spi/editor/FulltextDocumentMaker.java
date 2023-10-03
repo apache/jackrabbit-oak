@@ -21,8 +21,12 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
 import javax.jcr.PropertyType;
@@ -60,6 +64,15 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     public static final String WARN_LOG_STRING_SIZE_THRESHOLD_KEY = "oak.repository.property.index.logWarnStringSizeThreshold";
     private static final int DEFAULT_WARN_LOG_STRING_SIZE_THRESHOLD_VALUE = 102400;
 
+    private static final String THROTTLE_WARN_LOGS_KEY = "oak.repository.property.throttle.warn.logs";
+    private static final String THROTTLE_WARN_LOGS_THRESHOLD_KEY = "oak.repository.throttle.warn.logs.threshold";
+    private static final int DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE = 1000;
+
+    // Counter for multi valued ordered property warnings.
+    // Each path with a multi valued ordered property adds to the counter for every valid index that indexes this property.
+    private static final AtomicInteger WARN_LOG_COUNTER_MV_ORDERED_PROPERTY = new AtomicInteger();
+    private static final Set<String> MV_ORDERED_PROPERTY_SET = ConcurrentHashMap.newKeySet();
+
     private static final String DYNAMIC_BOOST_TAG_NAME = "name";
     private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
 
@@ -68,6 +81,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     protected final IndexDefinition.IndexingRule indexingRule;
     protected final String path;
     private final int logWarnStringSizeThreshold;
+    protected static final int throttleWarnLogThreshold = Integer.getInteger(THROTTLE_WARN_LOGS_THRESHOLD_KEY,
+            DEFAULT_THROTTLE_WARN_LOGS_THRESHOLD_VALUE);
+    protected static final boolean throttleWarnLogs = Boolean.getBoolean(THROTTLE_WARN_LOGS_KEY);
 
     public FulltextDocumentMaker(@Nullable FulltextBinaryTextExtractor textExtractor,
                                  @NotNull IndexDefinition definition,
@@ -362,10 +378,19 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                           PropertyDefinition pd) {
         // Ignore and warn if property multi-valued as not supported
         if (property.getType().isArray()) {
-            log.warn(
-                    "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
-                    getIndexName(), pname,
-                    Type.fromTag(property.getType().tag(), true), path);
+            // Log all the warnings if throttleWarnings is not enabled.
+            // Log the warning for the first occurrence of every unique property
+            // Log the warning for every (default to 1000 but configurable) 1000 occurrence thereafter
+            // We could miss certain paths being logged here since the DocumentMaker is created for each node state for each index.
+            // But ideally a warning with the property in question should suffice.
+            // Also there is no handling for different indexes having the same property since those are usually different versions of the same index.
+            if (!throttleWarnLogs || MV_ORDERED_PROPERTY_SET.add(pname) ||
+                    WARN_LOG_COUNTER_MV_ORDERED_PROPERTY.incrementAndGet() % throttleWarnLogThreshold == 0) {
+                log.warn(
+                        "[{}] Ignoring ordered property {} of type {} for path {} as multivalued ordered property not supported",
+                        getIndexName(), pname,
+                        Type.fromTag(property.getType().tag(), true), path);
+            }
             return false;
         }
 

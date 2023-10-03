@@ -45,7 +45,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.11</jackrabbit.version>
+    <jackrabbit.version>2.20.12</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -61,10 +61,9 @@
     <logback.version>1.2.10</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
-    <!-- OAK-10369 --><guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.13.5</jackson.version>
-    <testcontainers.version>1.18.3</testcontainers.version>
+    <jackson.version>2.15.2</jackson.version>
+    <testcontainers.version>1.19.0</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>2.5.22</groovy.version>
 
@@ -638,12 +637,12 @@
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-jdbc</artifactId>
-        <version>8.5.92</version>
+        <version>9.0.80</version>
       </dependency>
       <dependency>
         <groupId>org.apache.tomcat</groupId>
         <artifactId>tomcat-juli</artifactId>
-        <version>8.5.92</version>
+        <version>9.0.80</version>
       </dependency>
       <dependency>
         <groupId>org.apache.felix</groupId>
@@ -713,12 +712,12 @@
       <dependency>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-storage</artifactId>
-        <version>8.6.0</version>
+        <version>8.6.6</version>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-keyvault-core</artifactId>
-        <version>1.2.2</version>
+        <version>1.2.6</version>
       </dependency>
 
       <!-- Pax Exam Integration Test Dependencies -->
