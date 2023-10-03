@@ -1199,7 +1199,8 @@ public class VersionGarbageCollector {
                 detailedGCStats.propertiesDeleted(deletedProps);
                 detailedGCStats.unmergedBranchCommitsDeleted(deletedUnmergedBCSet.size());
                 detailedGCStats.documentsUpdated(updatedDocs);
-                detailedGCStats.documentsUpdateSkipped(oldDocs.size() - updatedDocs);
+                // fix for sonar : converted to long before operation
+                detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
             } finally {
                 // now reset delete metadata
                 updateOpList.clear();
