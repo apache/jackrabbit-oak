@@ -614,7 +614,8 @@ public class ExternalSort {
         if ( filterPredicate == null){
             Collections.sort(tmplist, cmp);
         } else {
-            tmplist =  tmplist.stream().filter(t -> filterPredicate.test(t)).sorted(cmp).collect(Collectors.toList());
+            tmplist.removeIf(t -> filterPredicate.test(t));
+            Collections.sort(tmplist, cmp);
         }
         File newtmpfile = File.createTempFile("sortInBatch",
                 "flatfile", tmpdirectory);
