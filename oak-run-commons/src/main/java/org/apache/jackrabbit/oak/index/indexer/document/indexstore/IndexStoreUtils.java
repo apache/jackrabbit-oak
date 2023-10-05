@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedOutputStream;
@@ -38,6 +39,23 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class IndexStoreUtils {
     public static final String METADATA_SUFFIX = ".metadata";
+
+    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    public static final String OAK_INDEXER_USE_LZ4 = "oak.indexer.useLZ4";
+
+    public static boolean compressionEnabled() {
+        return Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    }
+
+    public static boolean useLZ4() {
+        return Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
+    }
+
+    public static Compression compressionAlgorithm() {
+        boolean compressionEnabled = compressionEnabled();
+        boolean useLZ4 = useLZ4();
+        return compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) : Compression.NONE;
+    }
 
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.

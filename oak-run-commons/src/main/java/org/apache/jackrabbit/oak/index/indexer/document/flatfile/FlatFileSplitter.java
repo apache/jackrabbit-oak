@@ -25,6 +25,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.Aggregate;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.query.ast.NodeTypeInfo;
@@ -49,9 +50,6 @@ import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.DEFAULT_OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createReader;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createWriter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
@@ -72,8 +70,6 @@ public class FlatFileSplitter {
     private final NodeStateEntryReader entryReader;
     private final Compression algorithm;
     private final Set<IndexDefinition> indexDefinitions;
-    private final boolean useCompression = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, DEFAULT_OAK_INDEXER_USE_LZ4));
     private Set<String> splitNodeTypeNames;
 
     static Predicate<File> IS_SPLIT = path -> path.getParent().endsWith(SPLIT_DIR_NAME);
@@ -87,13 +83,7 @@ public class FlatFileSplitter {
         this.infoProvider = infoProvider;
         this.entryReader = entryReader;
 
-        Compression algorithm = Compression.GZIP;
-        if (!useCompression) {
-            algorithm = Compression.NONE;
-        } else if (useLZ4) {
-            algorithm = new LZ4Compression();
-        }
-        this.algorithm = algorithm;
+        this.algorithm =  IndexStoreUtils.compressionAlgorithm();
     }
 
     private List<File> returnOriginalFlatFile() {
