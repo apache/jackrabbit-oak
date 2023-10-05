@@ -172,6 +172,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withRootRevision(rootDocumentState.getRootRevision())
                         .withNodeStore(nodeStore)
                         .withMongoDocumentStore(getMongoDocumentStore())
+                        .withMongoConnection(getMongoConnection())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog))
                         .withCheckpoint(indexerSupport.getCheckpoint());
@@ -366,6 +367,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
             indexDefinitions.add(indexDf);
         }
         return indexDefinitions;
+    }
+
+    private MongoConnection getMongoConnection() {
+        return checkNotNull(indexHelper.getService(MongoConnection.class));
     }
 
     private MongoDocumentStore getMongoDocumentStore() {
