@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -83,6 +83,8 @@ import java.util.function.Predicate;
 
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
@@ -167,6 +169,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
     @Test
     public void parallelReindex() throws Exception {
         LOG.info("Starting parallelReindex");
+        System.setProperty(IndexStoreUtils.OAK_INDEXER_USE_LZ4, "false");
         parallelReindexInternal();
         LOG.info("Finished parallelReindex");
     }
@@ -174,7 +177,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
     @Test
     public void parallelReindexWithLZ4() throws Exception {
         LOG.info("Starting parallelReindexWithLZ4");
-        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4, "true");
+        System.setProperty(OAK_INDEXER_USE_LZ4, "true");
         parallelReindexInternal();
         LOG.info("Finished parallelReindexWithLZ4");
     }
@@ -188,7 +191,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_MIN_SPLIT_THRESHOLD, "0");
         System.setProperty(IndexerConfiguration.PROP_SPLIT_STORE_SIZE, "2");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_THREAD_POOL_SIZE, "2");
-        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "true");
+        System.setProperty(OAK_INDEXER_USE_ZIP, "true");
 
         DocumentNodeStore dns = getNodeStore();
         fixture = new LuceneRepositoryFixture(temporaryFolder.getRoot(), dns);
@@ -287,9 +290,9 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
 
     @Test
     public void indexMongoRepo_WithCompressionDisabled() throws Exception {
-        System.setProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "false");
+        System.setProperty(OAK_INDEXER_USE_ZIP, "false");
         indexMongoRepo();
-        System.clearProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP);
+        System.clearProperty(OAK_INDEXER_USE_ZIP);
     }
 
     @Test
