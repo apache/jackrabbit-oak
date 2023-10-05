@@ -18,13 +18,17 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.mongodb.BasicDBObject;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
@@ -40,32 +44,41 @@ import java.util.stream.Collectors;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PipelinedMongoDownloadTaskTest {
 
-    private BasicDBObject newBasicDBObject(String id, long modified) {
-        BasicDBObject obj = new BasicDBObject();
+    private NodeDocument newBasicDBObject(String id, long modified, DocumentStore docStore) {
+        NodeDocument obj = Collection.NODES.newDocument(docStore);
         obj.put(NodeDocument.ID, "3:/content/dam/asset" + id);
         obj.put(NodeDocument.MODIFIED_IN_SECS, modified);
+        obj.put(NodeDocumentCodec.SIZE_FIELD, 100);
         return obj;
     }
 
     @Test
     public void connectionToMongoFailure() throws Exception {
         @SuppressWarnings("unchecked")
-        MongoCollection<BasicDBObject> dbCollection = mock(MongoCollection.class);
+        MongoCollection<NodeDocument> dbCollection = mock(MongoCollection.class);
 
-        List<BasicDBObject> documents = List.of(
-                newBasicDBObject("1", 123_000),
-                newBasicDBObject("2", 123_000),
-                newBasicDBObject("3", 123_001),
-                newBasicDBObject("4", 123_002));
+        MongoConnection mongoConnection = mock(MongoConnection.class);
+        MongoDatabase mongoDatabase = mock(MongoDatabase.class);
+        when(mongoDatabase.withCodecRegistry(any())).thenReturn(mongoDatabase);
+        when(mongoConnection.getDatabase()).thenReturn(mongoDatabase);
+        when(mongoDatabase.getCollection(eq(Collection.NODES.toString()), eq(NodeDocument.class))).thenReturn(dbCollection);
+
+        DocumentStore docStore = mock(DocumentStore.class);
+        List<NodeDocument> documents = List.of(
+                newBasicDBObject("1", 123_000, docStore),
+                newBasicDBObject("2", 123_000, docStore),
+                newBasicDBObject("3", 123_001, docStore),
+                newBasicDBObject("4", 123_002, docStore));
 
         @SuppressWarnings("unchecked")
-        MongoCursor<BasicDBObject> cursor = mock(MongoCursor.class);
+        MongoCursor<NodeDocument> cursor = mock(MongoCursor.class);
         when(cursor.hasNext())
                 .thenReturn(true)
                 .thenThrow(new MongoSocketException("test", new ServerAddress()))
@@ -73,11 +86,11 @@ public class PipelinedMongoDownloadTaskTest {
                 .thenReturn(true, true, false); // response to the query that downloads everything again starting from _modified >= 123_001
         when(cursor.next()).thenReturn(
                 documents.get(0),
-                documents.subList(1, documents.size()).toArray(new BasicDBObject[0])
+                documents.subList(1, documents.size()).toArray(new NodeDocument[0])
         );
 
         @SuppressWarnings("unchecked")
-        FindIterable<BasicDBObject> findIterable = mock(FindIterable.class);
+        FindIterable<NodeDocument> findIterable = mock(FindIterable.class);
         when(findIterable.sort(any())).thenReturn(findIterable);
         when(findIterable.iterator()).thenReturn(cursor);
 
@@ -85,18 +98,21 @@ public class PipelinedMongoDownloadTaskTest {
         when(dbCollection.find()).thenReturn(findIterable);
         when(dbCollection.find(any(Bson.class))).thenReturn(findIterable);
 
-        int batchSize = 100;
-        BlockingQueue<BasicDBObject[]> queue = new ArrayBlockingQueue<>(100);
-        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(dbCollection, batchSize, queue, null);
+        int batchMaxMemorySize = 512;
+        int batchMaxElements = 10;
+        BlockingQueue<NodeDocument[]> queue = new ArrayBlockingQueue<>(100);
+        MongoDocumentStore mongoDocumentStore = mock(MongoDocumentStore.class);
+
+        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoConnection, mongoDocumentStore, batchMaxMemorySize, batchMaxElements, queue, null);
 
         // Execute
         PipelinedMongoDownloadTask.Result result = task.call();
 
         // Verify results
         assertEquals(documents.size(), result.getDocumentsDownloaded());
-        ArrayList<BasicDBObject[]> c = new ArrayList<>();
+        ArrayList<NodeDocument[]> c = new ArrayList<>();
         queue.drainTo(c);
-        List<BasicDBObject> actualDocuments = c.stream().flatMap(Arrays::stream).collect(Collectors.toList());
+        List<NodeDocument> actualDocuments = c.stream().flatMap(Arrays::stream).collect(Collectors.toList());
         assertEquals(documents, actualDocuments);
 
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 0}}"));

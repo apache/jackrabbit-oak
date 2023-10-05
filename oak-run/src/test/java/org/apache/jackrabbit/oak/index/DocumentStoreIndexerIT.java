@@ -19,22 +19,6 @@
 
 package org.apache.jackrabbit.oak.index;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Predicate;
-
-import javax.jcr.RepositoryException;
-import javax.jcr.Session;
-import javax.jcr.query.Query;
-import javax.jcr.query.QueryManager;
-import javax.jcr.query.QueryResult;
-import javax.jcr.query.Row;
-
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -82,6 +66,21 @@ import org.junit.rules.TestRule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.jcr.RepositoryException;
+import javax.jcr.Session;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.QueryResult;
+import javax.jcr.query.Row;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
+
 import static java.util.Collections.emptyMap;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
@@ -91,12 +90,12 @@ import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigH
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigHandler.DOCUMENT_NODE_STORE;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
 
@@ -183,8 +182,6 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
 
     /**
      * Test parallel indexing
-     *
-     * @throws Exception
      */
     private void parallelReindexInternal() throws Exception {
         System.setProperty("oak.indexer.minMemoryForWork", "1");
@@ -298,15 +295,16 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
 
     @Test
     public void bundling() throws Exception {
-        MongoConnection c = getConnection();
+        MongoConnection c1 = getConnection();
         DocumentNodeStoreBuilder<?> docBuilder = builderProvider.newBuilder()
-                .setMongoDB(c.getMongoClient(), c.getDBName());
+                .setMongoDB(c1.getMongoClient(), c1.getDBName());
         DocumentNodeStore store = docBuilder.build();
 
         Whiteboard wb = new DefaultWhiteboard();
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
         Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
         wb.register(StatisticsProvider.class, StatisticsProvider.NOOP, emptyMap());
+        Registration c1Registration = wb.register(MongoConnection.class, c1, emptyMap());
 
         configureIndex(store);
         configureBundling(store);
@@ -334,6 +332,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         //Shut down this store and restart in readOnly mode
         store.dispose();
         r1.unregister();
+        c1Registration.unregister();
 
         MongoConnection c2 = connectionFactory.getConnection();
         DocumentNodeStoreBuilder<?> docBuilderRO = builderProvider.newBuilder().setReadOnlyMode()
@@ -341,6 +340,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
         store = docBuilderRO.build();
         wb.register(MongoDocumentStore.class, ds, emptyMap());
+        wb.register(MongoConnection.class, c2, emptyMap());
 
         ExtendedIndexHelper helper = new ExtendedIndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
                 temporaryFolder.newFolder(), List.of(TEST_INDEX_PATH));

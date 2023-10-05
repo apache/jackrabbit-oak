@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUti
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -141,9 +142,9 @@ public class FlatFileNodeStoreBuilder {
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
+    private MongoConnection mongoConnection = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
-
 
     public enum SortStrategyType {
         /**
@@ -235,6 +236,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withCheckpoint(String checkpoint) {
         this.checkpoint = checkpoint;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMongoConnection(MongoConnection mongoConnection) {
+        this.mongoConnection = mongoConnection;
         return this;
     }
 
@@ -368,7 +374,7 @@ public class FlatFileNodeStoreBuilder {
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
-                return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
+                return new PipelinedStrategy(mongoDocumentStore, mongoConnection, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint);
 
         }
