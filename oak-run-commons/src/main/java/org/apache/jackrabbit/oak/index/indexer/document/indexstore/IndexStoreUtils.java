@@ -52,9 +52,10 @@ public class IndexStoreUtils {
     }
 
     public static Compression compressionAlgorithm() {
-        boolean compressionEnabled = compressionEnabled();
-        boolean useLZ4 = useLZ4();
-        return compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) : Compression.NONE;
+        if (!compressionEnabled()) {
+            return Compression.NONE;
+        }
+        return useLZ4() ? new LZ4Compression() : Compression.GZIP;
     }
 
     /**
