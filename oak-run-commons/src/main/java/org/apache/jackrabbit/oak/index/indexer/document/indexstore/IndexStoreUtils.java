@@ -48,7 +48,7 @@ public class IndexStoreUtils {
     }
 
     public static boolean useLZ4() {
-        return Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
+        return Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "true"));
     }
 
     public static Compression compressionAlgorithm() {
