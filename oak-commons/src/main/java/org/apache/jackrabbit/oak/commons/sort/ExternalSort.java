@@ -131,7 +131,7 @@ public class ExternalSort {
      * @param file
      *            some flat file
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Predicate<String> filterPredicate) throws IOException {
@@ -153,7 +153,7 @@ public class ExternalSort {
      * @param cmp
      *            string comparator
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp, Predicate<String> filterPredicate)
@@ -178,7 +178,7 @@ public class ExternalSort {
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded.
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
@@ -213,7 +213,7 @@ public class ExternalSort {
      *            number of lines to preclude before sorting starts
      * @param usegzip use gzip compression for the temporary files
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
@@ -276,7 +276,7 @@ public class ExternalSort {
      * @param stringToType
      *          function to map custom type to string. Used for storing sorted content back to file
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      * @return a list of temporary flat files
      */
     public static <T> List<File> sortInBatch(File file, Comparator<T> cmp,
@@ -393,7 +393,7 @@ public class ExternalSort {
      * @param stringToType
      *          function to map custom type to string. Used for storing sorted content back to file
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      * @return a list of temporary flat files
      */
     private static <T> List<File> sortInBatch(BufferedReader fbr, long blocksize, Comparator<T> cmp,
@@ -477,7 +477,7 @@ public class ExternalSort {
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded.
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      * @return a list of temporary flat files
      */
     public static List<File> sortInBatch(File file, Comparator<String> cmp,
@@ -508,7 +508,7 @@ public class ExternalSort {
      * @param tmpdirectory
      *            location of the temporary files (set to null for default location)
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      */
     public static File sortAndSave(List<String> tmplist,
                                    Comparator<String> cmp, Charset cs, File tmpdirectory, Predicate<String> filterPredicate)
@@ -537,7 +537,7 @@ public class ExternalSort {
      * @param distinct
      *            Pass <code>true</code> if duplicate lines should be discarded.
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      */
     public static File sortAndSave(List<String> tmplist,
                                        Comparator<String> cmp, Charset cs, File tmpdirectory,
@@ -570,7 +570,7 @@ public class ExternalSort {
      *        function to map string to custom type. User for coverting line to custom type for the
      *        purpose of sorting
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      */
     public static <T> File sortAndSave(List<T> tmplist,
                                        Comparator<T> cmp, Charset cs, File tmpdirectory,
@@ -604,7 +604,7 @@ public class ExternalSort {
      *        function to map string to custom type. User for coverting line to custom type for the
      *        purpose of sorting
      * @param filterPredicate
-     *            predicate to filter out data which need to be sorted
+     *            predicate to keep data which need to be sorted
      */
     public static <T> File sortAndSave(List<T> tmplist,
                                        Comparator<T> cmp, Charset cs, File tmpdirectory,
