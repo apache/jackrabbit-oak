@@ -89,8 +89,8 @@ public abstract class AbstractSecurityTest {
     protected Root root;
 
     protected QueryEngineSettings querySettings;
-    protected final RootProvider rootProvider = new RootProviderService();
-    protected final TreeProvider treeProvider = new TreeProviderService();
+    private final RootProvider rootProvider = new RootProviderService();
+    private final TreeProvider treeProvider = new TreeProviderService();
 
     protected Whiteboard whiteboard;
 

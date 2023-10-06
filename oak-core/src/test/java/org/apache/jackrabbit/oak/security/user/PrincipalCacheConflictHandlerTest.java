@@ -26,9 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.security.internal.SecurityProviderBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
-import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
@@ -39,7 +37,6 @@ import org.junit.Test;
 
 import javax.security.auth.Subject;
 import java.security.Principal;
-import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Set;
 import java.util.UUID;
@@ -47,7 +44,6 @@ import java.util.UUID;
 import static org.apache.jackrabbit.oak.security.user.CacheConstants.REP_EXPIRATION;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -90,58 +86,6 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testChangeChangedPropertyLoad() throws Exception {
-        @NotNull String testUser = getTestUser().getID();
-        @NotNull String authorizablePath = getTestUser().getPath();
-
-        @NotNull ConfigurationParameters config = ConfigurationParameters.of(
-                UserConfiguration.NAME,
-                ConfigurationParameters.of(PARAM_CACHE_EXPIRATION, 5)
-        );
-        SecurityProvider sp = SecurityProviderBuilder.newBuilder().with(config)
-                .withRootProvider(rootProvider)
-                .withTreeProvider(treeProvider)
-                .withWhiteboard(whiteboard)
-                .build();
-        class TestChangeChangedProperty extends Thread {
-            public void run() {
-
-
-                PrincipalConfiguration pc = sp.getConfiguration(PrincipalConfiguration.class);
-
-                Root oursRoot = null;
-                try {
-                    oursRoot = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null)).getLatestRoot();
-                } catch (PrivilegedActionException e) {
-                    e.printStackTrace();
-                    fail(e.getMessage());
-                }
-
-                PrincipalProvider oursPP = pc.getPrincipalProvider(oursRoot, namePathMapper);
-                oursPP.getPrincipals(testUser);
-
-                root.refresh();
-                assertTrue(root.getTree(authorizablePath + '/' + PrincipalCacheConflictHandler.REP_CACHE).exists());
-
-            }
-        }
-
-        root.commit();
-        int numThread = 1000;
-
-        Thread[] testChangeChangedPropertyLoad = new Thread[numThread];
-        for (int i = 0; i < numThread; i++) {
-            testChangeChangedPropertyLoad[i] = new TestChangeChangedProperty();
-            testChangeChangedPropertyLoad[i].start();
-            Thread.sleep(5);
-        }
-
-        for (int i = 0; i < numThread; i++) {
-            testChangeChangedPropertyLoad[i].join();
-        }
-    }
-
-    @Test
     public void testChangeChangedPropertyLower() throws Exception {
 
         PrincipalConfiguration pc = getConfig(PrincipalConfiguration.class);
@@ -155,6 +99,7 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
         // set of principals that read from user + membership-provider -> cache being filled
         oursPP.getPrincipals(getTestUser().getID());
         assertTrue(getCacheTree(oursRoot).exists());
+        getCacheTree(oursRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
 
         theirsPP.getPrincipals(getTestUser().getID());
         assertTrue(getCacheTree(theirsRoot).exists());
@@ -177,7 +122,6 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
 
         Root oursRoot = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null)).getLatestRoot();
         Root theirsRoot = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null)).getLatestRoot();
-
 
         PrincipalProvider oursPP = pc.getPrincipalProvider(oursRoot, namePathMapper);
         PrincipalProvider theirsPP = pc.getPrincipalProvider(theirsRoot, namePathMapper);

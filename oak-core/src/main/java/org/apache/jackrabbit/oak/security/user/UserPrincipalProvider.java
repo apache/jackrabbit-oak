@@ -75,7 +75,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
     static final long EXPIRATION_NO_CACHE = 0;
 
-    protected static final long MEMBERSHIP_THRESHOLD = 0;
+    private static final long MEMBERSHIP_THRESHOLD = 0;
 
     private final Root root;
     private final UserConfiguration config;
@@ -287,16 +287,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
             // remember the regular groups in case caching is enabled
             if (doCache) {
-                PrincipalCommitterThread commitThread = UserPrincipalProviderCommitterProvider.getInstance().cacheGroups(authorizableTree, groupPrincipals, expiration, root);
-                if (commitThread != null) {
-                    //We need to wait the thread to finish, otherwise the session will be closed before the commit is done
-                    try {
-                        commitThread.join();
-                    } catch (InterruptedException e) {
-                        log.error("Unexpected Error while waiting for commit thread to finish", e);
-                    }
-                }
-                // if the commit thread is null, it means that there is already a thread committing the changes, so we don't need to wait for it
+                cacheGroups(authorizableTree, groupPrincipals);
             }
         }
 
@@ -304,6 +295,34 @@ class UserPrincipalProvider implements PrincipalProvider {
         // the 'getMembership' call.
         groupPrincipals.add(EveryonePrincipal.getInstance());
         return groupPrincipals;
+    }
+
+    private void cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals) {
+        try {
+            root.refresh();
+            Tree cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
+            if (!cache.exists()) {
+                if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
+                    log.debug("Omit cache creation for user without group membership at {}", authorizableNode.getPath());
+                    return;
+                } else {
+                    log.debug("Create new group membership cache at {}", authorizableNode.getPath());
+                    cache = TreeUtil.addChild(authorizableNode, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
+                }
+            }
+
+            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
+            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
+            cache.setProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, value);
+
+            root.commit(CacheValidatorProvider.asCommitAttributes());
+            log.debug("Cached group membership at {}", authorizableNode.getPath());
+
+        } catch (AccessDeniedException | CommitFailedException e) {
+            log.debug("Failed to cache group membership: {}", e.getMessage());
+        } finally {
+            root.refresh();
+        }
     }
 
     private boolean readGroupsFromCache(@NotNull Tree authorizableNode, @NotNull Set<Principal> groups) {
