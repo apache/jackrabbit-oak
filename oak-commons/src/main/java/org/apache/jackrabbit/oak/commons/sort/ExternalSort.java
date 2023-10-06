@@ -585,7 +585,8 @@ public class ExternalSort {
     }
 
     /**
-     * Sort a list and save it to a temporary file
+     * Sort a list and save it to a temporary file. In case this method is directly used and path filters predicates are
+     * provided, try to avoid usage of ArrayList (tmplist) as removal from ArrayList is O(n) operation.
      *
      * @return the file containing the sorted data
      * @param tmplist
@@ -611,12 +612,11 @@ public class ExternalSort {
                                        Function<T, String> typeToString,
                                        @Nullable Predicate<T> filterPredicate
     ) throws IOException {
-        if ( filterPredicate == null){
-            Collections.sort(tmplist, cmp);
-        } else {
-            tmplist.removeIf(t -> filterPredicate.test(t));
-            Collections.sort(tmplist, cmp);
+        if ( filterPredicate != null){
+            tmplist.removeIf(filterPredicate.negate());
         }
+        Collections.sort(tmplist, cmp);
+
         File newtmpfile = File.createTempFile("sortInBatch",
                 "flatfile", tmpdirectory);
         newtmpfile.deleteOnExit();

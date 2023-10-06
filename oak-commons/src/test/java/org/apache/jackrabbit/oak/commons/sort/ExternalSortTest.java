@@ -303,7 +303,7 @@ public class ExternalSortTest {
         String line;
         List<String> result;
         BufferedReader bf;
-        List<String> sample = Arrays.asList(SAMPLE);
+        List<String> sample = new ArrayList<String>(Arrays.asList(SAMPLE));
         Comparator<String> cmp = new Comparator<String>() {
             @Override
             public int compare(String o1, String o2) {
