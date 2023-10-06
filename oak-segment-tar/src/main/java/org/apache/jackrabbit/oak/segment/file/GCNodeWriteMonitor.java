@@ -88,6 +88,8 @@ public class GCNodeWriteMonitor {
             gcMonitor.info("unable to estimate number of nodes for compaction, missing gc history.");
         }
         nodes = 0;
+        properties = 0;
+        binaries = 0;
         start = System.currentTimeMillis();
         running = true;
     }

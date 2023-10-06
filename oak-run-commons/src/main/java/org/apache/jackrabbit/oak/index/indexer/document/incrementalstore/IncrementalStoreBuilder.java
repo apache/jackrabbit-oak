@@ -22,9 +22,8 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -39,6 +38,8 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import static java.util.Collections.unmodifiableSet;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 
 public class IncrementalStoreBuilder {
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -53,11 +54,7 @@ public class IncrementalStoreBuilder {
     private Set<String> preferredPathElements = Collections.emptySet();
     private BlobStore blobStore;
 
-    private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP, "true"));
-    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4, "false"));
-    private final Compression algorithm = compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) :
-            Compression.NONE;
-
+    private final Compression algorithm = IndexStoreUtils.compressionAlgorithm();
 
     /**
      * System property name for sort strategy. This takes precedence over {@link #INCREMENTAL_SORT_STRATEGY_TYPE}.
@@ -144,7 +141,7 @@ public class IncrementalStoreBuilder {
 
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
-        log.info("Compression enabled while sorting : {} ({})", compressionEnabled, FlatFileNodeStoreBuilder.OAK_INDEXER_USE_ZIP);
-        log.info("LZ4 enabled for compression algorithm : {} ({})", useLZ4, FlatFileNodeStoreBuilder.OAK_INDEXER_USE_LZ4);
+        log.info("Compression enabled while sorting : {} ({})", IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
+        log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(), OAK_INDEXER_USE_LZ4);
     }
 }

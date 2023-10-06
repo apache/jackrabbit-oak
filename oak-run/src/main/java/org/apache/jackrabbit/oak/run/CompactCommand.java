@@ -25,7 +25,6 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact;
-import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact.Builder;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsCompact;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
@@ -56,11 +55,16 @@ class CompactCommand implements Command {
                 .withOptionalArg()
                 .ofType(Boolean.class);
         OptionSpec<String> compactor = parser.accepts("compactor",
-                "Allow the user to control compactor type to be used. Valid choices are \"classic\" and \"diff\". " +
-                        "While the former is slower, it might be more stable, due to lack of optimisations employed " +
-                        "by the \"diff\" compactor which compacts the checkpoints on top of each other. If not " +
-                        "specified, \"diff\" compactor is used.")
+                "Allow the user to control compactor type to be used. Valid choices are \"classic\", \"diff\", \"parallel\". " +
+                        "While \"classic\" is slower, it might be more stable, due to lack of optimisations employed " +
+                        "by the \"diff\" compactor which compacts the checkpoints on top of each other and \"parallel\" compactor, which splits " +
+                        "the repository into smaller parts and compacts them concurrently. If not specified, \"parallel\" compactor is used.")
                 .withRequiredArg().ofType(String.class);
+        OptionSpec<Integer> nThreads = parser.accepts("threads", "Specify the number of threads used" +
+                "for compaction. This is only applicable to the \"parallel\" compactor. Defaults to 1.")
+                .withRequiredArg()
+                .ofType(Integer.class)
+                .defaultsTo(1);
         OptionSpec<String> targetPath = parser.accepts("target-path", "Path/URI to TAR/remote segment store where " +
                 "resulting archives will be written")
                 .withRequiredArg()
@@ -72,8 +76,9 @@ class CompactCommand implements Command {
         OptionSpec<Integer> persistentCacheSizeGb = parser.accepts("persistent-cache-size-gb", "Size in GB (defaults to 50 GB) for "
                 + "the persistent disk cache")
                 .withRequiredArg()
-                .defaultsTo("50")
-                .ofType(Integer.class);
+                .ofType(Integer.class)
+                .defaultsTo(50);
+
 
         OptionSet options = parser.parse(args);
 
@@ -85,7 +90,7 @@ class CompactCommand implements Command {
             System.exit(-1);
         }
 
-        int code = 0;
+        int code;
 
         if (path.startsWith("az:")) {
             if (targetPath.value(options) == null) {
@@ -100,45 +105,48 @@ class CompactCommand implements Command {
                 System.exit(-1);
             }
 
-            Builder azureBuilder = AzureCompact.builder()
+            AzureCompact.Builder azureBuilder = AzureCompact.builder()
                     .withPath(path)
                     .withTargetPath(targetPath.value(options))
                     .withPersistentCachePath(persistentCachePath.value(options))
                     .withPersistentCacheSizeGb(persistentCacheSizeGb.value(options))
                     .withForce(isTrue(forceArg.value(options)))
-                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000));
+                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
+                    .withConcurrency(nThreads.value(options));
 
             if (options.has(compactor)) {
                 azureBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
             }
 
-            code = azureBuilder
-                    .build()
-                    .run();
+            code = azureBuilder.build().run();
         } else if (path.startsWith("aws:")) {
-            code = AwsCompact.builder()
+            AwsCompact.Builder awsBuilder = AwsCompact.builder()
                     .withPath(path)
                     .withForce(isTrue(forceArg.value(options)))
                     .withSegmentCacheSize(Integer.getInteger("cache", 256))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
-                    .build()
-                    .run();
+                    .withConcurrency(nThreads.value(options));
+
+            if (options.has(compactor)) {
+                awsBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
+            }
+
+            code = awsBuilder.build().run();
         } else {
-            org.apache.jackrabbit.oak.segment.tool.Compact.Builder tarBuilder = Compact.builder()
+            Compact.Builder tarBuilder = Compact.builder()
                     .withPath(new File(path))
                     .withForce(isTrue(forceArg.value(options)))
                     .withMmap(mmapArg.value(options))
                     .withOs(StandardSystemProperty.OS_NAME.value())
                     .withSegmentCacheSize(Integer.getInteger("cache", 256))
-                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000));
+                    .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
+                    .withConcurrency(nThreads.value(options));
 
             if (options.has(compactor)) {
                 tarBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
             }
 
-            code = tarBuilder
-                    .build()
-                    .run();
+            code = tarBuilder.build().run();
         }
 
         System.exit(code);

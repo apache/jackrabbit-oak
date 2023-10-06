@@ -23,21 +23,41 @@ import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.jetbrains.annotations.NotNull;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 
-public class CheckpointCompactorTest extends AbstractCompactorTest {
+@RunWith(Parameterized.class)
+public class ParallelCompactorExternalBlobTest extends AbstractCompactorExternalBlobTest {
+
+    private final int concurrency;
+
+    @Parameterized.Parameters
+    public static List<Integer> concurrencyLevels() {
+        return Arrays.asList(1, 2, 4, 8, 16);
+    }
+
+    public ParallelCompactorExternalBlobTest(int concurrency) {
+        this.concurrency = concurrency;
+    }
+
     @Override
-    protected CheckpointCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
+    protected ParallelCompactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation) {
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
                 .withGeneration(generation)
+                .withWriterPool(SegmentBufferWriterPool.PoolType.THREAD_SPECIFIC)
                 .build(fileStore);
 
-        return new CheckpointCompactor(
+        return new ParallelCompactor(
                 GCMonitor.EMPTY,
                 fileStore.getReader(),
                 writer,
                 fileStore.getBlobStore(),
-                GCNodeWriteMonitor.EMPTY);
+                GCNodeWriteMonitor.EMPTY,
+                concurrency);
     }
 }
