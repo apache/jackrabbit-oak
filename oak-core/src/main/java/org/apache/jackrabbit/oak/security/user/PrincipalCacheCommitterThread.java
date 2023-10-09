@@ -35,9 +35,8 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.security.user.UserPrincipalProvider.MEMBERSHIP_THRESHOLD;
-
 public class PrincipalCommitterThread extends Thread {
+    protected static final long MEMBERSHIP_THRESHOLD = 0;
     Tree authorizableNode;
     Set<Principal> groupPrincipals;
     HashMap committerThreadMap;

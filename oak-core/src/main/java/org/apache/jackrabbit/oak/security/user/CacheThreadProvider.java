@@ -27,32 +27,32 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.Set;
 
-public class UserPrincipalProviderCommitterProvider {
+public class UserPrincipalCacheCommitterProvider {
 
-    static UserPrincipalProviderCommitterProvider instance = null;
-    static HashMap<String, PrincipalCommitterThread> committerThreadMap = new HashMap<>();
+    static UserPrincipalCacheCommitterProvider instance = null;
+    static HashMap<String, PrincipalCacheCommitterThread> committerThreadMap = new HashMap<>();
 
-    public static UserPrincipalProviderCommitterProvider getInstance() {
+    public static UserPrincipalCacheCommitterProvider getInstance() {
         if (instance == null) {
-            instance = new UserPrincipalProviderCommitterProvider();
+            instance = new UserPrincipalCacheCommitterProvider();
         }
         return instance;
     }
 
-    public synchronized PrincipalCommitterThread cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals, long expiration, Root root) {
+    public synchronized PrincipalCacheCommitterThread cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals, long expiration, Root root) {
         String authorizableNodePath = authorizableNode.getPath();
         if (committerThreadMap.containsKey(authorizableNodePath)) {
             // One thread is already committing. return null to inform the caller that doesn't have to wait for the commit to finish
             return null;
         } else {
-            PrincipalCommitterThread committerThread = new PrincipalCommitterThread(authorizableNode, groupPrincipals, expiration, root, committerThreadMap);
+            PrincipalCacheCommitterThread committerThread = new PrincipalCacheCommitterThread(authorizableNode, groupPrincipals, expiration, root, committerThreadMap);
             committerThreadMap.put(authorizableNodePath, committerThread);
             committerThread.start();
             return committerThread;
         }
     }
 
-    public HashMap<String, PrincipalCommitterThread> getCommitterThreadMap() {
+    public HashMap<String, PrincipalCacheCommitterThread> getCommitterThreadMap() {
         return committerThreadMap;
     }
 
