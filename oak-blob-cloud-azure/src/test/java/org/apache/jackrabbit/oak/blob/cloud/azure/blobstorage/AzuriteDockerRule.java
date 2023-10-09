@@ -39,7 +39,6 @@ import java.util.concurrent.atomic.AtomicReference;
 public class AzuriteDockerRule extends ExternalResource {
 
     private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("mcr.microsoft.com/azure-storage/azurite:3.19.0");
-
     public static final String ACCOUNT_KEY = "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
     public static final String ACCOUNT_NAME = "devstoreaccount1";
     private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();

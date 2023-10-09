@@ -16,95 +16,115 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
-
 import com.arakelian.docker.junit.DockerRule;
-import com.arakelian.docker.junit.model.ImmutableDockerConfig;
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
-
 import org.junit.Assume;
-import org.junit.rules.TestRule;
+import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
+import org.junit.runners.model.MultipleFailureException;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.images.RemoteDockerImage;
+import org.testcontainers.utility.DockerImageName;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A MongoDB {@link DockerRule}.
  */
-public class MongoDockerRule implements TestRule {
+public class MongoDockerRule extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDockerRule.class);
 
-    private static final String CONFIG_NAME = "MongoDB-" + UUID.randomUUID().toString().substring(0, 8);
-
     private static final String VERSION = System.getProperty("mongo.version", "3.6");
-
-    private static final String IMAGE = "mongo:" + VERSION;
-
+    private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
+    private static final int DEFAULT_MONGO_PORT = 27017;
+    private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("mongo:" + VERSION);
     private static final boolean DOCKER_AVAILABLE;
+    private static GenericContainer<?> mongoDBContainer;
 
     static {
-        boolean available = false;
-        try (DefaultDockerClient client = DefaultDockerClient.fromEnv()
-                .connectTimeoutMillis(5000L).readTimeoutMillis(20000L)
-                .registryAuthSupplier(new FixedRegistryAuthSupplier())
-                .build()) {
-            client.ping();
-            client.pull(IMAGE);
-            available = true;
+
+        boolean dockerAvailable = false;
+        boolean imageAvailable = false;
+        try {
+            dockerAvailable = checkDockerAvailability();
+            if (dockerAvailable) {
+                imageAvailable = checkImageAvailability();
+            }
         } catch (Throwable t) {
-            LOG.info("Cannot connect to docker or pull image", t);
+            LOG.error("either docker is not available or specified mongo image cannot be pulled, dockerAvailable: {}, imageAvailable: {}, error: ", dockerAvailable, imageAvailable, t);
         }
-        DOCKER_AVAILABLE = available;
-    }
-
-    private final DockerRule wrappedRule;
-
-    private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
-
-    public MongoDockerRule() {
-        wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
-                .name(CONFIG_NAME)
-                .image(IMAGE)
-                .ports("27017")
-                .allowRunningBetweenUnitTests(true)
-                .alwaysRemoveContainer(true)
-                .addStartedListener(container -> {
-                    try {
-                        container.waitForPort("27017/tcp");
-                    } catch (IllegalStateException e) {
-                        STARTUP_EXCEPTION.set(e);
-                        throw e;
-                    }
-                })
-                .build());
+        DOCKER_AVAILABLE = dockerAvailable && imageAvailable;
     }
 
     @Override
-    public Statement apply(Statement statement, Description description) {
-        Statement base = wrappedRule.apply(statement, description);
+    protected void before() throws Throwable {
+        if (mongoDBContainer != null) {
+            return;
+        }
+        mongoDBContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
+                .withExposedPorts(DEFAULT_MONGO_PORT)
+                .withStartupTimeout(Duration.ofMinutes(1));
+
+        try {
+            long startTime = Instant.now().toEpochMilli();
+            mongoDBContainer.start();
+            LOG.info("mongo container started in: " + (Instant.now().toEpochMilli() - startTime) + " ms");
+        } catch (Exception e) {
+            LOG.error("error while starting mongoDb container, error: ", e);
+            STARTUP_EXCEPTION.set(e);
+            throw e;
+        }
+    }
+
+    @Override
+    public Statement apply(Statement base, Description description) {
         return new Statement() {
             @Override
             public void evaluate() throws Throwable {
                 try {
-                    base.evaluate();
+                    before();
                 } catch (Throwable e) {
                     Assume.assumeNoException(STARTUP_EXCEPTION.get());
                     throw e;
                 }
+
+                List<Throwable> errors = new ArrayList<>();
+                try {
+                    base.evaluate();
+                } catch (Throwable t) {
+                    errors.add(t);
+                }
+                MultipleFailureException.assertEmpty(errors);
             }
         };
     }
 
+    private static boolean checkImageAvailability() throws TimeoutException {
+        RemoteDockerImage remoteDockerImage = new RemoteDockerImage(DOCKER_IMAGE_NAME);
+        remoteDockerImage.get(1, TimeUnit.MINUTES);
+        return true;
+    }
+
+    private static boolean checkDockerAvailability() {
+        return DockerClientFactory.instance().isDockerAvailable();
+    }
+
     public int getPort() {
-        return wrappedRule.getContainer().getPortBinding("27017/tcp").getPort();
+        return mongoDBContainer.getMappedPort(DEFAULT_MONGO_PORT);
     }
 
     public String getHost() {
-        return wrappedRule.getContainer().getPortBinding("27017/tcp").getHost();
+        return mongoDBContainer.getHost();
     }
 
     public static boolean isDockerAvailable() {
