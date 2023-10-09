@@ -44,51 +44,40 @@ import org.slf4j.LoggerFactory;
  * </ul>
  */
 
-public class PrincipalCacheConflictHandler extends DefaultThreeWayConflictHandler {
+class CacheConflictHandler extends DefaultThreeWayConflictHandler {
 
-    private static final Logger LOG = LoggerFactory.getLogger(PrincipalCacheConflictHandler.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CacheConflictHandler.class);
 
-    protected static final String REP_EXPIRATION = "rep:expiration";
-    protected static final String REP_CACHE = "rep:cache";
+    protected CacheConflictHandler() {
+        super(Resolution.IGNORED);
 
-    /**
-     * Create a new {@code ConflictHandler} which always returns
-     * {@code resolution}.
-     *
-     * @param resolution the resolution to return from all methods of this
-     *                   {@code ConflictHandler} instance.
-     */
-    public PrincipalCacheConflictHandler(Resolution resolution) {
-        super(resolution);
-    }
-    public PrincipalCacheConflictHandler() {
-        this(Resolution.IGNORED);
     }
 
     private Resolution resolveRepExpirationConflict(@NotNull NodeBuilder parent, @NotNull PropertyState ours, @NotNull PropertyState theirs,
                                          PropertyState base) {
-        if ( REP_EXPIRATION.equals(ours.getName()) && REP_EXPIRATION.equals(theirs.getName()) ){
+        if (CacheConstants.REP_EXPIRATION.equals(ours.getName()) && CacheConstants.REP_EXPIRATION.equals(theirs.getName())){
 
             PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
-            merged.setName(REP_EXPIRATION);
+            merged.setName(CacheConstants.REP_EXPIRATION);
 
             //if base is bigger than ours and theirs, then use base. This should never happens
-            if ( base != null &&
+            if (base != null &&
                     base.getValue(Type.LONG) > ours.getValue(Type.LONG)  &&
-                    base.getValue(Type.LONG) > theirs.getValue(Type.LONG) ){
+                    base.getValue(Type.LONG) > theirs.getValue(Type.LONG)){
                 merged.setValue(base.getValue(Type.LONG));
+                LOG.warn("base is bigger than ours and theirs. This was supposed to never happens");
                 return Resolution.MERGED;
             }
 
             //if ours is bigger than theirs, then use ours
             //otherwise use theirs
-            if ( ours.getValue(Type.LONG) > theirs.getValue(Type.LONG) ){
+            if (ours.getValue(Type.LONG) > theirs.getValue(Type.LONG)){
                 merged.setValue(ours.getValue(Type.LONG));
             } else {
                 merged.setValue(theirs.getValue(Type.LONG));
             }
             parent.setProperty(merged.getPropertyState());
-            LOG.debug("Resolved conflict for property {} our value: {}, merged value: {}", REP_EXPIRATION, ours.getValue(Type.LONG), merged.getValue(0));
+            LOG.debug("Resolved conflict for property {} our value: {}, their value {}, merged value: {}", CacheConstants.REP_EXPIRATION, ours.getValue(Type.LONG), theirs.getValue(Type.LONG), merged.getValue(0));
             return Resolution.MERGED;
         }
         return Resolution.IGNORED;

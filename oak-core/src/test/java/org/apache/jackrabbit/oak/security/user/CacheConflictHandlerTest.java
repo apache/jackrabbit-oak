@@ -47,7 +47,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
+public class CacheConflictHandlerTest extends AbstractSecurityTest {
 
     static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
 
@@ -74,7 +74,7 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
     }
 
     private Tree getCacheTree(Root root, String authorizablePath) {
-        return root.getTree(authorizablePath + '/' + PrincipalCacheConflictHandler.REP_CACHE);
+        return root.getTree(authorizablePath + '/' + CacheConstants.REP_CACHE);
     }
 
     @Override
@@ -161,8 +161,8 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
         when(base.getValue(Type.LONG)).thenReturn(2000L);
         when(theirs.getValue(Type.LONG)).thenReturn(900L);
 
-        PrincipalCacheConflictHandler handler = new PrincipalCacheConflictHandler();
-        assertEquals(PrincipalCacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
+        CacheConflictHandler handler = new CacheConflictHandler();
+        assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
 
     }
 
@@ -174,8 +174,8 @@ public class PrincipalCacheConflictHandlerTest extends AbstractSecurityTest {
         PropertyState base = mock(PropertyState.class);
         PropertyState theirs = mock(PropertyState.class);
 
-        PrincipalCacheConflictHandler handler = new PrincipalCacheConflictHandler();
-        assertEquals(PrincipalCacheConflictHandler.Resolution.IGNORED, handler.changeChangedProperty(parent, ours, theirs, base));
+        CacheConflictHandler handler = new CacheConflictHandler();
+        assertEquals(CacheConflictHandler.Resolution.IGNORED, handler.changeChangedProperty(parent, ours, theirs, base));
 
     }
 }
