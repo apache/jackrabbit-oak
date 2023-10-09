@@ -22,19 +22,28 @@ package org.apache.jackrabbit.oak.index;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
+import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateHolder;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexerInfo;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
+import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -180,5 +189,47 @@ public class IndexerSupport {
             nb = createNew ? nb.child(name) : nb.getChildNode(name);
         }
         return nb;
+    }
+
+    public Set<IndexDefinition> getIndexDefinitions() throws IOException, CommitFailedException {
+        NodeState checkpointedState = this.retrieveNodeStateForCheckpoint();
+        NodeStore copyOnWriteStore = new MemoryNodeStore(checkpointedState);
+        NodeBuilder builder = copyOnWriteStore.getRoot().builder();
+        NodeState root = builder.getNodeState();
+        this.updateIndexDefinitions(builder);
+        IndexDefinition.Builder indexDefBuilder = new IndexDefinition.Builder();
+
+        Set<IndexDefinition> indexDefinitions = new HashSet<>();
+
+        for (String indexPath : indexHelper.getIndexPaths()) {
+            NodeBuilder idxBuilder = IndexerSupport.childBuilder(builder, indexPath, false);
+            IndexDefinition indexDf = indexDefBuilder.defn(idxBuilder.getNodeState()).indexPath(indexPath).root(root).build();
+            indexDefinitions.add(indexDf);
+        }
+        return indexDefinitions;
+    }
+
+    /**
+     *
+     * @param indexDefinitions
+     * @return set of preferred path elements referred from the given set of index definitions.
+     */
+    public Set<String> getPreferredPathElements(Set<IndexDefinition> indexDefinitions) {
+        Set<String> preferredPathElements = new HashSet<>();
+        for (IndexDefinition indexDf : indexDefinitions) {
+            preferredPathElements.addAll(indexDf.getRelativeNodeNames());
+        }
+        return preferredPathElements;
+    }
+
+    /**
+     *
+     * @param indexDefinitions set of IndexDefinition to be used to calculate the Path Predicate
+     * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
+     * @param <T>
+     * @return filter predicate based on the include/exclude path rules of the given set of index definitions.
+     */
+    public <T> Predicate<T> getFilterPredicate(Set<IndexDefinition> indexDefinitions, Function<T, String> typeToRepositoryPath) {
+        return t -> indexDefinitions.stream().anyMatch(indexDef -> indexDef.getPathFilter().filter(typeToRepositoryPath.apply(t)) != PathFilter.Result.EXCLUDE);
     }
 }

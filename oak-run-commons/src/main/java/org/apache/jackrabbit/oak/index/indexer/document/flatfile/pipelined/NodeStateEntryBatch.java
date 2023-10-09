@@ -24,14 +24,14 @@ import java.util.ArrayList;
 public class NodeStateEntryBatch {
     // Must be large enough to hold a full node state entry
     static final int MIN_BUFFER_SIZE = 256 * 1024;
-    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSize, int maxNumEntries) {
-        if (bufferSize < MIN_BUFFER_SIZE) {
+    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSizeBytes, int maxNumEntries) {
+        if (bufferSizeBytes < MIN_BUFFER_SIZE) {
             throw new IllegalArgumentException("Buffer size must be at least " + MIN_BUFFER_SIZE + " bytes");
         }
         if (maxNumEntries < 1) {
             throw new IllegalArgumentException("Max number of entries must be at least 1");
         }
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSizeBytes);
         return new NodeStateEntryBatch(buffer, maxNumEntries);
     }
 
