@@ -288,6 +288,22 @@ TarMK GC #2: compacting checkpoints/5c45ca7b-5863-4679-a7c5-6056a999a6cd/root.
 TarMK GC #2: compacting root.
 ```
 
+##### <a name="how-does-compaction-make-use-of-multithreading"/> How does compaction make use of multithreading?
+
+The parallel compactor adds an initial exploration phase to the compaction process, which scans and splits the content tree
+into multiple parts to be processed simultaneously. For this to be efficient, the tree is only expanded until a certain 
+number of nodes is reached, which is defined relative to the number of threads (main thread + compaction workers).
+
+```
+TarMK GC #2: compacting with 8 threads.
+TarMK GC #2: exploring content tree to find subtrees for parallel compaction.
+TarMK GC #2: target node count for expansion is 7000, based on 7 available workers.
+TarMK GC #2: Found 3 nodes at depth 1, target is 7000.
+TarMK GC #2: Found 48 nodes at depth 2, target is 7000.
+TarMK GC #2: Found 663 nodes at depth 3, target is 7000.
+TarMK GC #2: Found 66944 nodes at depth 4, target is 7000.
+```
+
 ##### <a name="how-does-compaction-works-with-concurrent-writes"/> How does compaction work with concurrent writes?
 
 When compaction runs as part of online garbage collection, it has to work concurrently with the rest of the system.
@@ -807,24 +823,25 @@ This option is optional and is disabled by default.
 ### <a name="compact"/> Compact
 
 ```
-java -jar oak-run.jar compact [--force] [--mmap] [--compactor] SOURCE [--target-path DESTINATION] [--persistent-cache-path PERSISTENT_CACHE_PATH] [--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>]
+java -jar oak-run.jar compact [--force] [--mmap] [--compactor] [--threads] SOURCE [--target-path DESTINATION] [--persistent-cache-path PERSISTENT_CACHE_PATH] [--persistent-cache-size-gb <PERSISTENT_CACHE_SIZE_GB>]
 ```
 
 The `compact` command performs offline compaction of the local/remote Segment Store at `SOURCE`. 
 `SOURCE` must be a valid path/uri to an existing Segment Store. Currently, Azure Segment Store and AWS Segment Store the supported remote Segment Stores. 
 Please refer to the [Remote Segment Stores](#remote-segment-stores) section for details on how to correctly specify connection URIs.
 
-If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non 
-matching Segment Store version. *CAUTION*: this will upgrade the Segment Store to the 
+If the optional `--force [Boolean]` argument is set to `true` the tool ignores a non-matching Segment Store version. *CAUTION*: this will upgrade the Segment Store to the 
 latest version, which is incompatible with older versions. *There is no way to downgrade 
 an accidentally upgraded Segment Store*.  
 
 The optional `--mmap [Boolean]` argument can be used to control the file access mode. Set
 to `true` for memory mapped access and `false` for file access. If not specified, memory 
-mapped access is used on 64 bit systems and file access is used on 32 bit systems. On
+mapped access is used on 64-bit systems and file access is used on 32-bit systems. On
 Windows, regular file access is always enforced and this option is ignored.
 
-The optional `--compactor [String]` argument can be used to pick the compactor type to be used. Valid choices are *classic* and *diff*. While the former is slower, it might be more stable, due to lack of optimisations employed by the *diff* compactor which compacts the checkpoints on top of each other. If not specified, *diff* compactor is used.
+The optional `--compactor [String]` argument can be used to pick the compactor type to be used. Valid choices are *classic*, *diff* and *parallel*. While *classic* is slower, it might be more stable, due to lack of optimisations employed by the *diff* compactor which compacts the checkpoints on top of each other and the *parallel* compactor, which additionally divides the repository into multiple parts to process in parallel. If not specified, *parallel* compactor is used.
+
+The optional `--threads [Integer]` argument specifies the number of threads to use for compaction. This is only applicable to the *parallel* compactor. If not specified, this defaults to the number of available processors.
 
 In order to speed up offline compaction for remote Segment Stores, three new options were introduced for configuring the destination segment store where compacted archives will be written and also to configure a persistent disk cache for speeding up segments reading during compaction. All three options detailed below **apply only for remote Segment Stores**.
 
