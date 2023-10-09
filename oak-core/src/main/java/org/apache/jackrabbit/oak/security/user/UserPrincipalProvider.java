@@ -17,21 +17,17 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Predicates;
 import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
@@ -50,7 +46,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.text.ParseException;
@@ -74,8 +69,6 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
     static final long EXPIRATION_NO_CACHE = 0;
-
-    protected static final long MEMBERSHIP_THRESHOLD = 0;
 
     private final Root root;
     private final UserConfiguration config;
@@ -287,13 +280,13 @@ class UserPrincipalProvider implements PrincipalProvider {
 
             // remember the regular groups in case caching is enabled
             if (doCache) {
-                PrincipalCommitterThread commitThread = UserPrincipalProviderCommitterProvider.getInstance().cacheGroups(authorizableTree, groupPrincipals, expiration, root);
+                PrincipalCacheCommitterThread commitThread = CacheThreadProvider.getInstance().cacheGroups(authorizableTree, groupPrincipals, expiration, root);
                 if (commitThread != null) {
                     //We need to wait the thread to finish, otherwise the session will be closed before the commit is done
                     try {
                         commitThread.join();
                     } catch (InterruptedException e) {
-                        log.error("Unexpected Error while waiting for commit thread to finish", e);
+                        log.warn("Exception while committing PrincipalCache", e);
                     }
                 }
                 // if the commit thread is null, it means that there is already a thread committing the changes, so we don't need to wait for it

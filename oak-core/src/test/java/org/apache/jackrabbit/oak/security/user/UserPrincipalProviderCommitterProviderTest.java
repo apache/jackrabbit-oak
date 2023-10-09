@@ -52,10 +52,10 @@ public class UserPrincipalProviderCommitterProviderTest extends TestCase {
         when(groupPrincipals.isEmpty()).thenReturn(true);
         MockRoot root = new MockRoot();
 
-        PrincipalCommitterThread[] thread = new PrincipalCommitterThread[NUM_THREADS];
-        UserPrincipalProviderCommitterProvider userPrincipalProviderCommitterProvider = UserPrincipalProviderCommitterProvider.getInstance();
+        PrincipalCacheCommitterThread[] thread = new PrincipalCacheCommitterThread[NUM_THREADS];
+        CacheThreadProvider userPrincipalProviderCommitterProvider = CacheThreadProvider.getInstance();
         for (int i = 0; i < NUM_THREADS; i++) {
-            thread[i] = UserPrincipalProviderCommitterProvider.getInstance().cacheGroups(authorizableNode, groupPrincipals, 1000, root);
+            thread[i] = CacheThreadProvider.getInstance().cacheGroups(authorizableNode, groupPrincipals, 1000, root);
         }
         for (int i = 0; i < NUM_THREADS; i++) {
             if (thread[i] != null) {
@@ -83,11 +83,11 @@ public class UserPrincipalProviderCommitterProviderTest extends TestCase {
         when(groupPrincipals.isEmpty()).thenReturn(true);
         MockRoot root = new MockRoot();
 
-        PrincipalCommitterThread[] thread = new PrincipalCommitterThread[NUM_THREADS];
-        UserPrincipalProviderCommitterProvider userPrincipalProviderCommitterProvider = UserPrincipalProviderCommitterProvider.getInstance();
+        PrincipalCacheCommitterThread[] thread = new PrincipalCacheCommitterThread[NUM_THREADS];
+        CacheThreadProvider userPrincipalProviderCommitterProvider = CacheThreadProvider.getInstance();
         for (int i = 0; i < NUM_THREADS; i++) {
-            thread[i] = UserPrincipalProviderCommitterProvider.getInstance().cacheGroups(authorizableNode, groupPrincipals, 1000, root);
-            thread[i] = UserPrincipalProviderCommitterProvider.getInstance().cacheGroups(authorizableNode2, groupPrincipals, 1000, root);
+            thread[i] = CacheThreadProvider.getInstance().cacheGroups(authorizableNode, groupPrincipals, 1000, root);
+            thread[i] = CacheThreadProvider.getInstance().cacheGroups(authorizableNode2, groupPrincipals, 1000, root);
         }
         for (int i = 0; i < NUM_THREADS; i++) {
             if (thread[i] != null) {

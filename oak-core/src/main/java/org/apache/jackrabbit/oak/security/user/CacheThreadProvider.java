@@ -22,38 +22,44 @@ package org.apache.jackrabbit.oak.security.user;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class UserPrincipalCacheCommitterProvider {
+class CacheThreadProvider {
 
-    static UserPrincipalCacheCommitterProvider instance = null;
-    static HashMap<String, PrincipalCacheCommitterThread> committerThreadMap = new HashMap<>();
+    private static CacheThreadProvider instance = null;
+    private static ConcurrentHashMap<String, PrincipalCacheCommitterThread> committerThreadMap = new ConcurrentHashMap<>();
 
-    public static UserPrincipalCacheCommitterProvider getInstance() {
+    public static @Nullable CacheThreadProvider getInstance() {
         if (instance == null) {
-            instance = new UserPrincipalCacheCommitterProvider();
+            instance = new CacheThreadProvider();
         }
         return instance;
     }
 
-    public synchronized PrincipalCacheCommitterThread cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals, long expiration, Root root) {
+    protected synchronized @Nullable PrincipalCacheCommitterThread cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals, long expiration, @NotNull Root root) {
         String authorizableNodePath = authorizableNode.getPath();
         if (committerThreadMap.containsKey(authorizableNodePath)) {
             // One thread is already committing. return null to inform the caller that doesn't have to wait for the commit to finish
             return null;
         } else {
-            PrincipalCacheCommitterThread committerThread = new PrincipalCacheCommitterThread(authorizableNode, groupPrincipals, expiration, root, committerThreadMap);
+            PrincipalCacheCommitterThread committerThread = new PrincipalCacheCommitterThread(authorizableNode, groupPrincipals, expiration, root);
             committerThreadMap.put(authorizableNodePath, committerThread);
             committerThread.start();
             return committerThread;
         }
     }
 
-    public HashMap<String, PrincipalCacheCommitterThread> getCommitterThreadMap() {
+    protected ConcurrentHashMap<String, PrincipalCacheCommitterThread> getCommitterThreadMap() {
         return committerThreadMap;
+    }
+
+    protected void removeCommitterThread(String authorizableNodePath) {
+        committerThreadMap.remove(authorizableNodePath);
     }
 
 }

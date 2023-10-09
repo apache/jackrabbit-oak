@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.util.Text;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,20 +36,18 @@ import java.security.Principal;
 import java.util.HashMap;
 import java.util.Set;
 
-public class PrincipalCommitterThread extends Thread {
+class PrincipalCacheCommitterThread extends Thread {
     protected static final long MEMBERSHIP_THRESHOLD = 0;
-    Tree authorizableNode;
-    Set<Principal> groupPrincipals;
-    HashMap committerThreadMap;
-    long expiration;
-    Root root;
+    private Tree authorizableNode;
+    private final Set<Principal> groupPrincipals;
+    private final long expiration;
+    private final Root root;
 
-    private static final Logger log = LoggerFactory.getLogger(PrincipalCommitterThread.class);
+    private static final Logger log = LoggerFactory.getLogger(PrincipalCacheCommitterThread.class);
 
-    public PrincipalCommitterThread(Tree authorizableNode, Set<Principal> groupPrincipals, long expiration, Root root, HashMap committerThreadMap) {
+    protected PrincipalCacheCommitterThread(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals, long expiration, @NotNull Root root) {
         this.authorizableNode = authorizableNode;
         this.groupPrincipals = groupPrincipals;
-        this.committerThreadMap = committerThreadMap;
         this.expiration = expiration;
         this.root = root;
     }
@@ -82,9 +81,8 @@ public class PrincipalCommitterThread extends Thread {
             log.debug("Failed to cache group membership: {}", e.getMessage());
         } finally {
             log.debug("Removing thread from committerThreadMap for {}", authorizableNode.getPath());
-            committerThreadMap.remove(authorizableNode.getPath());
+            CacheThreadProvider.getInstance().removeCommitterThread(authorizableNode.getPath());
             root.refresh();
         }
-
     }
 }
