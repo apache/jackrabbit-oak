@@ -32,7 +32,9 @@
     <!--
     <logger name="org.apache.jackrabbit.oak.index.IndexerSupport" level="TRACE"/>
     -->
+    <!--
     <logger name="org.apache.jackrabbit.oak.index.indexer.document.flatfile" level="TRACE"/>
+    -->
 
     <root level="INFO">
         <!--
