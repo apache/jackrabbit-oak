@@ -49,7 +49,7 @@ public class MongoDockerRule extends ExternalResource {
     private static final int DEFAULT_MONGO_PORT = 27017;
     private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("mongo:" + VERSION);
     private static final boolean DOCKER_AVAILABLE;
-    private static GenericContainer<?> mongoDBContainer;
+    private static GenericContainer<?> mongoContainer;
 
     static {
 
@@ -68,16 +68,16 @@ public class MongoDockerRule extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        if (mongoDBContainer != null) {
+        if (mongoContainer != null && mongoContainer.isRunning()) {
             return;
         }
-        mongoDBContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
+        mongoContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
                 .withExposedPorts(DEFAULT_MONGO_PORT)
                 .withStartupTimeout(Duration.ofMinutes(1));
 
         try {
             long startTime = Instant.now().toEpochMilli();
-            mongoDBContainer.start();
+            mongoContainer.start();
             LOG.info("mongo container started in: " + (Instant.now().toEpochMilli() - startTime) + " ms");
         } catch (Exception e) {
             LOG.error("error while starting mongoDb container, error: ", e);
@@ -120,11 +120,11 @@ public class MongoDockerRule extends ExternalResource {
     }
 
     public int getPort() {
-        return mongoDBContainer.getMappedPort(DEFAULT_MONGO_PORT);
+        return mongoContainer.getMappedPort(DEFAULT_MONGO_PORT);
     }
 
     public String getHost() {
-        return mongoDBContainer.getHost();
+        return mongoContainer.getHost();
     }
 
     public static boolean isDockerAvailable() {
