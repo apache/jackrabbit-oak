@@ -1,0 +1,16 @@
+Benchmarks: LoginWithMembershipTest
+Fixtures: Oak-Segment-Tar
+Runtime: 5
+Concurrency: 500
+Profiling: false
+User: user
+Run with Token: false
+Hash Iterations: -1
+Cache Expiration: 5
+Number of Groups: 10
+Use Nested Groups: false
+--------------------------------------
+Executing benchmarks as user: user with 10 groups (nested = false) on Oak-Segment-Tar
+-----------------------------------------------------------
+# LoginWithMembershipTest   ,      C,    min,    10%,    50%,    90%,    max,    N      mean
+Oak-Segment-Tar             ,    500, 185313, 195708, 200474, 202110, 202375,    500, 199638
