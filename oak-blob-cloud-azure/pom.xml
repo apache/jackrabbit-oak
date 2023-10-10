@@ -21,7 +21,7 @@
     <parent>
         <artifactId>oak-parent</artifactId>
         <groupId>org.apache.jackrabbit</groupId>
-        <version>1.57-SNAPSHOT</version>
+        <version>1.58.0</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -52,7 +52,7 @@
                             guava
                         </Embed-Dependency>
                         <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
-                        <_plugin/>
+                        <_plugin />
                     </instructions>
                 </configuration>
             </plugin>
