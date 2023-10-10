@@ -45,9 +45,10 @@ public class MongoDockerRule extends ExternalResource {
     private static final Logger LOG = LoggerFactory.getLogger(MongoDockerRule.class);
 
     private static final String VERSION = System.getProperty("mongo.version", "3.6");
+    private static final String MONGO_IMAGE = "mongo:" + VERSION;
     private static final AtomicReference<Exception> STARTUP_EXCEPTION = new AtomicReference<>();
     private static final int DEFAULT_MONGO_PORT = 27017;
-    private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse("mongo:" + VERSION);
+    private static final DockerImageName DOCKER_IMAGE_NAME = DockerImageName.parse(MONGO_IMAGE);
     private static final boolean DOCKER_AVAILABLE;
     private static GenericContainer<?> mongoContainer;
 
@@ -59,9 +60,11 @@ public class MongoDockerRule extends ExternalResource {
             dockerAvailable = checkDockerAvailability();
             if (dockerAvailable) {
                 imageAvailable = checkImageAvailability();
+            } else {
+                LOG.info("docker not available");
             }
         } catch (Throwable t) {
-            LOG.error("either docker is not available or specified mongo image cannot be pulled, dockerAvailable: {}, imageAvailable: {}, error: ", dockerAvailable, imageAvailable, t);
+            LOG.error("not able to pull specified mongo image: {}, error: ", MONGO_IMAGE, t);
         }
         DOCKER_AVAILABLE = dockerAvailable && imageAvailable;
     }
