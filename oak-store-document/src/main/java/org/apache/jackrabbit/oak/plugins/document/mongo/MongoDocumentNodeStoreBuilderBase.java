@@ -240,8 +240,8 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private T setMongoDB(@NotNull MongoDBConnection mongoDBConnection,
                          int blobCacheSizeMB) {
         mongoDBConnection.checkReadWriteConcern();
-        this.mongoStatus = mongoDBConnection.getStatus();
         this.mongoClient = mongoDBConnection.getClient();
+        this.mongoStatus = mongoDBConnection.getStatus();
         this.documentStoreSupplier = memoize(() -> new MongoDocumentStore(
                 mongoDBConnection.getClient(), mongoDBConnection.getDatabase(), MongoDocumentNodeStoreBuilderBase.this));
 
