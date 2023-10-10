@@ -52,6 +52,7 @@ Improvement
     [OAK-10456] - oak-search-elastic: log index name when bulk update fails
     [OAK-10458] - Indexing job: Make LZ4 the default compression algorithm in OAK
     [OAK-10463] - Retrieve flatFileStore for indexing from baseFlatFileStore
+    [OAK-10475] - Expose the mongo connection in MongoDocumentNodeStoreBuilderBase
 
 Task
 
