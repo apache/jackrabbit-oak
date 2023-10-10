@@ -44,8 +44,10 @@ import static org.apache.jackrabbit.oak.plugins.version.Utils.primaryTypeOf;
 import static org.apache.jackrabbit.oak.plugins.version.Utils.uuidFromNode;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.jcr.RepositoryException;
@@ -285,8 +287,32 @@ class VersionableState {
                                @NotNull NodeBuilder dest,
                                @NotNull VersionSelector selector)
             throws RepositoryException, CommitFailedException {
-        // 15.7.2 Restoring Type and Identifier
-        restoreFrozenTypeAndUUID(frozen, dest);
+        //OAK-9459: if the NodeState is not empty, retrieve OPVs before restoring types to avoid constraint violations
+        boolean frozenTypeRestored = false;
+        if (!dest.hasProperty(JCR_PRIMARYTYPE)) {
+            // empty NodeState
+            // 15.7.2 Restoring Type and Identifier
+            restoreFrozenTypeAndUUID(frozen, dest);
+            frozenTypeRestored = true;
+        }
+        HashMap<PropertyState, Integer> opvs = new HashMap<>();
+        for (PropertyState p : dest.getProperties()) {
+            String propName = p.getName();
+            if (BASIC_PROPERTIES.contains(propName)) {
+                continue;
+            }
+            if (frozen.hasProperty(propName)) {
+                continue;
+            }
+            int action = getOPV(dest, p);
+            if (action == COPY || action == VERSION || action == ABORT || action == INITIALIZE || action == COMPUTE) {
+                opvs.put(p, action);
+            }
+        }
+        if (!frozenTypeRestored) {
+            // 15.7.2 Restoring Type and Identifier
+            restoreFrozenTypeAndUUID(frozen, dest);
+        }
         // 15.7.3 Restoring Properties
         for (PropertyState p : frozen.getProperties()) {
             if (BASIC_FROZEN_PROPERTIES.contains(p.getName())) {
@@ -298,19 +324,12 @@ class VersionableState {
                 dest.setProperty(p);
             }
         }
-        for (PropertyState p : dest.getProperties()) {
+        for (Map.Entry<PropertyState, Integer> entry : opvs.entrySet()) {
+            PropertyState p = entry.getKey();
+            int action = entry.getValue();
             String propName = p.getName();
-            if (BASIC_PROPERTIES.contains(propName)) {
-                continue;
-            }
-            if (frozen.hasProperty(propName)) {
-                continue;
-            }
-            int action = getOPV(dest, p);
             if (action == COPY || action == VERSION || action == ABORT) {
                 dest.removeProperty(propName);
-            } else if (action == IGNORE) {
-                // no action
             } else if (action == INITIALIZE) {
                 resetToDefaultValue(dest, p);
             } else if (action == COMPUTE) {
