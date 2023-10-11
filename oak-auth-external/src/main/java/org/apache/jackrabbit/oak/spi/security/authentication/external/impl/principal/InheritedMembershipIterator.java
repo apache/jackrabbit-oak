@@ -54,6 +54,7 @@ class InheritedMembershipIterator extends AbstractLazyIterator<Group> {
             try {
                 // call 'memberof' to cover nested inheritance
                 Iterator<Group> it = gr.memberOf();
+                // verify that the group-iterator has any elements before remembering it for further processing
                 if (it.hasNext()) {
                     inherited.add(it);
                 }
@@ -63,17 +64,10 @@ class InheritedMembershipIterator extends AbstractLazyIterator<Group> {
             return gr;
         }
 
-        if (inheritedIterator == null) {
-            inheritedIterator = getNextInheritedIterator();
-        }
-
-        while (inheritedIterator.hasNext()) {
+        while (inheritedHasNext()) {
             Group gr = inheritedIterator.next();
             if (notProcessedBefore(gr)) {
                 return gr;
-            }
-            if (!inheritedIterator.hasNext()) {
-                inheritedIterator = getNextInheritedIterator();
             }
         } 
             
@@ -86,6 +80,21 @@ class InheritedMembershipIterator extends AbstractLazyIterator<Group> {
             return processed.add(group.getID()) && !EveryonePrincipal.NAME.equals(group.getPrincipal().getName());
         } catch (RepositoryException repositoryException) {
             return true;
+        }
+    }
+    
+    private boolean inheritedHasNext() {
+        if (inheritedIterator == null) {
+            // initialize the inherited iterator (i.e. get the first one after having processed all dynamic groups)
+            inheritedIterator = getNextInheritedIterator();
+        }
+        if (inheritedIterator.hasNext()) {
+            return true;
+        } else {
+            // no more elements in the current 'inheritedIterator'. move on to the next inherited iterator 
+            // (or an empty one if there are no more iterators left to process)
+            inheritedIterator = getNextInheritedIterator();
+            return inheritedIterator.hasNext();
         }
     }
 
