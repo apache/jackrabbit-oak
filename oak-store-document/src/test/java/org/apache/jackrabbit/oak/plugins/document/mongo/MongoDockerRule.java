@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
-import com.arakelian.docker.junit.DockerRule;
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
@@ -38,7 +37,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * A MongoDB {@link DockerRule}.
+ * A MongoDB {@link GenericContainer}.
  */
 public class MongoDockerRule extends ExternalResource {
 
