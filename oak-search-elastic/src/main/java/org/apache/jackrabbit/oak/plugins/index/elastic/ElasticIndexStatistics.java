@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -107,7 +108,17 @@ public class ElasticIndexStatistics implements IndexStatistics {
     @Override
     public int getDocCountFor(String field) {
         return countCache.getUnchecked(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), field)
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), field, null)
+        );
+    }
+
+    /**
+     * Returns the approximate number of documents for the {@code query} in the remote index bound to the
+     * {@code ElasticIndexDefinition}.
+     */
+    public int getDocCountFor(Query query) {
+        return countCache.getUnchecked(
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), null, query)
         );
     }
 
@@ -194,7 +205,10 @@ public class ElasticIndexStatistics implements IndexStatistics {
         private int count(StatsRequestDescriptor crd) throws IOException {
             CountRequest.Builder cBuilder = new CountRequest.Builder();
             cBuilder.index(crd.index);
-            if (crd.field != null) {
+            if (crd.query != null) {
+                cBuilder.query(crd.query);
+            }
+            else if (crd.field != null) {
                 cBuilder.query(q -> q.exists(e -> e.field(crd.field)));
             } else {
                 cBuilder.query(q -> q.matchAll(m -> m));
@@ -251,17 +265,20 @@ public class ElasticIndexStatistics implements IndexStatistics {
         final String index;
         @Nullable
         final String field;
+        @Nullable
+        final Query query;
 
         StatsRequestDescriptor(@NotNull ElasticConnection connection,
                                @NotNull String index) {
-            this(connection, index, null);
+            this(connection, index, null, null);
         }
 
         StatsRequestDescriptor(@NotNull ElasticConnection connection,
-                               @NotNull String index, @Nullable String field) {
+                               @NotNull String index, @Nullable String field, @Nullable Query query) {
             this.connection = connection;
             this.index = index;
             this.field = field;
+            this.query = query;
         }
 
         @Override
