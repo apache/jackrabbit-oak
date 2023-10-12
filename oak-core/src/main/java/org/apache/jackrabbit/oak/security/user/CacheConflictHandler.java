@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * The {@code RepMembersConflictHandler} takes care of merging the {@code rep:expiration} property
+ * The {@code CacheConflictHandler} takes care of merging the {@code rep:expiration} property
  * during parallel updates.
  *<p>
  * The conflict handler deals with the following conflicts:
