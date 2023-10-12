@@ -400,7 +400,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
         private final Cursor pathCursor;
         private final String pathPrefix;
-        FulltextResultRow currentRow;
+        FulltextResultRow currentRowInPathIterator;
         private final SizeEstimator sizeEstimator;
         private long estimatedSize;
         private final int numberOfFacets;
@@ -425,7 +425,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                         readCount = 0;
                         rewoundCount = iterStateProvider.rewoundCount();
                     }
-                    currentRow = it.next();
+                    currentRowInPathIterator = it.next();
                     readCount++;
                     if (readCount % TRAVERSING_WARNING == 0) {
                         Cursors.checkReadLimit(readCount, settings);
@@ -436,7 +436,7 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
                             log.warn("Index-Traversed {} nodes with filter {}", readCount, plan.getFilter());
                         }
                     }
-                    return currentRow.path;
+                    return currentRowInPathIterator.path;
                 }
 
                 @Override
@@ -465,6 +465,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         @Override
         public IndexRow next() {
             final IndexRow pathRow = pathCursor.next();
+            // we need to copy the reference to the current row here,
+            // otherwise all the returned IndexRows might reference the same row
+            final FulltextResultRow currentRow = currentRowInPathIterator;
             return new IndexRow() {
 
                 @Override
