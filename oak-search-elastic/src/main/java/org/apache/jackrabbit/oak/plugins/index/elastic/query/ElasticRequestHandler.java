@@ -730,7 +730,7 @@ public class ElasticRequestHandler {
         int length = QueryConstants.REP_EXCERPT.length();
         if (name.length() > length) {
             String field = name.substring(length + 1, name.length() - 1);
-            if (field.length() > 0 && !field.equals(".")) {
+            if (!field.isEmpty() && !field.equals(".")) {
                 return field;
             }
         }

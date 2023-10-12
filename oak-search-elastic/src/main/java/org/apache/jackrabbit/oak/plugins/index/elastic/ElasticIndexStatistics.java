@@ -191,12 +191,12 @@ public class ElasticIndexStatistics implements IndexStatistics {
     static class CountCacheLoader extends CacheLoader<StatsRequestDescriptor, Integer> {
 
         @Override
-        public Integer load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
+        public @NotNull Integer load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
             return count(countRequestDescriptor);
         }
 
         @Override
-        public ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
+        public @NotNull ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
             ListenableFutureTask<Integer> task = ListenableFutureTask.create(() -> count(crd));
             REFRESH_EXECUTOR.execute(task);
             return task;
@@ -220,12 +220,12 @@ public class ElasticIndexStatistics implements IndexStatistics {
     static class StatsCacheLoader extends CacheLoader<StatsRequestDescriptor, StatsResponse> {
 
         @Override
-        public StatsResponse load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
+        public @NotNull StatsResponse load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
             return stats(countRequestDescriptor);
         }
 
         @Override
-        public ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
+        public @NotNull ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
             ListenableFutureTask<StatsResponse> task = ListenableFutureTask.create(() -> stats(crd));
             REFRESH_EXECUTOR.execute(task);
             return task;
@@ -237,7 +237,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
                             .bytes(Bytes.Bytes))
                     .valueBody();
             if (records.isEmpty()) {
-                return null;
+                throw new IllegalStateException("Cannot retrieve stats for index " + crd.index + " as it does not exist");
             }
             // Assuming a single index matches crd.index
             IndicesRecord record = records.get(0);
