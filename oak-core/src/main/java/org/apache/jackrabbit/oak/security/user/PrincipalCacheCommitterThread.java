@@ -38,7 +38,7 @@ import java.util.Set;
 
 class PrincipalCacheCommitterThread extends Thread {
     protected static final long MEMBERSHIP_THRESHOLD = 0;
-    private Tree authorizableNode;
+    private final Tree authorizableNode;
     private final Set<Principal> groupPrincipals;
     private final long expiration;
     private final Root root;
