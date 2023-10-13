@@ -17,24 +17,19 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.guava.common.base.Function;
-import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Predicates;
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.api.security.principal.ItemBasedPrincipal;
 import org.apache.jackrabbit.api.security.user.Authorizable;
 import org.apache.jackrabbit.api.security.user.UserManager;
-import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Result;
 import org.apache.jackrabbit.oak.api.ResultRow;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
-import org.apache.jackrabbit.oak.commons.LongUtils;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
-import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
+import org.apache.jackrabbit.oak.security.user.GroupMembershipReader.GroupPrincipalFactory;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -44,18 +39,15 @@ import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
-import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.AccessDeniedException;
 import javax.jcr.RepositoryException;
 import java.security.Principal;
 import java.text.ParseException;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -73,19 +65,16 @@ class UserPrincipalProvider implements PrincipalProvider {
     private static final Logger log = LoggerFactory.getLogger(UserPrincipalProvider.class);
 
     static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
+    static final String PARAM_CACHE_MAX_STALE = "cacheMaxStale";
     static final long EXPIRATION_NO_CACHE = 0;
-
-    private static final long MEMBERSHIP_THRESHOLD = 0;
+    static final long NO_STALE_CACHE = 0;
 
     private final Root root;
     private final UserConfiguration config;
     private final NamePathMapper namePathMapper;
 
     private final UserProvider userProvider;
-    private final MembershipProvider membershipProvider;
-
-    private final long expiration;
-    private final boolean cacheEnabled;
+    private final GroupMembershipReader groupMembershipReader;
 
     UserPrincipalProvider(@NotNull Root root,
                           @NotNull UserConfiguration userConfiguration,
@@ -93,12 +82,17 @@ class UserPrincipalProvider implements PrincipalProvider {
         this.root = root;
         this.config = userConfiguration;
         this.namePathMapper = namePathMapper;
-
         this.userProvider = new UserProvider(root, config.getParameters());
-        this.membershipProvider = new MembershipProvider(root, config.getParameters());
 
-        expiration = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
-        cacheEnabled = (expiration > EXPIRATION_NO_CACHE && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
+        MembershipProvider membershipProvider = new MembershipProvider(root, config.getParameters());
+        GroupPrincipalFactory groupPrincipalFactory = createGroupPrincipalFactory();
+        long expiration = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
+        boolean cacheEnabled = (expiration > EXPIRATION_NO_CACHE && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
+        if (cacheEnabled) {
+            groupMembershipReader = new CachedGroupMembershipReader(membershipProvider, groupPrincipalFactory, config, root);
+        } else {
+            groupMembershipReader = new GroupMembershipReader(membershipProvider, groupPrincipalFactory);
+        }
     }
 
     //--------------------------------------------------< PrincipalProvider >---
@@ -209,6 +203,21 @@ class UserPrincipalProvider implements PrincipalProvider {
     }
 
     //------------------------------------------------------------< private >---
+
+    private GroupPrincipalFactory createGroupPrincipalFactory() {
+        return new GroupPrincipalFactory() {
+            @Override
+            public Principal create(@NotNull Tree authorizable) {
+                return createGroupPrincipal(authorizable);
+            }
+
+            @Override
+            public Principal create(@NotNull String principalName) {
+                return new CachedGroupPrincipal(principalName, namePathMapper, root, config);
+            }
+        };
+    }
+
     @Nullable
     private Tree getAuthorizableTree(@NotNull Principal principal) {
         return userProvider.getAuthorizableByPrincipal(principal);
@@ -266,30 +275,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     @NotNull
     private Set<Principal> getGroupMembership(@NotNull Tree authorizableTree) {
         Set<Principal> groupPrincipals = new HashSet<>();
-        boolean doCache = cacheEnabled && UserUtil.isType(authorizableTree, AuthorizableType.USER);
-        boolean doLoad = true;
-        if (doCache) {
-            doLoad = readGroupsFromCache(authorizableTree, groupPrincipals);
-        }
-
-        // caching not configured or cache expired: use the membershipProvider to calculate
-        if (doLoad) {
-            Iterator<Tree> groupTrees = membershipProvider.getMembership(authorizableTree, true);
-            while (groupTrees.hasNext()) {
-                Tree groupTree = groupTrees.next();
-                if (UserUtil.isType(groupTree, AuthorizableType.GROUP)) {
-                    Principal gr = createGroupPrincipal(groupTree);
-                    if (gr != null) {
-                        groupPrincipals.add(gr);
-                    }
-                }
-            }
-
-            // remember the regular groups in case caching is enabled
-            if (doCache) {
-                cacheGroups(authorizableTree, groupPrincipals);
-            }
-        }
+        groupMembershipReader.getMembership(authorizableTree, groupPrincipals);
 
         // add the dynamic everyone principal group which is not included in
         // the 'getMembership' call.
@@ -297,65 +283,6 @@ class UserPrincipalProvider implements PrincipalProvider {
         return groupPrincipals;
     }
 
-    private void cacheGroups(@NotNull Tree authorizableNode, @NotNull Set<Principal> groupPrincipals) {
-        try {
-            root.refresh();
-            Tree cache = authorizableNode.getChild(CacheConstants.REP_CACHE);
-            if (!cache.exists()) {
-                if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
-                    log.debug("Omit cache creation for user without group membership at {}", authorizableNode.getPath());
-                    return;
-                } else {
-                    log.debug("Create new group membership cache at {}", authorizableNode.getPath());
-                    cache = TreeUtil.addChild(authorizableNode, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
-                }
-            }
-
-            cache.setProperty(CacheConstants.REP_EXPIRATION, LongUtils.calculateExpirationTime(expiration));
-            String value = (groupPrincipals.isEmpty()) ? "" : Joiner.on(",").join(Iterables.transform(groupPrincipals, input -> Text.escape(input.getName())));
-            cache.setProperty(CacheConstants.REP_GROUP_PRINCIPAL_NAMES, value);
-
-            root.commit(CacheValidatorProvider.asCommitAttributes());
-            log.debug("Cached group membership at {}", authorizableNode.getPath());
-
-        } catch (AccessDeniedException | CommitFailedException e) {
-            log.debug("Failed to cache group membership: {}", e.getMessage());
-        } finally {
-            root.refresh();
-        }
-    }
-
-    private boolean readGroupsFromCache(@NotNull Tree authorizableNode, @NotNull Set<Principal> groups) {
-        Tree principalCache = authorizableNode.getChild(CacheConstants.REP_CACHE);
-        if (!principalCache.exists()) {
-            log.debug("No group cache at {}", authorizableNode.getPath());
-            return true;
-        }
-
-        if (isValidCache(principalCache)) {
-            log.debug("Reading group membership at {}", authorizableNode.getPath());
-
-            String str = TreeUtil.getString(principalCache, CacheConstants.REP_GROUP_PRINCIPAL_NAMES);
-            if (Strings.isNullOrEmpty(str)) {
-                return false;
-            }
-
-            for (String s : Text.explode(str, ',')) {
-                final String name = Text.unescape(s);
-                groups.add(new CachedGroupPrincipal(name, namePathMapper, root, config));
-            }
-            return false;
-        } else {
-            log.debug("Expired group cache for {}", authorizableNode.getPath());
-            return true;
-        }
-    }
-
-    private static boolean isValidCache(Tree principalCache)  {
-        long expirationTime = TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
-        long now = new Date().getTime();
-        return expirationTime > EXPIRATION_NO_CACHE && now < expirationTime;
-    }
 
     private static String buildSearchPatternContains(@NotNull String nameHint) {
         StringBuilder sb = new StringBuilder();
