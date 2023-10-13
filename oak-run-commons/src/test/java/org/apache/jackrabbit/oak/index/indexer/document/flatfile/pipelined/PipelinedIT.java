@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -306,7 +307,7 @@ public class PipelinedIT {
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         return new PipelinedStrategy(
                 backend.mongoDocumentStore,
-                backend.mongoConnection,
+                backend.mongoDatabase,
                 backend.documentNodeStore,
                 rootRevision,
                 preferredPathElements,
@@ -369,18 +370,18 @@ public class PipelinedIT {
         }
         builder.setAsyncDelay(1);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c);
+        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase());
     }
 
     static class Backend {
         final MongoDocumentStore mongoDocumentStore;
         final DocumentNodeStore documentNodeStore;
-        final MongoConnection mongoConnection;
+        final MongoDatabase mongoDatabase;
 
-        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoConnection mongoConnection) {
+        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase) {
             this.mongoDocumentStore = mongoDocumentStore;
             this.documentNodeStore = documentNodeStore;
-            this.mongoConnection = mongoConnection;
+            this.mongoDatabase = mongoDatabase;
         }
     }
 }

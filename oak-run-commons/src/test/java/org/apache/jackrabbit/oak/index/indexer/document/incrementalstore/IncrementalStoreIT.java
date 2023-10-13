@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.collections4.set.ListOrderedSet;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -299,7 +300,7 @@ public class IncrementalStoreIT {
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         return new PipelinedStrategy(
                 backend.mongoDocumentStore,
-                backend.mongoConnection,
+                backend.mongoDatabase,
                 backend.documentNodeStore,
                 rootRevision,
                 preferredPathElements,
@@ -477,19 +478,19 @@ public class IncrementalStoreIT {
         }
         builder.setAsyncDelay(1);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c);
+        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase());
     }
 
 
     static class Backend {
         final MongoDocumentStore mongoDocumentStore;
         final DocumentNodeStore documentNodeStore;
-        final MongoConnection mongoConnection;
+        final MongoDatabase mongoDatabase;
 
-        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoConnection mongoConnection) {
+        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase) {
             this.mongoDocumentStore = mongoDocumentStore;
             this.documentNodeStore = documentNodeStore;
-            this.mongoConnection = mongoConnection;
+            this.mongoDatabase = mongoDatabase;
         }
     }
 
