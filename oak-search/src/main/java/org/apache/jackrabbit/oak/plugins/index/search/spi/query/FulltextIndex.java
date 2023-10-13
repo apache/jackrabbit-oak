@@ -469,14 +469,13 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
         @Override
         public IndexRow next() {
-            final IndexRow pathRow = pathCursor.next();
+            IndexRow pathRow = pathCursor.next();
 
-            // we need to copy the reference to the current row here,
-            // otherwise all the returned IndexRows might reference the same row
-            // (and then we use _this_ row in the IndexRow class below)
-            final FulltextResultRow currentRow = currentRowInPathIterator;
+            // currentRowInPathIterator is changed as a side effect
+            // of calling pathCursor.next()
+            FulltextResultRow row = currentRowInPathIterator;
 
-            return new IndexResultRow(pathRow, currentRow, pathPrefix, numberOfFacets);
+            return new IndexResultRow(pathRow, row, pathPrefix, numberOfFacets);
         }
 
         @Override
