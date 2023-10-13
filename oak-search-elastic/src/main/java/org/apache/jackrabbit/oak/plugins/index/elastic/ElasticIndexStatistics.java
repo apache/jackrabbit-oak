@@ -286,8 +286,12 @@ public class ElasticIndexStatistics implements IndexStatistics {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             StatsRequestDescriptor that = (StatsRequestDescriptor) o;
+            String thisInternalQuery = query != null ? query.toString() : null;
+            String thatInternalQuery = that.query != null ? that.query.toString() : null;
             return index.equals(that.index) &&
-                    Objects.equals(field, that.field);
+                    Objects.equals(field, that.field) &&
+                    // ES Query objects are not comparable, so we need to compare their string representations
+                    Objects.equals(thisInternalQuery, thatInternalQuery);
         }
 
         @Override
