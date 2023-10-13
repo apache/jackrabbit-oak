@@ -65,7 +65,7 @@ public class UserImporterMembershipIgnoreTest extends UserImporterBaseTest {
         assertTrue(importer.start(memberRefList));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testInvalidMemberContentId() throws Exception {
         importer.startChildInfo(createNodeInfo("memberRef", NT_REP_MEMBER_REFERENCES), ImmutableList.of(createPropInfo(REP_MEMBERS, "memberId")));
         importer.processReferences();
