@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.InMemoryDataRecord;
 import org.apache.jackrabbit.oak.plugins.memory.AbstractBlob;
@@ -41,6 +42,10 @@ import org.jetbrains.annotations.Nullable;
  * A BLOB (stream of bytes). This is a record of type "VALUE".
  */
 public class SegmentBlob extends Record implements Blob {
+    private static final boolean FAST_EQUALS_SAME_BLOBSTORE = SystemPropertySupplier
+            .create("oak.segment.blob.fastEquals.same.blobstore", false)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
+            .get();
 
     @Nullable
     private final BlobStore blobStore;
@@ -189,6 +194,14 @@ public class SegmentBlob extends Record implements Blob {
 
                 if (this.isExternal() && !that.isExternal() || !this.isExternal() && that.isExternal()) {
                     return false;
+                }
+            }
+
+            if (FAST_EQUALS_SAME_BLOBSTORE) {
+                if (blobStore != null && this.blobStore.equals(that.blobStore) && this.isExternal() && that.isExternal()) {
+                    if (this.getContentIdentity() != null && that.getContentIdentity() != null) {
+                        return this.getContentIdentity().equals(that.getContentIdentity());
+                    }
                 }
             }
 
