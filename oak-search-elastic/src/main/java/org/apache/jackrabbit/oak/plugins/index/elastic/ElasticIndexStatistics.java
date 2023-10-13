@@ -207,8 +207,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
             cBuilder.index(crd.index);
             if (crd.query != null) {
                 cBuilder.query(crd.query);
-            }
-            else if (crd.field != null) {
+            } else if (crd.field != null) {
                 cBuilder.query(q -> q.exists(e -> e.field(crd.field)));
             } else {
                 cBuilder.query(q -> q.matchAll(m -> m));
