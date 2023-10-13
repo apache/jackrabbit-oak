@@ -400,10 +400,15 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
 
         private final Cursor pathCursor;
         private final String pathPrefix;
-        FulltextResultRow currentRowInPathIterator;
         private final SizeEstimator sizeEstimator;
-        private long estimatedSize;
         private final int numberOfFacets;
+
+        // the cached value
+        private long estimatedSize;
+
+        // the current row in the pathCursor
+        // (so we don't have to extend the PathCursor)
+        FulltextResultRow currentRowInPathIterator;
 
         public FulltextPathCursor(final Iterator<FulltextResultRow> it, final IteratorRewoundStateProvider iterStateProvider,
                                   final IndexPlan plan, QueryLimits settings, SizeEstimator sizeEstimator) {
@@ -465,70 +470,13 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         @Override
         public IndexRow next() {
             final IndexRow pathRow = pathCursor.next();
+
             // we need to copy the reference to the current row here,
             // otherwise all the returned IndexRows might reference the same row
+            // (and then we use _this_ row in the IndexRow class below)
             final FulltextResultRow currentRow = currentRowInPathIterator;
-            return new IndexRow() {
 
-                @Override
-                public boolean isVirtualRow() {
-                    return currentRow.isVirutal;
-                }
-
-                @Override
-                public String getPath() {
-                    String sub = pathRow.getPath();
-                    if (isVirtualRow()) {
-                        return sub;
-                    } else if (!"".equals(pathPrefix) && PathUtils.denotesRoot(sub)) {
-                        return pathPrefix;
-                    } else if (PathUtils.isAbsolute(sub)) {
-                        return pathPrefix + sub;
-                    } else {
-                        return PathUtils.concat(pathPrefix, sub);
-                    }
-                }
-
-                @Override
-                public PropertyValue getValue(String columnName) {
-                    // overlay the score
-                    if (QueryConstants.JCR_SCORE.equals(columnName)) {
-                        return PropertyValues.newDouble(currentRow.score);
-                    }
-                    if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
-                        return PropertyValues.newString(currentRow.suggestion);
-                    }
-                    if (QueryConstants.OAK_SCORE_EXPLANATION.equals(columnName)) {
-                        return PropertyValues.newString(currentRow.explanation);
-                    }
-                    if (columnName.startsWith(QueryConstants.REP_EXCERPT)) {
-                        String excerpt = currentRow.excerpts.get(columnName);
-                        if (excerpt != null) {
-                            return PropertyValues.newString(excerpt);
-                        }
-                    }
-                    if (columnName.startsWith(QueryConstants.REP_FACET)) {
-                        try {
-                            List<Facet> facets = currentRow.getFacets(numberOfFacets, columnName);
-                            if (facets != null) {
-                                JsopWriter writer = new JsopBuilder();
-                                writer.object();
-                                for (Facet f : facets) {
-                                    writer.key(f.getLabel()).value(f.getCount());
-                                }
-                                writer.endObject();
-                                return PropertyValues.newString(writer.toString());
-                            }
-                        } catch (IOException | RuntimeException e) {
-                            LOG.warn(e.getMessage());
-                            LOG.debug(e.getMessage(), e);
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    return pathRow.getValue(columnName);
-                }
-
-            };
+            return new IndexResultRow(pathRow, currentRow, pathPrefix, numberOfFacets);
         }
 
         @Override
@@ -539,6 +487,80 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
             return estimatedSize = sizeEstimator.getSize();
         }
     }
+
+    private static class IndexResultRow implements IndexRow {
+
+        private final IndexRow pathRow;
+        private final FulltextResultRow resultRow;
+        private final String pathPrefix;
+        private final int numberOfFacets;
+
+        IndexResultRow(IndexRow pathRow, FulltextResultRow row, String pathPrefix, int numberOfFacets) {
+            this.pathRow = pathRow;
+            this.resultRow = row;
+            this.pathPrefix = pathPrefix;
+            this.numberOfFacets = numberOfFacets;
+        }
+
+        @Override
+        public boolean isVirtualRow() {
+            return resultRow.isVirutal;
+        }
+
+        @Override
+        public String getPath() {
+            String sub = pathRow.getPath();
+            if (isVirtualRow()) {
+                return sub;
+            } else if (!"".equals(pathPrefix) && PathUtils.denotesRoot(sub)) {
+                return pathPrefix;
+            } else if (PathUtils.isAbsolute(sub)) {
+                return pathPrefix + sub;
+            } else {
+                return PathUtils.concat(pathPrefix, sub);
+            }
+        }
+
+        @Override
+        public PropertyValue getValue(String columnName) {
+            // overlay the score
+            if (QueryConstants.JCR_SCORE.equals(columnName)) {
+                return PropertyValues.newDouble(resultRow.score);
+            }
+            if (QueryConstants.REP_SPELLCHECK.equals(columnName) || QueryConstants.REP_SUGGEST.equals(columnName)) {
+                return PropertyValues.newString(resultRow.suggestion);
+            }
+            if (QueryConstants.OAK_SCORE_EXPLANATION.equals(columnName)) {
+                return PropertyValues.newString(resultRow.explanation);
+            }
+            if (columnName.startsWith(QueryConstants.REP_EXCERPT)) {
+                String excerpt = resultRow.excerpts.get(columnName);
+                if (excerpt != null) {
+                    return PropertyValues.newString(excerpt);
+                }
+            }
+            if (columnName.startsWith(QueryConstants.REP_FACET)) {
+                try {
+                    List<Facet> facets = resultRow.getFacets(numberOfFacets, columnName);
+                    if (facets != null) {
+                        JsopWriter writer = new JsopBuilder();
+                        writer.object();
+                        for (Facet f : facets) {
+                            writer.key(f.getLabel()).value(f.getCount());
+                        }
+                        writer.endObject();
+                        return PropertyValues.newString(writer.toString());
+                    }
+                } catch (IOException | RuntimeException e) {
+                    LOG.warn(e.getMessage());
+                    LOG.debug(e.getMessage(), e);
+                    throw new RuntimeException(e);
+                }
+            }
+            return pathRow.getValue(columnName);
+        }
+
+    };
 
     public interface IteratorRewoundStateProvider {
         int rewoundCount();
