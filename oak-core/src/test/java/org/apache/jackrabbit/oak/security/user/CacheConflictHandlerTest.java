@@ -34,10 +34,8 @@ import static org.mockito.Mockito.when;
 
 public class CacheConflictHandlerTest extends AbstractSecurityTest {
 
-    static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
-
     @Test
-    public void testChangeChangedPropertyTheirs() throws Exception {
+    public void testChangeChangedPropertyTheirs() {
         NodeBuilder parent = mock(NodeBuilder.class);
 
         PropertyState ours = mock(PropertyState.class);
@@ -62,7 +60,7 @@ public class CacheConflictHandlerTest extends AbstractSecurityTest {
     }
 
     @Test
-    public void testChangeChangedPropertyOur() throws Exception {
+    public void testChangeChangedPropertyOur() {
 
         NodeBuilder parent = mock(NodeBuilder.class);
 
