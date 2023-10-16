@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.memory.PropertyBuilder;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalConfiguration;
@@ -45,108 +46,66 @@ import static org.apache.jackrabbit.oak.security.user.CacheConstants.REP_EXPIRAT
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class CacheConflictHandlerTest extends AbstractSecurityTest {
 
     static final String PARAM_CACHE_EXPIRATION = "cacheExpiration";
 
-    @Override
-    public void before() throws Exception {
-        super.before();
-
-        String groupId = "testGroup" + UUID.randomUUID();
-        @NotNull Group testGroup = getUserManager(root).createGroup(groupId);
-        testGroup.addMember(getTestUser());
-
-        String groupId2 = "testGroup" + UUID.randomUUID() + "2";
-        @NotNull Group testGroup2 = getUserManager(root).createGroup(groupId2);
-        testGroup.addMember(testGroup2);
-
-        String groupId3 = "testGroup" + UUID.randomUUID() + "3";
-        @NotNull Group testGroup3 = getUserManager(root).createGroup(groupId3);
-
-        root.commit();
-    }
-
-    private Tree getCacheTree(Root root) throws Exception {
-        return getCacheTree(root, getTestUser().getPath());
-    }
-
-    private Tree getCacheTree(Root root, String authorizablePath) {
-        return root.getTree(authorizablePath + '/' + CacheConstants.REP_CACHE);
-    }
-
-    @Override
-    protected ConfigurationParameters getSecurityConfigParameters() {
-        return ConfigurationParameters.of(
-                UserConfiguration.NAME,
-                ConfigurationParameters.of(PARAM_CACHE_EXPIRATION, 3600 * 1000)
-        );
-    }
-
     @Test
-    public void testChangeChangedPropertyLower() throws Exception {
+    public void testChangeChangedPropertyTheirs() throws Exception {
+        NodeBuilder parent = mock(NodeBuilder.class);
 
-        PrincipalConfiguration pc = getConfig(PrincipalConfiguration.class);
+        PropertyState ours = mock(PropertyState.class);
+        PropertyState base = mock(PropertyState.class);
+        PropertyState theirs = mock(PropertyState.class);
 
-        Root oursRoot = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null)).getLatestRoot();
-        Root theirsRoot = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null)).getLatestRoot();
+        when(ours.getName()).thenReturn(REP_EXPIRATION);
+        when(base.getName()).thenReturn(REP_EXPIRATION);
+        when(theirs.getName()).thenReturn(REP_EXPIRATION);
 
-        PrincipalProvider oursPP = pc.getPrincipalProvider(oursRoot, namePathMapper);
-        PrincipalProvider theirsPP = pc.getPrincipalProvider(theirsRoot, namePathMapper);
+        when(ours.getValue(Type.LONG)).thenReturn(1000L);
+        when(base.getValue(Type.LONG)).thenReturn(500L);
+        when(theirs.getValue(Type.LONG)).thenReturn(2000L);
 
-        // set of principals that read from user + membership-provider -> cache being filled
-        oursPP.getPrincipals(getTestUser().getID());
-        assertTrue(getCacheTree(oursRoot).exists());
-        getCacheTree(oursRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
-
-        theirsPP.getPrincipals(getTestUser().getID());
-        assertTrue(getCacheTree(theirsRoot).exists());
-        long theirExpiration = getCacheTree(theirsRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
-
-
-        Tree ourCache = getCacheTree(oursRoot);
-        ourCache.setProperty(REP_EXPIRATION, 2);
-        oursRoot.commit(CacheValidatorProvider.asCommitAttributes());
-
-        root.commit();
-        assertEquals(getCacheTree(root).getProperty(REP_EXPIRATION).getValue(Type.LONG).longValue(), theirExpiration);
+        CacheConflictHandler handler = new CacheConflictHandler();
+        assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
+        PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
+        merged.setName(CacheConstants.REP_EXPIRATION);
+        merged.setValue(2000L);
+        verify(parent).setProperty(merged.getPropertyState());
 
     }
 
     @Test
-    public void testChangeChangedPropertyHigher() throws Exception {
+    public void testChangeChangedPropertyOur() throws Exception {
 
-        PrincipalConfiguration pc = getConfig(PrincipalConfiguration.class);
+        NodeBuilder parent = mock(NodeBuilder.class);
 
-        Root oursRoot = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null)).getLatestRoot();
-        Root theirsRoot = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null)).getLatestRoot();
+        PropertyState ours = mock(PropertyState.class);
+        PropertyState base = mock(PropertyState.class);
+        PropertyState theirs = mock(PropertyState.class);
 
-        PrincipalProvider oursPP = pc.getPrincipalProvider(oursRoot, namePathMapper);
-        PrincipalProvider theirsPP = pc.getPrincipalProvider(theirsRoot, namePathMapper);
+        when(ours.getName()).thenReturn(REP_EXPIRATION);
+        when(base.getName()).thenReturn(REP_EXPIRATION);
+        when(theirs.getName()).thenReturn(REP_EXPIRATION);
 
-        // set of principals that read from user + membership-provider -> cache being filled
-        Set<? extends Principal> ourPrincipals = oursPP.getPrincipals(getTestUser().getID());
-        assertTrue(getCacheTree(oursRoot).exists());
-        getCacheTree(oursRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
+        when(ours.getValue(Type.LONG)).thenReturn(2000L);
+        when(base.getValue(Type.LONG)).thenReturn(500L);
+        when(theirs.getValue(Type.LONG)).thenReturn(1000L);
 
-        Set<? extends Principal> theirPrincipals = theirsPP.getPrincipals(getTestUser().getID());
-        assertTrue(getCacheTree(theirsRoot).exists());
-        long theirExpiration = getCacheTree(theirsRoot).getProperty("rep:expiration").getValue(Type.LONG).longValue();
-
-
-        Tree ourCache = getCacheTree(oursRoot);
-        ourCache.setProperty(REP_EXPIRATION, theirExpiration + 1000);
-        oursRoot.commit(CacheValidatorProvider.asCommitAttributes());
-
-        root.commit();
-        assertEquals(getCacheTree(root).getProperty(REP_EXPIRATION).getValue(Type.LONG).longValue(), theirExpiration + 1000);
+        CacheConflictHandler handler = new CacheConflictHandler();
+        assertEquals(CacheConflictHandler.Resolution.MERGED, handler.changeChangedProperty(parent, ours, theirs, base));
+        PropertyBuilder<Long> merged = PropertyBuilder.scalar(Type.LONG);
+        merged.setName(CacheConstants.REP_EXPIRATION);
+        merged.setValue(2000L);
+        verify(parent).setProperty(merged.getPropertyState());
 
     }
 
     @Test
-    public void testChangeChangedPropertyBaseHigher() {
+    public void testChangeChangedPropertyBase() {
         NodeBuilder parent = mock(NodeBuilder.class);
 
         PropertyState ours = mock(PropertyState.class);
