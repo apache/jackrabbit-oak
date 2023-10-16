@@ -44,6 +44,7 @@ import org.apache.jackrabbit.core.data.DataIdentifier;
 import org.apache.jackrabbit.core.data.DataRecord;
 import org.apache.jackrabbit.core.data.DataStoreException;
 import org.apache.jackrabbit.core.data.MultiDataStoreAware;
+import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.TypedDataStore;
 import org.apache.jackrabbit.oak.spi.blob.AbstractDataRecord;
 import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
@@ -86,6 +87,15 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      * Logger instance.
      */
     private static final Logger LOG = LoggerFactory.getLogger(AbstractSharedCachingDataStore.class);
+
+    /**
+     * Record cache size
+     */
+    private static final int RECORD_CACHE_SIZE = SystemPropertySupplier
+            .create("oak.blob.recordcache.size", 10000)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
+            .get();
 
     /**
      * The root path
@@ -188,7 +198,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
                 stagingRetryInterval);
         this.recordCache = CacheBuilder
                 .newBuilder()
-                .maximumSize(100000)
+                .maximumSize(RECORD_CACHE_SIZE)
                 .build();
     }
 
