@@ -26,9 +26,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Locale;
@@ -63,18 +64,18 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private final Compression algorithm;
     private final BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue;
     private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
-    private final BlockingQueue<File> sortedFilesQueue;
-    private final File sortWorkDir;
+    private final BlockingQueue<Path> sortedFilesQueue;
+    private final Path sortWorkDir;
     private final byte[] copyBuffer = new byte[4096];
     private long entriesProcessed = 0;
     private long batchesProcessed = 0;
 
-    public PipelinedSortBatchTask(File storeDir,
+    public PipelinedSortBatchTask(Path storeDir,
                                   PathElementComparator pathComparator,
                                   Compression algorithm,
                                   BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
                                   BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
-                                  BlockingQueue<File> sortedFilesQueue) throws IOException {
+                                  BlockingQueue<Path> sortedFilesQueue) throws IOException {
         this.pathComparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.algorithm = algorithm;
         this.emptyBuffersQueue = emptyBuffersQueue;
@@ -127,7 +128,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         sortBuffer.sort(pathComparator);
         LOG.info("Sorted batch in {}. Saving to disk", sortClock);
         Stopwatch saveClock = Stopwatch.createStarted();
-        File newtmpfile = File.createTempFile("sortInBatch", "flatfile", sortWorkDir);
+        Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
         long textSize = 0;
         batchesProcessed++;
         try (BufferedOutputStream writer = createOutputStream(newtmpfile, algorithm)) {
@@ -146,20 +147,20 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                     writer.write(copyBuffer, 0, bytesRead);
                     bytesRemaining -= bytesRead;
                 }
-                writer.write('\n');
+                writer.write(PipelinedStrategy.FLATFILESTORE_LINE_SEPARATOR);
                 textSize += entrySize + 1;
             }
         }
         LOG.info("Stored batch of size {} (uncompressed {}) with {} entries in {}",
-                humanReadableByteCountBin(newtmpfile.length()),
+                humanReadableByteCountBin(Files.size(newtmpfile)),
                 humanReadableByteCountBin(textSize),
                 sortBuffer.size(), saveClock);
         sortedFilesQueue.put(newtmpfile);
     }
 
-    private static File createdSortWorkDir(File storeDir) throws IOException {
-        File sortedFileDir = new File(storeDir, "sort-work-dir");
-        FileUtils.forceMkdir(sortedFileDir);
+    private static Path createdSortWorkDir(Path storeDir) throws IOException {
+        Path sortedFileDir = storeDir.resolve("sort-work-dir");
+        FileUtils.forceMkdir(sortedFileDir.toFile());
         return sortedFileDir;
     }
 }

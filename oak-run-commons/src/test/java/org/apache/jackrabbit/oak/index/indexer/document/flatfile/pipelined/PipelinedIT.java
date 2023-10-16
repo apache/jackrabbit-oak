@@ -41,12 +41,15 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,6 +63,7 @@ import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -90,7 +94,7 @@ public class PipelinedIT {
         }
     }
 
-    @After
+    @After @Before
     public void tear() {
         MongoConnection c = connectionFactory.getConnection();
         if (c != null) {
@@ -249,8 +253,8 @@ public class PipelinedIT {
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, "1");
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, "32");
 
-        Predicate<String> pathPredicate = s -> true;
-        List<PathFilter> pathFilters = List.of(contentDamPathFilter);
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        List<PathFilter> pathFilters = null;
 
         Backend rwStore = createNodeStore(false);
         @NotNull NodeBuilder rootBuilder = rwStore.documentNodeStore.getRoot().builder();
@@ -279,7 +283,7 @@ public class PipelinedIT {
 
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
-        assertEquals(expected, Files.readAllLines(file.toPath()));
+        assertArrayEquals(expected.toArray(new String[0]), Files.readAllLines(file.toPath()).toArray(new String[0]));
     }
 
 

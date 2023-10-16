@@ -42,6 +42,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -127,8 +130,9 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
     static final NodeDocument[] SENTINEL_MONGO_DOCUMENT = new NodeDocument[0];
     static final NodeStateEntryBatch SENTINEL_NSE_BUFFER = new NodeStateEntryBatch(ByteBuffer.allocate(0), 0);
-    static final File SENTINEL_SORTED_FILES_QUEUE = new File("SENTINEL");
+    static final Path SENTINEL_SORTED_FILES_QUEUE = Paths.get("SENTINEL");
     static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
+    static final char FLATFILESTORE_LINE_SEPARATOR = '\n';
 
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
     // A MongoDB document is at most 16MB, so the buffer that holds node state entries must be at least that big
@@ -142,13 +146,13 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         private final ArrayBlockingQueue<T[]> mongoDocQueue;
         private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
         private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
-        private final ArrayBlockingQueue<File> sortedFilesQueue;
+        private final ArrayBlockingQueue<Path> sortedFilesQueue;
         private final TransformStageStatistics transformStageStatistics;
 
         public MonitorTask(ArrayBlockingQueue<T[]> mongoDocQueue,
                            ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
                            ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
-                           ArrayBlockingQueue<File> sortedFilesQueue,
+                           ArrayBlockingQueue<Path> sortedFilesQueue,
                            TransformStageStatistics transformStageStatistics) {
             this.mongoDocQueue = mongoDocQueue;
             this.emptyBatchesQueue = emptyBatchesQueue;
@@ -170,7 +174,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private static <T> void printStatistics(ArrayBlockingQueue<T[]> mongoDocQueue,
                                             ArrayBlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
                                             ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
-                                            ArrayBlockingQueue<File> sortedFilesQueue,
+                                            ArrayBlockingQueue<Path> sortedFilesQueue,
                                             TransformStageStatistics transformStageStatistics,
                                             boolean printHistogramsAtInfo) {
 
@@ -384,7 +388,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue = new ArrayBlockingQueue<>(nseBuffersCount + 1);
 
             // Queue between sort-and-save thread and the merge-sorted-files thread
-            ArrayBlockingQueue<File> sortedFilesQueue = new ArrayBlockingQueue<>(64);
+            ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(64);
 
             TransformStageStatistics transformStageStatistics = new TransformStageStatistics();
 
@@ -409,7 +413,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             );
             ecs.submit(downloadTask);
 
-            File flatFileStore = null;
+            Path flatFileStore = null;
 
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
@@ -428,11 +432,11 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             }
 
             PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                    this.getStoreDir(), pathComparator, this.getAlgorithm(), emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+                    this.getStoreDir().toPath(), pathComparator, this.getAlgorithm(), emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
             );
             ecs.submit(sortTask);
 
-            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(this.getStoreDir(), pathComparator,
+            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(this.getStoreDir().toPath(), pathComparator,
                     this.getAlgorithm(), sortedFilesQueue);
             ecs.submit(mergeSortTask);
 
@@ -452,6 +456,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                             for (int i = 0; i < numberOfTransformThreads; i++) {
                                 mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
                             }
+                            mergeSortTask.stopEagerMerging();
 
                         } else if (result instanceof PipelinedTransformTask.Result) {
                             PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
@@ -475,8 +480,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
                         } else if (result instanceof PipelinedMergeSortTask.Result) {
                             PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
-                            File ffs = mergeSortedFilesTask.getFlatFileStoreFile();
-                            LOG.info("Merge-sort sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(ffs.length()));
+                            Path ffs = mergeSortedFilesTask.getFlatFileStoreFile();
+                            LOG.info("Merge-sort sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(Files.size(ffs)));
                             flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
 
                         } else {
@@ -513,7 +518,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 // No longer need to monitor the size of the queues,
                 monitorFuture.cancel(true);
             }
-            return flatFileStore;
+            return flatFileStore.toFile();
         } finally {
             threadPool.shutdown();
             monitorThreadPool.shutdown();
