@@ -48,7 +48,6 @@ import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
