@@ -22,7 +22,8 @@ import java.util.function.Function;
 public class ExternalSortByteArray {
     public static <T> int mergeSortedFilesBinary(List<Path> files, BufferedOutputStream fbw, final Comparator<T> cmp,
                                                  boolean distinct, Compression algorithm,
-                                                 Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType) throws IOException {
+                                                 Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType)
+            throws IOException {
         ArrayList<BinaryFileBufferBinary<T>> bfbs = new ArrayList<>();
         try {
             for (Path f : files) {
