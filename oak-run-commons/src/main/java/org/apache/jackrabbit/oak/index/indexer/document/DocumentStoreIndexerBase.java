@@ -344,10 +344,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
-    private MongoConnection getMongoConnection() {
-        return checkNotNull(indexHelper.getService(MongoConnection.class));
-    }
-
     private MongoDocumentStore getMongoDocumentStore() {
         return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
     }
