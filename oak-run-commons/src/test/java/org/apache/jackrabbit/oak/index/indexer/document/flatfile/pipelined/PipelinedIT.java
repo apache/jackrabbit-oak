@@ -65,6 +65,10 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class PipelinedIT {
+    private static final PathFilter contentDamPathFilter = new PathFilter(List.of("/content/dam"), List.of());
+    private static final int LONG_PATH_TEST_LEVELS = 30;
+    private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
+
     @Rule
     public final MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
     @Rule
@@ -73,11 +77,6 @@ public class PipelinedIT {
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
     @Rule
     public final TemporaryFolder sortFolder = new TemporaryFolder();
-
-    private static final PathFilter contentDamPathFilter = new PathFilter(List.of("/content/dam"), List.of());
-
-    private static final int LONG_PATH_TEST_LEVELS = 30;
-    private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
 
     @BeforeClass
     public static void setup() throws IOException {
