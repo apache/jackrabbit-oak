@@ -163,6 +163,7 @@ public class AbstractSharedCachingDataStoreTest {
     @Test
     public void testGetRecordIfStored() throws Exception {
         final int iterations = 100;
+        final DataIdentifier di = new DataIdentifier("12345");
         Field recordCacheSize = AbstractSharedCachingDataStore.class.getDeclaredField("RECORD_CACHE_SIZE");
         recordCacheSize.setAccessible(true);
 
@@ -171,7 +172,7 @@ public class AbstractSharedCachingDataStoreTest {
 
         long start = System.nanoTime();
         for (int i = 0; i < iterations; ++i) {
-            LOG.trace("" + ds.getRecordIfStored(new DataIdentifier("12345"))); // LOG.trace to avoid the call being optimised away
+            LOG.trace("" + ds.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
         }
         long timeUncached = System.nanoTime() - start;
 
@@ -179,7 +180,6 @@ public class AbstractSharedCachingDataStoreTest {
         createDataStore();
 
         start = System.nanoTime();
-        DataIdentifier di = new DataIdentifier("12345");
         for (int i = 0; i < iterations; ++i) {
             LOG.trace("" + ds.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
         }
