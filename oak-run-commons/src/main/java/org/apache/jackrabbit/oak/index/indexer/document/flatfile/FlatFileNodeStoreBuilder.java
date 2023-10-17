@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -33,7 +34,6 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUti
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -138,7 +138,7 @@ public class FlatFileNodeStoreBuilder {
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
-    private MongoConnection mongoConnection = null;
+    private MongoDatabase mongoDatabase = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
 
@@ -235,8 +235,8 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileNodeStoreBuilder withMongoConnection(MongoConnection mongoConnection) {
-        this.mongoConnection = mongoConnection;
+    public FlatFileNodeStoreBuilder withMongoDatabase(MongoDatabase mongoDatabase) {
+        this.mongoDatabase = mongoDatabase;
         return this;
     }
 
@@ -370,7 +370,7 @@ public class FlatFileNodeStoreBuilder {
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
-                return new PipelinedStrategy(mongoDocumentStore, mongoConnection, nodeStore, rootRevision,
+                return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint);
 
         }
