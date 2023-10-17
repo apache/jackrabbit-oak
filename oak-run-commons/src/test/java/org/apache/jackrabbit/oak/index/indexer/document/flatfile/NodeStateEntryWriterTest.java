@@ -111,7 +111,7 @@ public class NodeStateEntryWriterTest {
 
         NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/a/b/c/d").build();
 
-        String json = nw.asJson(e1.getNodeState());
+        String json = nw.asSortedJson(e1.getNodeState());
         List<String> pathElements = copyOf(elements(e1.getPath()));
 
         String line = nw.toString(pathElements, json);
@@ -131,7 +131,7 @@ public class NodeStateEntryWriterTest {
 
         NodeStateEntry e1 = new NodeStateEntryBuilder(b1.getNodeState(), "/").build();
 
-        String json = nw.asJson(e1.getNodeState());
+        String json = nw.asSortedJson(e1.getNodeState());
         List<String> pathElements = copyOf(elements(e1.getPath()));
 
         String line = nw.toString(pathElements, json);
@@ -149,10 +149,10 @@ public class NodeStateEntryWriterTest {
         NodeBuilder b = EMPTY_NODE.builder();
         b.setProperty("foo", "bar");
 
-        String json1 = nw.asJson(b.getNodeState());
+        String json1 = nw.asSortedJson(b.getNodeState());
 
         b.setProperty("foo1", "bar1");
-        String json2 = nw.asJson(b.getNodeState());
+        String json2 = nw.asSortedJson(b.getNodeState());
 
         String line1 = nw.toString(copyOf(elements("/")), json1);
         String line2 = nw.toString(copyOf(elements("/sub-node")), json1);

@@ -59,7 +59,7 @@ public class NodeStateEntryWriter {
     }
 
     public String toString(NodeStateEntry e) {
-        return toString(e.getPath(), asJson(e.getNodeState()));
+        return toString(e.getPath(), asSortedJson(e.getNodeState()));
     }
 
     public String toString(String path, String nodeStateAsJson) {
@@ -67,7 +67,7 @@ public class NodeStateEntryWriter {
     }
 
     public void writeTo(Writer writer, NodeStateEntry nse) throws IOException {
-        writeTo(writer, nse.getPath(), asJson(nse.getNodeState()));
+        writeTo(writer, nse.getPath(), asSortedJson(nse.getNodeState()));
     }
 
     public void writeTo(Writer writer, String path, String value) throws IOException {
@@ -89,7 +89,7 @@ public class NodeStateEntryWriter {
         return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
     }
 
-    String asSortedJson(NodeState nodeState) {
+    public String asSortedJson(NodeState nodeState) {
         return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
                 .sorted(Comparator.comparing(PropertyState::getName)));
     }

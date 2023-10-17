@@ -103,7 +103,7 @@ public class IncrementalFlatFileStoreEditor implements Editor {
         try {
             String path = getPath(e);
             if (!NodeStateUtils.isHiddenPath(path) && predicate.test(path)) {
-                String line = path + "|" + entryWriter.asJson(e) + "|" + incrementalFlatFileStoreStrategy.getAfterCheckpoint() + "|" + action;
+                String line = path + "|" + entryWriter.asSortedJson(e) + "|" + incrementalFlatFileStoreStrategy.getAfterCheckpoint() + "|" + action;
                 bufferedWriter.append(line);
                 bufferedWriter.newLine();
                 incrementalFlatFileStoreStrategy.incrementEntryCount();

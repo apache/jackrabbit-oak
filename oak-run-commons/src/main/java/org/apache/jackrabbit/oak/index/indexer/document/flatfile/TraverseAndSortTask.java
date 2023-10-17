@@ -279,7 +279,7 @@ class TraverseAndSortTask implements Callable<List<File>>, MemoryManagerClient {
         String path = e.getPath();
         if (!NodeStateUtils.isHiddenPath(path) && pathPredicate.test(path)) {
             log.debug("Adding to entry, path={} hidden={} predicate={}", path, NodeStateUtils.isHiddenPath(path), pathPredicate.test(path));
-            String jsonText = entryWriter.asJson(e.getNodeState());
+            String jsonText = entryWriter.asSortedJson(e.getNodeState());
             //Here logic differs from NodeStateEntrySorter in sense that
             //Holder line consist only of json and not 'path|json'
             NodeStateHolder h = new StateInBytesHolder(path, jsonText);
