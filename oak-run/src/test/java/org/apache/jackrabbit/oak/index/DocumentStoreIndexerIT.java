@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -306,7 +307,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
         Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
         wb.register(StatisticsProvider.class, StatisticsProvider.NOOP, emptyMap());
-        Registration c1Registration = wb.register(MongoConnection.class, c1, emptyMap());
+        Registration c1Registration = wb.register(MongoDatabase.class, c1.getDatabase(), emptyMap());
 
         configureIndex(store);
         configureBundling(store);
@@ -342,7 +343,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
         store = docBuilderRO.build();
         wb.register(MongoDocumentStore.class, ds, emptyMap());
-        wb.register(MongoConnection.class, c2, emptyMap());
+        wb.register(MongoDatabase.class, c2.getDatabase(), emptyMap());
 
         ExtendedIndexHelper helper = new ExtendedIndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
                 temporaryFolder.newFolder(), List.of(TEST_INDEX_PATH));
