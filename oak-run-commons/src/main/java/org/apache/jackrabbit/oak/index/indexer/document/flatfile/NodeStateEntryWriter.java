@@ -58,8 +58,13 @@ public class NodeStateEntryWriter {
         this.includeChildOrder = includeChildOrder;
     }
 
+    // TODO : handle in Various strategies if they want to ensure sort order in the output FFS or not
+    public String toString(NodeStateEntry e, boolean sortedPropertiesJson) {
+        return toString(e.getPath(), sortedPropertiesJson ? asSortedJson(e.getNodeState()) : asJson(e.getNodeState()));
+    }
+
     public String toString(NodeStateEntry e) {
-        return toString(e.getPath(), asSortedJson(e.getNodeState()));
+        return toString(e, false);
     }
 
     public String toString(String path, String nodeStateAsJson) {
