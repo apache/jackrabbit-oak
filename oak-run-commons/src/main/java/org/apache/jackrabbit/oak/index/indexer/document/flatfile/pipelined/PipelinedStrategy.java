@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
@@ -29,7 +30,6 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -199,7 +199,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     }
 
     private final MongoDocumentStore docStore;
-    private final MongoConnection mongoConnection;
+    private final MongoDatabase mongoDatabase;
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
@@ -220,11 +220,11 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
      * @param pathPredicate Used by the transform stage to test if a node should be kept or discarded.
      * @param pathFilters   If non-empty, the download stage will use these filters to try to create a query that downloads
      *                      only the matching MongoDB documents.
-     * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, MongoConnection, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
+     * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, MongoDatabase, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
      */
     @Deprecated
     public PipelinedStrategy(MongoDocumentStore documentStore,
-                             MongoConnection mongoConnection,
+                             MongoDatabase mongoDatabase,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
                              Set<String> preferredPathElements,
@@ -233,12 +233,12 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                              Compression algorithm,
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters) {
-        this(documentStore, mongoConnection, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
+        this(documentStore, mongoDatabase, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
                 algorithm, pathPredicate, pathFilters, null);
     }
 
     public PipelinedStrategy(MongoDocumentStore documentStore,
-                             MongoConnection mongoConnection,
+                             MongoDatabase mongoDatabase,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
                              Set<String> preferredPathElements,
@@ -250,7 +250,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                              String checkpoint) {
         super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
         this.docStore = documentStore;
-        this.mongoConnection = mongoConnection;
+        this.mongoDatabase = mongoDatabase;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
         this.blobStore = blobStore;
@@ -400,7 +400,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
             PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(
-                    mongoConnection,
+                    mongoDatabase,
                     docStore,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
