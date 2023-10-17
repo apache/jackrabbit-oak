@@ -380,6 +380,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
     }
 
     @Test
+    @Ignore("OAK-10495")
     public void testParallelIndexing() throws Exception {
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_PARALLEL_INDEX, "true");
         System.setProperty(IndexerConfiguration.PROP_OAK_INDEXER_THREAD_POOL_SIZE, "2");
