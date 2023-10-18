@@ -315,6 +315,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     @Override
     public void deleteRecord(DataIdentifier dataIdentifier) throws DataStoreException {
         cache.invalidate(dataIdentifier.toString());
+        recordCache.invalidate(dataIdentifier.toString());
         backend.deleteRecord(dataIdentifier);
     }
 
