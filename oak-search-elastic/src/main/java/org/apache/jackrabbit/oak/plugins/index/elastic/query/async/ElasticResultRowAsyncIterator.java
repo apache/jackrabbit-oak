@@ -180,6 +180,12 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         return new ElasticQueryScanner(listeners);
     }
 
+    /*
+     * TODO: to return the explain output, the scanner gets created and an initial request to Elastic is sent. This could
+     * be avoided if we decouple the scanner creation from the first request to Elastic. This would require to change the
+     * way the scanner is created and the way the explain is retrieved. This is not a priority now and should not be an issue
+     * since the first request returns a small amount of data and the explain is a user debug feature.
+     */
     @Override
     public String explain() {
         return JsonpUtils.toString(elasticQueryScanner.searchRequest, new StringBuilder()).toString();
