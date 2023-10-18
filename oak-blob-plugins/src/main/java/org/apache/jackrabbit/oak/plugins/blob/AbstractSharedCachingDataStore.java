@@ -97,6 +97,12 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
             .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
             .get();
 
+    private static long RECORD_CACHE_EXPIRATION = SystemPropertySupplier
+            .create("oak.blob.recordcache.expiration", 15)
+            .loggingTo(LOG)
+            .formatSetMessage( (name, value) -> String.format("%s set to: %s minutes", name, value) )
+            .get();
+
     /**
      * The root path
      */
