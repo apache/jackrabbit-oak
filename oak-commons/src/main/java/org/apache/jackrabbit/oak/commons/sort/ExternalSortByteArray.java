@@ -36,20 +36,20 @@ import java.util.function.Function;
  * from byte[] to String and then back.
  */
 public class ExternalSortByteArray {
-    public static <T> int mergeSortedFilesBinary(List<Path> files, BufferedOutputStream fbw, final Comparator<T> cmp,
-                                                 boolean distinct, Compression algorithm,
-                                                 Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType)
+    public static <T> void mergeSortedFilesBinary(List<Path> files, BufferedOutputStream fbw, final Comparator<T> cmp,
+                                                  boolean distinct, Compression algorithm,
+                                                  Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType)
             throws IOException {
-        ArrayList<BinaryFileBufferBinary<T>> bfbs = new ArrayList<>();
+        ArrayList<BinaryFileBuffer<T>> bfbs = new ArrayList<>();
         try {
             for (Path f : files) {
                 InputStream in = algorithm.getInputStream(Files.newInputStream(f));
-                BinaryFileBufferBinary<T> bfb = new BinaryFileBufferBinary<>(in, byteArrayToType);
+                BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(in, byteArrayToType);
                 bfbs.add(bfb);
             }
-            return mergeBinary(fbw, cmp, distinct, bfbs, typeToByteArray);
+            mergeBinary(fbw, cmp, distinct, bfbs, typeToByteArray);
         } finally {
-            for (BinaryFileBufferBinary<T> buffer : bfbs) {
+            for (BinaryFileBuffer<T> buffer : bfbs) {
                 try {
                     buffer.close();
                 } catch (Exception ignored) {
@@ -62,13 +62,13 @@ public class ExternalSortByteArray {
     }
 
     public static <T> int mergeBinary(BufferedOutputStream fbw, final Comparator<T> cmp, boolean distinct,
-                                      List<BinaryFileBufferBinary<T>> buffers, Function<T, byte[]> typeToByteArray)
+                                      List<BinaryFileBuffer<T>> buffers, Function<T, byte[]> typeToByteArray)
             throws IOException {
-        PriorityQueue<BinaryFileBufferBinary<T>> pq = new PriorityQueue<>(
+        PriorityQueue<BinaryFileBuffer<T>> pq = new PriorityQueue<>(
                 11,
                 (i, j) -> cmp.compare(i.peek(), j.peek())
         );
-        for (BinaryFileBufferBinary<T> bfb : buffers) {
+        for (BinaryFileBuffer<T> bfb : buffers) {
             if (!bfb.empty()) {
                 pq.add(bfb);
             }
@@ -77,7 +77,7 @@ public class ExternalSortByteArray {
         T lastLine = null;
         try (fbw) {
             while (!pq.isEmpty()) {
-                BinaryFileBufferBinary<T> bfb = pq.poll();
+                BinaryFileBuffer<T> bfb = pq.poll();
                 T r = bfb.pop();
                 // Skip duplicate lines
                 if (!distinct || lastLine == null || cmp.compare(r, lastLine) != 0) {
@@ -93,7 +93,7 @@ public class ExternalSortByteArray {
                 }
             }
         } finally {
-            for (BinaryFileBufferBinary<T> bfb : buffers) {
+            for (BinaryFileBuffer<T> bfb : buffers) {
                 bfb.close();
             }
         }
@@ -103,7 +103,7 @@ public class ExternalSortByteArray {
     /**
      * WARNING: Uses '\n' as a line separator, it will not work with other line separators.
      */
-    public static class BinaryFileBufferBinary<T> {
+    private static class BinaryFileBuffer<T> {
         private final static int BUFFER_SIZE = 64 * 1024;
         public final InputStream fbr;
         private final Function<byte[], T> byteArrayToType;
@@ -116,7 +116,7 @@ public class ExternalSortByteArray {
         private int bufferPos = 0;
         private int bufferLimit = 0;
 
-        public BinaryFileBufferBinary(InputStream r, Function<byte[], T> byteArrayToType)
+        public BinaryFileBuffer(InputStream r, Function<byte[], T> byteArrayToType)
                 throws IOException {
             this.fbr = r;
             this.byteArrayToType = byteArrayToType;
