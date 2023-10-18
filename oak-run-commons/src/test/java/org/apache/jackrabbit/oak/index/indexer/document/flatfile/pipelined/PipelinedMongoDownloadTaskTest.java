@@ -28,7 +28,6 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
@@ -64,10 +63,8 @@ public class PipelinedMongoDownloadTaskTest {
         @SuppressWarnings("unchecked")
         MongoCollection<NodeDocument> dbCollection = mock(MongoCollection.class);
 
-        MongoConnection mongoConnection = mock(MongoConnection.class);
         MongoDatabase mongoDatabase = mock(MongoDatabase.class);
         when(mongoDatabase.withCodecRegistry(any())).thenReturn(mongoDatabase);
-        when(mongoConnection.getDatabase()).thenReturn(mongoDatabase);
         when(mongoDatabase.getCollection(eq(Collection.NODES.toString()), eq(NodeDocument.class))).thenReturn(dbCollection);
 
         DocumentStore docStore = mock(DocumentStore.class);
@@ -103,7 +100,7 @@ public class PipelinedMongoDownloadTaskTest {
         BlockingQueue<NodeDocument[]> queue = new ArrayBlockingQueue<>(100);
         MongoDocumentStore mongoDocumentStore = mock(MongoDocumentStore.class);
 
-        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoConnection, mongoDocumentStore, batchMaxMemorySize, batchMaxElements, queue, null);
+        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoDatabase, mongoDocumentStore, batchMaxMemorySize, batchMaxElements, queue, null);
 
         // Execute
         PipelinedMongoDownloadTask.Result result = task.call();
