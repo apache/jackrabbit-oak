@@ -24,6 +24,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -107,7 +108,17 @@ public class ElasticIndexStatistics implements IndexStatistics {
     @Override
     public int getDocCountFor(String field) {
         return countCache.getUnchecked(
-                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), field)
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), field, null)
+        );
+    }
+
+    /**
+     * Returns the approximate number of documents for the {@code query} in the remote index bound to the
+     * {@code ElasticIndexDefinition}.
+     */
+    public int getDocCountFor(Query query) {
+        return countCache.getUnchecked(
+                new StatsRequestDescriptor(elasticConnection, indexDefinition.getIndexAlias(), null, query)
         );
     }
 
@@ -180,12 +191,12 @@ public class ElasticIndexStatistics implements IndexStatistics {
     static class CountCacheLoader extends CacheLoader<StatsRequestDescriptor, Integer> {
 
         @Override
-        public Integer load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
+        public @NotNull Integer load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
             return count(countRequestDescriptor);
         }
 
         @Override
-        public ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
+        public @NotNull ListenableFuture<Integer> reload(@NotNull StatsRequestDescriptor crd, @NotNull Integer oldValue) {
             ListenableFutureTask<Integer> task = ListenableFutureTask.create(() -> count(crd));
             REFRESH_EXECUTOR.execute(task);
             return task;
@@ -194,7 +205,9 @@ public class ElasticIndexStatistics implements IndexStatistics {
         private int count(StatsRequestDescriptor crd) throws IOException {
             CountRequest.Builder cBuilder = new CountRequest.Builder();
             cBuilder.index(crd.index);
-            if (crd.field != null) {
+            if (crd.query != null) {
+                cBuilder.query(crd.query);
+            } else if (crd.field != null) {
                 cBuilder.query(q -> q.exists(e -> e.field(crd.field)));
             } else {
                 cBuilder.query(q -> q.matchAll(m -> m));
@@ -206,12 +219,12 @@ public class ElasticIndexStatistics implements IndexStatistics {
     static class StatsCacheLoader extends CacheLoader<StatsRequestDescriptor, StatsResponse> {
 
         @Override
-        public StatsResponse load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
+        public @NotNull StatsResponse load(@NotNull StatsRequestDescriptor countRequestDescriptor) throws IOException {
             return stats(countRequestDescriptor);
         }
 
         @Override
-        public ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
+        public @NotNull ListenableFuture<StatsResponse> reload(@NotNull StatsRequestDescriptor crd, @NotNull StatsResponse oldValue) {
             ListenableFutureTask<StatsResponse> task = ListenableFutureTask.create(() -> stats(crd));
             REFRESH_EXECUTOR.execute(task);
             return task;
@@ -223,7 +236,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
                             .bytes(Bytes.Bytes))
                     .valueBody();
             if (records.isEmpty()) {
-                return null;
+                throw new IllegalStateException("Cannot retrieve stats for index " + crd.index + " as it does not exist");
             }
             // Assuming a single index matches crd.index
             IndicesRecord record = records.get(0);
@@ -251,17 +264,20 @@ public class ElasticIndexStatistics implements IndexStatistics {
         final String index;
         @Nullable
         final String field;
+        @Nullable
+        final Query query;
 
         StatsRequestDescriptor(@NotNull ElasticConnection connection,
                                @NotNull String index) {
-            this(connection, index, null);
+            this(connection, index, null, null);
         }
 
         StatsRequestDescriptor(@NotNull ElasticConnection connection,
-                               @NotNull String index, @Nullable String field) {
+                               @NotNull String index, @Nullable String field, @Nullable Query query) {
             this.connection = connection;
             this.index = index;
             this.field = field;
+            this.query = query;
         }
 
         @Override
@@ -270,12 +286,18 @@ public class ElasticIndexStatistics implements IndexStatistics {
             if (o == null || getClass() != o.getClass()) return false;
             StatsRequestDescriptor that = (StatsRequestDescriptor) o;
             return index.equals(that.index) &&
-                    Objects.equals(field, that.field);
+                    Objects.equals(field, that.field) &&
+                    // ES Query objects are not comparable, so we need to compare their string representations
+                    Objects.equals(internalQuery(), that.internalQuery());
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(index, field);
+            return Objects.hash(index, field, internalQuery());
+        }
+
+        private String internalQuery() {
+            return query != null ? query.toString() : null;
         }
     }
 

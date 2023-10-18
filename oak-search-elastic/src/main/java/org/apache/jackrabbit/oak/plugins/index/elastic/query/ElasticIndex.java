@@ -18,21 +18,19 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResultRowAsyncIterator;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
-import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
@@ -42,7 +40,6 @@ import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefini
 class ElasticIndex extends FulltextIndex {
     private static final Predicate<NodeState> ELASTICSEARCH_INDEX_DEFINITION_PREDICATE =
             state -> TYPE_ELASTICSEARCH.equals(state.getString(TYPE_PROPERTY_NAME));
-    private static final Map<String, LMSEstimator> ESTIMATORS = new WeakHashMap<>();
 
     // no concept of rewound in ES (even if it might be doing it internally, we can't do much about it
     private static final IteratorRewoundStateProvider REWOUND_STATE_PROVIDER_NOOP = () -> 0;
@@ -65,7 +62,10 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected SizeEstimator getSizeEstimator(IndexPlan plan) {
-        return () -> getEstimator(plan.getPlanName()).estimate(plan.getFilter());
+        return () -> {
+            ElasticIndexStatistics indexStatistics = acquireIndexNode(plan).getIndexStatistics();
+            return indexStatistics.getDocCountFor(new ElasticRequestHandler(plan, getPlanResult(plan), null).baseQuery());
+        };
     }
 
     @Override
@@ -126,7 +126,6 @@ class ElasticIndex extends FulltextIndex {
                         responseHandler,
                         plan,
                         partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
-                        getEstimator(plan.getPlanName()),
                         elasticIndexTracker.getElasticMetricHandler()
                 );
             }
@@ -134,11 +133,6 @@ class ElasticIndex extends FulltextIndex {
             indexNode.release();
         }
         return itr;
-    }
-
-    private LMSEstimator getEstimator(String path) {
-        ESTIMATORS.putIfAbsent(path, new LMSEstimator());
-        return ESTIMATORS.get(path);
     }
 
     private static boolean shouldInclude(String path, Filter.PathRestriction pathRestriction, String docPath) {
