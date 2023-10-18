@@ -44,19 +44,18 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.INDEX_DEFIN
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_RULES;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
     protected TestRepository repositoryOptionsUtil;
     protected Node indexNode;
     protected IndexOptions indexOptions;
 
-    private JackrabbitSession session = null;
-    private Node root = null;
+    protected JackrabbitSession session = null;
+    protected Node root = null;
 
     @Before
-    public void settingup() throws RepositoryException {
+    public void setup() throws RepositoryException {
         session = (JackrabbitSession) adminSession;
         root = session.getRootNode();
     }
@@ -66,7 +65,7 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         return createSuggestIndex(name, indexedNodeType, indexedPropertyName, false, false);
     }
 
-    private Node createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName, boolean addFullText, boolean suggestAnalyzed)
+    protected Node createSuggestIndex(String name, String indexedNodeType, String indexedPropertyName, boolean addFullText, boolean suggestAnalyzed)
             throws Exception {
         Node def = root.getNode(INDEX_DEFINITIONS_NAME)
                 .addNode(name, INDEX_DEFINITIONS_NODE_TYPE);
@@ -75,7 +74,7 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         def.setProperty("name", name);
         def.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         if (suggestAnalyzed) {
-            def.addNode(FulltextIndexConstants.SUGGESTION_CONFIG).setProperty("suggestAnalyzed", suggestAnalyzed);
+            def.addNode(FulltextIndexConstants.SUGGESTION_CONFIG).setProperty("suggestAnalyzed", true);
         }
         addPropertyDefinition(def, indexedNodeType, indexedPropertyName, addFullText);
         return def;
@@ -153,7 +152,7 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         if (shouldSuggest) {
             assertEventually(() -> {
                 try {
-                    assertTrue("There should be some suggestion", getAllResults(queryManager, suggQuery).size() > 0);
+                    assertFalse("There should be some suggestion", getAllResults(queryManager, suggQuery).isEmpty());
                 } catch (RepositoryException e) {
                     throw new RuntimeException(e);
                 }
@@ -185,9 +184,8 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
         return value;
     }
 
-    private Node allow(Node node) throws RepositoryException {
+    private void allow(Node node) throws RepositoryException {
         AccessControlUtils.allow(node, "anonymous", Privilege.JCR_READ);
-        return node;
     }
 
     private String createSuggestQuery(String nodeTypeName, String suggestFor) {
@@ -367,13 +365,11 @@ public abstract class IndexSuggestionCommonTest extends AbstractJcrTest {
     public void emptySuggestWithNothingIndexed() throws Exception {
         final String nodeType = "nt:unstructured";
         final String indexPropName = "description";
-        final String indexPropValue = null;
-        final String suggestQueryText = null;
 
         checkSuggestions(nodeType,
-                indexPropName, indexPropValue,
+                indexPropName, null,
                 true, true,
-                suggestQueryText, false, false);
+                null, false, false);
     }
 
     @Test

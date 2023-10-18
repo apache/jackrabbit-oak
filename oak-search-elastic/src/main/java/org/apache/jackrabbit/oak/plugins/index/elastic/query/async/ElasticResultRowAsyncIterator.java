@@ -25,9 +25,11 @@ import co.elastic.clients.elasticsearch.core.search.Highlight;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch.core.search.SourceConfig;
 import co.elastic.clients.elasticsearch.core.search.TotalHitsRelation;
+import co.elastic.clients.json.JsonpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticMetricHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
+import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticQueryIterator;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
@@ -42,7 +44,6 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -58,7 +59,7 @@ import java.util.function.Predicate;
  * The results are produced asynchronously into an internal unbounded {@link BlockingQueue}. To avoid too many calls to
  * Elastic the results are loaded in chunks (using search_after strategy) and loaded only when needed.
  */
-public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow>, ElasticResponseListener.SearchHitListener {
+public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, ElasticResponseListener.SearchHitListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(ElasticResultRowAsyncIterator.class);
     // this is an internal special message to notify the consumer the result set has been completely returned
@@ -178,6 +179,11 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         return new ElasticQueryScanner(listeners);
     }
 
+    @Override
+    public String explain() {
+        return JsonpUtils.toString(elasticQueryScanner.searchRequest, new StringBuilder()).toString();
+    }
+
     /**
      * Scans Elastic results asynchronously and notify listeners.
      */
@@ -190,6 +196,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
         private final List<AggregationListener> aggregationListeners = new ArrayList<>();
 
         private final Query query;
+        private final SearchRequest searchRequest;
         private final @NotNull List<SortOptions> sorts;
         private final Highlight highlight;
         private final SourceConfig sourceConfig;
@@ -233,7 +240,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             listeners.forEach(register);
             this.sourceConfig = SourceConfig.of(fn -> fn.filter(f -> f.includes(new ArrayList<>(sourceFieldsSet))));
 
-            SearchRequest searchReq = SearchRequest.of(builder -> {
+            searchRequest = SearchRequest.of(builder -> {
                         builder
                                 .index(indexNode.getDefinition().getIndexAlias())
                                 .trackTotalHits(thb -> thb.count(indexNode.getDefinition().trackTotalHits))
@@ -253,14 +260,14 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                     }
             );
 
-            LOG.trace("Kicking initial search for query {}", searchReq);
+            LOG.trace("Kicking initial search for query {}", searchRequest);
             semaphore.tryAcquire();
 
             searchStartTime = System.currentTimeMillis();
             requests++;
 
             indexNode.getConnection().getAsyncClient()
-                    .search(searchReq, ObjectNode.class)
+                    .search(searchRequest, ObjectNode.class)
                     .whenComplete(((searchResponse, throwable) -> {
                         if (throwable != null) {
                             onFailure(throwable);
@@ -334,7 +341,7 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
             metricHandler.measureFailedQuery(indexNode.getDefinition().getIndexPath(),
                     System.currentTimeMillis() - searchStartTime);
             // Check in case errorRef is already set - this seems unlikely since we close the scanner once we hit failure.
-            // But still, in case this do happen, we will log a warn.
+            // But still, in case this do happen, we will log a warning.
             Throwable error = errorRef.getAndSet(t);
             if (error != null) {
                 LOG.warn("Error reference for async iterator was previously set to {}. It has now been reset to new error {}", error.getMessage(), t.getMessage());

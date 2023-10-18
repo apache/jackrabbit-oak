@@ -19,10 +19,19 @@ package org.apache.jackrabbit.oak.plugins.index.elastic;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.plugins.index.SpellcheckCommonTest;
+import org.hamcrest.CoreMatchers;
+import org.hamcrest.MatcherAssert;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Test;
 
+import javax.jcr.Node;
 import javax.jcr.Repository;
+import javax.jcr.query.Query;
+import javax.jcr.query.QueryManager;
+import javax.jcr.query.Row;
+
+import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 
 public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
 
@@ -42,5 +51,24 @@ public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
         Oak oak = repositoryOptionsUtil.getOak();
         Jcr jcr = new Jcr(oak);
         return jcr.createRepository();
+    }
+
+    @Test
+    public void explain() throws Exception {
+        QueryManager qm = adminSession.getWorkspace().getQueryManager();
+        Node par = allow(getOrCreateByPath("/parent", "oak:Unstructured", adminSession));
+        Node n1 = par.addNode("node1");
+        n1.setProperty("foo", "descent");
+        adminSession.save();
+
+        String sql = "EXPLAIN SELECT [rep:spellcheck()] FROM nt:base WHERE SPELLCHECK('desent')";
+        String expected = "{\"suggest\":{\"oak:suggestion\":{\"phrase\":{\"field\":\":spellcheck\",\"size\":10,\"collate\":" +
+                "{\"query\":{\"source\":\"{\\\"bool\\\":{\\\"must\\\":[{\\\"match_phrase\\\":{\\\":spellcheck\\\":{\\\"query\\\":\\\"{{suggestion}}\\\"}}}]}}\"}}," +
+                "\"direct_generator\":[{\"field\":\":spellcheck\",\"size\":10,\"suggest_mode\":\"missing\"}]," +
+                "\"highlight\":{\"post_tag\":\"\",\"pre_tag\":\"\"}}},\"text\":\"desent\"}}";
+
+        Query q = qm.createQuery(sql, Query.SQL);
+        Row row = q.execute().getRows().nextRow();
+        MatcherAssert.assertThat(row.getValue("plan").getString(), CoreMatchers.containsString(expected));
     }
 }
