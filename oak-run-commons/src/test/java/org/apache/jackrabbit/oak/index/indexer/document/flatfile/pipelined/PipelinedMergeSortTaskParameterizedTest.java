@@ -97,20 +97,19 @@ public class PipelinedMergeSortTaskParameterizedTest extends PipelinedMergeSortT
         }
         // Verify result
         List<String> actualFFS = Files.readAllLines(resultFile);
-        try {
-            assertArrayEquals(expectedFFS, actualFFS.toArray(new String[0]));
-        } catch (AssertionError ex) {
-            ex.printStackTrace();
-        }
+        assertArrayEquals(expectedFFS, actualFFS.toArray(new String[0]));
     }
 
+    /**
+     * For manual testing.
+     */
     @Ignore
     public void manyFilesToMergeManual() throws Exception {
         System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, "50");
         System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, "32");
         System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, "512");
         System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, "8");
-        Path dirWithFilesToMerge = Paths.get("/Users/nsantos/dev/ff/ffs-partioned-samples/2");
+        Path dirWithFilesToMerge = Paths.get("/path/to/ffs/intermediate/files");
         Path[] files = Files.list(dirWithFilesToMerge)
                 .filter(Files::isRegularFile)
                 .toArray(Path[]::new);
