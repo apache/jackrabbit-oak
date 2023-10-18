@@ -23,6 +23,7 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSortByteArray;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.jetbrains.annotations.NotNull;
@@ -45,9 +46,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createOutputStream;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.getSortedStoreFileName;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.getSortedStoreFileName;
 
 /**
  * Accumulates the intermediate sorted files and, when all files are generated, merges them into a single sorted file,
@@ -245,9 +245,10 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     }
 
     /**
-     * This method is called by the producer thread when it finishes producing the intermediate sorted files.
-     * It is used to signal the consumer thread that no more files will be added to the queue, so that whatever is left
-     * in the queue, is all that will ever be produced.
+     * Stops eager merging. After this method is called, eager merging will no longer be performed, even if the
+     * conditions for merging are met.
+     * This method should be called when the download terminates, to avoid starting new eager merges which would delay
+     * the final merge.
      */
     public void stopEagerMerging() {
         stopEagerMerging.set(true);
@@ -310,7 +311,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
 
     private Path sortStoreFile(List<Path> sortedFilesBatch) throws IOException {
         Path sortedFile = storeDir.resolve(getSortedStoreFileName(algorithm));
-        try (BufferedOutputStream writer = createOutputStream(sortedFile, algorithm)) {
+        try (BufferedOutputStream writer = IndexStoreUtils.createOutputStream(sortedFile, algorithm)) {
             Function<byte[], NodeStateHolder> byteArrayToType = new NodeStateHolderFactory();
             Function<NodeStateHolder, byte[]> typeToByteArray = holder -> holder == null ? null : holder.getLine();
             ExternalSortByteArray.mergeSortedFilesBinary(sortedFilesBatch,
