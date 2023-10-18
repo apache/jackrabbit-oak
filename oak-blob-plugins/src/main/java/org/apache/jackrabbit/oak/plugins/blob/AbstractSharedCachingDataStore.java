@@ -167,7 +167,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
     /**
      * DataRecord cache
      */
-    private Cache<String, DataRecord> recordCache;
+    protected Cache<String, DataRecord> recordCache;
 
     public void init(String homeDir) throws DataStoreException {
         if (path == null) {
