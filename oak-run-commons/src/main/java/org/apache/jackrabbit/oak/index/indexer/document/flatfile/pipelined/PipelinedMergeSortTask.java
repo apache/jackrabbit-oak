@@ -54,17 +54,17 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
  * the flat file store
  */
 public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.Result> {
-
+    /**
+     * Minimum number of intermediate files that must exist before trying to do an eager merge
+     */
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD = "oak.indexer.pipelined.eagerMergeTriggerThreshold";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD = 64;
-
     /*
      * Maximum number of files to eagerly merge. This is to keep the eager merges efficient, as efficiency decreases
      * with the number of files in a merge
      */
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE = "oak.indexer.pipelined.eagerMergeMaxFilesToMerge";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE = 32;
-
     /*
      * Minimum number of files to eagerly merge at a time. Merging only a few files will not significantly reduce the
      * duration of the final merge, so it might end up being more expensive than having a final merge with a larger
@@ -72,17 +72,11 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
      */
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE = "oak.indexer.pipelined.eagerMergeMinFilesToMerge";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE = 8;
-
     /*
-     * Maximum size of intermediate files that can be eagerly merged.
+     * Maximum total size of intermediate files that can be eagerly merged.
      */
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB = "oak.indexer.pipelined.eagerMergeMaxSizeToMergeMB";
-    public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB = 1024;
-
-    private final int mergeTriggerThreshold;
-    private final int mergeMinFilesToMerge;
-    private final int mergeMaxFilesToMerge;
-    private final int mergeMaxSizeToMergeMB;
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB = 2048;
 
     // TODO: start merging small files into larger files to avoid having too many "small" files at the end.
     //  Idea: when there are more than k (for instance, 10) intermediate files whose size is under a certain limit
@@ -128,17 +122,42 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         }
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(PipelinedMergeSortTask.class);
+    private static class PathAndSize implements Comparable<PathAndSize> {
+        final Path file;
+        final long size;
 
+        public PathAndSize(Path file, long size) {
+            this.file = file;
+            this.size = size;
+        }
+
+        @Override
+        public String toString() {
+            return "FileAndSize{" +
+                    "file=" + file.toString() +
+                    ", size=" + FileUtils.byteCountToDisplaySize(size) +
+                    '}';
+        }
+
+        @Override
+        public int compareTo(@NotNull PipelinedMergeSortTask.PathAndSize other) {
+            return Long.compare(this.size, other.size);
+        }
+    }
+
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedMergeSortTask.class);
     private static final String THREAD_NAME = "mongo-merge-sort-files";
 
     private final Path storeDir;
     private final Comparator<NodeStateHolder> comparator;
     private final Compression algorithm;
     private final BlockingQueue<Path> sortedFilesQueue;
-    private final PriorityQueue<FileAndSize> sortedFiles = new PriorityQueue<>();
+    private final PriorityQueue<PathAndSize> sortedFiles = new PriorityQueue<>();
     private final AtomicBoolean stopEagerMerging = new AtomicBoolean(false);
-
+    private final int mergeTriggerThreshold;
+    private final int minFilesToMerge;
+    private final int maxFilesToMerge;
+    private final int maxSizeToMergeMB;
     private int eagerMergeRuns;
     private int mergedFilesCounter = 0;
 
@@ -155,17 +174,17 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         Preconditions.checkArgument(mergeTriggerThreshold >= 16,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD + ": " + mergeTriggerThreshold + ". Must be >= 16");
 
-        this.mergeMinFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE);
-        Preconditions.checkArgument(mergeMinFilesToMerge >= 2,
-                "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + ": " + mergeMinFilesToMerge + ". Must be >= 2");
+        this.minFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE);
+        Preconditions.checkArgument(minFilesToMerge >= 2,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + ": " + minFilesToMerge + ". Must be >= 2");
 
-        this.mergeMaxFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE);
-        Preconditions.checkArgument(mergeMaxFilesToMerge >= mergeMinFilesToMerge,
-                "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE + ": " + mergeMaxFilesToMerge + ". Must be >= " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + " (" + mergeMinFilesToMerge + ")");
+        this.maxFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE);
+        Preconditions.checkArgument(maxFilesToMerge >= minFilesToMerge,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE + ": " + maxFilesToMerge + ". Must be >= " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + " (" + minFilesToMerge + ")");
 
-        this.mergeMaxSizeToMergeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB);
-        Preconditions.checkArgument(mergeMaxSizeToMergeMB >= 1,
-                "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB + ": " + mergeMaxSizeToMergeMB + ". Must be >= 1");
+        this.maxSizeToMergeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB);
+        Preconditions.checkArgument(maxSizeToMergeMB >= 1,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB + ": " + maxSizeToMergeMB + ". Must be >= 1");
     }
 
     @Override
@@ -200,12 +219,12 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                     return new Result(flatFileStore, intermediateFilesCount, sortedFiles.size(), eagerMergeRuns);
 
                 } else {
-                    sortedFiles.add(new FileAndSize(sortedIntermediateFile, Files.size(sortedIntermediateFile)));
+                    sortedFiles.add(new PathAndSize(sortedIntermediateFile, Files.size(sortedIntermediateFile)));
                     intermediateFilesCount++;
                     LOG.info("Received new intermediate sorted file {}. Size: {}. Total files: {} of size {}",
                             sortedIntermediateFile, FileUtils.byteCountToDisplaySize(Files.size(sortedIntermediateFile)),
                             sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
-                    // No point in doing eager merging if all the remaining intermediate files are already in the queue.
+                    // No point in doing eager merging if we already finished downloading from Mongo.
                     // In this case, we do only the final merge.
                     if (stopEagerMerging.get()) {
                         LOG.debug("Skipping eager merging because download from Mongo has finished");
@@ -234,84 +253,59 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         stopEagerMerging.set(true);
     }
 
-    private static long sizeOf(PriorityQueue<FileAndSize> sortedFiles) {
+    private static long sizeOf(PriorityQueue<PathAndSize> sortedFiles) {
         return sortedFiles.stream().mapToLong(f -> f.size).sum();
-    }
-
-    private static class FileAndSize implements Comparable<FileAndSize> {
-        final Path file;
-        final long size;
-
-        public FileAndSize(Path file, long size) {
-            this.file = file;
-            this.size = size;
-        }
-
-        @Override
-        public String toString() {
-            return "FileAndSize{" +
-                    "file=" + file.toString() +
-                    ", size=" + FileUtils.byteCountToDisplaySize(size) +
-                    '}';
-        }
-
-        @Override
-        public int compareTo(@NotNull PipelinedMergeSortTask.FileAndSize o) {
-            return Long.compare(size, o.size);
-        }
     }
 
     private void tryMergeIntermediateFilesEagerly() throws IOException {
         if (sortedFiles.size() < mergeTriggerThreshold) {
+            // Not enough intermediate files to merge.
             return;
         }
 
-        ArrayList<FileAndSize> filesAndSizeToSort = new ArrayList<>();
+        ArrayList<PathAndSize> filesAndSizeToSort = new ArrayList<>();
         long sumOfSizesBytes = 0;
         while (!sortedFiles.isEmpty() &&
-                filesAndSizeToSort.size() < mergeMaxFilesToMerge &&
-                sumOfSizesBytes / FileUtils.ONE_MB < mergeMaxSizeToMergeMB &&
-                filesAndSizeToSort.size() < mergeMinFilesToMerge) {
+                filesAndSizeToSort.size() < maxFilesToMerge &&
+                sumOfSizesBytes / FileUtils.ONE_MB < maxSizeToMergeMB) {
             // Get the next candidate. Do not remove the file from the queue because it may be too large for merging eagerly
-            FileAndSize fileAndSize = sortedFiles.peek();
-            if (fileAndSize.size / FileUtils.ONE_MB > mergeMaxSizeToMergeMB) {
+            PathAndSize pathAndSize = sortedFiles.peek();
+            if (pathAndSize.size / FileUtils.ONE_MB > maxSizeToMergeMB) {
                 LOG.debug("File {} is too large to be merged. Size: {}, max allowed: {} MB. Stopping searching for intermediate files to merge because all other files are larger.",
-                        fileAndSize.file.toAbsolutePath(),
-                        FileUtils.byteCountToDisplaySize(fileAndSize.size),
-                        mergeMaxSizeToMergeMB);
+                        pathAndSize.file.toAbsolutePath(),
+                        FileUtils.byteCountToDisplaySize(pathAndSize.size),
+                        maxSizeToMergeMB);
                 break;
             }
             // Remove the file from the sorted files queue and add it to the list of files to sort
             sortedFiles.poll();
-            filesAndSizeToSort.add(fileAndSize);
-            sumOfSizesBytes += fileAndSize.size;
+            filesAndSizeToSort.add(pathAndSize);
+            sumOfSizesBytes += pathAndSize.size;
         }
-        if (sumOfSizesBytes / FileUtils.ONE_MB > mergeMaxSizeToMergeMB) {
-            LOG.debug("Reached maximum size for eager merging: {} MB.", FileUtils.byteCountToDisplaySize(sumOfSizesBytes));
-        }
-        if (filesAndSizeToSort.size() < mergeMinFilesToMerge) {
+        if (filesAndSizeToSort.size() < minFilesToMerge) {
+            // Not enough candidate files to merge. Put back the candidate files in the sorted files queue
             sortedFiles.addAll(filesAndSizeToSort);
             LOG.debug("Not enough candidate files to merge. Found {} candidates of size {}, minimum for merging is {}",
-                    filesAndSizeToSort.size(), FileUtils.byteCountToDisplaySize(sumOfSizesBytes), mergeMinFilesToMerge);
+                    filesAndSizeToSort.size(), FileUtils.byteCountToDisplaySize(sumOfSizesBytes), minFilesToMerge);
             return;
         }
-        LOG.info("Merge threshold reached: {} > {}. Going to merge the following {} files {}.",
+        LOG.info("Merge threshold reached: {} > {}. Going to merge the following {} files {} of total size {}.",
                 sortedFiles.size() + filesAndSizeToSort.size(), mergeTriggerThreshold,
                 filesAndSizeToSort.size(),
                 filesAndSizeToSort.stream()
                         .map(fs -> fs.file.getFileName() + ": " + FileUtils.byteCountToDisplaySize(fs.size))
-                        .collect(Collectors.joining(", ", "[", "]")));
+                        .collect(Collectors.joining(", ", "[", "]")),
+                FileUtils.byteCountToDisplaySize(sumOfSizesBytes));
         Stopwatch start = Stopwatch.createStarted();
         Path mergedFiled = sortStoreFile(filesAndSizeToSort.stream().map(f -> f.file).collect(Collectors.toList()));
         eagerMergeRuns++;
         Path destFile = mergedFiled.getParent().resolve("merged-" + mergedFilesCounter++);
         Files.move(mergedFiled, destFile);
-        FileAndSize mergedFileAndSize = new FileAndSize(destFile, Files.size(destFile));
-        sortedFiles.add(mergedFileAndSize);
+        PathAndSize mergedPathAndSize = new PathAndSize(destFile, Files.size(destFile));
+        sortedFiles.add(mergedPathAndSize);
         LOG.info("{} files merged in {} seconds. New file {}, size: {}",
                 filesAndSizeToSort.size(), start.elapsed(TimeUnit.SECONDS),
-                mergedFileAndSize.file.getFileName(), FileUtils.byteCountToDisplaySize(mergedFileAndSize.size));
-
+                mergedPathAndSize.file.getFileName(), FileUtils.byteCountToDisplaySize(mergedPathAndSize.size));
     }
 
     private Path sortStoreFile(List<Path> sortedFilesBatch) throws IOException {
