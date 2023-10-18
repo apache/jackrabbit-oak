@@ -7,6 +7,7 @@ import org.apache.jackrabbit.oak.spi.blob.AbstractSharedBackend;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +23,7 @@ import static org.junit.Assert.assertTrue;
 public class AbstractSharedCachingDataStoreTest {
 
     public static Logger LOG = LoggerFactory.getLogger(AbstractSharedCachingDataStore.class);
-    public static long BACKEND_ACCESS_DELAY_MILLIS = 4;
+    public static final long BACKEND_ACCESS_DELAY_MILLIS = 4;
 
     private AbstractSharedCachingDataStore ds;
 
@@ -182,6 +183,60 @@ public class AbstractSharedCachingDataStoreTest {
         start = System.nanoTime();
         for (int i = 0; i < iterations; ++i) {
             LOG.trace("" + ds.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
+        }
+        long timeCached = System.nanoTime() - start;
+        assertTrue(String.format("timeCached: %d, timeUncached: %d", timeCached, timeUncached), 5 * timeCached < timeUncached);
+    }
+
+    public AbstractSharedCachingDataStore getMockedDataStore() throws Exception {
+        final DataIdentifier di = new DataIdentifier("12345");
+        final byte[] data = "12345".getBytes();
+
+        DataRecord dataRecord = Mockito.mock(DataRecord.class);
+        Mockito.when(dataRecord.getIdentifier())
+                .thenReturn(di);
+        Mockito.when(dataRecord.getStream())
+                .thenReturn(new ByteArrayInputStream(data));
+        Mockito.when(dataRecord.getLastModified())
+                .thenReturn(1L);
+        Mockito.when(dataRecord.getLength())
+                .thenReturn((long) data.length);
+        Mockito.when(dataRecord.getReference())
+                .thenReturn(di.toString());
+
+        AbstractSharedBackend backend = Mockito.mock(AbstractSharedBackend.class);
+        Mockito.when(backend.getRecord(Mockito.any(DataIdentifier.class)))
+                .then((invocation) -> Mockito.mock(dataRecord));
+
+        AbstractSharedCachingDataStore ds = Mockito.mock(AbstractSharedCachingDataStore.class);
+        Mockito.when(ds.createBackend())
+                .then((invocation) -> Mockito.mock(backend));
+        ds.init(folder.newFolder().getAbsolutePath());
+        return ds;
+    }
+
+    @Test
+    public void testWithMockito() throws Exception {
+        final DataIdentifier di = new DataIdentifier("12345");
+        final int iterations = 100;
+        Field recordCacheSize = AbstractSharedCachingDataStore.class.getDeclaredField("RECORD_CACHE_SIZE");
+        recordCacheSize.setAccessible(true);
+
+        recordCacheSize.setLong(AbstractSharedCachingDataStore.class, 0);
+        AbstractSharedCachingDataStore ds1 = getMockedDataStore();
+
+        long start = System.nanoTime();
+        for (int i = 0; i < iterations; ++i) {
+            LOG.trace("" + ds1.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
+        }
+        long timeUncached = System.nanoTime() - start;
+
+        recordCacheSize.setLong(AbstractSharedCachingDataStore.class, 10000);
+        AbstractSharedCachingDataStore ds2 = getMockedDataStore();
+
+        start = System.nanoTime();
+        for (int i = 0; i < iterations; ++i) {
+            LOG.trace("" + ds2.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
         }
         long timeCached = System.nanoTime() - start;
         assertTrue(String.format("timeCached: %d, timeUncached: %d", timeCached, timeUncached), 5 * timeCached < timeUncached);
