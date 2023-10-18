@@ -37,8 +37,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStoreUtils.createOutputStream;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.createOutputStream;
 
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.

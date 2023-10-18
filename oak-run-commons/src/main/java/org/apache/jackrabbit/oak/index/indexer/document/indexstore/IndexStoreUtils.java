@@ -33,6 +33,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
@@ -88,6 +90,11 @@ public class IndexStoreUtils {
 
     public static BufferedOutputStream createOutputStream(File file, Compression algorithm) throws IOException {
         OutputStream out = new FileOutputStream(file);
+        return new BufferedOutputStream(algorithm.getOutputStream(out));
+    }
+
+    public static BufferedOutputStream createOutputStream(Path file, Compression algorithm) throws IOException {
+        OutputStream out = Files.newOutputStream(file);
         return new BufferedOutputStream(algorithm.getOutputStream(out));
     }
 
