@@ -295,7 +295,7 @@ public class ElasticIndexStatistics implements IndexStatistics {
 
         @Override
         public int hashCode() {
-            return Objects.hash(index, field);
+            return Objects.hash(index, field, query != null ? query.toString() : null);
         }
     }
 
