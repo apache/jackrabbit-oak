@@ -90,7 +90,9 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
-        return queryIterator(plan, rootState).explain();
+        try (ElasticQueryIterator eqi = queryIterator(plan, rootState)) {
+            return eqi.explain();
+        }
     }
 
     @Override

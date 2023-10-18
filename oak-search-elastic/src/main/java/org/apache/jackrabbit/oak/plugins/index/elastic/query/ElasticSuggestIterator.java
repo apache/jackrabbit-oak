@@ -45,7 +45,6 @@ class ElasticSuggestIterator implements ElasticQueryIterator {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticSuggestIterator.class);
 
     private final ElasticIndexNode indexNode;
-    private final ElasticRequestHandler requestHandler;
     private final ElasticResponseHandler responseHandler;
     private final SearchRequest searchRequest;
 
@@ -56,7 +55,6 @@ class ElasticSuggestIterator implements ElasticQueryIterator {
                            @NotNull ElasticRequestHandler requestHandler,
                            @NotNull ElasticResponseHandler responseHandler) {
         this.indexNode = indexNode;
-        this.requestHandler = requestHandler;
         this.responseHandler = responseHandler;
 
         String suggestQuery = requestHandler.getPropertyRestrictionQuery().replace(ElasticRequestHandler.SUGGEST_PREFIX, "");

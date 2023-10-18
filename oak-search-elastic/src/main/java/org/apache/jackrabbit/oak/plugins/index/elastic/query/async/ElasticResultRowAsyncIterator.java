@@ -57,6 +57,10 @@ import java.util.function.Predicate;
  * Class to iterate over Elastic results of a given {@link IndexPlan}.
  * The results are produced asynchronously into an internal unbounded {@link BlockingQueue}. To avoid too many calls to
  * Elastic the results are loaded in chunks (using search_after strategy) and loaded only when needed.
+ * <p>
+ * The resources held by this class are automatically released when the iterator is exhausted. In case the iterator is not
+ * exhausted, it is recommended for the caller to invoke {@link #close()} to release the resources.
+ * </p
  */
 public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, ElasticResponseListener.SearchHitListener {
 
@@ -179,6 +183,11 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
     @Override
     public String explain() {
         return JsonpUtils.toString(elasticQueryScanner.searchRequest, new StringBuilder()).toString();
+    }
+
+    @Override
+    public void close() {
+        elasticQueryScanner.close();
     }
 
     /**
