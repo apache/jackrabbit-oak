@@ -205,6 +205,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
         this.recordCache = CacheBuilder
                 .newBuilder()
                 .maximumSize(RECORD_CACHE_SIZE)
+                .expireAfterAccess(RECORD_CACHE_EXPIRATION, TimeUnit.MINUTES)
                 .build();
     }
 
