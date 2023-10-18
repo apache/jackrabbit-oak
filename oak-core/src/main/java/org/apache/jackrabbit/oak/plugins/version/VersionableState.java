@@ -295,18 +295,19 @@ class VersionableState {
             restoreFrozenTypeAndUUID(frozen, dest);
             frozenTypeRestored = true;
         }
-        HashMap<PropertyState, Integer> opvs = new HashMap<>();
+        Map<PropertyState, Integer> opvs = new HashMap<>();
         for (PropertyState p : dest.getProperties()) {
             String propName = p.getName();
-            if (BASIC_PROPERTIES.contains(propName)) {
-                continue;
-            }
-            if (frozen.hasProperty(propName)) {
-                continue;
-            }
-            int action = getOPV(dest, p);
-            if (action == COPY || action == VERSION || action == ABORT || action == INITIALIZE || action == COMPUTE) {
-                opvs.put(p, action);
+            if (!BASIC_PROPERTIES.contains(propName) && !frozen.hasProperty(propName)) {
+                int action = getOPV(dest, p);
+                switch (action) {
+                    case COPY:
+                    case VERSION:
+                    case ABORT:
+                    case INITIALIZE:
+                    case COMPUTE:
+                        opvs.put(p, action);
+                }
             }
         }
         if (!frozenTypeRestored) {
@@ -315,30 +316,37 @@ class VersionableState {
         }
         // 15.7.3 Restoring Properties
         for (PropertyState p : frozen.getProperties()) {
-            if (BASIC_FROZEN_PROPERTIES.contains(p.getName())) {
-                // ignore basic frozen properties we restored earlier
-                continue;
-            }
-            int action = getOPV(dest, p);
-            if (action == COPY || action == VERSION) {
-                dest.setProperty(p);
+            // ignore basic frozen properties we restored earlier
+            if (!BASIC_FROZEN_PROPERTIES.contains(p.getName())) {
+                int action = getOPV(dest, p);
+                switch (action) {
+                    case COPY:
+                    case VERSION:
+                        dest.setProperty(p);
+                }
             }
         }
         for (Map.Entry<PropertyState, Integer> entry : opvs.entrySet()) {
             PropertyState p = entry.getKey();
-            int action = entry.getValue();
             String propName = p.getName();
-            if (action == COPY || action == VERSION || action == ABORT) {
-                dest.removeProperty(propName);
-            } else if (action == INITIALIZE) {
-                resetToDefaultValue(dest, p);
-            } else if (action == COMPUTE) {
-                // only COMPUTE property definitions currently are
-                // jcr:primaryType and jcr:mixinTypes
-                // do nothing for now
-                if (!(JCR_PRIMARYTYPE.equals(propName) || JCR_MIXINTYPES.equals(propName))) {
-                    log.warn("OPV.COMPUTE not implemented for restoring property: " + propName);
-                }
+            int action = entry.getValue();
+            switch (action) {
+                case COPY:
+                case VERSION:
+                case ABORT:
+                    dest.removeProperty(propName);
+                    break;
+                case INITIALIZE:
+                    resetToDefaultValue(dest, p);
+                    break;
+                case COMPUTE:
+                    // only COMPUTE property definitions currently are
+                    // jcr:primaryType and jcr:mixinTypes
+                    // do nothing for now
+                    if (!(JCR_PRIMARYTYPE.equals(propName) || JCR_MIXINTYPES.equals(propName))) {
+                        log.warn("OPV.COMPUTE not implemented for restoring property: " + propName);
+                    }
+                    break;
             }
         }
         restoreChildren(frozen, dest, selector);
