@@ -32,7 +32,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandl
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets.ElasticFacetProvider;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex.FulltextResultRow;
-import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.jetbrains.annotations.NotNull;
@@ -71,7 +70,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
     private final IndexPlan indexPlan;
     private final Predicate<String> rowInclusionPredicate;
     private final ElasticMetricHandler metricHandler;
-    private final LMSEstimator estimator;
     private final ElasticQueryScanner elasticQueryScanner;
     private final ElasticRequestHandler elasticRequestHandler;
     private final ElasticResponseHandler elasticResponseHandler;
@@ -85,13 +83,12 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                                          @NotNull ElasticResponseHandler elasticResponseHandler,
                                          @NotNull QueryIndex.IndexPlan indexPlan,
                                          Predicate<String> rowInclusionPredicate,
-                                         LMSEstimator estimator, ElasticMetricHandler metricHandler) {
+                                         ElasticMetricHandler metricHandler) {
         this.indexNode = indexNode;
         this.elasticRequestHandler = elasticRequestHandler;
         this.elasticResponseHandler = elasticResponseHandler;
         this.indexPlan = indexPlan;
         this.rowInclusionPredicate = rowInclusionPredicate;
-        this.estimator = estimator;
         this.metricHandler = metricHandler;
         this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(elasticResponseHandler);
         this.elasticQueryScanner = initScanner();
@@ -293,7 +290,6 @@ public class ElasticResultRowAsyncIterator implements Iterator<FulltextResultRow
                 } else {
                     anyDataLeft.set(true);
                 }
-                estimator.update(indexPlan.getFilter(), totalHits);
 
                 // now that we got the last hit we can release the semaphore to potentially unlock other requests
                 semaphore.release();
