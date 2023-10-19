@@ -92,7 +92,7 @@ public class SimpleFlatFileUtil {
             // skip
             return;
         }
-        String jsonText = entryWriter.asJson(e.getNodeState());
+        String jsonText = entryWriter.asSortedJson(e.getNodeState());
         String line = entryWriter.toString(copyOf(elements(path)), jsonText);
         writer.append(line);
         writer.append(LINE_SEPARATOR);
