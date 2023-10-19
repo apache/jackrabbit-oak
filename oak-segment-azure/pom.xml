@@ -44,6 +44,7 @@
                             org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
                             !com.google.*,
+                            !android.os,
                             !org.checkerframework.*,
                             *
                         </Import-Package>
@@ -149,7 +150,7 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>31.1-jre</version>
+            <version>32.0.0-jre</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>
