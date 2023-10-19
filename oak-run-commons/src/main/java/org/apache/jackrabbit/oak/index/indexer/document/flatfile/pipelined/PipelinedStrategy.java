@@ -24,6 +24,7 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -322,7 +323,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         LOG.info("NodeStateEntryBuffers: [ workingMemory: {} MB, numberOfBuffers: {}, bufferSize: {}, maxEntriesPerBuffer: {} ]",
                 nseBuffersReservedMemoryMB,
                 nseBuffersCount,
-                FileUtils.byteCountToDisplaySize(nseBuffersSizeBytes),
+                IOUtils.humanReadableByteCountBin(nseBuffersSizeBytes),
                 nseBufferMaxEntriesPerBuffer);
     }
 

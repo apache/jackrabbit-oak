@@ -22,6 +22,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSortByteArray;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
@@ -135,7 +136,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         public String toString() {
             return "FileAndSize{" +
                     "file=" + file.toString() +
-                    ", size=" + FileUtils.byteCountToDisplaySize(size) +
+                    ", size=" + IOUtils.humanReadableByteCountBin(size) +
                     '}';
         }
 
@@ -200,7 +201,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                 Path sortedIntermediateFile = sortedFilesQueue.take();
                 if (sortedIntermediateFile == SENTINEL_SORTED_FILES_QUEUE) {
                     long sortedFilesSizeBytes = sizeOf(sortedFiles);
-                    LOG.info("Going to sort {} files, total size {}", sortedFiles.size(), FileUtils.byteCountToDisplaySize(sortedFilesSizeBytes));
+                    LOG.info("Going to sort {} files, total size {}", sortedFiles.size(), IOUtils.humanReadableByteCountBin(sortedFilesSizeBytes));
                     Stopwatch w = Stopwatch.createStarted();
                     List<Path> simpleFileList = sortedFiles.stream().map(f -> f.file).collect(Collectors.toList());
                     Path flatFileStore = sortStoreFile(simpleFileList);
@@ -212,7 +213,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                             .add("durationSeconds", w.elapsed(TimeUnit.SECONDS))
                             .add("filesMerged", sortedFiles.size())
                             .add("ffsSizeBytes", ffsSizeBytes)
-                            .add("ffsSize", FileUtils.byteCountToDisplaySize(ffsSizeBytes))
+                            .add("ffsSize", IOUtils.humanReadableByteCountBin(ffsSizeBytes))
                             .build();
 
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
@@ -222,8 +223,8 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                     sortedFiles.add(new PathAndSize(sortedIntermediateFile, Files.size(sortedIntermediateFile)));
                     intermediateFilesCount++;
                     LOG.info("Received new intermediate sorted file {}. Size: {}. Total files: {} of size {}",
-                            sortedIntermediateFile, FileUtils.byteCountToDisplaySize(Files.size(sortedIntermediateFile)),
-                            sortedFiles.size(), FileUtils.byteCountToDisplaySize(sizeOf(sortedFiles)));
+                            sortedIntermediateFile, IOUtils.humanReadableByteCountBin(Files.size(sortedIntermediateFile)),
+                            sortedFiles.size(), IOUtils.humanReadableByteCountBin(sizeOf(sortedFiles)));
                     // No point in doing eager merging if we already finished downloading from Mongo.
                     // In this case, we do only the final merge.
                     if (stopEagerMerging.get()) {
@@ -274,7 +275,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
             if (pathAndSize.size / FileUtils.ONE_MB > maxSizeToMergeMB) {
                 LOG.debug("File {} is too large to be merged. Size: {}, max allowed: {} MB. Stopping searching for intermediate files to merge because all other files are larger.",
                         pathAndSize.file.toAbsolutePath(),
-                        FileUtils.byteCountToDisplaySize(pathAndSize.size),
+                        IOUtils.humanReadableByteCountBin(pathAndSize.size),
                         maxSizeToMergeMB);
                 break;
             }
@@ -287,16 +288,16 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
             // Not enough candidate files to merge. Put back the candidate files in the sorted files queue
             sortedFiles.addAll(filesAndSizeToSort);
             LOG.debug("Not enough candidate files to merge. Found {} candidates of size {}, minimum for merging is {}",
-                    filesAndSizeToSort.size(), FileUtils.byteCountToDisplaySize(sumOfSizesBytes), minFilesToMerge);
+                    filesAndSizeToSort.size(), IOUtils.humanReadableByteCountBin(sumOfSizesBytes), minFilesToMerge);
             return;
         }
         LOG.info("Merge threshold reached: {} > {}. Going to merge the following {} files {} of total size {}.",
                 sortedFiles.size() + filesAndSizeToSort.size(), mergeTriggerThreshold,
                 filesAndSizeToSort.size(),
                 filesAndSizeToSort.stream()
-                        .map(fs -> fs.file.getFileName() + ": " + FileUtils.byteCountToDisplaySize(fs.size))
+                        .map(fs -> fs.file.getFileName() + ": " + IOUtils.humanReadableByteCountBin(fs.size))
                         .collect(Collectors.joining(", ", "[", "]")),
-                FileUtils.byteCountToDisplaySize(sumOfSizesBytes));
+                IOUtils.humanReadableByteCountBin(sumOfSizesBytes));
         Stopwatch start = Stopwatch.createStarted();
         Path mergedFiled = sortStoreFile(filesAndSizeToSort.stream().map(f -> f.file).collect(Collectors.toList()));
         eagerMergeRuns++;
@@ -306,7 +307,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         sortedFiles.add(mergedPathAndSize);
         LOG.info("{} files merged in {} seconds. New file {}, size: {}",
                 filesAndSizeToSort.size(), start.elapsed(TimeUnit.SECONDS),
-                mergedPathAndSize.file.getFileName(), FileUtils.byteCountToDisplaySize(mergedPathAndSize.size));
+                mergedPathAndSize.file.getFileName(), IOUtils.humanReadableByteCountBin(mergedPathAndSize.size));
     }
 
     private Path sortStoreFile(List<Path> sortedFilesBatch) throws IOException {
