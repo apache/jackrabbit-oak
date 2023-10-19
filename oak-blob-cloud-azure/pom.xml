@@ -40,6 +40,7 @@
                         <Import-Package>
                           !com.google.*,
                           !org.checkerframework.*,
+                          !android.os,
                           *
                         </Import-Package>
                         <Export-Package>

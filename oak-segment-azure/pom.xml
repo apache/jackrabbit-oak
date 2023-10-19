@@ -44,6 +44,7 @@
                             org.apache.jackrabbit.oak.segment.remote*,
                             !org.apache.jackrabbit.oak.segment*,
                             !com.google.*,
+                            !android.os,
                             !org.checkerframework.*,
                             *
                         </Import-Package>
