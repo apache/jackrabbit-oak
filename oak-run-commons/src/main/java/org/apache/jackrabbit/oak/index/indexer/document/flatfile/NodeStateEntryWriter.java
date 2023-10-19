@@ -88,10 +88,14 @@ public class NodeStateEntryWriter {
 
     public String asJson(NodeState nodeState) {
         if (SORTED_PROPERTIES) {
-            return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
-                    .sorted(Comparator.comparing(PropertyState::getName)));
+            return asSortedJson(nodeState);
         }
         return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
+    }
+
+    String asSortedJson(NodeState nodeState) {
+        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
+                .sorted(Comparator.comparing(PropertyState::getName)));
     }
 
     private String asJson(Stream<? extends PropertyState> stream) {
