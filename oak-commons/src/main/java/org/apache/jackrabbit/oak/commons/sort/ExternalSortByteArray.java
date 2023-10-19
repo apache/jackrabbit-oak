@@ -44,8 +44,7 @@ public class ExternalSortByteArray {
         try {
             for (Path f : files) {
                 InputStream in = algorithm.getInputStream(Files.newInputStream(f));
-                BinaryFileBuffer<T> bfb = new BinaryFileBuffer<>(in, byteArrayToType);
-                bfbs.add(bfb);
+                bfbs.add(new BinaryFileBuffer<>(in, byteArrayToType));
             }
             mergeBinary(fbw, cmp, distinct, bfbs, typeToByteArray);
         } finally {
@@ -61,8 +60,8 @@ public class ExternalSortByteArray {
         }
     }
 
-    public static <T> int mergeBinary(BufferedOutputStream fbw, final Comparator<T> cmp, boolean distinct,
-                                      List<BinaryFileBuffer<T>> buffers, Function<T, byte[]> typeToByteArray)
+    private static <T> int mergeBinary(BufferedOutputStream fbw, final Comparator<T> cmp, boolean distinct,
+                                       List<BinaryFileBuffer<T>> buffers, Function<T, byte[]> typeToByteArray)
             throws IOException {
         PriorityQueue<BinaryFileBuffer<T>> pq = new PriorityQueue<>(
                 11,
@@ -75,26 +74,20 @@ public class ExternalSortByteArray {
         }
         int rowcounter = 0;
         T lastLine = null;
-        try (fbw) {
-            while (!pq.isEmpty()) {
-                BinaryFileBuffer<T> bfb = pq.poll();
-                T r = bfb.pop();
-                // Skip duplicate lines
-                if (!distinct || lastLine == null || cmp.compare(r, lastLine) != 0) {
-                    fbw.write(typeToByteArray.apply(r));
-                    fbw.write('\n');
-                    lastLine = r;
-                }
-                ++rowcounter;
-                if (bfb.empty()) {
-                    bfb.fbr.close();
-                } else {
-                    pq.add(bfb); // add it back
-                }
+        while (!pq.isEmpty()) {
+            BinaryFileBuffer<T> bfb = pq.poll();
+            T r = bfb.pop();
+            // Skip duplicate lines
+            if (!distinct || lastLine == null || cmp.compare(r, lastLine) != 0) {
+                fbw.write(typeToByteArray.apply(r));
+                fbw.write('\n');
+                lastLine = r;
             }
-        } finally {
-            for (BinaryFileBuffer<T> bfb : buffers) {
-                bfb.close();
+            ++rowcounter;
+            if (bfb.empty()) {
+                bfb.fbr.close();
+            } else {
+                pq.add(bfb); // add it back
             }
         }
         return rowcounter;

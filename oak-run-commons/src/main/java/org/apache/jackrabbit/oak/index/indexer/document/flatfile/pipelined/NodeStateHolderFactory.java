@@ -26,8 +26,8 @@ final class NodeStateHolderFactory implements Function<byte[], NodeStateHolder> 
     private final static byte PIPE = (byte) '|';
     private final static byte PATH_SEPARATOR = (byte) '/';
 
-    // In UTF-8, the ASCII characters have similar encoding as in ASCII, so we can search for then without decoding the
-    // stream. And characters encoded as multibyte will not have any of their bytes matching a ASCII character, because
+    // In UTF-8, the ASCII characters have similar encoding as in ASCII, so we can search for them without decoding the
+    // stream. And characters encoded as multibyte will not have any of their bytes matching an ASCII character, because
     // the bytes in a multibyte encoding all start with 1, while ASCII characters start with 0.
     // https://en.wikipedia.org/wiki/UTF-8#Encoding
     private static int indexOf(byte[] ffsLine, byte ch, int from, int to) {
