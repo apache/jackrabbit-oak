@@ -79,10 +79,6 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB = "oak.indexer.pipelined.eagerMergeMaxSizeToMergeMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB = 2048;
 
-    // TODO: start merging small files into larger files to avoid having too many "small" files at the end.
-    //  Idea: when there are more than k (for instance, 10) intermediate files whose size is under a certain limit
-    //  (for instance, 1GB),  merge them into a  single file. And repeat the test whenever this task receives a new
-    //  intermediate file.
     public static class Result {
         private final Path flatFileStoreFile;
         private final int intermediateFilesCount;
