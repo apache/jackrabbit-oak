@@ -38,7 +38,7 @@ import java.util.stream.StreamSupport;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class NodeStateEntryWriter {
-    private static final boolean UNSORTED_PROPERTIES = Boolean.getBoolean("oak.NodeStateEntryWriter.unsortedProps");
+    private static final boolean SORTED_PROPERTIES = Boolean.getBoolean("oak.NodeStateEntryWriter.sort");
     private static final String OAK_CHILD_ORDER = ":childOrder";
     public static final String DELIMITER = "|";
     private final JsopBuilder jw = new JsopBuilder();
@@ -87,11 +87,11 @@ public class NodeStateEntryWriter {
     }
 
     public String asJson(NodeState nodeState) {
-        if (UNSORTED_PROPERTIES) {
-            return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
+        if (SORTED_PROPERTIES) {
+            return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
+                    .sorted(Comparator.comparing(PropertyState::getName)));
         }
-        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
-                .sorted(Comparator.comparing(PropertyState::getName)));
+        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
     }
 
     private String asJson(Stream<? extends PropertyState> stream) {
