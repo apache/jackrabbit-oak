@@ -257,7 +257,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     public void reindex() throws CommitFailedException, IOException {
-        log.info("[TASK:INDEXING_JOB:START] Starting indexing job");
+        log.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
         Stopwatch indexJobWatch = Stopwatch.createStarted();
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
@@ -313,7 +313,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .build());
 
         indexerSupport.postIndexWork(copyOnWriteStore);
-        log.info("[TASK:INDEXING_JOB:END] Metrics {}", MetricsFormatter.newBuilder()
+        log.info("[TASK:FULL_INDEX_CREATION:START] Metrics {}", MetricsFormatter.newBuilder()
                 .add("duration", FormattingUtils.formatToSeconds(indexJobWatch))
                 .add("durationSeconds", indexJobWatch.elapsed(TimeUnit.SECONDS))
                 .build());
