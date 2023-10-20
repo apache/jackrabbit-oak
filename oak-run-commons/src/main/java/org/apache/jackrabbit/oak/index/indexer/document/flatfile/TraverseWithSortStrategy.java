@@ -23,6 +23,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
@@ -61,7 +62,10 @@ import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
-
+/**
+ * @deprecated Use {@link PipelinedStrategy} instead
+ */
+@Deprecated
 class TraverseWithSortStrategy extends IndexStoreSortStrategyBase {
     private static final String OAK_INDEXER_MIN_MEMORY = "oak.indexer.minMemoryForWork";
     private final Logger log = LoggerFactory.getLogger(getClass());

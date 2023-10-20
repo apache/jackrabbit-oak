@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverserFactory;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
@@ -44,6 +45,10 @@ import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT;
 
+/**
+ * @deprecated Use {@link PipelinedStrategy} instead
+ */
+@Deprecated
 class StoreAndSortStrategy extends IndexStoreSortStrategyBase {
     private static final String OAK_INDEXER_DELETE_ORIGINAL = "oak.indexer.deleteOriginal";
     private static final int LINE_SEP_LENGTH = LINE_SEPARATOR.value().length();
