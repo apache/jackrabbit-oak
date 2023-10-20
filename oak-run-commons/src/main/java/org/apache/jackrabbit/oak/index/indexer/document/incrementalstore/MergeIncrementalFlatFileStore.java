@@ -115,7 +115,10 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                         baseFFSLine = writeAndAdvance(writer, baseFFSBufferedReader, baseFFSLine);
                     } else if (compared > 0) { // write incrementalFFSline and advance line in incrementalFFS
                         String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
-                        checkState(IncrementalStoreOperand.ADD.toString().equals(getOperand(incrementalFFSParts)));
+                        if (!IncrementalStoreOperand.ADD.toString().equals(getOperand(incrementalFFSParts))) {
+                            log.warn("Expected operand {} but got {} for incremental line {}. Merging will proceed as usual, but this needs to be looked into.",
+                                    IncrementalStoreOperand.ADD, getOperand(incrementalFFSParts), incrementalFFSLine);
+                        }
                         incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
                                 getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
                     } else {
