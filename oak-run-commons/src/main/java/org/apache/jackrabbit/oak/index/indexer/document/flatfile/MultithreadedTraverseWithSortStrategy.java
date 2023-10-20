@@ -23,6 +23,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeException;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.index.indexer.document.LastModifiedRange;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntryTraverser;
@@ -152,7 +153,9 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
  *          </ol>
  *     </li>
  * </ol>
+ * @deprecated Use {@link PipelinedStrategy} instead
  */
+@Deprecated
 public class MultithreadedTraverseWithSortStrategy extends IndexStoreSortStrategyBase {
 
     private static final Logger log = LoggerFactory.getLogger(MultithreadedTraverseWithSortStrategy.class);
