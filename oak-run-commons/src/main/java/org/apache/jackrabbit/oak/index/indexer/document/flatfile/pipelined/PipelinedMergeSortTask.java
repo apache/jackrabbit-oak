@@ -67,12 +67,10 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE = "oak.indexer.pipelined.eagerMergeMaxFilesToMerge";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE = 32;
     /*
-     * Minimum number of files to eagerly merge at a time. Merging only a few files will not significantly reduce the
-     * duration of the final merge, so it might end up being more expensive than having a final merge with a larger
-     * number of files.
+     * Minimum number of files to eagerly merge at a time.
      */
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE = "oak.indexer.pipelined.eagerMergeMinFilesToMerge";
-    public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE = 8;
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE = 4;
     /*
      * Maximum total size of intermediate files that can be eagerly merged.
      */
