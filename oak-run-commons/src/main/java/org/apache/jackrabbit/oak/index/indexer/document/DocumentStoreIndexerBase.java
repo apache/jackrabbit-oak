@@ -313,7 +313,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .build());
 
         indexerSupport.postIndexWork(copyOnWriteStore);
-        log.info("[TASK:FULL_INDEX_CREATION:START] Metrics {}", MetricsFormatter.newBuilder()
+        log.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.newBuilder()
                 .add("duration", FormattingUtils.formatToSeconds(indexJobWatch))
                 .add("durationSeconds", indexJobWatch.elapsed(TimeUnit.SECONDS))
                 .build());
