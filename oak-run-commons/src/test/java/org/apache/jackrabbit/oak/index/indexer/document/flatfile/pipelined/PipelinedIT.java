@@ -316,7 +316,8 @@ public class PipelinedIT {
                 sortFolder.getRoot(),
                 Compression.NONE,
                 pathPredicate,
-                pathFilters);
+                pathFilters,
+                null);
     }
 
     private void createContent(NodeStore rwNodeStore) throws CommitFailedException {
