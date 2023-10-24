@@ -257,6 +257,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     public void reindex() throws CommitFailedException, IOException {
+        log.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        Stopwatch indexJobWatch = Stopwatch.createStarted();
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
         configureEstimators(progressReporter);
@@ -311,6 +313,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .build());
 
         indexerSupport.postIndexWork(copyOnWriteStore);
+        log.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(indexJobWatch))
+                .add("durationSeconds", indexJobWatch.elapsed(TimeUnit.SECONDS))
+                .build());
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
