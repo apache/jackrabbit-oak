@@ -204,7 +204,7 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     //------------------------------------------------------------< private >---
 
-    private GroupPrincipalFactory createGroupPrincipalFactory() {
+    GroupPrincipalFactory createGroupPrincipalFactory() {
         return new GroupPrincipalFactory() {
             @Override
             public Principal create(@NotNull Tree authorizable) {

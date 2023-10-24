@@ -124,7 +124,7 @@ class CachedGroupMembershipReader extends GroupMembershipReader {
         }
 
         if (!updateCache && mayServeStale) {
-            // another thread is updating the cache and we may serve stale
+            LOG.debug("Another thread is updating the cache and we may serve stale");
             serveGroupsFromCache(authorizablePath, principalCache, groups);
             return;
         }
@@ -150,6 +150,7 @@ class CachedGroupMembershipReader extends GroupMembershipReader {
         } else {
             // load but do not cache. happens when another thread is updating
             // the cache and this thread is not allowed to serve stale
+            LOG.debug("Load but do not cache. Another thread is updating the cache and this thread is not allowed to serve stale");
             loader.accept(authorizableNode, groups);
         }
     }
