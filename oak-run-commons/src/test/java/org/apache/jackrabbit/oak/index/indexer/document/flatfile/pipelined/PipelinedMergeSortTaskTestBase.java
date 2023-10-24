@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.junit.Rule;
+import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,8 @@ public class PipelinedMergeSortTaskTestBase {
     protected final Logger log = LoggerFactory.getLogger(this.getClass());
     @Rule
     public TemporaryFolder sortFolder = new TemporaryFolder();
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
 
     protected List<NodeStateHolder> sortAsNodeStateEntries(List<String> ffsLines) {

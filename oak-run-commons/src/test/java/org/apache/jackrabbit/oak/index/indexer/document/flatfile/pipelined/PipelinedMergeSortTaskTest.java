@@ -69,6 +69,13 @@ public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
         assertEquals(Files.readAllLines(expected, FLATFILESTORE_CHARSET), Files.readAllLines(resultFile, FLATFILESTORE_CHARSET));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void invalidReadBufferSize() throws Exception {
+        System.setProperty(PipelinedMergeSortTask.OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE, "10");
+        Path singleFileToMerge = getTestFile("pipelined/merge-stage-1.json");
+        runTest(algorithm, singleFileToMerge);
+    }
+
     private Path getTestFile(String name) {
         URL url = classLoader.getResource(name);
         if (url == null) throw new IllegalArgumentException("Test file not found: " + name);
@@ -131,8 +138,10 @@ public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
 
         // Generate the expected results by sorting using the node state entries comparator,
         List<NodeStateHolder> nodesOrdered = sortAsNodeStateEntries(ffs);
-        // Convert back to a list of Strings
-        String[] expectedFFS = nodesOrdered.stream().map(f -> new String(f.getLine())).toArray(String[]::new);
+        // Convert back to a list of Strings to use as expected result
+        String[] expectedFFS = nodesOrdered.stream()
+                .map(f -> new String(f.getLine(), FLATFILESTORE_CHARSET))
+                .toArray(String[]::new);
 
         // Write intermediate files
         List<Path> intermediateFiles = createIntermediateFiles(ffs, intermediateFilesCount);

@@ -77,6 +77,9 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     public static final String OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB = "oak.indexer.pipelined.eagerMergeMaxSizeToMergeMB";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB = 2048;
 
+    public final static String OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE = "oak.indexer.pipelined.externalMerge.readBufferSize";
+    public final static int DEFAULT_OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE = 16 * 1024;
+
     public static class Result {
         private final Path flatFileStoreFile;
         private final int intermediateFilesCount;
@@ -153,6 +156,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     private final int minFilesToMerge;
     private final int maxFilesToMerge;
     private final int maxSizeToMergeMB;
+    private final int externalMergeReadBufferSize;
     private int eagerMergeRuns;
     private int mergedFilesCounter = 0;
 
@@ -180,6 +184,10 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
         this.maxSizeToMergeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB);
         Preconditions.checkArgument(maxSizeToMergeMB >= 1,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB + ": " + maxSizeToMergeMB + ". Must be >= 1");
+
+        this.externalMergeReadBufferSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE);
+        Preconditions.checkArgument(externalMergeReadBufferSize >= FileUtils.ONE_KB,
+                "Invalid value for property " + OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE + ": " + externalMergeReadBufferSize + ". Must be >= 1 KB");
     }
 
     @Override
@@ -315,7 +323,8 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                     true, //distinct
                     algorithm,
                     typeToByteArray,
-                    byteArrayToType
+                    byteArrayToType,
+                    externalMergeReadBufferSize
             );
         }
         return sortedFile;

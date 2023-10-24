@@ -21,9 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
@@ -42,8 +40,6 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class PipelinedMergeSortTaskParameterizedTest extends PipelinedMergeSortTaskTestBase {
-    @Rule
-    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
