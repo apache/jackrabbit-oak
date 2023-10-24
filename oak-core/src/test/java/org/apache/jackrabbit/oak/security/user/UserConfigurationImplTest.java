@@ -83,7 +83,7 @@ public class UserConfigurationImplTest extends AbstractSecurityTest {
         UserConfigurationImpl configuration = new UserConfigurationImpl();
 
         List<ThreeWayConflictHandler> conflictHandlers = configuration.getConflictHandlers();
-        assertEquals(1, conflictHandlers.size());
+        assertEquals(2, conflictHandlers.size());
         assertTrue(conflictHandlers.get(0) instanceof RepMembersConflictHandler);
     }
 
