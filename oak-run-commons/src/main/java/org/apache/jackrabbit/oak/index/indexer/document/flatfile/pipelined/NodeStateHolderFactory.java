@@ -18,9 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.function.Function;
+
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.FLATFILESTORE_CHARSET;
 
 final class NodeStateHolderFactory implements Function<byte[], NodeStateHolder> {
     private final static byte PIPE = (byte) '|';
@@ -60,9 +61,9 @@ final class NodeStateHolderFactory implements Function<byte[], NodeStateHolder> 
         partsBuffer.clear();
         int pipeIdx = indexOf(ffsLine, PIPE);
         if (pipeIdx < 0) {
-            throw new IllegalStateException("Line does not contain a pipe: " + new String(ffsLine, StandardCharsets.UTF_8));
+            throw new IllegalStateException("Line does not contain a pipe: " + new String(ffsLine, FLATFILESTORE_CHARSET));
         }
-        String path = new String(ffsLine, 0, pipeIdx, StandardCharsets.UTF_8);
+        String path = new String(ffsLine, 0, pipeIdx, FLATFILESTORE_CHARSET);
 
         int pos = isAbsolutePath(path) ? 1 : 0;
         while (true) {
