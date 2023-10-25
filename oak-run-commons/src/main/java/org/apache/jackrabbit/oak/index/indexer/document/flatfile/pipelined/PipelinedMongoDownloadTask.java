@@ -28,9 +28,9 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
-import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -432,7 +432,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 }
                 if (nextIndex > 0) {
                     LOG.info("Enqueueing last block with {} elements, estimated size: {}",
-                            nextIndex, FileUtils.byteCountToDisplaySize(batchSize));
+                            nextIndex, IOUtils.humanReadableByteCountBin(batchSize));
                     tryEnqueueCopy(batch, nextIndex);
                 }
             } catch (MongoException e) {
@@ -443,7 +443,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 // There may be some documents in the current batch, enqueue them and rethrow the exception
                 if (nextIndex > 0) {
                     LOG.info("Connection interrupted with recoverable failure. Enqueueing partial block with {} elements, estimated size: {}",
-                            nextIndex, FileUtils.byteCountToDisplaySize(batchSize));
+                            nextIndex, IOUtils.humanReadableByteCountBin(batchSize));
                     tryEnqueueCopy(batch, nextIndex);
                 }
                 throw e;

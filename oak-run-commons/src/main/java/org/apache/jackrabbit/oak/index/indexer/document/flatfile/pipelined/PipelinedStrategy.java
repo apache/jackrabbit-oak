@@ -220,23 +220,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
      * @param pathPredicate Used by the transform stage to test if a node should be kept or discarded.
      * @param pathFilters   If non-empty, the download stage will use these filters to try to create a query that downloads
      *                      only the matching MongoDB documents.
-     * @deprecated use {@link PipelinedStrategy#PipelinedStrategy(MongoDocumentStore, MongoDatabase, DocumentNodeStore, RevisionVector, Set, BlobStore, File, Compression, Predicate, List, String)} instead
      */
-    @Deprecated
-    public PipelinedStrategy(MongoDocumentStore documentStore,
-                             MongoDatabase mongoDatabase,
-                             DocumentNodeStore documentNodeStore,
-                             RevisionVector rootRevision,
-                             Set<String> preferredPathElements,
-                             BlobStore blobStore,
-                             File storeDir,
-                             Compression algorithm,
-                             Predicate<String> pathPredicate,
-                             List<PathFilter> pathFilters) {
-        this(documentStore, mongoDatabase, documentNodeStore, rootRevision, preferredPathElements, blobStore, storeDir,
-                algorithm, pathPredicate, pathFilters, null);
-    }
-
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              MongoDatabase mongoDatabase,
                              DocumentNodeStore documentNodeStore,
@@ -315,10 +299,10 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 mongoDocQueueReservedMemoryMB,
                 mongoDocBatchMaxSizeMB,
                 mongoDocQueueSize);
-        LOG.info("NodeStateEntryBuffers: [ workingMemory: {} MB, numberOfBuffers: {}, bufferSize: {}, maxEntriesPerBuffer: {} ]",
+        LOG.info("NodeStateEntryBuffers: [ workingMemory: {} MB, numberOfBuffers: {}, bufferSize: {} MB, maxEntriesPerBuffer: {} ]",
                 nseBuffersReservedMemoryMB,
                 nseBuffersCount,
-                FileUtils.byteCountToDisplaySize(nseBuffersSizeBytes),
+                nseBuffersSizeBytes / FileUtils.ONE_MB,
                 nseBufferMaxEntriesPerBuffer);
     }
 

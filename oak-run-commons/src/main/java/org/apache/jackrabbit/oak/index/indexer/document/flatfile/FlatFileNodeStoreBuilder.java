@@ -131,10 +131,10 @@ public class FlatFileNodeStoreBuilder {
     private Predicate<String> pathPredicate = path -> true;
 
     private final Compression algorithm = IndexStoreUtils.compressionAlgorithm();
-    private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
+    private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
-            (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.STORE_AND_SORT);
+            (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.PIPELINED);
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
@@ -356,15 +356,18 @@ public class FlatFileNodeStoreBuilder {
     IndexStoreSortStrategy createSortStrategy(File dir) throws IOException {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
-                log.info("Using StoreAndSortStrategy");
+                log.info("Using StoreAndSortStrategy.");
+                log.warn("StoreAndSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
                         algorithm, pathPredicate, checkpoint);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
+                log.warn("TraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
                         algorithm, pathPredicate, checkpoint);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
+                log.warn("MultithreadedTraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, preferredPathElements,
                         blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate, checkpoint);
             case PIPELINED:

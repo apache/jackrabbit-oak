@@ -521,6 +521,83 @@ var oak = (function(global){
     };
 
     /**
+     * Removes unmerged branch changes on the document with the given path
+     * and clusterId. This method will only remove unmerged branch changes when
+     * the clusterId is inactive.
+     * On big documents with write contention it is advisable to limit the
+     * number of unmerged branch changes to remove in one go. Otherwise MongoDB
+     * may have difficulties applying the change to the document.
+     *
+     * @memberof oak
+     * @method removeUnmergedBranchChanges
+     * @param {string} path the path of a document
+     * @param {number} clusterId unmerged branch changes for this clusterId will be removed.
+     * @param {number} [limit=1000000] maximum number of unmerged branches to remove.
+     * @returns {object} the result of the MongoDB update.
+     */
+    api.removeUnmergedBranchChanges = function(path, clusterId, limit) {
+        if (path === undefined) {
+            print("No path specified");
+            return;
+        }
+        if (clusterId === undefined) {
+            print("No clusterId specified");
+            return;
+        }
+        if (limit === undefined) {
+            limit = 1000000;
+        }
+        // refuse to remove when clusterId is marked active
+        var clusterNode = db.clusterNodes.findOne({_id: clusterId.toString()});
+        if (clusterNode && clusterNode.state == "ACTIVE") {
+            print("Cluster node with id " + clusterId + " is active!");
+            print("Can only remove unmerged branches for inactive cluster node.");
+            return;
+        }
+
+        var doc = this.findOne(path);
+        if (!doc) {
+            print("No document for path: " + path);
+            return;
+        }
+        var unset = {};
+        var r;
+        var num = 0;
+        for (r in doc._bc) {
+            if (new Revision(r).getClusterId() != clusterId) {
+                continue;
+            }
+
+            var commitValue = this.getCommitValue("/", r)
+            if (commitValue && commitValue[r] && commitValue[r].startsWith("c-")) {
+                print("Branch change " + r + " is not garbage");
+                continue;
+            }
+
+            for (var key in doc) {
+                if (doc.hasOwnProperty(key) && doc[key][r]) {
+                    unset[key + "." + r] = "";
+                }
+            }
+            num++;
+
+            if (num >= limit) {
+                break;
+            }
+        }
+        if (num > 0) {
+            var update = {};
+            update["$inc"] = {_modCount: NumberLong(1)};
+            update["$unset"] = unset;
+            print("Removing " + num + " unmerged branches for clusterId " + clusterId);
+            // print(JSON.stringify(update));
+            return db.nodes.update({_id: pathDepth(path) + ":" + path}, update);
+        } else {
+            print("No unmerged branches found for clusterId " + clusterId);
+        }
+    };
+
+    /**
      * Finds the document with the given path.
      *
      * @memberof oak
