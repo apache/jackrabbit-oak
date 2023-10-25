@@ -707,7 +707,7 @@
       <dependency>
         <groupId>com.arakelian</groupId>
         <artifactId>docker-junit-rule</artifactId>
-        <version>2.3.0</version>
+        <version>4.1.0</version>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>

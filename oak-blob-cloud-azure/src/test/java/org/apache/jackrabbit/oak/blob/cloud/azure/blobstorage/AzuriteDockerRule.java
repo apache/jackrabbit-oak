@@ -16,14 +16,13 @@
  */
 package org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage;
 
+import com.arakelian.docker.junit.Container;
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
 import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.util.UUID;
@@ -34,6 +33,14 @@ import org.junit.Assume;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.DockerClient;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.command.PullImageResultCallback;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.ExposedPort;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.PortBinding;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.Ports;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.DefaultDockerClientConfig;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.DockerClientImpl;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.okhttp.OkHttpDockerCmdExecFactory;
 
 public class AzuriteDockerRule implements TestRule {
 
@@ -51,19 +58,26 @@ public class AzuriteDockerRule implements TestRule {
     public AzuriteDockerRule() {
         wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
             .image(IMAGE)
-            .name("oak-test-azurite-" + CONTAINER_SUFFIX)
-            .ports("10000")
+            .addHostConfigConfigurer(hostConfig -> {
+                hostConfig.withAutoRemove(true);
+//                hostConfig.withPortBindings(new PortBinding(Ports.Binding.empty(), ExposedPort.tcp(10000))); //todo not work on vpn
+                hostConfig.withPortBindings(new PortBinding(Ports.Binding.bindIp("127.0.0.1"), ExposedPort.tcp(10000))); //todo work on vpn
+            })
+            .addCreateContainerConfigurer(create -> {
+                create.withName("oak-test-azurite-" + CONTAINER_SUFFIX);
+                create.withCmd("azurite-blob", "--blobHost=0.0.0.0"); //todo additional command to run container properly
+//                create.withEnv("executable=blob"); //todo probably not needed now
+            })
+
             .addStartedListener(container -> {
                 try {
-                    container.waitForPort("10000/tcp");
+                    container.waitForPort(ExposedPort.tcp(10000));
                     container.waitForLog("Azurite Blob service is successfully listening at http://0.0.0.0:10000");
                 } catch (IllegalStateException e) {
                     STARTUP_EXCEPTION.set(e);
                     throw e;
                 }
             })
-            .addContainerConfigurer(builder -> builder.env("executable=blob"))
-            .alwaysRemoveContainer(true)
             .build());
     }
 
@@ -92,13 +106,11 @@ public class AzuriteDockerRule implements TestRule {
     @Override
     public Statement apply(Statement statement, Description description) {
         try {
-            DefaultDockerClient client = DefaultDockerClient.fromEnv()
-                .connectTimeoutMillis(5000L)
-                .readTimeoutMillis(20000L)
-                .registryAuthSupplier(new FixedRegistryAuthSupplier())
-                .build();
-            client.ping();
-            client.pull(IMAGE);
+            DockerClient client =
+                    DockerClientImpl.getInstance(DefaultDockerClientConfig.createDefaultConfigBuilder().build())
+                            .withDockerCmdExecFactory(new OkHttpDockerCmdExecFactory().withConnectTimeout(5000).withReadTimeout(20000));
+            client.pingCmd().exec();
+            client.pullImageCmd(IMAGE).exec(new PullImageResultCallback());
             client.close();
         } catch (Throwable t) {
             Assume.assumeNoException(t);
@@ -119,6 +131,8 @@ public class AzuriteDockerRule implements TestRule {
     }
 
     public int getMappedPort() {
-        return wrappedRule.getContainer().getPortBinding("10000/tcp").getPort();
+        Ports.Binding binding = wrappedRule.getContainer().getBinding(ExposedPort.tcp(10000));
+        Container.SimpleBinding simpleBinding = Container.SimpleBinding.of(binding);
+        return simpleBinding.getPort();
     }
 }

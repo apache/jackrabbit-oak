@@ -204,6 +204,11 @@
             <artifactId>docker-junit-rule</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.13.0</version>
+        </dependency>
 
     </dependencies>
 

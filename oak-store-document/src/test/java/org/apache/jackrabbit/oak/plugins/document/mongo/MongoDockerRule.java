@@ -19,10 +19,9 @@ package org.apache.jackrabbit.oak.plugins.document.mongo;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.arakelian.docker.junit.Container;
 import com.arakelian.docker.junit.DockerRule;
 import com.arakelian.docker.junit.model.ImmutableDockerConfig;
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.auth.FixedRegistryAuthSupplier;
 
 import org.junit.Assume;
 import org.junit.rules.TestRule;
@@ -30,6 +29,14 @@ import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.DockerClient;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.command.PullImageResultCallback;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.ExposedPort;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.PortBinding;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.Ports;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.DefaultDockerClientConfig;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.DockerClientImpl;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.okhttp.OkHttpDockerCmdExecFactory;
 
 /**
  * A MongoDB {@link DockerRule}.
@@ -48,12 +55,11 @@ public class MongoDockerRule implements TestRule {
 
     static {
         boolean available = false;
-        try (DefaultDockerClient client = DefaultDockerClient.fromEnv()
-                .connectTimeoutMillis(5000L).readTimeoutMillis(20000L)
-                .registryAuthSupplier(new FixedRegistryAuthSupplier())
-                .build()) {
-            client.ping();
-            client.pull(IMAGE);
+        try (DockerClient dockerClient =
+                     DockerClientImpl.getInstance(DefaultDockerClientConfig.createDefaultConfigBuilder().build())
+                             .withDockerCmdExecFactory(new OkHttpDockerCmdExecFactory().withConnectTimeout(5000).withReadTimeout(20000))) {
+            dockerClient.pingCmd().exec();
+            dockerClient.pullImageCmd(IMAGE).exec(new PullImageResultCallback());
             available = true;
         } catch (Throwable t) {
             LOG.info("Cannot connect to docker or pull image", t);
@@ -67,14 +73,18 @@ public class MongoDockerRule implements TestRule {
 
     public MongoDockerRule() {
         wrappedRule = new DockerRule(ImmutableDockerConfig.builder()
-                .name(CONFIG_NAME)
                 .image(IMAGE)
-                .ports("27017")
                 .allowRunningBetweenUnitTests(true)
-                .alwaysRemoveContainer(true)
+                .addHostConfigConfigurer(hostConfig -> {
+                    hostConfig.withAutoRemove(true);
+                    hostConfig.withPortBindings(new PortBinding(Ports.Binding.empty(), ExposedPort.tcp(27017)));
+                })
+                .addCreateContainerConfigurer(create -> {
+                    create.withName(CONFIG_NAME);
+                })
                 .addStartedListener(container -> {
                     try {
-                        container.waitForPort("27017/tcp");
+                        container.waitForPort(ExposedPort.tcp(27017));
                     } catch (IllegalStateException e) {
                         STARTUP_EXCEPTION.set(e);
                         throw e;
@@ -100,11 +110,15 @@ public class MongoDockerRule implements TestRule {
     }
 
     public int getPort() {
-        return wrappedRule.getContainer().getPortBinding("27017/tcp").getPort();
+        Ports.Binding binding = wrappedRule.getContainer().getBinding(ExposedPort.tcp(27017));
+        Container.SimpleBinding simpleBinding = Container.SimpleBinding.of(binding);
+        return simpleBinding.getPort();
     }
 
     public String getHost() {
-        return wrappedRule.getContainer().getPortBinding("27017/tcp").getHost();
+        Ports.Binding binding = wrappedRule.getContainer().getBinding(ExposedPort.tcp(27017));
+        Container.SimpleBinding simpleBinding = Container.SimpleBinding.of(binding);
+        return simpleBinding.getHost();
     }
 
     public static boolean isDockerAvailable() {
