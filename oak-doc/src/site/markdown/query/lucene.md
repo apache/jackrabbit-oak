@@ -253,7 +253,7 @@ refresh
 
 [blobSize][OAK-2201]
 : Default value 32768 (32kb).
-: Size in bytes used for splitting the index files when storing them in NodeStore
+: Size in bytes used for splitting the index files when storing them
 
 functionName
 : Name to be used to enable index usage with [native query support](#native-query).
@@ -1344,8 +1344,8 @@ To disable active deletion in a certain installation, set the system property `o
 ### <a name="luke"></a>Analyzing created Lucene Index
 
 [Luke]  is a handy development and diagnostic tool, which accesses already
-existing Lucene indexes and allows you to display index details. In Oak
-Lucene index files are stored in `NodeStore` and hence not directly
+existing Lucene indexes and allows you to display index details. In Oak,
+Lucene index files are not directly
 accessible. To enable analyzing the index files via Luke follow below
 mentioned steps
 
