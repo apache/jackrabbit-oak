@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -62,11 +63,21 @@ public class IndexInfoServiceImpl implements IndexInfoService{
 
     @Override
     public Iterable<IndexInfo> getAllIndexInfo() {
+        HashSet<String> allIndexes = new HashSet<>();
+        indexPathService.getIndexPaths().forEach(allIndexes::add);
+        HashSet<String> activeIndexes = new HashSet<>();
+        if (indexPathService.getMountInfoProvider().hasNonDefaultMounts()) {
+            IndexName.filterReplacedIndexes(allIndexes, nodeStore.getRoot(), true).forEach(activeIndexes::add);
+        } else {
+            activeIndexes.addAll(allIndexes);
+        }
         return Iterables.filter(Iterables.transform(indexPathService.getIndexPaths(), new Function<String, IndexInfo>() {
             @Override
             public IndexInfo apply(String indexPath) {
                 try {
-                    return getInfo(indexPath);
+                    IndexInfo info = getInfo(indexPath);
+                    info.setActive(activeIndexes.contains(indexPath));
+                    return info;
                 } catch (Exception e) {
                     log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);
                     return null;
@@ -129,6 +140,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
     private static class SimpleIndexInfo implements IndexInfo {
         private final String indexPath;
         private final String type;
+        private boolean isActive;
 
         private SimpleIndexInfo(String indexPath, String type) {
             this.indexPath = indexPath;
@@ -202,6 +214,16 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         @Override
         public long getReindexCompletionTimestamp() {
             return -1;
+        }
+
+        @Override
+        public void setActive(boolean value) {
+            isActive = value;
+        }
+
+        @Override
+        public boolean isActive() {
+            return isActive;
         }
     }
 }

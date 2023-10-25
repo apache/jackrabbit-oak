@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.search.spi.query;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,14 +27,21 @@ import java.util.List;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * @deprecated
- * Use oak-core org.apache.jackrabbit.oak.plugins.index.IndexName instead.
+ * An index name, which possibly contains two version numbers: the product
+ * version number, and the customer version number.
+ *
+ * The format of an index node name is:
+ * - The name of the index,
+ * - optionally a dash ('-') and the product version number,
+ * - optionally "-custom-" and the customer version number.
+ *
+ * If the node name doesn't contain version numbers / dashes, then version 0 is
+ * assumed (for both the product version number and customer version number).
  */
 public class IndexName implements Comparable<IndexName> {
 

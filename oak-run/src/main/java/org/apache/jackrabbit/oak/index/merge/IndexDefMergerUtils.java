@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
+import org.apache.jackrabbit.oak.plugins.index.IndexName;
 
 /**
  * Utility that allows to merge index definitions.
