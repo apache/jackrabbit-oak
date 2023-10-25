@@ -40,6 +40,7 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class PipelinedMergeSortTaskParameterizedTest extends PipelinedMergeSortTaskTestBase {
+
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         // numberOfIntermediateFiles, eagerMergeTriggerThreshold
