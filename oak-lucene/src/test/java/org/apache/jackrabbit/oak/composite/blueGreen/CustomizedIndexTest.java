@@ -23,6 +23,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 
 import javax.jcr.Node;
@@ -91,13 +92,19 @@ public class CustomizedIndexTest {
     private void compositeLibs1() throws Exception {
         Persistence p = Persistence.openComposite(globalDir, libs1Dir, config);
         IndexUtils.checkLibsIsReadOnly(p);
+        assertEquals("[/oak:index/lucene]",
+                getActiveLuceneIndexes(p).toString());
+        p.session.getRootNode().getNode("oak:index").getNode("lucene").remove();
+        p.session.save();
+        assertEquals("[]",
+                getActiveLuceneIndexes(p).toString());
         IndexUtils.createIndex(p, "test-1", "foo", 10);
         IndexUtils.assertQueryUsesIndexAndReturns(p,
                 "/jcr:root//*[@foo] order by @jcr:path",
                 "test-1",
                 "[/content/test, /libs/test]");
-        assertEquals("[/oak:index/lucene, /oak:index/test-1]",
-                getActiveLuceneIndexes(p));
+        assertEquals("[/oak:index/test-1]",
+                getActiveLuceneIndexes(p).toString());
         p.close();
     }
 
@@ -113,7 +120,7 @@ public class CustomizedIndexTest {
                 "test-2",
                 "[/content/test, /libs/test2]");
         assertEquals("[/oak:index/lucene, /oak:index/test-2]",
-                getActiveLuceneIndexes(p));
+                getActiveLuceneIndexes(p).toString());
         p.close();
 
         // the new index must not be used in the old version (with libs1)
@@ -123,7 +130,7 @@ public class CustomizedIndexTest {
                 "test-1",
                 "[/content/test, /libs/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-1]",
-                getActiveLuceneIndexes(p));
+                getActiveLuceneIndexes(p).toString());
         p.close();
     }
 
@@ -146,7 +153,7 @@ public class CustomizedIndexTest {
                 "test-2-custom-1",
                 "[/content/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-2-custom-1]",
-                getActiveLuceneIndexes(p));
+                getActiveLuceneIndexes(p).toString());
         p.close();
 
         // the merged index is not used in the old version (with libs1)
@@ -167,7 +174,7 @@ public class CustomizedIndexTest {
                 "test-2-custom-1",
                 "[/content/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-2-custom-1]",
-                getActiveLuceneIndexes(p));
+                getActiveLuceneIndexes(p).toString());
         p.close();
     }
 
@@ -221,7 +228,7 @@ public class CustomizedIndexTest {
                 "test-3-custom-1",
                 "[/content/test]");
         assertEquals("[/oak:index/lucene, /oak:index/test-3-custom-1]",
-                getActiveLuceneIndexes(p));
+                getActiveLuceneIndexes(p).toString());
     }
 
     private void createFolders() throws IOException {
@@ -233,11 +240,11 @@ public class CustomizedIndexTest {
         indexDir = tempDir.newFolder("index");
     }
 
-    private static String getActiveLuceneIndexes(Persistence p) {
+    private static Collection<String> getActiveLuceneIndexes(Persistence p) {
         return getActiveLuceneIndexes(p.getCompositeNodestore(), p.getMountInfoProvider());
     }
 
-    private static String getActiveLuceneIndexes(NodeStore ns, MountInfoProvider m) {
+    private static Collection<String> getActiveLuceneIndexes(NodeStore ns, MountInfoProvider m) {
         ArrayList<String> list = new ArrayList<>();
         IndexInfoServiceImpl indexService = new IndexInfoServiceImpl(ns,
                 new IndexPathServiceImpl(ns, m));
@@ -251,7 +258,7 @@ public class CustomizedIndexTest {
             list.add(info.getIndexPath());
         }
         Collections.sort(list);
-        return list.toString();
+        return list;
     }
 
 }

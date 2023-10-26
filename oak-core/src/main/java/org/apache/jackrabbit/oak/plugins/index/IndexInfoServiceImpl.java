@@ -76,7 +76,9 @@ public class IndexInfoServiceImpl implements IndexInfoService{
             public IndexInfo apply(String indexPath) {
                 try {
                     IndexInfo info = getInfo(indexPath);
-                    info.setActive(activeIndexes.contains(indexPath));
+                    if (info != null) {
+                        info.setActive(activeIndexes.contains(indexPath));
+                    }
                     return info;
                 } catch (Exception e) {
                     log.warn("Error occurred while capturing IndexInfo for path {}", indexPath, e);

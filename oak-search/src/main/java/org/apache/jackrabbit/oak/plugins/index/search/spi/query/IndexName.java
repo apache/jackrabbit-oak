@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
  * @deprecated
  * Use oak-core org.apache.jackrabbit.oak.plugins.index.IndexName instead.
  */
+@Deprecated(since = "1.60.0", forRemoval = true)
 public class IndexName implements Comparable<IndexName> {
 
     private final static Logger LOG = LoggerFactory.getLogger(IndexName.class);
