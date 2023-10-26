@@ -67,7 +67,7 @@ public class IndexInfoServiceImpl implements IndexInfoService{
         indexPathService.getIndexPaths().forEach(allIndexes::add);
         HashSet<String> activeIndexes = new HashSet<>();
         if (indexPathService.getMountInfoProvider().hasNonDefaultMounts()) {
-            IndexName.filterReplacedIndexes(allIndexes, nodeStore.getRoot(), true).forEach(activeIndexes::add);
+            activeIndexes.addAll(IndexName.filterReplacedIndexes(allIndexes, nodeStore.getRoot(), true));
         } else {
             activeIndexes.addAll(allIndexes);
         }
