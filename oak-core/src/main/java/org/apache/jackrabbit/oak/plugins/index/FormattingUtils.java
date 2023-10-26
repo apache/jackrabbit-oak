@@ -28,8 +28,12 @@ public class FormattingUtils {
         return DateTimeFormatter.ISO_TIME.format(seconds);
     }
 
+    public static String formatToSeconds(long seconds) {
+        return DateTimeFormatter.ISO_TIME.format(LocalTime.ofSecondOfDay(seconds));
+    }
+
     public static String formatToMillis(Stopwatch stopwatch) {
-        LocalTime nanoSeconds = LocalTime.ofNanoOfDay(stopwatch.elapsed(TimeUnit.MILLISECONDS)*1000000);
+        LocalTime nanoSeconds = LocalTime.ofNanoOfDay(stopwatch.elapsed(TimeUnit.MILLISECONDS) * 1000000);
         return DateTimeFormatter.ISO_TIME.format(nanoSeconds);
     }
 }

@@ -19,12 +19,14 @@
 
 package org.apache.jackrabbit.oak.index;
 
+import com.codahale.metrics.Counter;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.indexer.document.CompositeIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase;
 import org.apache.jackrabbit.oak.index.indexer.document.IndexerConfiguration;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateIndexer;
@@ -47,6 +49,7 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.directory.IndexRootDirecto
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.LocalIndexDir;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneIndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -80,6 +83,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
@@ -153,6 +159,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
                 "--doc-traversal-mode",
                 "--checkpoint=" + checkpoint,
                 "--reindex",
+                "--metrics",
                 "--", // -- indicates that options have ended and rest needs to be treated as non option
                 MongoUtils.URL
         };
@@ -378,6 +385,95 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
 
         store.dispose();
 
+    }
+
+    @Test
+    public void metrics() throws Exception {
+        MongoConnection mongoConnection = getConnection();
+        DocumentNodeStoreBuilder<?> docBuilder = builderProvider.newBuilder()
+                .setMongoDB(mongoConnection.getMongoClient(), mongoConnection.getDBName());
+        DocumentNodeStore store = docBuilder.build();
+
+        Whiteboard wb = new DefaultWhiteboard();
+        MongoDocumentStore ds = (MongoDocumentStore) docBuilder.getDocumentStore();
+        Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
+
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        MetricStatisticsProvider metricsStatisticsProvider = new MetricStatisticsProvider(null, executor);
+        wb.register(StatisticsProvider.class, metricsStatisticsProvider, emptyMap());
+        Registration c1Registration = wb.register(MongoDatabase.class, mongoConnection.getDatabase(), emptyMap());
+
+        configureIndex(store);
+
+        NodeBuilder builder = store.getRoot().builder();
+        NodeBuilder appNB = newNode("app:Asset");
+        createChild(appNB,
+                "jcr:content",
+                "jcr:content/comments",
+                "jcr:content/metadata",
+                "jcr:content/metadata/xmp",
+                "jcr:content/renditions",
+                "jcr:content/renditions/original",
+                "jcr:content/renditions/original/jcr:content"
+        );
+        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        String checkpoint = store.checkpoint(100000);
+
+        //Shut down this store and restart in readOnly mode
+        store.dispose();
+        r1.unregister();
+        c1Registration.unregister();
+
+        MongoConnection c2 = connectionFactory.getConnection();
+        DocumentNodeStoreBuilder<?> docBuilderRO = builderProvider.newBuilder().setReadOnlyMode()
+                .setMongoDB(c2.getMongoClient(), c2.getDBName());
+        ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
+        store = docBuilderRO.build();
+        wb.register(MongoDocumentStore.class, ds, emptyMap());
+        wb.register(MongoDatabase.class, c2.getDatabase(), emptyMap());
+
+        ExtendedIndexHelper helper = new ExtendedIndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
+                temporaryFolder.newFolder(), List.of(TEST_INDEX_PATH));
+        IndexerSupport support = new IndexerSupport(helper, checkpoint);
+
+        CollectingIndexer testIndexer = new CollectingIndexer(p -> p.startsWith("/test"));
+        DocumentStoreIndexer index = new DocumentStoreIndexer(helper, support) {
+            @Override
+            protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder,
+                                                       IndexingProgressReporter progressReporter) {
+                return new CompositeIndexer(List.of(testIndexer));
+            }
+        };
+
+
+        index.reindex();
+
+        assertThat(testIndexer.paths, containsInAnyOrder(
+                "/test",
+                "/test/book.jpg",
+                "/test/book.jpg/jcr:content",
+                "/test/book.jpg/jcr:content/comments",
+                "/test/book.jpg/jcr:content/metadata",
+                "/test/book.jpg/jcr:content/metadata/xmp",
+                "/test/book.jpg/jcr:content/renditions",
+                "/test/book.jpg/jcr:content/renditions/original",
+                "/test/book.jpg/jcr:content/renditions/original/jcr:content"
+        ));
+
+        store.dispose();
+
+        SortedMap<String, Counter> counters = metricsStatisticsProvider.getRegistry().getCounters();
+        assertMetric(counters, DocumentStoreIndexerBase.METRIC_INDEXING_DURATION_SECONDS);
+        assertMetric(counters, DocumentStoreIndexerBase.METRIC_MERGE_NODE_STORE_DURATION_SECONDS);
+        assertMetric(counters, DocumentStoreIndexerBase.METRIC_FULL_INDEX_CREATION_DURATION_SECONDS);
+    }
+
+    private void assertMetric(SortedMap<String, Counter> counters, String metricName) {
+        Counter counter = counters.get(metricName);
+        assertNotNull(counter);
+        LOG.info("{} {}", metricName, counter.getCount());
     }
 
     @Test
