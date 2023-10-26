@@ -16,18 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.blob;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.reflect.Field;
 import java.security.DigestOutputStream;
 import java.security.MessageDigest;
 import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -103,6 +99,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     private void init(int i, int cacheSize, int uploadSplit) throws Exception {
+        init(i, cacheSize, uploadSplit, 0L, 0L);
+    }
+
+    private void init(int i, int cacheSize, int uploadSplit, long recordCacheSize, long backendResponseDelay) throws Exception {
         LOG.info("Starting init");
 
         // create executor
@@ -121,6 +121,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         backendRoot = folder.newFolder();
         final TestMemoryBackend testBackend = new TestMemoryBackend(backendRoot);
+        testBackend.setBackendResponseDelay(backendResponseDelay);
         this.backend = testBackend;
 
         dataStore = new AbstractSharedCachingDataStore() {
@@ -140,6 +141,7 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
         dataStore.executor = newDirectExecutorService();
         dsPath = new File(root.getAbsolutePath(), "ds").getAbsolutePath();
         dataStore.setPath(dsPath);
+        dataStore.setRecordCacheSize(recordCacheSize);
         dataStore.init(root.getAbsolutePath());
 
         LOG.info("Finished init");
@@ -642,165 +644,41 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
             e.printStackTrace();
         }
     }
-    private AbstractSharedCachingDataStore createDataStore() throws Exception {
-        // Using Mockito for this does not work because modifying the static RECORD_CACHE_SIZE
-        // seems to have no effect on the instance that is returned by Mockito.mock()
-        final long backendAccessDelayMillis = 4;
-        AbstractSharedCachingDataStore ds = new AbstractSharedCachingDataStore() {
-            @Override
-            public DataRecord addRecord(InputStream is) {
-                try {
-                    Thread.sleep(backendAccessDelayMillis);
-                } catch (InterruptedException e) {
-                }
-                return null;
-            }
-
-            @Override
-            protected AbstractSharedBackend createBackend() {
-                return new AbstractSharedBackend() {
-                    @Override
-                    public InputStream read(DataIdentifier identifier) throws DataStoreException {
-                        throw new DataStoreException("Should not happen");
-                    }
-
-                    @Override
-                    public void write(DataIdentifier identifier, File file) throws DataStoreException {
-                        throw new DataStoreException("Should not happen");
-                    }
-
-                    @Override
-                    public DataRecord getRecord(DataIdentifier id) throws DataStoreException {
-                        try {
-                            Thread.sleep(backendAccessDelayMillis);
-                        } catch (InterruptedException e) {
-                        }
-                        return new DataRecord() {
-                            private final byte[] bytes = "12345".getBytes();
-
-                            @Override
-                            public DataIdentifier getIdentifier() {
-                                return id;
-                            }
-
-                            @Override
-                            public String getReference() {
-                                return id.toString();
-                            }
-
-                            @Override
-                            public long getLength() throws DataStoreException {
-                                return bytes.length;
-                            }
-
-                            @Override
-                            public InputStream getStream() throws DataStoreException {
-                                return new ByteArrayInputStream(bytes);
-                            }
-
-                            @Override
-                            public long getLastModified() {
-                                return 1;
-                            }
-                        };
-                    }
-
-                    @Override
-                    public Iterator<DataIdentifier> getAllIdentifiers() throws DataStoreException {
-                        return null;
-                    }
-
-                    @Override
-                    public Iterator<DataRecord> getAllRecords() throws DataStoreException {
-                        return null;
-                    }
-
-                    @Override
-                    public boolean exists(DataIdentifier identifier) throws DataStoreException {
-                        return false;
-                    }
-
-                    @Override
-                    public void close() throws DataStoreException {
-                    }
-
-                    @Override
-                    public void deleteRecord(DataIdentifier identifier) throws DataStoreException {
-                    }
-
-                    @Override
-                    public void addMetadataRecord(InputStream input, String name) throws DataStoreException {
-
-                    }
-
-                    @Override
-                    public void addMetadataRecord(File input, String name) throws DataStoreException {
-
-                    }
-
-                    @Override
-                    public DataRecord getMetadataRecord(String name) {
-                        return null;
-                    }
-
-                    @Override
-                    public List<DataRecord> getAllMetadataRecords(String prefix) {
-                        return null;
-                    }
-
-                    @Override
-                    public boolean deleteMetadataRecord(String name) {
-                        return false;
-                    }
-
-                    @Override
-                    public void deleteAllMetadataRecords(String prefix) {
-                    }
-
-                    @Override
-                    public boolean metadataRecordExists(String name) {
-                        return false;
-                    }
-
-                    @Override
-                    public void init() throws DataStoreException {
-                    }
-                };
-            }
-
-            @Override
-            public int getMinRecordLength() {
-                return 0;
-            }
-        };
-        ds.init(folder.newFolder().getAbsolutePath());
-        return ds;
-    }
 
     @Test
     public void performanceGetRecordIfStored() throws Exception {
+        tear();
         final int iterations = 100;
-        final DataIdentifier di = new DataIdentifier("12345");
-        Field recordCacheSize = AbstractSharedCachingDataStore.class.getDeclaredField("RECORD_CACHE_SIZE");
-        recordCacheSize.setAccessible(true);
+        final long backendResponseDelay = 4L;
 
-        recordCacheSize.setLong(AbstractSharedCachingDataStore.class, 0);
-        AbstractSharedCachingDataStore ds = createDataStore();
+        final File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
+        final String id = getIdForInputStream(f);
+        final DataIdentifier di = new DataIdentifier(id);
+
+        init(1, 64 * 1024 * 1024, 10, 0L, backendResponseDelay);
+        // we write directly to the backend because that's the situation we have in a shared remote datastore:
+        // the file was already written by a different datastore but isn't present in the datastore.cache.
+        backend.write(di, f);
 
         long start = System.nanoTime();
         for (int i = 0; i < iterations; ++i) {
-            LOG.trace("" + ds.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
+            LOG.trace("" + dataStore.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
         }
         long timeUncached = System.nanoTime() - start;
 
-        recordCacheSize.setLong(AbstractSharedCachingDataStore.class, 10000);
-        ds = createDataStore();
+        tear();
+
+        init(1, 64 * 1024 * 1024, 10, 10000L, backendResponseDelay);
+        // we write directly to the backend because that's the situation we have in a shared remote datastore:
+        // the file was already written by a different datastore but isn't present in the datastore.cache.
+        backend.write(di, f);
 
         start = System.nanoTime();
         for (int i = 0; i < iterations; ++i) {
-            LOG.trace("" + ds.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
+            LOG.trace("" + dataStore.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
         }
         long timeCached = System.nanoTime() - start;
+
         assertTrue(String.format("timeCached: %d, timeUncached: %d", timeCached, timeUncached), 5 * timeCached < timeUncached);
     }
 }
