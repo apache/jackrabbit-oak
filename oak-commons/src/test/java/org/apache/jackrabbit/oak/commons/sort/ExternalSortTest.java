@@ -518,7 +518,7 @@ public class ExternalSortTest {
 
     }
 
-    private static class TestLine implements Comparable<TestLine> {
+    static class TestLine implements Comparable<TestLine> {
         final String line;
         final int value;
 
@@ -589,7 +589,7 @@ public class ExternalSortTest {
         }
     }
 
-    private static Compression LZ4() {
+    static Compression LZ4() {
         return new Compression() {
             @Override
             public InputStream getInputStream(InputStream in) throws IOException {
