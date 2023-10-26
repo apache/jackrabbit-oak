@@ -156,6 +156,10 @@ public class DynamicSyncContext extends DefaultSyncContext {
             super.syncMembership(external, auth, depth);
         } else {
             try {
+                // determine if clean up of groups (i.e. getting rid of previously synchronized membership information)
+                // is required or not. due to OAK-10517 just checking 'groupsSyncedBefore' is not sufficient.
+                boolean cleanupGroups = groupsSyncedBefore || requiresCleanup(auth);
+                
                 Iterable<ExternalIdentityRef> declaredGroupRefs = external.getDeclaredGroups();
                 // resolve group-refs respecting depth to avoid iterating twice
                 Map<ExternalIdentityRef, SyncEntry> map = collectSyncEntries(declaredGroupRefs, depth);
@@ -170,7 +174,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
                 }
                 
                 // clean up any other membership
-                if (groupsSyncedBefore) {
+                if (cleanupGroups) {
                     clearGroupMembership(auth);
                 }
             } catch (ExternalIdentityException e) {
@@ -201,6 +205,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
             vs = createValues(principalsNames);
         }
         authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
+        authorizable.setProperty(ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC, nowValue);
     }
     
     @NotNull
@@ -377,6 +382,10 @@ public class DynamicSyncContext extends DefaultSyncContext {
     
     private static boolean groupsSyncedBefore(@NotNull Authorizable authorizable) throws RepositoryException {
         return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES);
+    }
+    
+    private static boolean requiresCleanup(@NotNull Authorizable authorizable) throws RepositoryException {
+        return authorizable.hasProperty(REP_LAST_SYNCED) && !authorizable.hasProperty(ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC);
     }
 
     private static boolean isEveryone(@NotNull Group group) {
