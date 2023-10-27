@@ -19,6 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index;
 
+import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.mount.Mounts;
 
 public interface IndexPathService {
 
@@ -26,5 +28,12 @@ public interface IndexPathService {
      * Returns all index definitions paths present in the repository
      */
     Iterable<String> getIndexPaths();
+
+    /**
+     * Get the mount info provider
+     */
+    default MountInfoProvider getMountInfoProvider() {
+        return Mounts.defaultMountInfoProvider();
+    }
 
 }
