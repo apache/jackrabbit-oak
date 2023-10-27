@@ -26,6 +26,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.cursor.PathCursor;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexLookup;
@@ -94,9 +95,9 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
      */
     protected abstract boolean filterReplacedIndexes();
 
-    /*
-    * Whether the isActiveIndex check should run during filtering of replaced indexes.
-    *
+    /**
+     * Whether the isActiveIndex check should run during filtering of replaced indexes.
+     *
      */
     protected abstract boolean runIsActiveIndexCheck();
 

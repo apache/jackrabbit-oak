@@ -199,6 +199,7 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         String indexDiff;
         boolean hasHiddenOakLibsMount;
         boolean hasPropertyIndexNode;
+        boolean isActive;
         long suggestSize;
         long creationTimestamp;
         long reindexCompletionTimestamp;
@@ -260,6 +261,16 @@ public class LuceneIndexInfoProvider implements IndexInfoProvider {
         @Override
         public boolean hasPropertyIndexNode() {
             return hasPropertyIndexNode;
+        }
+
+        @Override
+        public void setActive(boolean value) {
+            isActive = value;
+        }
+
+        @Override
+        public boolean isActive() {
+            return isActive;
         }
 
         @Override
