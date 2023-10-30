@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.junit.Test;
 
 import java.io.BufferedWriter;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -76,10 +77,12 @@ public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
         runTest(algorithm, singleFileToMerge);
     }
 
-    private Path getTestFile(String name) {
+    private Path getTestFile(String name) throws URISyntaxException {
         URL url = classLoader.getResource(name);
-        if (url == null) throw new IllegalArgumentException("Test file not found: " + name);
-        return Paths.get(url.getPath());
+        if (url == null) {
+            throw new IllegalArgumentException("Test file not found: " + name);
+        }
+        return Paths.get(url.toURI());
     }
 
     private PipelinedMergeSortTask.Result runTest(Compression algorithm, Path... files) throws Exception {

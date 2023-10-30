@@ -823,7 +823,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             }
             ResultRow row = result.getRows().iterator().next();
             if (matchComplete) {
-                assertEquals(row.getValue("plan").toString(), expected);
+                assertEquals(expected, row.getValue("plan").toString());
             } else {
                 assertTrue(row.getValue("plan").toString().contains(expected));
             }

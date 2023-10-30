@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query;
 
-import co.elastic.clients.json.JsonpUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexNode;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexStatistics;
@@ -29,8 +28,8 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPla
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.Iterator;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
@@ -91,18 +90,25 @@ class ElasticIndex extends FulltextIndex {
 
     @Override
     protected String getFulltextRequestString(IndexPlan plan, IndexNode indexNode, NodeState rootState) {
-        return JsonpUtils.toString(new ElasticRequestHandler(plan, getPlanResult(plan), rootState).baseQuery(), new StringBuilder()).toString();
+        try (ElasticQueryIterator eqi = queryIterator(plan, rootState)) {
+            return eqi.explain();
+        }
     }
 
     @Override
     public Cursor query(IndexPlan plan, NodeState rootState) {
-        final Filter filter = plan.getFilter();
-        final FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
+        return new FulltextPathCursor(queryIterator(plan, rootState), REWOUND_STATE_PROVIDER_NOOP,
+                plan, plan.getFilter().getQueryLimits(), getSizeEstimator(plan));
+    }
 
-        final ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
-        final ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
+    private @NotNull ElasticQueryIterator queryIterator(IndexPlan plan, NodeState rootState) {
+        Filter filter = plan.getFilter();
+        FulltextIndexPlanner.PlanResult planResult = getPlanResult(plan);
 
-        final Iterator<FulltextResultRow> itr;
+        ElasticRequestHandler requestHandler = new ElasticRequestHandler(plan, planResult, rootState);
+        ElasticResponseHandler responseHandler = new ElasticResponseHandler(planResult, filter);
+
+        ElasticQueryIterator itr;
         ElasticIndexNode indexNode = acquireIndexNode(plan);
         try {
             if (requestHandler.requiresSpellCheck()) {
@@ -124,12 +130,11 @@ class ElasticIndex extends FulltextIndex {
                         partialShouldInclude.apply(getPathRestriction(plan), filter.getPathRestriction()),
                         elasticIndexTracker.getElasticMetricHandler()
                 );
-
             }
         } finally {
             indexNode.release();
         }
-        return new FulltextPathCursor(itr, REWOUND_STATE_PROVIDER_NOOP, plan, filter.getQueryLimits(), getSizeEstimator(plan));
+        return itr;
     }
 
     private static boolean shouldInclude(String path, Filter.PathRestriction pathRestriction, String docPath) {
