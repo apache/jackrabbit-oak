@@ -52,7 +52,7 @@ public class MongoUtils {
     public static final String DB =
             System.getProperty("mongo.db", "MongoMKDB");
 
-    private static final String OPTIONS = "connectTimeoutMS=9000&serverSelectionTimeoutMS=9000"; //todo increased due to local timeouts
+    private static final String OPTIONS = "connectTimeoutMS=3000&serverSelectionTimeoutMS=3000";
 
     public static final String URL = createMongoURL();
 
