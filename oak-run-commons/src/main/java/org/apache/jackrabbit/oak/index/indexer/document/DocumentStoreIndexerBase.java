@@ -180,7 +180,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withMongoDatabase(getMongoDatabase())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog))
-                        .withCheckpoint(indexerSupport.getCheckpoint());
+                        .withCheckpoint(indexerSupport.getCheckpoint())
+                        .withStatisticsProvider(indexHelper.getStatisticsProvider());
 
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
