@@ -99,10 +99,10 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     private void init(int i, int cacheSize, int uploadSplit) throws Exception {
-        init(i, cacheSize, uploadSplit, 0L, 0L);
+        init(i, cacheSize, uploadSplit, 0L);
     }
 
-    private void init(int i, int cacheSize, int uploadSplit, long recordCacheSize, long backendResponseDelay) throws Exception {
+    private void init(int i, int cacheSize, int uploadSplit, long recordCacheSize) throws Exception {
         LOG.info("Starting init");
 
         // create executor
@@ -121,7 +121,6 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
 
         backendRoot = folder.newFolder();
         final TestMemoryBackend testBackend = new TestMemoryBackend(backendRoot);
-        testBackend.setBackendResponseDelay(backendResponseDelay);
         this.backend = testBackend;
 
         dataStore = new AbstractSharedCachingDataStore() {
@@ -646,39 +645,32 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
     }
 
     @Test
-    public void performanceGetRecordIfStored() throws Exception {
+    public void testRecordCacheInGetRecordIfStored() throws Exception {
+        // we have to initialise the datastore with the recordCache enabled
         tear();
-        final int iterations = 100;
-        final long backendResponseDelay = 4L;
 
         final File f = copyToFile(randomStream(0, 4 * 1024), folder.newFile());
         final String id = getIdForInputStream(f);
         final DataIdentifier di = new DataIdentifier(id);
 
-        init(1, 64 * 1024 * 1024, 10, 0L, backendResponseDelay);
+        init(1, 64 * 1024 * 1024, 10, 10000L);
         // we write directly to the backend because that's the situation we have in a shared remote datastore:
         // the file was already written by a different datastore but isn't present in the datastore.cache.
         backend.write(di, f);
 
-        long start = System.nanoTime();
-        for (int i = 0; i < iterations; ++i) {
-            LOG.trace("" + dataStore.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
-        }
-        long timeUncached = System.nanoTime() - start;
-
-        tear();
-
-        init(1, 64 * 1024 * 1024, 10, 10000L, backendResponseDelay);
-        // we write directly to the backend because that's the situation we have in a shared remote datastore:
-        // the file was already written by a different datastore but isn't present in the datastore.cache.
-        backend.write(di, f);
-
-        start = System.nanoTime();
-        for (int i = 0; i < iterations; ++i) {
-            LOG.trace("" + dataStore.getRecordIfStored(di)); // LOG.trace to avoid the call being optimised away
-        }
-        long timeCached = System.nanoTime() - start;
-
-        assertTrue(String.format("timeCached: %d, timeUncached: %d", timeCached, timeUncached), 5 * timeCached < timeUncached);
+        assertTrue("The datastore was initialised with a recordCacheSize of 10000 but the recordCache is not present",
+                dataStore.recordCache.isPresent());
+        assertNull("Record with id " + id + " should not be in the recordCache yet",
+                dataStore.recordCache.get().getIfPresent(id));
+        assertNotNull("The record could not be loaded from the backend",
+                dataStore.getRecordIfStored(di));
+        assertNotNull("Record with id " + id + " should be in the recordCache now",
+                dataStore.recordCache.get().getIfPresent(id));
+        // make sure the record is loaded from the cache
+        backend.deleteRecord(di);
+        assertNull("Record with id " + id + " should not be in the backend anymore",
+                backend.getRecord(di));
+        assertNotNull("The record could not be loaded from the cache",
+                dataStore.getRecordIfStored(di));
     }
 }
