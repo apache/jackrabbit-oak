@@ -306,7 +306,6 @@ public class AbstractDataStoreCacheTest {
     static class TestMemoryBackend extends AbstractSharedBackend {
         final Map<DataIdentifier, File> _backend = Maps.newHashMap();
         private final File root;
-        private long backendResponseDelay = 0L;
 
         public TestMemoryBackend(File root) {
             this.root = root;
@@ -337,12 +336,6 @@ public class AbstractDataStoreCacheTest {
         }
 
         @Override public DataRecord getRecord(DataIdentifier id) throws DataStoreException {
-            if (backendResponseDelay > 0) {
-                try {
-                    Thread.sleep(backendResponseDelay);
-                } catch (InterruptedException e) {
-                }
-            }
             if (_backend.containsKey(id)) {
                 final File f = _backend.get(id);
                 return new AbstractDataRecord(this, id) {
@@ -421,10 +414,6 @@ public class AbstractDataStoreCacheTest {
         @Override
         public String getReferenceFromIdentifier(DataIdentifier identifier) {
             return super.getReferenceFromIdentifier(identifier);
-        }
-
-        public void setBackendResponseDelay(long backendResponseDelay) {
-            this.backendResponseDelay = backendResponseDelay;
         }
     }
 
