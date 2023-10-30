@@ -236,6 +236,28 @@ public class PipelinedIT {
 
     private void assertMetrics() {
         // Check the statistics
+        Set<String> metricsNames = statsProvider.getRegistry().getCounters().keySet();
+
+        assertEquals(Set.of(
+                MetricsUtils.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT,
+                MetricsUtils.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE,
+                MetricsUtils.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS,
+                MetricsUtils.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED,
+                MetricsUtils.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE,
+                MetricsUtils.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+                MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT,
+                MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS,
+                MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT,
+                MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME
+        ), metricsNames);
+
         String pipelinedMetrics = statsProvider.getRegistry()
                 .getCounters()
                 .entrySet().stream()

@@ -49,6 +49,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.CounterStats;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,9 +88,16 @@ public class IndexImporter {
     static final int RETRIES = Integer.getInteger("oak.index.import.retries", 5);
     public static final String INDEX_IMPORT_STATE_KEY = "indexImportState";
     private final Set<String> indexPathsToUpdate;
+    private final StatisticsProvider statisticsProvider;
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
+        this(nodeStore, indexDir, indexEditorProvider, indexerLock, StatisticsProvider.NOOP);
+    }
+
+    public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
+                         AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider) throws IOException {
+        this.statisticsProvider = statisticsProvider;
         checkArgument(indexDir.exists() && indexDir.isDirectory(), "Path [%s] does not point " +
                 "to existing directory", indexDir.getAbsolutePath());
         this.nodeStore = nodeStore;
@@ -465,19 +475,31 @@ public class IndexImporter {
     }
 
     void runWithRetry(int maxRetries, IndexImportState indexImportState, IndexImporterStepExecutor step) throws CommitFailedException, IOException {
+        String indexImportPhaseName = indexImportState == null ? "null" : indexImportState.toString();
         int count = 1;
         Stopwatch start = Stopwatch.createStarted();
         while (count <= maxRetries) {
-            LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportState, count);
-            LOG.info("[TASK:{}:START]", indexImportState);
+            LOG.info("IndexImporterStepExecutor:{}, count:{}", indexImportPhaseName, count);
+            LOG.info("[TASK:{}:START]", indexImportPhaseName);
             try {
                 step.execute();
-                LOG.info("[TASK:{}:END] Metrics: {}", indexImportState,
+                long durationSeconds = start.elapsed(TimeUnit.SECONDS);
+                LOG.info("[TASK:{}:END] Metrics: {}", indexImportPhaseName,
                         MetricsFormatter.newBuilder()
                                 .add("duration", FormattingUtils.formatToSeconds(start))
-                                .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
+                                .add("durationSeconds", durationSeconds)
                                 .build()
                 );
+
+                String name = "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds";
+                CounterStats metric = statisticsProvider.getCounterStats(name, StatsOptions.METRICS_ONLY);
+                LOG.debug("Adding metric: {} {}", name, durationSeconds);
+                if (metric.getCount() != 0) {
+                    LOG.warn("Counter was not 0: {} {}", name, metric.getCount());
+                    // Reset to 0
+                    metric.dec(metric.getCount());
+                }
+                metric.inc(durationSeconds);
                 break;
             } catch (CommitFailedException | IOException e) {
                 LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);

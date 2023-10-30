@@ -400,7 +400,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
-                    pathFilters
+                    pathFilters,
+                    statisticsProvider
             );
             ecs.submit(downloadTask);
 
@@ -423,12 +424,22 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             }
 
             PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                    this.getStoreDir().toPath(), pathComparator, this.getAlgorithm(), emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
+                    this.getStoreDir().toPath(),
+                    pathComparator,
+                    this.getAlgorithm(),
+                    emptyBatchesQueue,
+                    nonEmptyBatchesQueue,
+                    sortedFilesQueue
             );
             ecs.submit(sortTask);
 
-            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(this.getStoreDir().toPath(), pathComparator,
-                    this.getAlgorithm(), sortedFilesQueue);
+            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(
+                    this.getStoreDir().toPath(),
+                    pathComparator,
+                    this.getAlgorithm(),
+                    sortedFilesQueue,
+                    statisticsProvider
+            );
             ecs.submit(mergeSortTask);
 
 
