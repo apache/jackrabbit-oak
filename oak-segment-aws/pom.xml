@@ -258,11 +258,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.arakelian</groupId>
-            <artifactId>docker-junit-rule</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.findify</groupId>
             <artifactId>s3mock_2.12</artifactId>
             <version>0.2.5</version>
