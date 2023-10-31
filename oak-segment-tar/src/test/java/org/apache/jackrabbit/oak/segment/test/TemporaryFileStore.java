@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.test;
 
 import static org.apache.jackrabbit.oak.segment.file.FileStoreBuilder.fileStoreBuilder;
 
+import java.io.IOException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -28,6 +29,7 @@ import org.apache.jackrabbit.oak.segment.SegmentNotFoundExceptionListener;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
+import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.stats.DefaultStatisticsProvider;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
@@ -63,13 +65,12 @@ public class TemporaryFileStore extends ExternalResource {
         this.name = name;
     }
 
-    public TemporaryFileStore(TemporaryFolder folder, int binariesInlineThreshold) {
-        this(folder, null, false, null);
+    public TemporaryFileStore(TemporaryFolder folder, TemporaryBlobStore blobStore, int binariesInlineThreshold) {
+        this(folder, blobStore, false, null);
         this.binariesInlineThreshold = binariesInlineThreshold;
     }
 
-    @Override
-    protected void before() throws Throwable {
+    protected void init() throws InvalidFileStoreVersionException, IOException {
         executor = Executors.newSingleThreadScheduledExecutor();
         FileStoreBuilder builder = fileStoreBuilder(name == null ? folder.newFolder() : folder.newFolder(name))
                 .withMaxFileSize(1)
@@ -95,15 +96,33 @@ public class TemporaryFileStore extends ExternalResource {
     }
 
     @Override
+    protected void before() throws Throwable {
+        // delay initialisation until the store is accessed
+    }
+
+    @Override
     protected void after() {
         try {
-            store.close();
+            if (store != null) {
+                store.close();
+            }
         } finally {
             new ExecutorCloser(executor).close();
         }
     }
 
     public FileStore fileStore() {
+        if (store == null) {
+            synchronized (this) {
+                if (store == null) {
+                    try {
+                        init();
+                    } catch (InvalidFileStoreVersionException | IOException e) {
+                        throw new IllegalStateException("Initialisation failed", e);
+                    }
+                }
+            }
+        }
         return store;
     }
 
