@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
+import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -170,7 +171,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withRootRevision(rootDocumentState.getRootRevision())
                         .withNodeStore(nodeStore)
                         .withMongoDocumentStore(getMongoDocumentStore())
-                        .withMongoConnection(getMongoConnection())
+                        .withMongoDatabase(getMongoDatabase())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog))
                         .withCheckpoint(indexerSupport.getCheckpoint());
@@ -256,6 +257,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     }
 
     public void reindex() throws CommitFailedException, IOException {
+        log.info("[TASK:FULL_INDEX_CREATION:START] Starting indexing job");
+        Stopwatch indexJobWatch = Stopwatch.createStarted();
         IndexingProgressReporter progressReporter =
                 new IndexingProgressReporter(IndexUpdateCallback.NOOP, NodeTraversalCallback.NOOP);
         configureEstimators(progressReporter);
@@ -310,6 +313,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .build());
 
         indexerSupport.postIndexWork(copyOnWriteStore);
+        log.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.newBuilder()
+                .add("duration", FormattingUtils.formatToSeconds(indexJobWatch))
+                .add("durationSeconds", indexJobWatch.elapsed(TimeUnit.SECONDS))
+                .build());
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)
@@ -343,12 +350,12 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         }
     }
 
-    private MongoConnection getMongoConnection() {
-        return checkNotNull(indexHelper.getService(MongoConnection.class));
-    }
-
     private MongoDocumentStore getMongoDocumentStore() {
         return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
+    }
+
+    private MongoDatabase getMongoDatabase() {
+        return checkNotNull(indexHelper.getService(MongoDatabase.class));
     }
 
     private void configureEstimators(IndexingProgressReporter progressReporter) {

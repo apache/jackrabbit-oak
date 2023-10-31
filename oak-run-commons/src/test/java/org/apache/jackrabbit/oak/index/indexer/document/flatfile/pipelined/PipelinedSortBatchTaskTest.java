@@ -28,11 +28,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -42,9 +42,9 @@ import static org.junit.Assert.assertEquals;
 public class PipelinedSortBatchTaskTest {
     static class TestResult {
         final PipelinedSortBatchTask.Result result;
-        final BlockingQueue<File> sortedFilesQueue;
+        final BlockingQueue<Path> sortedFilesQueue;
 
-        public TestResult(PipelinedSortBatchTask.Result result, BlockingQueue<File> sortedFilesQueue) {
+        public TestResult(PipelinedSortBatchTask.Result result, BlockingQueue<Path> sortedFilesQueue) {
             this.result = result;
             this.sortedFilesQueue = sortedFilesQueue;
         }
@@ -53,10 +53,11 @@ public class PipelinedSortBatchTaskTest {
             return result;
         }
 
-        public BlockingQueue<File> getSortedFilesQueue() {
+        public BlockingQueue<Path> getSortedFilesQueue() {
             return sortedFilesQueue;
         }
     }
+
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMergeSortTaskTest.class);
 
     @Rule
@@ -72,7 +73,7 @@ public class PipelinedSortBatchTaskTest {
         TestResult testResult = runTest();
 
         PipelinedSortBatchTask.Result result = testResult.getResult();
-        BlockingQueue<File> sortedFilesQueue = testResult.getSortedFilesQueue();
+        BlockingQueue<Path> sortedFilesQueue = testResult.getSortedFilesQueue();
         assertEquals(0, result.getTotalEntries());
         assertEquals(0, sortedFilesQueue.size());
     }
@@ -84,7 +85,7 @@ public class PipelinedSortBatchTaskTest {
         TestResult testResult = runTest(batch);
 
         PipelinedSortBatchTask.Result result = testResult.getResult();
-        BlockingQueue<File> sortedFilesQueue = testResult.getSortedFilesQueue();
+        BlockingQueue<Path> sortedFilesQueue = testResult.getSortedFilesQueue();
         assertEquals(0, result.getTotalEntries());
         assertEquals(0, sortedFilesQueue.size());
     }
@@ -102,19 +103,19 @@ public class PipelinedSortBatchTaskTest {
         TestResult testResult = runTest(batch);
 
         PipelinedSortBatchTask.Result result = testResult.getResult();
-        BlockingQueue<File> sortedFilesQueue = testResult.getSortedFilesQueue();
+        BlockingQueue<Path> sortedFilesQueue = testResult.getSortedFilesQueue();
         assertEquals(6, result.getTotalEntries());
         assertEquals(1, sortedFilesQueue.size());
 
-        File sortedFile = sortedFilesQueue.take();
-        LOG.info("Sorted file:\n{}", Files.readString(sortedFile.toPath()));
+        Path sortedFile = sortedFilesQueue.take();
+        LOG.info("Sorted file:\n{}", Files.readString(sortedFile));
         assertEquals("/a0|{\"key\":1}\n" +
                         "/a0/b0|{\"key\":2}\n" +
                         "/a0/b0/c0|{\"key\":3}\n" +
                         "/a0/b0/c1|{\"key\":4}\n" +
                         "/a0/b1|{\"key\":5}\n" +
                         "/a1/b0|{\"key\":6}\n",
-                Files.readString(sortedFile.toPath())
+                Files.readString(sortedFile)
         );
     }
 
@@ -133,23 +134,23 @@ public class PipelinedSortBatchTaskTest {
         TestResult testResult = runTest(batch1, batch2);
 
         PipelinedSortBatchTask.Result result = testResult.getResult();
-        BlockingQueue<File> sortedFilesQueue = testResult.getSortedFilesQueue();
+        BlockingQueue<Path> sortedFilesQueue = testResult.getSortedFilesQueue();
         assertEquals(6, result.getTotalEntries());
         assertEquals(2, sortedFilesQueue.size());
 
-        File sortedFile1 = sortedFilesQueue.take();
-        File sortedFile2 = sortedFilesQueue.take();
+        Path sortedFile1 = sortedFilesQueue.take();
+        Path sortedFile2 = sortedFilesQueue.take();
 
-        LOG.info("Sorted file:\n{}", Files.readString(sortedFile1.toPath()));
-        LOG.info("Sorted file:\n{}", Files.readString(sortedFile2.toPath()));
+        LOG.info("Sorted file:\n{}", Files.readString(sortedFile1));
+        LOG.info("Sorted file:\n{}", Files.readString(sortedFile2));
         assertEquals("/a0|{\"key\":1}\n" +
                         "/a0/b0|{\"key\":2}\n" +
                         "/a1/b0|{\"key\":6}\n",
-                Files.readString(sortedFile1.toPath()));
+                Files.readString(sortedFile1));
         assertEquals("/a0/b0/c0|{\"key\":3}\n" +
                         "/a0/b0/c1|{\"key\":4}\n" +
                         "/a0/b1|{\"key\":5}\n",
-                Files.readString(sortedFile2.toPath())
+                Files.readString(sortedFile2)
         );
     }
 
@@ -162,11 +163,11 @@ public class PipelinedSortBatchTaskTest {
     }
 
     private TestResult runTest(NodeStateEntryBatch... nodeStateEntryBatches) throws Exception {
-        File sortRoot = sortFolder.getRoot();
+        Path sortRoot = sortFolder.getRoot().toPath();
         int numberOfBuffers = nodeStateEntryBatches.length + 1; // +1 for the sentinel
         ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
         ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
-        ArrayBlockingQueue<File> sortedFilesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
+        ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(numberOfBuffers);
 
         for (NodeStateEntryBatch nodeStateEntryBatch : nodeStateEntryBatches) {
             nonEmptyBatchesQueue.put(nodeStateEntryBatch);

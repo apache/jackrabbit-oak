@@ -157,6 +157,16 @@ public class PropertyIndexInfoProvider implements IndexInfoProvider {
         }
 
         @Override
+        public boolean isActive() {
+            return true;
+        }
+
+        @Override
+        public void setActive(boolean value) {
+            // ignore
+        }
+
+        @Override
         public long getSuggestSizeInBytes() {
             return -1;
         }

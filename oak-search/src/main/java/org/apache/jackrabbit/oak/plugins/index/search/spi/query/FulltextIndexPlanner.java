@@ -1163,7 +1163,7 @@ public class FulltextIndexPlanner {
             nodeNameRestriction = true;
         }
 
-        private void disableUniquePaths(){
+        public void disableUniquePaths(){
             uniquePathsRequired = false;
         }
     }

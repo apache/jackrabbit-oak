@@ -627,7 +627,7 @@ public class ExternalSort {
                 // Write if  filterPredicate return true and line is not duplicate
                 if (!distinct || (lastLine == null || (lastLine != null && cmp.compare(r, lastLine) != 0))) {
                     fbw.write(typeToString.apply(r));
-                    fbw.newLine();
+                    fbw.write('\n');
                     lastLine = r;
                 }
             }

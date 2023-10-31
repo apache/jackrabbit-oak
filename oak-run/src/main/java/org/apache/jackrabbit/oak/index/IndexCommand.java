@@ -31,8 +31,6 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.index.async.AsyncIndexerLucene;
 import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
-import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
-import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
 import org.apache.jackrabbit.oak.run.cli.CommonOptions;
 import org.apache.jackrabbit.oak.run.cli.DocumentBuilderCustomizer;
@@ -237,7 +235,6 @@ public class IndexCommand implements Command {
     private File reindex(IndexOptions idxOpts, ExtendedIndexHelper extendedIndexHelper, String checkpoint) throws IOException, CommitFailedException {
         checkNotNull(checkpoint, "Checkpoint value is required for reindexing done in read only mode");
 
-        log.info("[TASK:REINDEX:START] Starting reindexing");
         Stopwatch reindexWatch = Stopwatch.createStarted();
         IndexerSupport indexerSupport = createIndexerSupport(extendedIndexHelper, checkpoint);
         log.info("Proceeding to index {} upto checkpoint {} {}", extendedIndexHelper.getIndexPaths(), checkpoint,
@@ -263,10 +260,6 @@ public class IndexCommand implements Command {
         File destDir = indexerSupport.copyIndexFilesToOutput();
         log.info("Indexing completed for indexes {} in {} ({} ms) and index files are copied to {}",
                 extendedIndexHelper.getIndexPaths(), reindexWatch, reindexWatch.elapsed(TimeUnit.MILLISECONDS), IndexCommand.getPath(destDir));
-        log.info("[TASK:REINDEX:END] Metrics: {}",  MetricsFormatter.newBuilder()
-                .add("duration", FormattingUtils.formatToSeconds(reindexWatch))
-                .add("durationSeconds", reindexWatch.elapsed(TimeUnit.SECONDS))
-                .build());
         return destDir;
     }
 

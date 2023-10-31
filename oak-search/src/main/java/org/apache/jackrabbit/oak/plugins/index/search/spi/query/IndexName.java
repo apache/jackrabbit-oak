@@ -33,17 +33,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An index name, which possibly contains two version numbers: the product
- * version number, and the customer version number.
- *
- * The format of an index node name is:
- * - The name of the index,
- * - optionally a dash ('-') and the product version number,
- * - optionally "-custom-" and the customer version number.
- *
- * If the node name doesn't contain version numbers / dashes, then version 0 is
- * assumed (for both the product version number and customer version number).
+ * @deprecated
+ * Use oak-core org.apache.jackrabbit.oak.plugins.index.IndexName instead.
  */
+@Deprecated(since = "1.60.0", forRemoval = true)
 public class IndexName implements Comparable<IndexName> {
 
     private final static Logger LOG = LoggerFactory.getLogger(IndexName.class);

@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.indexversion;
 
-import org.apache.jackrabbit.oak.plugins.index.search.spi.query.IndexName;
+import org.apache.jackrabbit.oak.plugins.index.IndexName;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.util.List;

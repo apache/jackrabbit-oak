@@ -141,11 +141,6 @@ public class FlatFileStoreTest {
     }
 
     @Test
-    public void basicTestDefaultStrategy() throws Exception {
-        runBasicTest();
-    }
-
-    @Test
     public void parallelDownload() throws Exception {
         try {
             System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.MULTITHREADED_TRAVERSE_WITH_SORT.toString());
