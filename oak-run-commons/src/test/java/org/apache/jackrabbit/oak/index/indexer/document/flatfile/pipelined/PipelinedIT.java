@@ -109,7 +109,9 @@ public class PipelinedIT {
 
     @AfterClass
     public static void teardown() {
-        executorService.shutdown();
+        if (executorService != null) {
+            executorService.shutdown();
+        }
     }
 
     @Before
