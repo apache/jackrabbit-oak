@@ -55,7 +55,7 @@ public class MongoConnectionFactory extends ExternalResource {
         MongoConnection c = MongoUtils.getConnection(dbName);
         if (c == null && MongoDockerRule.isDockerAvailable()) {
             // fall back to docker if available
-            c = new MongoConnection("localhost", mongo.getPort(), dbName);
+            c = new MongoConnection(mongo.getHost(), mongo.getPort(), dbName);
         }
         assumeNotNull(c);
         if (c != null) {
