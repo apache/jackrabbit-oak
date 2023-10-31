@@ -474,8 +474,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.arakelian</groupId>
-      <artifactId>docker-junit-rule</artifactId>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
