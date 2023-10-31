@@ -91,7 +91,7 @@ public class DynamicSyncContext extends DefaultSyncContext {
         }
         
         Collection<String> principalNames = clearGroupMembership(authorizable);
-        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, createValues(principalNames));
+        setExternalPrincipalNames(authorizable, createValues(principalNames));
         return true;
     }
 
@@ -204,7 +204,11 @@ public class DynamicSyncContext extends DefaultSyncContext {
             Set<String> principalsNames = syncEntries.stream().map(syncEntry -> syncEntry.principalName).collect(Collectors.toSet());
             vs = createValues(principalsNames);
         }
-        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, vs);
+        setExternalPrincipalNames(authorizable, vs);
+    }
+    
+    private void setExternalPrincipalNames(@NotNull Authorizable authorizable, @NotNull Value[] principalNames) throws RepositoryException {
+        authorizable.setProperty(ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES, principalNames);
         authorizable.setProperty(ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC, nowValue);
     }
     

@@ -60,6 +60,7 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.Tes
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.TestIdentityProvider.ID_TEST_USER;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_ID;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_EXTERNAL_PRINCIPAL_NAMES;
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.REP_LAST_DYNAMIC_SYNC;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS;
 import static org.apache.jackrabbit.oak.spi.security.user.UserConstants.REP_MEMBERS_LIST;
 import static org.junit.Assert.assertEquals;
@@ -759,10 +760,12 @@ public class DynamicSyncContextTest extends AbstractDynamicTest {
         User user = userManager.getAuthorizable(PREVIOUS_SYNCED_ID, User.class);
         assertNotNull(user);
         assertFalse(user.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
+        assertFalse(user.hasProperty(REP_LAST_DYNAMIC_SYNC));
         
         assertTrue(syncContext.convertToDynamicMembership(user));
         assertTrue(user.hasProperty(REP_EXTERNAL_PRINCIPAL_NAMES));
-        
+        assertTrue(user.hasProperty(REP_LAST_DYNAMIC_SYNC));
+
         assertDeclaredGroups(previouslySyncedUser);
     }
 
