@@ -153,7 +153,8 @@ public class SwitchSyncModeTest extends AbstractDynamicTest {
         user.setProperty(REP_LAST_DYNAMIC_SYNC, vf.createValue(Calendar.getInstance()));
         r.commit();
 
-        // assert previously synched user is now dynamic and groups have been cleaned
+        // verify that synchronizing with the default-context again clears all properties that would have been set
+        // if dynamic-sync had been enabled temporarily in between.
         syncWithDefaultContext(SyncResult.Status.UPDATE);
         assertIsDynamic(externalUser, getUserManager(r), r, false);
     }
