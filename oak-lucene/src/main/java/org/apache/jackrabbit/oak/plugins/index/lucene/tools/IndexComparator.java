@@ -113,7 +113,7 @@ public class IndexComparator {
                         long x1 = Long.parseLong(v1);
                         long x2 = Long.parseLong(v2);
                         if (Math.abs(x1 - x2) < 1000) {
-                            // less than 100 bytes difference
+                            // less than 1000 bytes difference
                             // if aggregation order is different
                             continue;
                         } else if (Math.abs((double) x1 / x2 - 1.0) < 0.001) {
