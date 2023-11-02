@@ -750,7 +750,7 @@ public class DefaultSyncContext implements SyncContext {
      * @return and array of JCR values
      * @throws RepositoryException if an error occurs
      */
-    @Nullable
+    @NotNull
     protected Value[] createValues(@NotNull Collection<?> propValues) throws RepositoryException {
         List<Value> values = new ArrayList<>();
         for (Object obj : propValues) {
