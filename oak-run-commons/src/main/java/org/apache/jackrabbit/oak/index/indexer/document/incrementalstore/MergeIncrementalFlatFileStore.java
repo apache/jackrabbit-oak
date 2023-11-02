@@ -96,6 +96,10 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
         }
     }
 
+    /* this method is a little verbose but I think this is fine as we are not getting consistent
+     data from checkpoint diff and we have to handle cases differently.
+
+     */
     private void mergeIndexStoreFiles() throws IOException {
         Map<String, IncrementalStoreOperand> enumMap = Arrays.stream(IncrementalStoreOperand.values())
                 .collect(Collectors.toUnmodifiableMap(IncrementalStoreOperand::toString, k -> IncrementalStoreOperand.valueOf(k.name())));
@@ -113,18 +117,23 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                     compared = comparator.compare(new SimpleNodeStateHolder(baseFFSLine), new SimpleNodeStateHolder(incrementalFFSLine));
                     if (compared < 0) { // write baseFFSLine in merged file and advance line in baseFFS
                         baseFFSLine = writeAndAdvance(writer, baseFFSBufferedReader, baseFFSLine);
-                    } else if (compared > 0) { // write incrementalFFSline and advance line in incrementalFFS
-                        String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
-                        if (!IncrementalStoreOperand.ADD.toString().equals(getOperand(incrementalFFSParts))) {
-                            log.warn("Expected operand {} but got {} for incremental line {}. Merging will proceed as usual, but this needs to be looked into.",
-                                    IncrementalStoreOperand.ADD, getOperand(incrementalFFSParts), incrementalFFSLine);
-                        }
-                        incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
-                                getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
-                    } else {
+                    }
+                    // We the checkpoint diff api don't give consistent results.
+
+                    else if (compared > 0) { // write incrementalFFSline and advance line in incrementalFFS
+                        incrementalFFSLine = processIncrementalFFSLine(enumMap, writer, incrementalFFSBufferedReader, incrementalFFSLine);
+                    }
+                    else {
+                        // for compared >= 0
                         String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
                         String operand = getOperand(incrementalFFSParts);
                         switch (enumMap.get(operand)) {
+                            case ADD:
+                                log.warn("Expected operand {} or {} but got {} for incremental line {}. Merging will proceed as usual, but this needs to be looked into.",
+                                        IncrementalStoreOperand.MODIFY, IncrementalStoreOperand.DELETE, getOperand(incrementalFFSParts), incrementalFFSLine);
+                                incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
+                                        getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
+                                break;
                             case MODIFY:
                                 incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
                                         getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
@@ -147,6 +156,36 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                 }
             }
         }
+    }
+
+    private String processIncrementalFFSLine(Map<String, IncrementalStoreOperand> enumMap, BufferedWriter writer, BufferedReader incrementalFFSBufferedReader, String incrementalFFSLine) throws IOException {
+        String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
+        String operand = getOperand(incrementalFFSParts);
+        switch (enumMap.get(operand)) {
+            case ADD:
+                incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
+                        getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
+                break;
+            case MODIFY:
+                // this case should not happen. But in case this happens we consider modify as addition of node
+                // this implies node is not present in older FFS and in checkpointdiff this came as modified instead of
+                // node addition.
+                log.warn("Expected operand {} but got {} for incremental line {}. Merging will proceed as usual, but this needs to be looked into.",
+                        IncrementalStoreOperand.ADD, getOperand(incrementalFFSParts), incrementalFFSLine);
+                incrementalFFSLine = writeAndAdvance(writer, incrementalFFSBufferedReader,
+                        getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
+                break;
+            case DELETE:
+                // This case should not happen. If this happens, it means we don't have any such node in baseFFS
+                // but this node came as deletion of node for an already non-existing node.
+                // we just skip this node in this case.
+                incrementalFFSLine = incrementalFFSBufferedReader.readLine();
+                break;
+            default:
+                log.error("wrong operand in incremental ffs: operand:{}, line:{}", operand, incrementalFFSLine);
+                throw new RuntimeException("wrong operand in incremental ffs: operand:" + operand + ", line:" + incrementalFFSLine);
+        }
+        return incrementalFFSLine;
     }
 
     private IndexStoreMetadata getIndexStoreMetadataForMergedFile() throws IOException {
@@ -202,13 +241,10 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
     }
 
     private String writeRestOfIncrementalFileAndAdvance(BufferedWriter writer, BufferedReader bufferedReader, String incrementalFFSLine) throws IOException {
+        Map<String, IncrementalStoreOperand> enumMap = Arrays.stream(IncrementalStoreOperand.values())
+                .collect(Collectors.toUnmodifiableMap(IncrementalStoreOperand::toString, k -> IncrementalStoreOperand.valueOf(k.name())));
         do {
-            String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
-            String operand = getOperand(incrementalFFSParts);
-            checkState(!IncrementalStoreOperand.MODIFY.toString().equals(operand)
-                            && !IncrementalStoreOperand.DELETE.toString().equals(operand),
-                    "incremental ffs should not have modify or delete operands: {}", incrementalFFSLine);
-            incrementalFFSLine = writeAndAdvance(writer, bufferedReader, getFFSLineFromIncrementalFFSParts(incrementalFFSParts));
+            incrementalFFSLine =  processIncrementalFFSLine(enumMap, writer, bufferedReader, incrementalFFSLine);
         } while (incrementalFFSLine != null);
         return bufferedReader.readLine();
     }
