@@ -299,7 +299,7 @@ public class VersionGarbageCollectorIT {
     public void gcSplitDocsWithReferencedRevisions() throws Exception {
         final String exp;
 
-        // step 1 : create a (later) 2 week old revision with custerId 2
+        // step 1 : create an old revision at t(0) with custerId 2
         DocumentNodeStore store2 = new DocumentMK.Builder().clock(clock)
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(store.getDocumentStore()).setAsyncDelay(0)
@@ -311,32 +311,31 @@ public class VersionGarbageCollectorIT {
         store.runBackgroundOperations();
 
         // step 2 : make sure GC was running once and sets oldest timestamp
-        // (the value of oldest doesn't matter, but it should be <= now)
+        // (the value of oldest doesn't matter, but it should be <= t(0))
         assertEquals(0, gc.gc(24, HOURS).splitDocGCCount);
 
         // step 3 : wait for 1 week
         clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
 
-        // step 4 : create (later) 1 week old revisions - without yet causing a split
+        // step 4 : create old revisions at t(+1w) - without yet causing a split
         String lastValue = null;
         for (int i = 0; i < NUM_REVS_THRESHOLD - 1; i++) {
             b1 = store.getRoot().builder();
             b1.child("t").setProperty("foo", lastValue = "bar" + i);
             store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         }
-        store.runBackgroundOperations();
-
-        // step 5 : wait for 1 week
-        clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
-
-        // step 6 : create a checkpoint (that now refers to a 1 week old revision)
-        store.runBackgroundOperations();
-        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
         exp = lastValue;
+        store.runBackgroundOperations();
+
+        // step 5 : create a checkpoint at t(+1w)
+        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
         assertEquals(exp, store.getRoot().getChildNode("t").getString("foo"));
         assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
 
-        // step 7 : do another change that fulfills the split doc condition
+        // step 6 : wait for 1 week
+        clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
+
+        // step 7 : do another change that fulfills the split doc condition at t(+2w)
         b1 = store.getRoot().builder();
         b1.child("t").setProperty("foo", "barZ");
         store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -346,7 +345,7 @@ public class VersionGarbageCollectorIT {
 
         // step 8 : move the clock a couple seconds to ensure GC maxRev condition hits
         // (without this it might not yet GC the split doc we want it to,
-        // as we'd be in the same rounded second)
+        // as we'd be in the same rounded second) -> t(+2w:30s)
         clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(30));
 
         // step 9 : trigger another GC - this now splits away the referenced revision
