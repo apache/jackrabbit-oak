@@ -52,13 +52,11 @@ import javax.jcr.query.RowIterator;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.security.Permission;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
-import static java.lang.System.getSecurityManager;
-import static java.lang.System.setSecurityManager;
 import static org.apache.jackrabbit.oak.spi.state.NodeStateUtils.getNode;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
@@ -69,7 +67,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ReindexIT extends LuceneAbstractIndexCommandTest {
     private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
@@ -129,10 +126,16 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
 
     @Test
     public void reindexIgnoreMissingTikaDepThrow() throws Exception{
+        final AtomicInteger exitCode = new AtomicInteger(-1);
         IndexCommand command = new IndexCommand() {
             @Override
             public void checkTikaDependency() throws ClassNotFoundException {
                 throw new ClassNotFoundException();
+            }
+
+            @Override
+            public void exit(int status) {
+                exitCode.set(status);
             }
         };
         String[] args = {
@@ -140,7 +143,8 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
                 "--", // -- indicates that options have ended and rest needs to be treated as non option
                 "test"
         };
-        assertExits(1, () -> command.execute(args));
+        command.execute(args);
+        assertEquals("Epxpect to exit with status 1", 1, exitCode.get());
         assertEquals("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue", errContent.toString("UTF-8").trim());
     }
 
@@ -422,48 +426,4 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
         }
         return results;
     }
-
-    public static <E extends Throwable> void assertExits(final int expectedStatus, final ThrowingExecutable<E> executable) throws E {
-        final SecurityManager originalSecurityManager = getSecurityManager();
-        setSecurityManager(new SecurityManager() {
-            @Override
-            public void checkPermission(final Permission perm) {
-                if (originalSecurityManager != null)
-                    originalSecurityManager.checkPermission(perm);
-            }
-
-            @Override
-            public void checkPermission(final Permission perm, final Object context) {
-                if (originalSecurityManager != null)
-                    originalSecurityManager.checkPermission(perm, context);
-            }
-
-            @Override
-            public void checkExit(final int status) {
-                super.checkExit(status);
-                throw new ExitException(status);
-            }
-        });
-        try {
-            executable.run();
-            fail("Expected System.exit(" + expectedStatus + ") to be called, but it wasn't called.");
-        } catch (final ExitException e) {
-            assertEquals(expectedStatus, e.status);
-        } finally {
-            setSecurityManager(originalSecurityManager);
-        }
-    }
-
-    public interface ThrowingExecutable<E extends Throwable> {
-        void run() throws E;
-    }
-
-    private static class ExitException extends SecurityException {
-        final int status;
-
-        private ExitException(final int status) {
-            this.status = status;
-        }
-    }
-
 }
