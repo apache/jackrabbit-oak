@@ -666,8 +666,9 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
                 dataStore.getRecordIfStored(di));
         assertNotNull("Record with id " + id + " should be in the recordCache now",
                 dataStore.recordCache.get().getIfPresent(id));
-        // make sure the record is loaded from the cache
+        // make sure the record is loaded from the record cache
         backend.deleteRecord(di);
+        dataStore.cache.invalidate(id);
         assertNull("Record with id " + id + " should not be in the backend anymore",
                 backend.getRecord(di));
         assertNotNull("The record could not be loaded from the cache",
