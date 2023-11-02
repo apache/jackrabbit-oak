@@ -119,12 +119,10 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                         baseFFSLine = writeAndAdvance(writer, baseFFSBufferedReader, baseFFSLine);
                     }
                     // We the checkpoint diff api don't give consistent results.
-
                     else if (compared > 0) { // write incrementalFFSline and advance line in incrementalFFS
                         incrementalFFSLine = processIncrementalFFSLine(enumMap, writer, incrementalFFSBufferedReader, incrementalFFSLine);
                     }
                     else {
-                        // for compared >= 0
                         String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
                         String operand = getOperand(incrementalFFSParts);
                         switch (enumMap.get(operand)) {
@@ -179,6 +177,8 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                 // This case should not happen. If this happens, it means we don't have any such node in baseFFS
                 // but this node came as deletion of node for an already non-existing node.
                 // we just skip this node in this case.
+                log.warn("Expected operand {} but got {} for incremental line {}. Merging will proceed as usual, but this needs to be looked into.",
+                        IncrementalStoreOperand.ADD, getOperand(incrementalFFSParts), incrementalFFSLine);
                 incrementalFFSLine = incrementalFFSBufferedReader.readLine();
                 break;
             default:
