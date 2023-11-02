@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index;
 
-import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.junit.After;
 import org.junit.Rule;
@@ -67,16 +66,6 @@ public abstract class AbstractIndexTestCommand {
         for (int i = 0; i < count; i++) {
             getOrCreateByPath(basePath+i,
                     "oak:Unstructured", session).setProperty(propName, "bar");
-        }
-        session.save();
-        session.logout();
-    }
-
-    protected void addSuggestContent(IndexRepositoryFixture fixture, String basePath, String propName, int count) throws RepositoryException, IOException {
-        Session session = fixture.getAdminSession();
-        for (int i = 0; i < count; i++) {
-            JcrUtils.getOrCreateByPath(basePath + i,
-                    "oak:Unstructured", session).setProperty(propName, "suggest Property " + i + basePath);
         }
         session.save();
         session.logout();
