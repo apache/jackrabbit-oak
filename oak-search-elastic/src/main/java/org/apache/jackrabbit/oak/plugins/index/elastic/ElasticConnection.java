@@ -111,13 +111,18 @@ public class ElasticConnection implements Closeable {
             synchronized (this) {
                 if (clients == null) {
                     RestClientBuilder builder = RestClient.builder(new HttpHost(host, port, scheme));
-                    if (apiKeyId != null && !apiKeyId.isEmpty() &&
-                            apiKeySecret != null && !apiKeySecret.isEmpty()) {
-                        String apiKeyAuth = Base64.getEncoder().encodeToString(
-                                (apiKeyId + ":" + apiKeySecret).getBytes(StandardCharsets.UTF_8)
-                        );
-                        Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
-                        builder.setDefaultHeaders(headers);
+                    if (apiKeySecret != null && !apiKeySecret.isEmpty()) {
+                        // https://www.elastic.co/guide/en/elasticsearch/client/java-api-client/8.10/_other_authentication_methods.html#_elasticsearch_api_keys
+                        if (apiKeyId != null && !apiKeyId.isEmpty()) {
+                            String apiKeyAuth = Base64.getEncoder().encodeToString(
+                                    (apiKeyId + ":" + apiKeySecret).getBytes(StandardCharsets.UTF_8)
+                            );
+                            Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
+                            builder.setDefaultHeaders(headers);
+                        }
+                    } else {
+                        // use plain secret when no API key is provided
+                        builder.setDefaultHeaders(new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeySecret)});
                     }
                     builder.setRequestConfigCallback(
                             requestConfigBuilder -> requestConfigBuilder.setSocketTimeout(ES_SOCKET_TIMEOUT));
