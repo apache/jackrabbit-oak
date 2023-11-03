@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.query;
 
 import java.util.Locale;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Formatter for JCR queries in order to make them easier to read. Formatting is
  * done on a best-effort basis.
