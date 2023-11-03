@@ -31,7 +31,7 @@
   <name>Oak Runnable Jar</name>
 
   <properties>
-    <jetty.version>9.4.46.v20220331</jetty.version>
+    <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
       + 60 MB Groovy 2.5 (OAK-10066)
