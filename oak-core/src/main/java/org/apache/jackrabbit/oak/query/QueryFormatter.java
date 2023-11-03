@@ -86,9 +86,16 @@ public class QueryFormatter {
                     // skip
                 }
             } else if (c =='[') {
-                buff.insert(i + 1, "\n  ");
-                i += 3;
-            } else if (c <= ' ') {
+                if (i + 1 < buff.length() && buff.charAt(i + 1) > ' ') {
+                    buff.insert(i + 1, "\n  ");
+                    i += 3;
+                }
+            } else if (c == '\n') {
+                // already formatted
+                while (++i < buff.length() && buff.charAt(i) == ' ') {
+                    // skip
+                }
+            } else if (c == ' ') {
                 String sub = buff.substring(i, Math.min(i + 10, buff.length()));
                 if (sub.startsWith(" and ")
                         || sub.startsWith(" or ")
@@ -112,7 +119,12 @@ public class QueryFormatter {
                 while (++i < buff.length() && buff.charAt(i) != c) {
                     // skip
                 }
-            } else if (c <= ' ') {
+            } else if (c == '\n') {
+                // already formatted
+                while (++i < buff.length() && buff.charAt(i) == ' ') {
+                    // skip
+                }
+            } else if (c == ' ') {
                 String sub = buff.substring(i, Math.min(i + 10, buff.length()));
                 if (startsWithIgnoreCase(sub, " and ")
                         || startsWithIgnoreCase(sub, " or ")

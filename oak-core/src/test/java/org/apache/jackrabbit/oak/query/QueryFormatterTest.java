@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.jcr.query;
+package org.apache.jackrabbit.oak.query;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -142,12 +142,37 @@ public class QueryFormatterTest {
                 + "  order by @z",
                 QueryFormatter.format("/jcr:root//*[@x=' and '' and ' or @y=\" or \"] order by @z", null));
         assertEquals(
-                "/jcr:root//*[\n"
-                + "  ",
+                "/jcr:root//*[",
                 QueryFormatter.format("/jcr:root//*[", null));
         assertEquals(
                 "/jcr:root//*[\n"
                 + "  @a='",
                 QueryFormatter.format("/jcr:root//*[@a='", null));
+    }
+
+    @Test
+    public void alreadyFormatted() {
+        assertEquals("/jcr:root//*[\n"
+                + "  @a=1\n"
+                + "  and @b=2\n"
+                + "  or @c=3]\n"
+                + "  order by @d\n"
+                + "  option(traversal ok)",
+                QueryFormatter.format(
+                "/jcr:root//*[\n"
+                + "  @a=1\n"
+                + "  and @b=2\n"
+                + "  or @c=3]\n"
+                + "  order by @d\n"
+                + "  option(traversal ok)", null));
+        assertEquals(
+                "select \" from  \"\" union \"\n"
+                + "  from ...\n"
+                + "  option(...)",
+                QueryFormatter.format(
+                "select \" from  \"\" union \"\n"
+                        + "  from ...\n"
+                        + "  option(...)",
+                null));
     }
 }
