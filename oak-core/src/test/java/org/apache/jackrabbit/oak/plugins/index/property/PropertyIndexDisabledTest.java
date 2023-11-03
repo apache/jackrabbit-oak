@@ -77,7 +77,11 @@ public class PropertyIndexDisabledTest {
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("x10"));
         PropertyIndex propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
-        assertEquals("property foo = x10", propertyIndex.getPlan(f, root));
+        assertEquals("property foo\n"
+                + "    indexDefinition: /oak:index/foo\n"
+                + "    estimatedCost: 7.0\n"
+                + "    values: 'x10'\n"
+                + "", propertyIndex.getPlan(f, root));
 
         // now test with a node that doesn't exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");
@@ -95,7 +99,11 @@ public class PropertyIndexDisabledTest {
         // need to create a new one - otherwise the cached plan is used
         propertyIndex = new PropertyIndex(Mounts.defaultMountInfoProvider());
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
-        assertEquals("property foo = x10", propertyIndex.getPlan(f, root));
+        assertEquals("property foo\n"
+                + "    indexDefinition: /oak:index/foo\n"
+                + "    estimatedCost: 7.0\n"
+                + "    values: 'x10'\n"
+                + "", propertyIndex.getPlan(f, root));
         
         // test with a property that does not exist
         index = rootBuilder.child(INDEX_DEFINITIONS_NAME).child("foo");

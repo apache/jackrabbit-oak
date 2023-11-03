@@ -16,6 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
+import java.io.ByteArrayInputStream;
+import java.util.List;
+import java.util.UUID;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -27,12 +35,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilde
 import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
-
-import java.io.ByteArrayInputStream;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.Assert.assertEquals;
 
 public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
 
@@ -46,7 +48,8 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         createAssetsIndexAndProperties(false, false);
         prepareTestAssets();
 
-        assertEquals(getTestQueryDynamicBoostBasicExplained(), explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH));
+        assertThat(explain("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH),
+                containsString(getTestQueryDynamicBoostBasicExplained()));
 
         assertEventually(() -> {
             assertQuery("//element(*, dam:Asset)[jcr:contains(., 'plant')]", XPATH,

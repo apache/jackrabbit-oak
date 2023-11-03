@@ -331,9 +331,9 @@ public class SynchronousPropertyIndexTest extends AbstractQueryTest {
         runAsyncIndex();
 
         assertThat(explain("select * from [nt:base] where [jcr:content/foo] = 'bar'"),
-                containsString("sync:(foo[jcr:content/foo] bar)"));
+                containsString("synchronousPropertyCondition: foo[jcr:content/foo] bar"));
         assertThat(explain("select * from [nt:base] where [foo] = 'bar'"),
-                containsString("sync:(foo bar)"));
+                containsString("synchronousPropertyCondition: foo bar"));
     }
 
     @Test

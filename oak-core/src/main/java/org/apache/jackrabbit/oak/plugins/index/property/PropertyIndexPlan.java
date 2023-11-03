@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.cursor.Cursors;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
@@ -238,27 +239,30 @@ public class PropertyIndexPlan {
 
     @Override
     public String toString() {
-        StringBuilder buffer = new StringBuilder("property ");
-        buffer.append(name);
+        StringBuilder buffer = new StringBuilder();
+        buffer.append("property ").append(name).append("\n");
+        buffer.append("    indexDefinition: /");
+        buffer.append(IndexConstants.INDEX_DEFINITIONS_NAME);
+        buffer.append("/").append(name).append("\n");
+        buffer.append("    estimatedCost: ").append(cost).append("\n");
+        buffer.append("    values: ");
         if (values == null) {
-            buffer.append(" IS NOT NULL");
+            buffer.append("all values in the index (warning: may be slow)");
         } else if (values.isEmpty()) {
-            buffer.append(" NOT APPLICABLE");
+            buffer.append("not applicable");
         } else if (values.size() == 1) {
-            buffer.append(" = ");
-            buffer.append(values.iterator().next());
+            buffer.append(SQL2Parser.escapeStringLiteral(values.iterator().next()));
         } else {
-            buffer.append(" IN (");
             boolean comma = false;
             for (String value : values) {
                 if (comma) {
                     buffer.append(", ");
                 }
-                buffer.append(value);
+                buffer.append(SQL2Parser.escapeStringLiteral(value));
                 comma = true;
             }
-            buffer.append(")");
         }
+        buffer.append("\n");
         return buffer.toString();
     }
 
