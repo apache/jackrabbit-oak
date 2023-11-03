@@ -1,25 +1,29 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.Maps;
-import org.mockito.Mockito;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.io.IOException;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -77,50 +81,158 @@ public class DocumentRevisionCleanupHelperTest {
 
         documentRevisionCleanupHelper.classifyAndMapRevisionsAndProperties();
         documentRevisionCleanupHelper.markCheckpointRevisionsToPreserve();
+        documentRevisionCleanupHelper.removeCandidatesInList(documentRevisionCleanupHelper.getBlockedRevisionsToKeep());
 
         // The revisions blocked should be:
         //  - r105000000-0-1 (blocked by checkpoint r109000000-0-1)
         //  - r115000000-0-1 (blocked by checkpoint r119000000-0-1)
-
         assertEquals(Set.of(revisionB, revisionD), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1));
+        assertEquals(Set.of(revisionA, revisionC, revisionE, revisionF), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1));
+    }
 
+    @Test
+    public void testRecentRevisionsArePreserved() throws IOException {
+        StringBuilder jsonPropBuilder = new StringBuilder("'prop1': {");
+        StringBuilder jsonRevisionsBuilder = new StringBuilder("'_revisions': {");
 
-        /*assertEquals(Set.of(revisionC), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1));
-        assertEquals(Set.of(revisionA, revisionB, revisionC), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1));*/
+        Instant currentTime = Instant.now();
+        List<Revision> revisions = new ArrayList<>();
+        for (int i = 29; i >= 0; i--) {
+            long timestamp = currentTime.minus(i, ChronoUnit.HOURS).toEpochMilli();
+            Revision revision = new Revision(timestamp, 0, 1);
+            revisions.add(revision);
+
+            jsonPropBuilder.append("'").append(revision).append("': 'value").append(i).append("', ");
+            jsonRevisionsBuilder.append("'").append(revision).append("': 'c', ");
+        }
+
+        // 23 hours and 59 minutes ago -> Should be preserved
+        long timestamp = currentTime.minus(23, ChronoUnit.HOURS).minus(59, ChronoUnit.MINUTES).toEpochMilli();
+        Revision revision = new Revision(timestamp, 0, 1);
+        revisions.add(revision);  // revisions[30]
+        jsonPropBuilder.append("'").append(revision).append("': 'value").append(30).append("', ");
+        jsonRevisionsBuilder.append("'").append(revision).append("': 'c', ");
+
+        // 24 hours and 1 minute ago -> Should be candidate to clean
+        timestamp = currentTime.minus(24, ChronoUnit.HOURS).minus(1, ChronoUnit.MINUTES).toEpochMilli();
+        revision = new Revision(timestamp, 0, 1);
+        revisions.add(revision);  // revisions[31]
+        jsonPropBuilder.append("'").append(revision).append("': 'value").append(30).append("'");
+        jsonRevisionsBuilder.append("'").append(revision).append("': 'c'");
+
+        jsonPropBuilder.append("}");
+        jsonRevisionsBuilder.append("}");
+        StringBuilder jsonBuilder = new StringBuilder("{");
+        jsonBuilder.append(jsonPropBuilder).append(", ").append(jsonRevisionsBuilder).append("}");
+
+        // revisions.forEach(rev -> System.out.println(rev.toReadableString()));
+
+        prepareDocumentMock(jsonBuilder.toString());
+
+        documentRevisionCleanupHelper.classifyAndMapRevisionsAndProperties();
+        documentRevisionCleanupHelper.markRevisionsNewerThanThresholdToPreserve(24, ChronoUnit.HOURS);
+        documentRevisionCleanupHelper.removeCandidatesInList(documentRevisionCleanupHelper.getBlockedRevisionsToKeep());
+
+        // The candidate revisions should be the 6 oldest ones (current time -29, -28, -27, -26, -25, -24)
+        // and the one created 24 hours and 1 minute ago
+        Set<Revision> expectedCandidateRevisions = Stream.concat(
+                revisions.subList(0, 6).stream(), Stream.of(revisions.get(31))
+        ).collect(Collectors.toSet());
+
+        // Blocked revisions are all the 24 revisions created in the last 24 hours, and the one created 23 hours and 59 minutes ago
+        Set<Revision> expectedBlockedRevisions = revisions.subList(6, 31).stream().collect(Collectors.toSet());
+
+        assertEquals(expectedCandidateRevisions, documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1));
+        assertEquals(expectedBlockedRevisions, documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1));
     }
 
     @Test
     public void testInitializeCleanupProcessMultipleClusters() throws IOException {
-        Revision revisionA = Revision.fromString("r100000000-0-1");
-        Revision revisionB = Revision.fromString("r105000000-0-2");
-        Revision revisionC = Revision.fromString("r110000000-0-3");
-        Revision revisionD = Revision.fromString("r115000000-0-1");
-        Revision revisionE = Revision.fromString("r120000000-0-2");
-        Revision revisionF = Revision.fromString("r125000000-0-3");
+        List<Revision> revs = new ArrayList<>();
 
+        // Some initial revisions (0-2)
+        revs.add(Revision.fromString("r100000000-0-1"));
+        revs.add(Revision.fromString("r100000000-0-2"));
+        revs.add(Revision.fromString("r100000000-0-3"));
+
+        // Blocked by first checkpoint r109000000 (3-5)
+        revs.add(Revision.fromString("r106000000-0-1"));
+        revs.add(Revision.fromString("r105000000-0-2"));
+        revs.add(Revision.fromString("r108000000-0-3"));
+
+        // Some unblocked revisions in middle (6-10)
+        revs.add(Revision.fromString("r110000000-0-3"));
+        revs.add(Revision.fromString("r110000000-1-3"));
+        revs.add(Revision.fromString("r114000000-0-2"));
+        revs.add(Revision.fromString("r115000000-0-1"));
+        revs.add(Revision.fromString("r118000000-0-1"));
+
+        // Blocked by second checkpoint r118000000 (11-13)
+        revs.add(Revision.fromString("r118000000-1-1"));
+        revs.add(Revision.fromString("r118000000-0-2"));
+        revs.add(Revision.fromString("r118000000-0-3"));
+
+        // Some more unblocked revisions (14-19)
+        revs.add(Revision.fromString("r120000000-0-1"));
+        revs.add(Revision.fromString("r122000000-0-2"));
+        revs.add(Revision.fromString("r122000000-1-2"));
+        revs.add(Revision.fromString("r123000000-0-2"));
+        revs.add(Revision.fromString("r125000000-0-3"));
+        revs.add(Revision.fromString("r130000000-0-1"));
+
+        // Last revision (20-22)
+        revs.add(Revision.fromString("r130000000-1-1"));
+        revs.add(Revision.fromString("r130000000-0-2"));
+        revs.add(Revision.fromString("r130000000-0-3"));
+
+        // Checkpoint revisions
         Revision checkpoint1 = Revision.fromString("r109000000-0-1");
         Revision checkpoint2 = Revision.fromString("r119000000-0-1");
 
-        String jsonProperties = "{" +
-                "'prop1': {'" + revisionA + "': 'value1', '" + revisionB + "': 'value2', '" + revisionC + "': 'value3', '" + revisionD + "': 'value4', '" + revisionE + "': 'value5', '" + revisionF + "': 'value6'}, " +
-                "'_revisions': {'" + revisionA + "': 'c', '" + revisionB + "': 'c', '" + revisionC + "': 'c', '" + revisionC + "': 'c', '" + revisionD + "': 'c', '" + revisionE + "': 'c', '" + revisionF + "': 'c'}" +
-                "}";
+        StringBuilder jsonPropBuilder = new StringBuilder("'prop1': {");
+        StringBuilder jsonRevisionsBuilder = new StringBuilder("'_revisions': {");
+
+        for (int i = 0; i < revs.size(); i++) {
+            jsonPropBuilder.append("'").append(revs.get(i)).append("': 'value").append(i).append("'");
+            jsonRevisionsBuilder.append("'").append(revs.get(i)).append("': 'c'");
+            if (i < revs.size() - 1) {
+                jsonPropBuilder.append(", ");
+                jsonRevisionsBuilder.append(", ");
+            }
+        }
+
+        jsonPropBuilder.append("}");
+        jsonRevisionsBuilder.append("}");
+        StringBuilder jsonBuilder = new StringBuilder("{");
+        jsonBuilder.append(jsonPropBuilder).append(", ").append(jsonRevisionsBuilder).append("}");
+
         String jsonCheckpoints = "{" +
-                "'" + checkpoint1 + "': {'expires':'200000000','rv':'r109000000-0-1,r109000000-0-1'}," +
-                "'" + checkpoint2 + "': {'expires':'200000000','rv':'r119000000-0-1,r109000000-0-1'}" +
+                "'" + checkpoint1 + "': {'expires':'200000000','rv':'r109000000-0-1,r109000000-0-2,r109000000-0-3'}," +
+                "'" + checkpoint2 + "': {'expires':'200000000','rv':'r118000000-1-1,r118000000-0-2,r118000000-0-3'}" +
                 "}";
 
 
-        prepareDocumentMock(jsonProperties);
+        prepareDocumentMock(jsonBuilder.toString());
         prepareCheckpointsMock(jsonCheckpoints);
 
         documentRevisionCleanupHelper.initializeCleanupProcess();
 
         // The revisions blocked should be:
-        //
+        //  - r106000000-0-1, r118000000-0-2, r108000000-0-3 (referenced by checkpoint 1)
+        //  - r118000000-1-1, r118000000-0-2, r118000000-0-3 (referenced by checkpoint 2)
+        //  - r130000000-1-1, r130000000-0-2, r130000000-0-3 (last revision)
+        assertEquals(Set.of(revs.get(3), revs.get(11), revs.get(20)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1));
+        assertEquals(Set.of(revs.get(4), revs.get(12), revs.get(21)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(2));
+        assertEquals(Set.of(revs.get(5), revs.get(13), revs.get(22)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(3));
 
-        assertEquals(Set.of(revisionC), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1));
-        assertEquals(Set.of(revisionA, revisionB, revisionC), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1));
+        // Rest of revisions are candidates to clean
+        assertEquals(Set.of(revs.get(0), revs.get(9), revs.get(10), revs.get(14), revs.get(19)), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1));
+        assertEquals(Set.of(revs.get(1), revs.get(8), revs.get(15), revs.get(16), revs.get(17)), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(2));
+        assertEquals(Set.of(revs.get(2), revs.get(6), revs.get(7), revs.get(18)), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(3));
+
+        assertTrue(Collections.disjoint(documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1)));
+        assertTrue(Collections.disjoint(documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(2), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(2)));
+        assertTrue(Collections.disjoint(documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(3), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(3)));
     }
 
     @Test

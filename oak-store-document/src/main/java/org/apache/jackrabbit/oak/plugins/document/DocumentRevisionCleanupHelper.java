@@ -93,8 +93,10 @@ public class DocumentRevisionCleanupHelper {
         // The first entry in "_deleted" has to be kept, as is when the document was created
         NavigableMap<Revision, String> deletedRevisions = ((NavigableMap<Revision, String>) workingDocument.get("_deleted"));
         if (deletedRevisions != null && !deletedRevisions.isEmpty()) {
+            // TODO: This is just a check to ensure the order is the expected
+            assert(deletedRevisions.descendingMap().lastKey().getTimestamp() <= deletedRevisions.descendingMap().firstKey().getTimestamp());
+
             Revision createdRevision = deletedRevisions.descendingMap().lastKey();
-            addCandidateRevisionToClean(createdRevision);
             addBlockedRevisionToKeep(createdRevision);
         }
 
@@ -121,10 +123,11 @@ public class DocumentRevisionCleanupHelper {
      * @param unit the unit of time
      */
     protected void markRevisionsNewerThanThresholdToPreserve(long amount, ChronoUnit unit) {
-        long twentyFiveHoursAgoMillis = Instant.now().minus(amount, unit).toEpochMilli();
+        // TODO: Should we add a buffer here? Maybe 1 minute or even 1 hour?
+        long thresholdToPreserve = Instant.now().minus(amount, unit).toEpochMilli();
         for (TreeSet<Revision> revisionSet : candidateRevisionsToClean.values()) {
             for (Revision revision : revisionSet) {
-                if (revision.getTimestamp() > twentyFiveHoursAgoMillis) {
+                if (revision.getTimestamp() > thresholdToPreserve) {
                     addBlockedRevisionToKeep(revision);
                 }
             }
@@ -178,7 +181,7 @@ public class DocumentRevisionCleanupHelper {
      * Step 5:
      * Removes for each clusterId the revisions in the Map, that were blocked in the methods above.
      */
-    private void removeCandidatesInList(SortedMap<Integer, TreeSet<Revision>> revisions) {
+    protected void removeCandidatesInList(SortedMap<Integer, TreeSet<Revision>> revisions) {
         revisions.forEach((key, value) -> {
             if (candidateRevisionsToClean.containsKey(key)) {
                 candidateRevisionsToClean.get(key).removeAll(value);
