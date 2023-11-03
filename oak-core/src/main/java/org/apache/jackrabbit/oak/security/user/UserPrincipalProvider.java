@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
 import org.apache.jackrabbit.oak.security.principal.EveryoneFilter;
-import org.apache.jackrabbit.oak.security.user.GroupMembershipReader.GroupPrincipalFactory;
+import org.apache.jackrabbit.oak.security.user.PrincipalMembershipReader.GroupPrincipalFactory;
 import org.apache.jackrabbit.oak.security.user.query.QueryUtil;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.principal.PrincipalImpl;
@@ -74,7 +74,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     private final NamePathMapper namePathMapper;
 
     private final UserProvider userProvider;
-    private final GroupMembershipReader groupMembershipReader;
+    private final PrincipalMembershipReader principalMembershipReader;
 
     UserPrincipalProvider(@NotNull Root root,
                           @NotNull UserConfiguration userConfiguration,
@@ -85,13 +85,12 @@ class UserPrincipalProvider implements PrincipalProvider {
         this.userProvider = new UserProvider(root, config.getParameters());
 
         MembershipProvider membershipProvider = new MembershipProvider(root, config.getParameters());
-        GroupPrincipalFactory groupPrincipalFactory = createGroupPrincipalFactory();
         long expiration = config.getParameters().getConfigValue(PARAM_CACHE_EXPIRATION, EXPIRATION_NO_CACHE);
         boolean cacheEnabled = (expiration > EXPIRATION_NO_CACHE && root.getContentSession().getAuthInfo().getPrincipals().contains(SystemPrincipal.INSTANCE));
         if (cacheEnabled) {
-            groupMembershipReader = new CachedGroupMembershipReader(membershipProvider, groupPrincipalFactory, config, root);
+            principalMembershipReader = new CachedPrincipalMembershipReader(membershipProvider, createGroupPrincipalFactory(), config, root);
         } else {
-            groupMembershipReader = new GroupMembershipReader(membershipProvider, groupPrincipalFactory);
+            principalMembershipReader = new PrincipalMembershipReader(membershipProvider, createGroupPrincipalFactory());
         }
     }
 
@@ -204,15 +203,15 @@ class UserPrincipalProvider implements PrincipalProvider {
 
     //------------------------------------------------------------< private >---
 
-    GroupPrincipalFactory createGroupPrincipalFactory() {
+    private @NotNull GroupPrincipalFactory createGroupPrincipalFactory() {
         return new GroupPrincipalFactory() {
             @Override
-            public Principal create(@NotNull Tree authorizable) {
+            public @Nullable Principal create(@NotNull Tree authorizable) {
                 return createGroupPrincipal(authorizable);
             }
 
             @Override
-            public Principal create(@NotNull String principalName) {
+            public @NotNull Principal create(@NotNull String principalName) {
                 return new CachedGroupPrincipal(principalName, namePathMapper, root, config);
             }
         };
@@ -275,7 +274,7 @@ class UserPrincipalProvider implements PrincipalProvider {
     @NotNull
     private Set<Principal> getGroupMembership(@NotNull Tree authorizableTree) {
         Set<Principal> groupPrincipals = new HashSet<>();
-        groupMembershipReader.getMembership(authorizableTree, groupPrincipals);
+        principalMembershipReader.readMembership(authorizableTree, groupPrincipals);
 
         // add the dynamic everyone principal group which is not included in
         // the 'getMembership' call.

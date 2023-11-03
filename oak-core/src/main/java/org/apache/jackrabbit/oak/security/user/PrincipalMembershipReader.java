@@ -16,41 +16,40 @@
  */
 package org.apache.jackrabbit.oak.security.user;
 
-import java.security.Principal;
-import java.util.Iterator;
-import java.util.Set;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.security.user.AuthorizableType;
 import org.apache.jackrabbit.oak.spi.security.user.util.UserUtil;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
+import java.security.Principal;
+import java.util.Iterator;
+import java.util.Set;
 
 /**
- * <code>GroupMembershipReader</code>...
+ * This class has been extracted from {@code UserPrincipalProvider} and calculates membership for a given 
+ * user principal.
+ * 
+ * @see <a href="https://issues.apache.org/jira/browse/OAK-10451">OAK-10451</a>
  */
-class GroupMembershipReader {
+class PrincipalMembershipReader {
 
     private final MembershipProvider membershipProvider;
 
-    protected final GroupPrincipalFactory groupPrincipalFactory;
+    private final GroupPrincipalFactory groupPrincipalFactory;
 
-    GroupMembershipReader(@NotNull MembershipProvider membershipProvider,
-                          @NotNull GroupPrincipalFactory groupPrincipalFactory) {
-        this.membershipProvider = checkNotNull(membershipProvider);
-        this.groupPrincipalFactory = checkNotNull(groupPrincipalFactory);
+    PrincipalMembershipReader(@NotNull MembershipProvider membershipProvider,
+                              @NotNull GroupPrincipalFactory groupPrincipalFactory) {
+        this.membershipProvider = membershipProvider;
+        this.groupPrincipalFactory = groupPrincipalFactory;
+    }
+    
+    @NotNull GroupPrincipalFactory getGroupPrincipalFactory() {
+        return groupPrincipalFactory;
     }
 
-    void getMembership(@NotNull Tree authorizable,
-                       @NotNull Set<Principal> groupPrincipals) {
-        loadGroupPrincipals(authorizable, groupPrincipals);
-    }
-
-    protected final void loadGroupPrincipals(@NotNull Tree authorizableTree,
-                                             @NotNull Set<Principal> groupPrincipals) {
+    void readMembership(@NotNull Tree authorizableTree,
+                        @NotNull Set<Principal> groupPrincipals) {
         Iterator<Tree> groupTrees = membershipProvider.getMembership(authorizableTree, true);
         while (groupTrees.hasNext()) {
             Tree groupTree = groupTrees.next();
@@ -65,9 +64,9 @@ class GroupMembershipReader {
 
     interface GroupPrincipalFactory {
 
-        Principal create(@NotNull Tree authorizable);
+        @Nullable Principal create(@NotNull Tree authorizable);
 
-        Principal create(@NotNull String principalName);
+        @NotNull Principal create(@NotNull String principalName);
     }
 
 }

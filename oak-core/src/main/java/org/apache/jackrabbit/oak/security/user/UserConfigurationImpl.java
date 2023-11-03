@@ -179,6 +179,13 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
                         "with the internal system session such as used for login). If not set or equal/lower than zero " +
                         "no caches are created/evaluated.")
         long cacheExpiration() default UserPrincipalProvider.EXPIRATION_NO_CACHE;
+        
+        @AttributeDefinition(
+                name = "Principal Cache Stale Time",
+                description = "Optional configuration defining the number of milliseconds " +
+                        "for which a stale principal cache can be served if another thread is already writing the cache. If not set or " +
+                        "zero no stale cache is returned and group principals are read from the persistence without being cached.")
+        long cacheMaxStale() default UserPrincipalProvider.NO_STALE_CACHE;
 
         @AttributeDefinition(
                 name = "RFC7613 Username Comparison Profile",
