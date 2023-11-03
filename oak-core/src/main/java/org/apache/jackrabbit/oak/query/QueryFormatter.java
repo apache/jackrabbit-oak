@@ -68,7 +68,7 @@ public class QueryFormatter {
      * @param language the query language, or null if unknown
      * @return the formatted query
      */
-    public static String format(String query, String language) {
+    public static String format(@NotNull String query, String language) {
         boolean xpath = isXPath(query, language);
         if (xpath) {
             return formatXPath(query);
