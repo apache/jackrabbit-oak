@@ -34,9 +34,12 @@ import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.command.P
 import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.ExposedPort;
 import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.PortBinding;
 import repackaged.com.arakelian.docker.junit.com.github.dockerjava.api.model.Ports;
+import repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.AbstractDockerCmdExecFactory;
 import repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.DefaultDockerClientConfig;
 import repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.DockerClientImpl;
 import repackaged.com.arakelian.docker.junit.com.github.dockerjava.okhttp.OkHttpDockerCmdExecFactory;
+
+import static repackaged.com.arakelian.docker.junit.com.github.dockerjava.core.DefaultDockerClientConfig.*;
 
 /**
  * A MongoDB {@link DockerRule}.
@@ -55,9 +58,9 @@ public class MongoDockerRule implements TestRule {
 
     static {
         boolean available = false;
-        try (DockerClient dockerClient =
-                     DockerClientImpl.getInstance(DefaultDockerClientConfig.createDefaultConfigBuilder().build())
-                             .withDockerCmdExecFactory(new OkHttpDockerCmdExecFactory().withConnectTimeout(5000).withReadTimeout(20000))) {
+        try (AbstractDockerCmdExecFactory dockerCmdExecFactory = dockerCmdExecFactory();
+             DockerClient dockerClient = DockerClientImpl.getInstance(createDefaultConfigBuilder().build())
+                             .withDockerCmdExecFactory(dockerCmdExecFactory)) {
             dockerClient.pingCmd().exec();
             dockerClient.pullImageCmd(IMAGE).exec(new PullImageResultCallback());
             available = true;
@@ -65,6 +68,10 @@ public class MongoDockerRule implements TestRule {
             LOG.info("Cannot connect to docker or pull image", t);
         }
         DOCKER_AVAILABLE = available;
+    }
+
+    private static AbstractDockerCmdExecFactory dockerCmdExecFactory() {
+        return new OkHttpDockerCmdExecFactory().withConnectTimeout(5000).withReadTimeout(20000);
     }
 
     private final DockerRule wrappedRule;
