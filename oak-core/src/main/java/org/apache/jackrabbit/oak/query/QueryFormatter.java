@@ -47,7 +47,7 @@ public class QueryFormatter {
         if (query.startsWith("explain")) {
             query = query.substring("explain".length()).trim();
             if (query.startsWith("measure")) {
-                query = query.substring("explain".length()).trim();
+                query = query.substring("measure".length()).trim();
             }
         }
         // union queries
