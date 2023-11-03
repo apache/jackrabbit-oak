@@ -186,10 +186,10 @@ class ElasticIndexHelper {
                         // the entire document will fail to update. Instead, only the specific field won't be updated.
                         .mapping(mf -> mf.ignoreMalformed(true))
                         // static setting: cannot be changed after the index gets created
-                        .numberOfShards(Integer.toString(indexDefinition.numberOfShards))
+                        //.numberOfShards(Integer.toString(indexDefinition.numberOfShards))
                         // dynamic settings: see #enableIndexRequest
-                        .refreshInterval(INITIAL_REFRESH_INTERVAL)
-                        .numberOfReplicas(INITIAL_NUMBER_OF_REPLICAS))
+                        .refreshInterval(INITIAL_REFRESH_INTERVAL))
+                        //.numberOfReplicas(INITIAL_NUMBER_OF_REPLICAS))
                 .analysis(analyzerBuilder.build());
 
         return builder;
