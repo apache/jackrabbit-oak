@@ -22,7 +22,6 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.query.QueryFormatter;
 import org.junit.Test;
 
 public class QueryFormatterTest {
