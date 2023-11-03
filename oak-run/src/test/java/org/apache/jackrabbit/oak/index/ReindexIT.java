@@ -133,6 +133,7 @@ public class ReindexIT extends LuceneAbstractIndexCommandTest {
                 throw new ClassNotFoundException();
             }
 
+            //avoid System.exit(), we just want to make sure that exit is called with the correct code
             @Override
             public void exit(int status) {
                 exitCode.set(status);
