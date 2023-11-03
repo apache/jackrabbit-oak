@@ -24,8 +24,11 @@ import javax.jcr.version.OnParentVersionAction;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
+import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.lock.LockConstants;
@@ -35,6 +38,7 @@ import org.apache.jackrabbit.oak.spi.version.VersionConstants;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static org.apache.jackrabbit.JcrConstants.MIX_VERSIONABLE;
 import static com.google.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.JcrConstants.JCR_BASEVERSION;
 import static org.apache.jackrabbit.JcrConstants.JCR_ISCHECKEDOUT;
@@ -108,9 +112,15 @@ class VersionEditor implements Editor {
                 && this.after.hasProperty(JcrConstants.JCR_VERSIONHISTORY)
                 && !this.after.hasProperty(JCR_ISCHECKEDOUT)
                 && !this.before.exists()) {
-            // sentinel node for restore
-            vMgr.restore(node, after.getValue(Type.REFERENCE), null);
-            return;
+            Tree tree = new TreeProviderService().createReadOnlyTree(this.node.getNodeState());
+            if (vMgr.getNodeTypeManager().isNodeType(
+                    TreeUtil.getPrimaryTypeName(tree), TreeUtil.getMixinTypeNames(tree), MIX_VERSIONABLE)) {
+                // OAK-10462: the node has mix:versionable, but not the mandatory property jcr:isCheckedOut,
+                // so it has to be sentinel node for a restore operation.
+                // Unfortunately, there is no API available to detect that.
+                vMgr.restore(node, after.getValue(Type.REFERENCE), null);
+                return;
+            }
         }
         if (!isReadOnly || getOPV(after) == OnParentVersionAction.IGNORE) {
             return;
