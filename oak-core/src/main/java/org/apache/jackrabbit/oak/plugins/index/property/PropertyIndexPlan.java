@@ -244,7 +244,6 @@ public class PropertyIndexPlan {
         buffer.append("    indexDefinition: /");
         buffer.append(IndexConstants.INDEX_DEFINITIONS_NAME);
         buffer.append("/").append(name).append("\n");
-        buffer.append("    estimatedCost: ").append(cost).append("\n");
         buffer.append("    values: ");
         if (values == null) {
             buffer.append("all values in the index (warning: may be slow)");
@@ -263,6 +262,7 @@ public class PropertyIndexPlan {
             }
         }
         buffer.append("\n");
+        buffer.append("    estimatedCost: ").append(cost).append("\n");
         return buffer.toString();
     }
 

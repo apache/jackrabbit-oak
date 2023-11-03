@@ -79,8 +79,8 @@ public class PropertyIndexDisabledTest {
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
         assertEquals("property foo\n"
                 + "    indexDefinition: /oak:index/foo\n"
-                + "    estimatedCost: 7.0\n"
                 + "    values: 'x10'\n"
+                + "    estimatedCost: 7.0\n"
                 + "", propertyIndex.getPlan(f, root));
 
         // now test with a node that doesn't exist
@@ -101,8 +101,8 @@ public class PropertyIndexDisabledTest {
         assertTrue(propertyIndex.getCost(f, root) != Double.POSITIVE_INFINITY);
         assertEquals("property foo\n"
                 + "    indexDefinition: /oak:index/foo\n"
-                + "    estimatedCost: 7.0\n"
                 + "    values: 'x10'\n"
+                + "    estimatedCost: 7.0\n"
                 + "", propertyIndex.getPlan(f, root));
         
         // test with a property that does not exist
