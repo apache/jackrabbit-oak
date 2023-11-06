@@ -124,8 +124,7 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                     // The incremental FFS with above operations are dumped as node added instead of modified.
                     else if (compared > 0) { // write incrementalFFSline and advance line in incrementalFFS
                         incrementalFFSLine = processIncrementalFFSLine(enumMap, writer, incrementalFFSBufferedReader, incrementalFFSLine);
-                    }
-                    else {
+                    } else {
                         String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
                         String operand = getOperand(incrementalFFSParts);
                         switch (enumMap.get(operand)) {
@@ -248,7 +247,7 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
         Map<String, IncrementalStoreOperand> enumMap = Arrays.stream(IncrementalStoreOperand.values())
                 .collect(Collectors.toUnmodifiableMap(IncrementalStoreOperand::toString, k -> IncrementalStoreOperand.valueOf(k.name())));
         do {
-            incrementalFFSLine =  processIncrementalFFSLine(enumMap, writer, bufferedReader, incrementalFFSLine);
+            incrementalFFSLine = processIncrementalFFSLine(enumMap, writer, bufferedReader, incrementalFFSLine);
         } while (incrementalFFSLine != null);
         return bufferedReader.readLine();
     }
