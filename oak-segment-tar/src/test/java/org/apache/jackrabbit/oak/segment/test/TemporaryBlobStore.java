@@ -32,7 +32,7 @@ public class TemporaryBlobStore extends ExternalResource {
 
     private final String name;
 
-    private DataStoreBlobStore store;
+    private volatile DataStoreBlobStore store;
 
     public TemporaryBlobStore(TemporaryFolder folder) {
         this(folder, null);
@@ -71,18 +71,22 @@ public class TemporaryBlobStore extends ExternalResource {
     }
 
     public BlobStore blobStore() {
-        if (store == null) {
-            synchronized (this) {
-                if (store == null) {
-                    try {
-                        init();
-                    } catch (IOException e) {
-                        throw new IllegalStateException("Initialisation failed", e);
-                    }
+        // We use the local variable so we access the volatile {this.store} only once.
+        // see: https://stackoverflow.com/a/3580658
+        DataStoreBlobStore store = this.store;
+        if (store != null) {
+            return store;
+        }
+        synchronized (this) {
+            if (this.store == null) {
+                try {
+                    init();
+                } catch (IOException e) {
+                    throw new IllegalStateException("Initialisation failed", e);
                 }
             }
+            return this.store;
         }
-        return store;
     }
 
 }

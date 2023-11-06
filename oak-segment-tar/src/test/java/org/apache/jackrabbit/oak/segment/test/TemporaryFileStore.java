@@ -46,7 +46,7 @@ public class TemporaryFileStore extends ExternalResource {
 
     private ScheduledExecutorService executor;
 
-    private FileStore store;
+    private volatile FileStore store;
 
     private int binariesInlineThreshold = Segment.MEDIUM_LIMIT;
 
@@ -112,18 +112,22 @@ public class TemporaryFileStore extends ExternalResource {
     }
 
     public FileStore fileStore() {
-        if (store == null) {
-            synchronized (this) {
-                if (store == null) {
-                    try {
-                        init();
-                    } catch (InvalidFileStoreVersionException | IOException e) {
-                        throw new IllegalStateException("Initialisation failed", e);
-                    }
+        // We use the local variable so we access the volatile {this.store} only once.
+        // see: https://stackoverflow.com/a/3580658
+        FileStore store = this.store;
+        if (store != null) {
+            return store;
+        }
+        synchronized (this) {
+            if (this.store == null) {
+                try {
+                    init();
+                } catch (InvalidFileStoreVersionException | IOException e) {
+                    throw new IllegalStateException("Initialisation failed", e);
                 }
             }
+            return this.store;
         }
-        return store;
     }
 
 }
