@@ -97,6 +97,7 @@ public class QueryFormatter {
                 while (++i < buff.length() && buff.charAt(i) == ' ') {
                     // skip
                 }
+                i--;
             } else if (c == ' ') {
                 String sub = buff.substring(i, Math.min(i + 10, buff.length()));
                 if (sub.startsWith(" and ")
@@ -126,6 +127,7 @@ public class QueryFormatter {
                 while (++i < buff.length() && buff.charAt(i) == ' ') {
                     // skip
                 }
+                i--;
             } else if (c == ' ') {
                 String sub = buff.substring(i, Math.min(i + 10, buff.length()));
                 if (startsWithIgnoreCase(sub, " and ")

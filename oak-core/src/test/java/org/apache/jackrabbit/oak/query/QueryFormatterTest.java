@@ -89,8 +89,12 @@ public class QueryFormatterTest {
                 }
             }
             String query = buff.toString();
-            QueryFormatter.format(query, "xpath");
-            QueryFormatter.format(query, "sql");
+            String x1 = QueryFormatter.format(query, "xpath");
+            String x2 = QueryFormatter.format(x1, "xpath");
+            assertEquals(x1, x2);
+            String s1 = QueryFormatter.format(query, "sql");
+            String s2 = QueryFormatter.format(s1, "sql");
+            assertEquals(s1, s2);
         }
     }
 
@@ -151,6 +155,8 @@ public class QueryFormatterTest {
 
     @Test
     public void alreadyFormatted() {
+        assertEquals("jcr:root[\n  '[hello]']",
+                QueryFormatter.format("jcr:root[\n  '[hello]']", "xpath"));
         assertEquals("/jcr:root//*[\n"
                 + "  @a=1\n"
                 + "  and @b=2\n"
