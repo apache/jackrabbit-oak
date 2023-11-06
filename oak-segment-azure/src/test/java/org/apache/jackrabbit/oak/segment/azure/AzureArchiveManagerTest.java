@@ -16,10 +16,9 @@
  */
 package org.apache.jackrabbit.oak.segment.azure;
 
+import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
-import com.microsoft.azure.storage.blob.CloudBlob;
-import com.microsoft.azure.storage.blob.CloudBlobContainer;
-import com.microsoft.azure.storage.blob.ListBlobItem;
+import com.microsoft.azure.storage.blob.*;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -34,6 +33,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.ReadOnlyFileStore;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.RepositoryNotReachableException;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -55,6 +55,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -66,6 +67,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -463,6 +465,78 @@ public class AzureArchiveManagerTest {
                 assertTrue("No references should have been collected since reference file has not been created", references.isEmpty());
             }
         }
+    }
+
+    @Test
+    public void testWriteAfterLoosingRepoLock() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException, InterruptedException {
+        CloudBlobDirectory oakDirectory = container.getDirectoryReference("oak");
+        AzurePersistence rwPersistence = new AzurePersistence(oakDirectory);
+
+        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+
+        CloudBlockBlob blobMocked = Mockito.spy(blob);
+
+        Mockito
+                .doCallRealMethod()
+                .when(blobMocked).renewLease(Mockito.any());
+
+        AzurePersistence mockedRwPersistence = Mockito.spy(rwPersistence);
+        WriteAccessController writeAccessController = new WriteAccessController();
+        AzureRepositoryLock azureRepositoryLock = new AzureRepositoryLock(blobMocked, () -> {}, 0, writeAccessController);
+        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(oakDirectory, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), writeAccessController);
+
+
+        Mockito
+                .doAnswer(invocation -> azureRepositoryLock.lock())
+                .when(mockedRwPersistence).lockRepository();
+
+        Mockito
+                .doReturn(azureArchiveManager)
+                .when(mockedRwPersistence).createArchiveManager(Mockito.anyBoolean(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito
+                .doReturn(new AzureJournalFile(oakDirectory, "journal.log", writeAccessController))
+                .when(mockedRwPersistence).getJournalFile();
+
+        FileStore rwFileStore = FileStoreBuilder.fileStoreBuilder(folder.newFolder()).withCustomPersistence(mockedRwPersistence).build();
+        SegmentNodeStore segmentNodeStore = SegmentNodeStoreBuilders.builder(rwFileStore).build();
+        NodeBuilder builder = segmentNodeStore.getRoot().builder();
+
+
+        // simulate operation timeout when trying to renew lease
+        Mockito.reset(blobMocked);
+
+        StorageException storageException =
+                new StorageException(StorageErrorCodeStrings.OPERATION_TIMED_OUT, "operation timeout", new TimeoutException());
+
+        Mockito.doThrow(storageException).when(blobMocked).renewLease(Mockito.any());
+
+
+        // wait till lease expires
+        Thread.sleep(70000);
+
+        // try updating repository
+        Thread thread = new Thread(() -> {
+            try {
+                builder.setProperty("foo", "bar");
+                segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+                rwFileStore.flush();
+            } catch (Exception e) {
+                fail("No Exception expected, but got: " + e.getMessage());
+            }
+        });
+        thread.start();
+
+        Thread.sleep(2000);
+
+        // It should be possible to start another RW file store.
+        FileStore rwFileStore2 = FileStoreBuilder.fileStoreBuilder(folder.newFolder()).withCustomPersistence(new AzurePersistence(oakDirectory)).build();
+        SegmentNodeStore segmentNodeStore2 = SegmentNodeStoreBuilders.builder(rwFileStore2).build();
+        NodeBuilder builder2 = segmentNodeStore2.getRoot().builder();
+
+        //repository hasn't been updated
+        assertNull(builder2.getProperty("foo"));
+
+        rwFileStore2.close();
     }
 
     private PersistentCache createPersistenceCache() {

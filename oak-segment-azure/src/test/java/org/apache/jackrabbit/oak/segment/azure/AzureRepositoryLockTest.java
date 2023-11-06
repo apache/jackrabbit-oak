@@ -24,10 +24,10 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -35,7 +35,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.rmi.server.ExportException;
 import java.security.InvalidKeyException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
@@ -59,9 +58,9 @@ public class AzureRepositoryLockTest {
     @Test
     public void testFailingLock() throws URISyntaxException, IOException, StorageException {
         CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
-        new AzureRepositoryLock(blob, () -> {}, 0).lock();
+        new AzureRepositoryLock(blob, () -> {}, 0, new WriteAccessController()).lock();
         try {
-            new AzureRepositoryLock(blob, () -> {}, 0).lock();
+            new AzureRepositoryLock(blob, () -> {}, 0, new WriteAccessController()).lock();
             fail("The second lock should fail.");
         } catch (IOException e) {
             // it's fine
@@ -74,7 +73,7 @@ public class AzureRepositoryLockTest {
         Semaphore s = new Semaphore(0);
         new Thread(() -> {
             try {
-                RepositoryLock lock = new AzureRepositoryLock(blob, () -> {}, 0).lock();
+                RepositoryLock lock = new AzureRepositoryLock(blob, () -> {}, 0, new WriteAccessController()).lock();
                 s.release();
                 Thread.sleep(1000);
                 lock.unlock();
@@ -84,7 +83,7 @@ public class AzureRepositoryLockTest {
         }).start();
 
         s.acquire();
-        new AzureRepositoryLock(blob, () -> {}, 10).lock();
+        new AzureRepositoryLock(blob, () -> {}, 10, new WriteAccessController()).lock();
     }
 
     @Test
@@ -101,7 +100,7 @@ public class AzureRepositoryLockTest {
                 .doCallRealMethod()
                 .when(blobMocked).renewLease(Mockito.any());
 
-        new AzureRepositoryLock(blobMocked, () -> {}, 0).lock();
+        new AzureRepositoryLock(blobMocked, () -> {}, 0, new WriteAccessController()).lock();
 
         // wait till lease expires
         Thread.sleep(70000);
@@ -110,7 +109,7 @@ public class AzureRepositoryLockTest {
         Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any());
 
         try {
-            new AzureRepositoryLock(blobMocked, () -> {}, 0).lock();
+            new AzureRepositoryLock(blobMocked, () -> {}, 0, new WriteAccessController()).lock();
             fail("The second lock should fail.");
         } catch (IOException e) {
             // it's fine

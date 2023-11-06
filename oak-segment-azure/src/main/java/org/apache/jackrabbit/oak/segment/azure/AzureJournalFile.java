@@ -23,6 +23,7 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import org.apache.jackrabbit.oak.segment.azure.util.CaseInsensitiveKeysMapAccess;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
@@ -53,14 +54,17 @@ public class AzureJournalFile implements JournalFile {
 
     private final int lineLimit;
 
-    AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, int lineLimit) {
+    private final WriteAccessController writeAccessController;
+
+    AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, int lineLimit, WriteAccessController writeAccessController) {
         this.directory = directory;
         this.journalNamePrefix = journalNamePrefix;
         this.lineLimit = lineLimit;
+        this.writeAccessController = writeAccessController;
     }
 
-    public AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix) {
-        this(directory, journalNamePrefix, JOURNAL_LINE_LIMIT);
+    public AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, WriteAccessController writeAccessController) {
+        this(directory, journalNamePrefix, JOURNAL_LINE_LIMIT, writeAccessController);
     }
 
     @Override
@@ -183,6 +187,8 @@ public class AzureJournalFile implements JournalFile {
         @Override
         public void truncate() throws IOException {
             try {
+                writeAccessController.checkWritingAllowed();
+
                 for (CloudAppendBlob cloudAppendBlob : getJournalBlobs()) {
                     cloudAppendBlob.delete();
                 }
@@ -200,6 +206,8 @@ public class AzureJournalFile implements JournalFile {
 
         @Override
         public void batchWriteLines(List<String> lines) throws IOException {
+            writeAccessController.checkWritingAllowed();
+
             if (lines.isEmpty()) {
                 return;
             }

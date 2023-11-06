@@ -31,6 +31,7 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.azure.util.Retrier;
 import org.apache.jackrabbit.oak.segment.remote.AbstractRemoteSegmentArchiveWriter;
 import org.apache.jackrabbit.oak.segment.remote.RemoteSegmentArchiveEntry;
@@ -51,6 +52,11 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
         this.archiveDirectory = archiveDirectory;
     }
 
+    public AzureSegmentArchiveWriter(CloudBlobDirectory directory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
+        this(directory, ioMonitor, monitor);
+        this.writeAccessController = writeAccessController;
+    }
+
     @Override
     public String getName() {
         return AzureUtilities.getName(archiveDirectory);
@@ -58,6 +64,9 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
 
     @Override
     protected void doWriteArchiveEntry(RemoteSegmentArchiveEntry indexEntry, byte[] data, int offset, int size) throws IOException {
+
+        writeAccessController.checkWritingAllowed();
+
         long msb = indexEntry.getMsb();
         long lsb = indexEntry.getLsb();
         String segmentName = getSegmentFileName(indexEntry);
@@ -90,6 +99,8 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
     protected void doWriteDataFile(byte[] data, String extension) throws IOException {
         retrier.execute(() -> {
             try {
+                writeAccessController.checkWritingAllowed();
+
                 getBlob(getName() + extension).uploadFromByteArray(data, 0, data.length);
             } catch (StorageException e) {
                 throw new IOException(e);
@@ -101,6 +112,8 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
     protected void afterQueueClosed() throws IOException {
         retrier.execute(() -> {
             try {
+                writeAccessController.checkWritingAllowed();
+
                 getBlob("closed").uploadFromByteArray(new byte[0], 0, 0);
             } catch (StorageException e) {
                 throw new IOException(e);

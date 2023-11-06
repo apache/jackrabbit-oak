@@ -20,6 +20,7 @@ import com.microsoft.azure.storage.AccessCondition;
 import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,19 +46,22 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private final int timeoutSec;
 
+    private WriteAccessController writeAccessController;
+
     private String leaseId;
 
     private volatile boolean doUpdate;
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook) {
-        this(blob, shutdownHook, TIMEOUT_SEC);
+    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController) {
+        this(blob, shutdownHook, TIMEOUT_SEC, writeAccessController);
     }
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, int timeoutSec) {
+    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, int timeoutSec, WriteAccessController writeAccessController) {
         this.shutdownHook = shutdownHook;
         this.blob = blob;
         this.executor = Executors.newSingleThreadExecutor();
         this.timeoutSec = timeoutSec;
+        this.writeAccessController = writeAccessController;
     }
 
     public AzureRepositoryLock lock() throws IOException {
@@ -67,6 +71,7 @@ public class AzureRepositoryLock implements RepositoryLock {
             try {
                 blob.openOutputStream().close();
                 leaseId = blob.acquireLease(INTERVAL, null);
+                writeAccessController.enableWriting();
                 log.info("Acquired lease {}", leaseId);
             } catch (StorageException | IOException e) {
                 if (ex == null) {
@@ -100,7 +105,11 @@ public class AzureRepositoryLock implements RepositoryLock {
             try {
                 long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
                 if (timeSinceLastUpdate > INTERVAL / 2) {
+                    writeAccessController.disableWriting();
+
                     blob.renewLease(AccessCondition.generateLeaseCondition(leaseId));
+
+                    writeAccessController.enableWriting();
                     lastUpdate = System.currentTimeMillis();
                 }
             } catch (StorageException e) {

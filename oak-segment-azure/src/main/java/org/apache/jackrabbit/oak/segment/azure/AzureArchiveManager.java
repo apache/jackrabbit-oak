@@ -22,6 +22,7 @@ import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.CopyStatus;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.remote.RemoteUtilities;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -61,11 +62,17 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     protected final IOMonitor ioMonitor;
 
     protected final FileStoreMonitor monitor;
+    private WriteAccessController writeAccessController = null;
 
     public AzureArchiveManager(CloudBlobDirectory cloudBlobDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
         this.cloudBlobDirectory = cloudBlobDirectory;
         this.ioMonitor = ioMonitor;
         this.monitor = fileStoreMonitor;
+    }
+
+    public AzureArchiveManager(CloudBlobDirectory segmentstoreDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, WriteAccessController writeAccessController) {
+        this(segmentstoreDirectory, ioMonitor, fileStoreMonitor);
+        this.writeAccessController = writeAccessController;
     }
 
     @Override
@@ -127,7 +134,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
 
     @Override
     public SegmentArchiveWriter create(String archiveName) throws IOException {
-        return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor);
+        return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor, writeAccessController);
     }
 
     @Override
