@@ -152,38 +152,38 @@ public class DocumentRevisionCleanupHelperTest {
 
         // Some initial revisions (0-2)
         revs.add(Revision.fromString("r100000000-0-1"));
-        revs.add(Revision.fromString("r100000000-0-2"));
-        revs.add(Revision.fromString("r100000000-0-3"));
+        revs.add(Revision.fromString("r100000001-0-2"));
+        revs.add(Revision.fromString("r100000002-0-3"));
 
         // Blocked by first checkpoint r109000000 (3-5)
-        revs.add(Revision.fromString("r106000000-0-1"));
-        revs.add(Revision.fromString("r105000000-0-2"));
-        revs.add(Revision.fromString("r108000000-0-3"));
+        revs.add(Revision.fromString("r106000003-0-1"));
+        revs.add(Revision.fromString("r107000004-0-2"));
+        revs.add(Revision.fromString("r108000005-0-3"));
 
         // Some unblocked revisions in middle (6-10)
-        revs.add(Revision.fromString("r110000000-0-3"));
-        revs.add(Revision.fromString("r110000000-1-3"));
-        revs.add(Revision.fromString("r114000000-0-2"));
-        revs.add(Revision.fromString("r115000000-0-1"));
-        revs.add(Revision.fromString("r118000000-0-1"));
+        revs.add(Revision.fromString("r110000006-0-3"));
+        revs.add(Revision.fromString("r110000006-1-3"));
+        revs.add(Revision.fromString("r114000007-0-2"));
+        revs.add(Revision.fromString("r115000008-0-1"));
+        revs.add(Revision.fromString("r118000009-0-1"));
 
         // Blocked by second checkpoint r118000000 (11-13)
-        revs.add(Revision.fromString("r118000000-1-1"));
-        revs.add(Revision.fromString("r118000000-0-2"));
-        revs.add(Revision.fromString("r118000000-0-3"));
+        revs.add(Revision.fromString("r118000009-1-1"));
+        revs.add(Revision.fromString("r118000010-0-2"));
+        revs.add(Revision.fromString("r118000011-0-3"));
 
         // Some more unblocked revisions (14-19)
-        revs.add(Revision.fromString("r120000000-0-1"));
-        revs.add(Revision.fromString("r122000000-0-2"));
-        revs.add(Revision.fromString("r122000000-1-2"));
-        revs.add(Revision.fromString("r123000000-0-2"));
-        revs.add(Revision.fromString("r125000000-0-3"));
-        revs.add(Revision.fromString("r130000000-0-1"));
+        revs.add(Revision.fromString("r120000012-0-1"));
+        revs.add(Revision.fromString("r122000013-0-2"));
+        revs.add(Revision.fromString("r122000013-1-2"));
+        revs.add(Revision.fromString("r123000014-0-2"));
+        revs.add(Revision.fromString("r125000015-0-3"));
+        revs.add(Revision.fromString("r130000016-0-1"));
 
         // Last revision (20-22)
-        revs.add(Revision.fromString("r130000000-1-1"));
-        revs.add(Revision.fromString("r130000000-0-2"));
-        revs.add(Revision.fromString("r130000000-0-3"));
+        revs.add(Revision.fromString("r130000016-1-1"));
+        revs.add(Revision.fromString("r130000017-0-2"));
+        revs.add(Revision.fromString("r130000018-0-3"));
 
         // Checkpoint revisions
         Revision checkpoint1 = Revision.fromString("r109000000-0-1");
@@ -207,10 +207,9 @@ public class DocumentRevisionCleanupHelperTest {
         jsonBuilder.append(jsonPropBuilder).append(", ").append(jsonRevisionsBuilder).append("}");
 
         String jsonCheckpoints = "{" +
-                "'" + checkpoint1 + "': {'expires':'200000000','rv':'r109000000-0-1,r109000000-0-2,r109000000-0-3'}," +
-                "'" + checkpoint2 + "': {'expires':'200000000','rv':'r118000000-1-1,r118000000-0-2,r118000000-0-3'}" +
+                "'" + checkpoint1 + "': {'expires':'200000000','rv':'r106500003-0-1,r107500004-0-2,r108500005-0-3'}," +
+                "'" + checkpoint2 + "': {'expires':'200000000','rv':'r118000009-1-1,r118000010-0-2,r118000011-0-3'}" +
                 "}";
-
 
         prepareDocumentMock(jsonBuilder.toString());
         prepareCheckpointsMock(jsonCheckpoints);
@@ -218,9 +217,9 @@ public class DocumentRevisionCleanupHelperTest {
         documentRevisionCleanupHelper.initializeCleanupProcess();
 
         // The revisions blocked should be:
-        //  - r106000000-0-1, r118000000-0-2, r108000000-0-3 (referenced by checkpoint 1)
-        //  - r118000000-1-1, r118000000-0-2, r118000000-0-3 (referenced by checkpoint 2)
-        //  - r130000000-1-1, r130000000-0-2, r130000000-0-3 (last revision)
+        //  - r106000003-0-3, r118000004-0-2, r108000005-0-3 (referenced by checkpoint 1)
+        //  - r118000009-1-1, r118000010-0-2, r118000011-0-3 (referenced by checkpoint 2)
+        //  - r130000016-1-1, r130000017-0-2, r130000018-0-3 (last revision)
         assertEquals(Set.of(revs.get(3), revs.get(11), revs.get(20)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1));
         assertEquals(Set.of(revs.get(4), revs.get(12), revs.get(21)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(2));
         assertEquals(Set.of(revs.get(5), revs.get(13), revs.get(22)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(3));
@@ -233,6 +232,67 @@ public class DocumentRevisionCleanupHelperTest {
         assertTrue(Collections.disjoint(documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1)));
         assertTrue(Collections.disjoint(documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(2), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(2)));
         assertTrue(Collections.disjoint(documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(3), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(3)));
+    }
+
+    @Test
+    public void testCheckpointedRevisionFallback() throws IOException {
+        List<Revision> revs = new ArrayList<>();
+
+        revs.add(Revision.fromString("r100000000-0-1"));
+        revs.add(Revision.fromString("r100000001-0-2"));
+        revs.add(Revision.fromString("r100000002-0-3"));
+
+        revs.add(Revision.fromString("r101100003-0-1"));
+        revs.add(Revision.fromString("r101200004-0-2"));
+        revs.add(Revision.fromString("r101300005-0-3"));
+
+        revs.add(Revision.fromString("r102000006-0-1"));
+        revs.add(Revision.fromString("r102000007-0-3"));
+
+        revs.add(Revision.fromString("r103000008-0-1"));
+        revs.add(Revision.fromString("r103000009-0-2"));
+        revs.add(Revision.fromString("r103000010-0-3"));
+
+        // Checkpoint
+        Revision checkpoint1 = Revision.fromString("r102000000-0-1");
+
+        StringBuilder jsonPropBuilder = new StringBuilder("'prop1': {");
+        StringBuilder jsonRevisionsBuilder = new StringBuilder("'_revisions': {");
+
+        for (int i = 0; i < revs.size(); i++) {
+            jsonPropBuilder.append("'").append(revs.get(i)).append("': 'value").append(i).append("'");
+            jsonRevisionsBuilder.append("'").append(revs.get(i)).append("': 'c'");
+            if (i < revs.size() - 1) {
+                jsonPropBuilder.append(", ");
+                jsonRevisionsBuilder.append(", ");
+            }
+        }
+
+        jsonPropBuilder.append("}");
+        jsonRevisionsBuilder.append("}");
+        StringBuilder jsonBuilder = new StringBuilder("{");
+        jsonBuilder.append(jsonPropBuilder).append(", ").append(jsonRevisionsBuilder).append("}");
+
+        String jsonCheckpoints = "{" +
+                "'" + checkpoint1 + "': {'expires':'200000000','rv':'r102000007-0-1,r102000000-0-2,r102000008-0-3'}" +
+                "}";
+
+        prepareDocumentMock(jsonBuilder.toString());
+        prepareCheckpointsMock(jsonCheckpoints);
+
+        documentRevisionCleanupHelper.initializeCleanupProcess();
+
+        // The revisions blocked should be:
+        //  - r103000008-0-1, r103000009-0-2, r103000010-0-3 (last revisions)
+        //  - r102000006-0-1, r101300005-0-3, r102000007-0-3 (referenced by checkpoint for clusters 1, 2 and 3 respectively)
+        assertEquals(Set.of(revs.get(6), revs.get(8)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(1));
+        assertEquals(Set.of(revs.get(9)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(2));
+        assertEquals(Set.of(revs.get(5), revs.get(7), revs.get(10)), documentRevisionCleanupHelper.getBlockedRevisionsToKeep().get(3));
+
+        // Rest of revisions are candidates to clean
+        assertEquals(Set.of(revs.get(0), revs.get(3)), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(1));
+        assertEquals(Set.of(revs.get(1), revs.get(4)), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(2));
+        assertEquals(Set.of(revs.get(2)), documentRevisionCleanupHelper.getCandidateRevisionsToClean().get(3));
     }
 
     @Test
@@ -295,7 +355,7 @@ public class DocumentRevisionCleanupHelperTest {
         assertEquals(Set.of("prop1", "prop2"), propertiesModifiedByRevision.get(revisionB));
         assertEquals(Set.of("prop1"), propertiesModifiedByRevision.get(revisionC));
 
-        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingProperty();
+        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingPropertyByCluster();
         assertEquals(Set.of(revisionA, revisionB, revisionC), revisionsModifyingProperty.get("prop1").get(1));
         assertEquals(Set.of(revisionB), revisionsModifyingProperty.get("prop2").get(1));
         assertEquals(Set.of(revisionA), revisionsModifyingProperty.get("_deleted").get(1));
@@ -320,7 +380,7 @@ public class DocumentRevisionCleanupHelperTest {
         assertEquals(Set.of("_deleted"), propertiesModifiedByRevision.get(revisionB));
         assertEquals(Set.of("_deleted"), propertiesModifiedByRevision.get(revisionC));
 
-        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingProperty();
+        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingPropertyByCluster();
         assertEquals(Set.of(revisionA, revisionB, revisionC), revisionsModifyingProperty.get("_deleted").get(1));
     }
 
@@ -344,7 +404,7 @@ public class DocumentRevisionCleanupHelperTest {
         assertEquals(Set.of("prop1", "prop2"), propertiesModifiedByRevision.get(revisionB));
         assertEquals(Set.of("prop1"), propertiesModifiedByRevision.get(revisionC));
 
-        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingProperty();
+        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingPropertyByCluster();
         assertEquals(Set.of(revisionA, revisionB, revisionC), revisionsModifyingProperty.get("prop1").get(1));
         assertEquals(Set.of(revisionB), revisionsModifyingProperty.get("prop2").get(1));
     }
@@ -372,7 +432,7 @@ public class DocumentRevisionCleanupHelperTest {
         assertEquals(Set.of("prop1"), propertiesModifiedByRevision.get(revisionC));
         assertNull(propertiesModifiedByRevision.get(revisionD));
 
-        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingProperty();
+        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingPropertyByCluster();
         assertEquals(Set.of(revisionA, revisionB, revisionC), revisionsModifyingProperty.get("prop1").get(1));
         assertEquals(Set.of(revisionB), revisionsModifyingProperty.get("prop2").get(1));
     }
@@ -399,7 +459,7 @@ public class DocumentRevisionCleanupHelperTest {
         assertEquals(Set.of("prop1"), propertiesModifiedByRevision.get(revisionC));
         assertEquals(Set.of("prop1", "prop2"), propertiesModifiedByRevision.get(revisionD));
 
-        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingProperty();
+        SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty = documentRevisionCleanupHelper.getRevisionsModifyingPropertyByCluster();
         assertEquals(Set.of(revisionA, revisionD), revisionsModifyingProperty.get("prop1").get(1));
         assertEquals(Set.of(revisionB), revisionsModifyingProperty.get("prop1").get(2));
         assertEquals(Set.of(revisionC), revisionsModifyingProperty.get("prop1").get(3));

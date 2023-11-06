@@ -39,7 +39,8 @@ public class DocumentRevisionCleanupHelper {
     private final NodeDocument rootDoc;
     private final NodeDocument workingDocument;
 
-    private SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingProperty;
+    private SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingPropertyByCluster;
+    private SortedMap<String, TreeSet<Revision>> revisionsModifyingProperty;
     private SortedMap<Revision, TreeSet<String>> propertiesModifiedByRevision;
     private SortedMap<Integer, TreeSet<Revision>> blockedRevisionsToKeep;
     private SortedMap<Integer, TreeSet<Revision>> candidateRevisionsToClean;
@@ -53,6 +54,7 @@ public class DocumentRevisionCleanupHelper {
     public DocumentRevisionCleanupHelper(DocumentStore documentStore, DocumentNodeStore documentNodeStore, String path) {
         this.candidateRevisionsToClean = new TreeMap<>();
         this.blockedRevisionsToKeep = new TreeMap<>();
+        this.revisionsModifyingPropertyByCluster = new TreeMap<>();
         this.revisionsModifyingProperty = new TreeMap<>();
         this.propertiesModifiedByRevision = new TreeMap<>(StableRevisionComparator.INSTANCE);
 
@@ -87,6 +89,7 @@ public class DocumentRevisionCleanupHelper {
     protected void classifyAndMapRevisionsAndProperties() {
         candidateRevisionsToClean = new TreeMap<>();
         blockedRevisionsToKeep = new TreeMap<>();
+        revisionsModifyingPropertyByCluster = new TreeMap<>();
         revisionsModifyingProperty = new TreeMap<>();
         propertiesModifiedByRevision = new TreeMap<>(StableRevisionComparator.INSTANCE);
 
@@ -137,10 +140,10 @@ public class DocumentRevisionCleanupHelper {
     /**
      * Step 3:
      * This method processes a set of revisions that modified certain properties and keeps the last revision that
-     * modified each property. This means, the current status of the node will be preserved.
+     * modified each property. This means, the current status of the node will be preserved, for each clusterId.
      */
     protected void markLastRevisionForEachProperty() {
-        for (SortedMap<Integer, TreeSet<Revision>> revisionsByCluster : revisionsModifyingProperty.values()) {
+        for (SortedMap<Integer, TreeSet<Revision>> revisionsByCluster : revisionsModifyingPropertyByCluster.values()) {
             for (TreeSet<Revision> revisions : revisionsByCluster.values()) {
                 Revision lastRevision = revisions.last();
                 addBlockedRevisionToKeep(lastRevision);
@@ -157,19 +160,16 @@ public class DocumentRevisionCleanupHelper {
         SortedMap<Revision, Checkpoints.Info> checkpoints = documentNodeStore.getCheckpoints().getCheckpoints();
         checkpoints.forEach((revision, info) -> {
             // For each checkpoint, keep the last revision that modified a property prior to checkpoint
-            revisionsModifyingProperty.forEach((propertyName, revisionsByCluster) -> {
+            revisionsModifyingProperty.forEach((propertyName, revisionsSet) -> {
                 // Traverse the revisionVector of the checkpoint and find the last revision that modified the property
                 info.getCheckpoint().forEach(revisionToFind -> {
-                    TreeSet<Revision> listOfRevisionsForProperty = revisionsByCluster.get(revisionToFind.getClusterId());
-                    if (listOfRevisionsForProperty != null) {
-                        // If the exact revision exists, keep it. If not, find the previous one that modified that property
-                        if (listOfRevisionsForProperty.contains(revisionToFind)) {
-                            addBlockedRevisionToKeep(revisionToFind);
-                        } else {
-                            Revision previousRevision = listOfRevisionsForProperty.descendingSet().ceiling(revisionToFind);
-                            if (previousRevision != null) {
-                                addBlockedRevisionToKeep(previousRevision);
-                            }
+                    // If the exact revision exists, keep it. If not, find the previous one that modified that property
+                    if (revisionsSet.contains(revisionToFind)) {
+                        addBlockedRevisionToKeep(revisionToFind);
+                    } else {
+                        Revision previousRevision = revisionsSet.descendingSet().ceiling(revisionToFind);
+                        if (previousRevision != null) {
+                            addBlockedRevisionToKeep(previousRevision);
                         }
                     }
                 });
@@ -204,9 +204,13 @@ public class DocumentRevisionCleanupHelper {
                             new TreeSet<>()).add(propertyEntry.getKey()
                     );
 
-                    revisionsModifyingProperty.computeIfAbsent(propertyEntry.getKey(), key ->
+                    revisionsModifyingPropertyByCluster.computeIfAbsent(propertyEntry.getKey(), key ->
                             new TreeMap<>()
                     ).computeIfAbsent(revision.getClusterId(), key ->
+                            new TreeSet<>(StableRevisionComparator.INSTANCE)
+                    ).add(revision);
+
+                    revisionsModifyingProperty.computeIfAbsent(propertyEntry.getKey(), key ->
                             new TreeSet<>(StableRevisionComparator.INSTANCE)
                     ).add(revision);
                 }
@@ -261,7 +265,11 @@ public class DocumentRevisionCleanupHelper {
         return (NavigableMap<Revision, String>) workingDocument.get("_revisions");
     }
 
-    public SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> getRevisionsModifyingProperty() {
+    public SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> getRevisionsModifyingPropertyByCluster() {
+        return revisionsModifyingPropertyByCluster;
+    }
+
+    public SortedMap<String, TreeSet<Revision>> getRevisionsModifyingProperty() {
         return revisionsModifyingProperty;
     }
 
