@@ -97,7 +97,7 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
     }
 
     /* this method is a little verbose but I think this is fine as we are not getting consistent
-     data from checkpoint diff and we have to handle cases differently.
+     data from checkpoint diff and we need to handle cases differently.
 
      */
     private void mergeIndexStoreFiles() throws IOException {
@@ -118,7 +118,10 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
                     if (compared < 0) { // write baseFFSLine in merged file and advance line in baseFFS
                         baseFFSLine = writeAndAdvance(writer, baseFFSBufferedReader, baseFFSLine);
                     }
-                    // We the checkpoint diff api don't give consistent results.
+                    // We are adding warn logs instead of checkState e.g.
+                    // 1- delete a node
+                    // 2- add node at same path.
+                    // The incremental FFS with above operations are dumped as node added instead of modified.
                     else if (compared > 0) { // write incrementalFFSline and advance line in incrementalFFS
                         incrementalFFSLine = processIncrementalFFSLine(enumMap, writer, incrementalFFSBufferedReader, incrementalFFSLine);
                     }
@@ -156,7 +159,8 @@ public class MergeIncrementalFlatFileStore implements MergeIncrementalStore {
         }
     }
 
-    private String processIncrementalFFSLine(Map<String, IncrementalStoreOperand> enumMap, BufferedWriter writer, BufferedReader incrementalFFSBufferedReader, String incrementalFFSLine) throws IOException {
+    private String processIncrementalFFSLine(Map<String, IncrementalStoreOperand> enumMap, BufferedWriter writer,
+                                             BufferedReader incrementalFFSBufferedReader, String incrementalFFSLine) throws IOException {
         String[] incrementalFFSParts = IncrementalFlatFileStoreNodeStateEntryWriter.getParts(incrementalFFSLine);
         String operand = getOperand(incrementalFFSParts);
         switch (enumMap.get(operand)) {
