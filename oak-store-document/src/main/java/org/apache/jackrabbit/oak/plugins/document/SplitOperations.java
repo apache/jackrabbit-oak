@@ -324,7 +324,13 @@ class SplitOperations {
                 for (Range r : entry.getValue()) {
                     setPrevious(intermediate, r);
                 }
-                setIntermediateDocProps(intermediate, h);
+                // OAK-10526 : setting 'maxRev=now()' here guarantees earliest GC of this
+                // split doc will be 'maxAgeMillis' (24h) from now (hence covers all open
+                // JCR sessions) or until any checkpoint created before 'now()' is
+                // released. While this leaves garbage split doc slightly longer than
+                // absolutely necessary, it is a rather simple and robust mechanism.
+                setIntermediateDocProps(intermediate,
+                        Revision.newRevision(context.getClusterId()));
                 splitOps.add(intermediate);
             }
         }
@@ -380,7 +386,13 @@ class SplitOperations {
             // check size of old document
             NodeDocument oldDoc = new NodeDocument(STORE);
             UpdateUtils.applyChanges(oldDoc, old);
-            setSplitDocProps(doc, oldDoc, old, high);
+            // OAK-10526 : setting 'maxRev=now()' here guarantees earliest GC of this
+            // split doc will be 'maxAgeMillis' (24h) from now (hence covers all open
+            // JCR sessions) or until any checkpoint created before 'now()' is
+            // released. While this leaves garbage split doc slightly longer than
+            // absolutely necessary, it is a rather simple and robust mechanism.
+            setSplitDocProps(doc, oldDoc, old,
+                    Revision.newRevision(context.getClusterId()));
             splitOps.add(old);
 
             if (numValues < numRevsThreshold) {
