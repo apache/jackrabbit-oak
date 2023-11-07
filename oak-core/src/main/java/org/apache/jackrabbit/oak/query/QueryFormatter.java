@@ -28,8 +28,8 @@ import org.jetbrains.annotations.NotNull;
  *
  * Warning: Care was taken to not add newlines inside string literals and so on,
  * but there is still no guarantee that the formatted query is semantically
- * equal to the original one. It is recommended to run queries that are returned
- * by these methods.
+ * equal to the original one. It is NOT recommended to run queries that are
+ * returned by these methods.
  */
 public class QueryFormatter {
 
