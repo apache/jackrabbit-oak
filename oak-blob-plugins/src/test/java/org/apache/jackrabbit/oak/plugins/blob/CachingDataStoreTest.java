@@ -673,5 +673,9 @@ public class CachingDataStoreTest extends AbstractDataStoreCacheTest {
                 backend.getRecord(di));
         assertNotNull("The record could not be loaded from the cache",
                 dataStore.getRecordIfStored(di));
+        // make sure the record is no longer cached after deletion
+        dataStore.deleteRecord(di);
+        assertNull("The record could be loaded from the cache after deletion",
+                dataStore.getRecordIfStored(di));
     }
 }
