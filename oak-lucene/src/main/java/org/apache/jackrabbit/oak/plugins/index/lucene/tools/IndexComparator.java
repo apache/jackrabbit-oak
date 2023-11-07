@@ -159,7 +159,7 @@ public class IndexComparator {
         } else {
             // reading a pre-existing (json) file that contains
             // the statistics
-            return new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            return Files.readString(file.toPath());
         }
     }
 
