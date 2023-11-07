@@ -241,15 +241,15 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         postCommitHook();
 
         String query = "select [jcr:path] from [nt:base] where path() = '/test/world'";
-        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertThat(explain(query), containsString("/oak:index/pathIndex"));
         assertQuery(query, asList("/test/world"));
 
         query = "select [jcr:path] from [nt:base] where path() like '%hell%'";
-        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertThat(explain(query), containsString("/oak:index/pathIndex"));
         assertQuery(query, asList("/test/hello", "/test/hello world"));
 
         query = "select [jcr:path] from [nt:base] where path() like '%ll_'";
-        assertThat(explain(query), containsString(getIndexProvider() + "pathIndex(/oak:index/pathIndex)"));
+        assertThat(explain(query), containsString("/oak:index/pathIndex"));
         assertQuery(query, asList("/test/hello"));
 
     }
@@ -300,7 +300,7 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         root.commit();
         postCommitHook();
 
-        assertThat(explain(query), containsString(getIndexProvider() + "test-index(/oak:index/test-index)"));
+        assertThat(explain(query), containsString("/oak:index/test-index"));
 
         List<String> result = executeQuery(query, SQL2);
         assertEquals("Ordering doesn't match", asList("10 percent", "10%", "Hallo", "hello", "World!"), result);
@@ -931,11 +931,11 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo])",
-                getIndexProvider() + "test1(/oak:index/test1)", asList("/a", "/c", "/b"));
+                "/oak:index/test1", asList("/a", "/c", "/b"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by coalesce([jcr:content/foo2], [jcr:content/foo]) DESC",
-                getIndexProvider() + "test1(/oak:index/test1)", asList("/b", "/c", "/a"));
+                "/oak:index/test1", asList("/b", "/c", "/a"));
     }
 
     @Test
@@ -961,7 +961,7 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         assertPlanAndQuery(
                 "select * from [nt:base] where lower(coalesce([jcr:content/foo2], coalesce([jcr:content/foo], localname()))) = 'bar'",
-                getIndexProvider() + "test1(/oak:index/test1)", asList("/a", "/b", "/bar"));
+                "/oak:index/test1", asList("/a", "/b", "/bar"));
     }
 
     /*
@@ -1018,19 +1018,19 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         // Check ordering works for func and non func properties
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo])",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                "/oak:index/upper", asList("/a", "/c", "/b", "/e", "/d"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo]",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                "/oak:index/upper", asList("/a", "/c", "/b", "/e", "/d"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                "/oak:index/upper", asList("/d", "/e", "/b", "/c", "/a"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo] DESC",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                "/oak:index/upper", asList("/d", "/e", "/b", "/c", "/a"));
 
         // Now we change the value of foo on already indexed nodes and see if changes
         // get indexed properly.
@@ -1052,19 +1052,19 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo])",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                "/oak:index/upper", asList("/d", "/e", "/b", "/c", "/a"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo]",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                "/oak:index/upper", asList("/d", "/e", "/b", "/c", "/a"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                "/oak:index/upper", asList("/a", "/c", "/b", "/e", "/d"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by [jcr:content/n/foo] DESC",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                "/oak:index/upper", asList("/a", "/c", "/b", "/e", "/d"));
 
     }
 
@@ -1127,19 +1127,19 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by upper([foo])",
-                    getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                    "/oak:index/upper", asList("/d", "/e", "/b", "/c", "/a"));
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by [foo]",
-                    getIndexProvider() + "upper(/oak:index/upper)", asList("/d", "/e", "/b", "/c", "/a"));
+                    "/oak:index/upper", asList("/d", "/e", "/b", "/c", "/a"));
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by upper([foo]) DESC",
-                    getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                    "/oak:index/upper", asList("/a", "/c", "/b", "/e", "/d"));
 
             assertOrderedPlanAndQuery(
                     "select * from [nt:base] order by [foo] DESC",
-                    getIndexProvider() + "upper(/oak:index/upper)", asList("/a", "/c", "/b", "/e", "/d"));
+                    "/oak:index/upper", asList("/a", "/c", "/b", "/e", "/d"));
 
         } finally {
             customLogs.finished();
@@ -1244,11 +1244,11 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
         // Check ordering works for func and non func properties
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo])",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/a","/c","/b","/e","/d"));
+                "/oak:index/upper", asList("/a","/c","/b","/e","/d"));
 
         assertOrderedPlanAndQuery(
                 "select * from [nt:base] order by upper([jcr:content/n/foo]) DESC",
-                getIndexProvider() + "upper(/oak:index/upper)", asList("/d","/e","/b","/c","/a"));
+                "/oak:index/upper", asList("/d","/e","/b","/c","/a"));
 
     }
 
