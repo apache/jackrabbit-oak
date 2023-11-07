@@ -42,8 +42,10 @@ public class QueryFormatter {
      */
     public static boolean isXPath(String query, String language) {
         if (language != null) {
+            // the language is case sensitive
             return "xpath".equals(language);
         }
+        // the query is not, at least SQL is not
         query = query.trim().toLowerCase(Locale.ENGLISH);
         // explain queries
         if (query.startsWith("explain")) {
