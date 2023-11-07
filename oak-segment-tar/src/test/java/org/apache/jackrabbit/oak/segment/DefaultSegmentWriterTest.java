@@ -24,10 +24,12 @@ import static org.apache.jackrabbit.guava.common.collect.Maps.newHashMap;
 import static org.apache.jackrabbit.oak.segment.DefaultSegmentWriterBuilder.defaultSegmentWriterBuilder;
 import static org.apache.jackrabbit.oak.segment.ListRecord.LEVEL_SIZE;
 import static org.apache.jackrabbit.oak.segment.ListRecord.MAX_ELEMENTS;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -40,6 +42,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RandomUtils;
+import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
+import org.apache.jackrabbit.oak.segment.test.TemporaryBlobStore;
 import org.apache.jackrabbit.oak.segment.test.TemporaryFileStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -68,12 +74,23 @@ public class DefaultSegmentWriterTest {
 
     private static final int SMALL_BINARIES_INLINE_THRESHOLD = 4;
 
+    private TemporaryFolder blobFolder = new TemporaryFolder(new File("target"));
+
+    private TemporaryBlobStore blobStore = new TemporaryBlobStore(blobFolder);
+
     private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryFileStore store = new TemporaryFileStore(folder, SMALL_BINARIES_INLINE_THRESHOLD);
+    private TemporaryFileStore store = new TemporaryFileStore(folder, null, SMALL_BINARIES_INLINE_THRESHOLD);
+
+    private TemporaryFileStore storeWithBlobStore = new TemporaryFileStore(folder, blobStore, SMALL_BINARIES_INLINE_THRESHOLD);
 
     @Rule
     public RuleChain rules = RuleChain.outerRule(folder).around(store);
+
+    @Rule
+    public RuleChain rulesWithBlobStore = RuleChain
+            .outerRule(blobFolder).around(blobStore)
+            .around(folder).around(storeWithBlobStore);
 
     private DefaultSegmentWriter writer;
 
@@ -387,6 +404,27 @@ public class DefaultSegmentWriterTest {
             writer.writeList(list);
 
             writer.flush();
+        }
+    }
+
+    @Test
+    public void testWriteBlobWithBlobStoreBlob() throws IOException {
+        writer = defaultSegmentWriterBuilder("test").build(storeWithBlobStore.fileStore());
+        byte[] randomBytes = RandomUtils.nextBytes(16384);
+        InputStream is = new ByteArrayInputStream(randomBytes);
+        String blobId = blobStore.blobStore().writeBlob(is);
+        Blob theBlob = new BlobStoreBlob(blobStore.blobStore(), blobId) {
+            @Override
+            public String getReference() {
+                throw new IllegalStateException("blobId should have been fetched from the blob instance.");
+            }
+        };
+        try {
+            RecordId valueId = writer.writeBlob(theBlob);
+            SegmentBlob blob = new SegmentBlob(blobStore.blobStore(), valueId);
+            assertArrayEquals(randomBytes, IOUtils.toByteArray(blob.getNewStream()));
+        } catch (IllegalStateException e) {
+            fail(e.getMessage());
         }
     }
 
