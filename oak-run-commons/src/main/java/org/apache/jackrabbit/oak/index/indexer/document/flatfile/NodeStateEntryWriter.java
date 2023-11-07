@@ -78,14 +78,13 @@ public class NodeStateEntryWriter {
             return asSortedJson(nodeState);
         }
         return asJson(nodeState.getProperties());
-
     }
 
     String asSortedJson(NodeState nodeState) {
-        List<PropertyState> result = new ArrayList<>();
-        nodeState.getProperties().forEach(result::add);
-        result.sort(Comparator.comparing(PropertyState::getName));
-        return asJson(result);
+        List<PropertyState> properties = new ArrayList<>();
+        nodeState.getProperties().forEach(properties::add);
+        properties.sort(Comparator.comparing(PropertyState::getName));
+        return asJson(properties);
     }
 
     private String asJson(Iterable<? extends PropertyState> properties) {
