@@ -65,10 +65,10 @@ public class QueryFormatter {
     }
 
     /**
-     * Format the query into a more human-readable way, by adding newlines.
-     * Warning: newlines are also added inside e.g. string literals.
+     * Format the query into a more human-readable way, by adding newlines before
+     * keywords such as "where", "and", and "or".
      *
-     * @param query the query (may not be null)
+     * @param query    the query (may not be null)
      * @param language the query language, or null if unknown
      * @return the formatted query
      */
