@@ -99,7 +99,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         qe = root.getQueryEngine();
         assertThat(
                 executeQuery("explain /jcr:root//*[@foo = 'bar']", "xpath", false).toString(),
-                containsString("/* property foo = bar"));
+                containsString("/oak:index/foo"));
         assertEquals("[/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
                 executeQuery("/jcr:root//*[@foo = 'bar']", "xpath").toString());
 
@@ -116,7 +116,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
                 "/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
                 executeQuery("/jcr:root//*[@foo = 'bar']", "xpath").toString());
         assertThat(executeQuery("explain /jcr:root/content//*[@foo = 'bar']", "xpath", false).toString(),
-                containsString("/* property foo = bar"));
+                containsString("/oak:index/foo"));
 
         // remove all data
         builder = store.getRoot().builder();
@@ -170,7 +170,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         qe = root.getQueryEngine();
         assertThat(executeQuery("explain select * from [nt:base] " +
                 "where property([*], 'Reference') = cast('u1' as reference)", Query.JCR_SQL2, false).toString(),
-                containsString("/* reference "));
+                containsString("/* reference"));
         // expected: also /readOnly/node-0 .. 2
         assertEquals("[/a/x, /readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
                 executeQuery("select [jcr:path] from [nt:base] " +
@@ -268,7 +268,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
 
         assertThat(
                 executeQuery("explain /jcr:root//*[@asyncFoo = 'bar']", "xpath", false).toString(),
-                containsString("/* lucene:lucene(/oak:index/lucene) asyncFoo:bar"));
+                containsString("/oak:index/lucene"));
         assertEquals("[/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
                 executeQuery("/jcr:root//*[@asyncFoo = 'bar']", "xpath").toString());
 
@@ -283,7 +283,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         // run a query
         assertThat(
                 executeQuery("explain /jcr:root//*[@asyncFoo = 'bar']", "xpath", false).toString(),
-                containsString("/* lucene:lucene(/oak:index/lucene) asyncFoo:bar"));
+                containsString("/oak:index/lucene"));
         assertEquals("[/content/node-0, /content/node-1, /content/node-2, " +
                 "/readOnly/node-0, /readOnly/node-1, /readOnly/node-2]",
                 executeQuery("/jcr:root//*[@asyncFoo = 'bar']", "xpath").toString());

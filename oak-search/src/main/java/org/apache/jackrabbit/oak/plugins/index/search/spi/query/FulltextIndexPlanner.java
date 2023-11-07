@@ -973,7 +973,7 @@ public class FulltextIndexPlanner {
                         matchingRule = rule;
                     }
                     if (matchingRule != null){
-                        log.debug("Applicable IndexingRule found {}", matchingRule);
+                        log.trace("Applicable IndexingRule found {}", matchingRule);
                         return rule;
                     }
                 }
