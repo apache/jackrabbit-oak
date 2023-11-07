@@ -104,7 +104,7 @@ public class IndexComparator {
         for (String k : both) {
             String v1 = o1.getProperties().get(k);
             String v2 = o2.getProperties().get(k);
-            if (v1 == null || v2 == null || !v1.equals(v2)) {
+            if (v1 == null || !v1.equals(v2)) {
                 if (ignoreChecksums) {
                     if ("sha256".equals(k) || "md5".equals(k)) {
                         continue;
