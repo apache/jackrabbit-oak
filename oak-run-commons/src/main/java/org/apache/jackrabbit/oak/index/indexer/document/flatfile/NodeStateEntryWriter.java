@@ -28,12 +28,9 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.BlobIdSerializer;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
-import java.io.IOException;
-import java.io.Writer;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -67,16 +64,6 @@ public class NodeStateEntryWriter {
         return path + DELIMITER + nodeStateAsJson;
     }
 
-    public void writeTo(Writer writer, NodeStateEntry nse) throws IOException {
-        writeTo(writer, nse.getPath(), asJson(nse.getNodeState()));
-    }
-
-    public void writeTo(Writer writer, String path, String value) throws IOException {
-        writer.write(path);
-        writer.write(DELIMITER);
-        writer.write(value);
-    }
-
     public String toString(List<String> pathElements, String nodeStateAsJson) {
         int pathStringSize = pathElements.stream().mapToInt(String::length).sum();
         StringBuilder sb = new StringBuilder(nodeStateAsJson.length() + pathStringSize + pathElements.size() + 1);
@@ -90,18 +77,21 @@ public class NodeStateEntryWriter {
         if (SORTED_PROPERTIES) {
             return asSortedJson(nodeState);
         }
-        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false));
+        return asJson(nodeState.getProperties());
+
     }
 
     String asSortedJson(NodeState nodeState) {
-        return asJson(StreamSupport.stream(nodeState.getProperties().spliterator(), false)
-                .sorted(Comparator.comparing(PropertyState::getName)));
+        List<PropertyState> result = new ArrayList<>();
+        nodeState.getProperties().forEach(result::add);
+        result.sort(Comparator.comparing(PropertyState::getName));
+        return asJson(result);
     }
 
-    private String asJson(Stream<? extends PropertyState> stream) {
+    private String asJson(Iterable<? extends PropertyState> properties) {
         jw.resetWriter();
         jw.object();
-        stream.forEach(ps -> {
+        properties.forEach(ps -> {
             String name = ps.getName();
             if (include(name)) {
                 jw.key(name);
