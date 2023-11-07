@@ -37,8 +37,9 @@
         105 MB : Setting constraint to default oak-run jar post adding the build plugin to rename the fat jar with embedded dependencies as the default jar.
         121 MB : add Elasticsearch Java client along with RHLC: the latter can be removed when the code can be fully migrated to use the new client
         125 MB : shaded Guava
+        130 MB : upgrade to elasticsearch-java 8.10
         -->
-        <max.jar.size>125000000</max.jar.size>
+        <max.jar.size>130000000</max.jar.size>
                       
     </properties>
 
