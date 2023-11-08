@@ -45,7 +45,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.12</jackrabbit.version>
+    <jackrabbit.version>2.20.13</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -555,12 +555,12 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>3.6</version>
+        <version>5.2.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>4.11.0</version>
+        <version>5.6.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -704,10 +704,12 @@
         <artifactId>httpmime</artifactId>
         <version>4.5.14</version>
       </dependency>
+      <!-- Testcontainers dependency -->
       <dependency>
-        <groupId>com.arakelian</groupId>
-        <artifactId>docker-junit-rule</artifactId>
-        <version>2.3.0</version>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${testcontainers.version}</version>
+        <scope>test</scope>
       </dependency>
       <!-- Testcontainers dependency -->
       <dependency>

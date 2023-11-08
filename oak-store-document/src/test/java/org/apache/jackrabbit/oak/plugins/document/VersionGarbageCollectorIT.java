@@ -69,6 +69,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -81,6 +82,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -285,6 +287,73 @@ public class VersionGarbageCollectorIT {
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
         //assertTrue(ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
+    }
+
+    /**
+     * OAK-10526 : This reproduces a case where a split doc is created then GCed,
+     * while there is a checkpoint that still refers to a revision contained in that
+     * split doc.
+     */
+    @Test
+    @Ignore(value = "requires fix for OAK-10526")
+    public void gcSplitDocsWithReferencedRevisions() throws Exception {
+        final String exp;
+
+        // step 1 : create an old revision at t(0) with custerId 2
+        DocumentNodeStore store2 = new DocumentMK.Builder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setDocumentStore(store.getDocumentStore()).setAsyncDelay(0)
+                .setClusterId(2).getNodeStore();
+        NodeBuilder b1 = store2.getRoot().builder();
+        b1.child("t").setProperty("foo", "some-value-created-by-another-cluster-node");
+        store2.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store2.runBackgroundOperations();
+        store.runBackgroundOperations();
+
+        // step 2 : make sure GC was running once and sets oldest timestamp
+        // (the value of oldest doesn't matter, but it should be <= t(0))
+        assertEquals(0, gc.gc(24, HOURS).splitDocGCCount);
+
+        // step 3 : wait for 1 week
+        clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
+
+        // step 4 : create old revisions at t(+1w) - without yet causing a split
+        String lastValue = null;
+        for (int i = 0; i < NUM_REVS_THRESHOLD - 1; i++) {
+            b1 = store.getRoot().builder();
+            b1.child("t").setProperty("foo", lastValue = "bar" + i);
+            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        }
+        exp = lastValue;
+        store.runBackgroundOperations();
+
+        // step 5 : create a checkpoint at t(+1w)
+        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
+        assertEquals(exp, store.getRoot().getChildNode("t").getString("foo"));
+        assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
+
+        // step 6 : wait for 1 week
+        clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
+
+        // step 7 : do another change that fulfills the split doc condition at t(+2w)
+        b1 = store.getRoot().builder();
+        b1.child("t").setProperty("foo", "barZ");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store.runBackgroundOperations();
+        assertEquals("barZ", store.getRoot().getChildNode("t").getString("foo"));
+        assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
+
+        // step 8 : move the clock a couple seconds to ensure GC maxRev condition hits
+        // (without this it might not yet GC the split doc we want it to,
+        // as we'd be in the same rounded second) -> t(+2w:30s)
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(30));
+
+        // step 9 : trigger another GC - this now splits away the referenced revision
+        assertEquals(1, gc.gc(24, HOURS).splitDocGCCount);
+        // flush the caches as otherwise it might deliver stale data
+        store.getNodeCache().invalidateAll();
+        assertEquals("barZ", store.getRoot().getChildNode("t").getString("foo"));
+        assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
     }
 
     // OAK-1729

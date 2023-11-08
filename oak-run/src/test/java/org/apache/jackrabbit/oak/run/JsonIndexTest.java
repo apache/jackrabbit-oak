@@ -131,8 +131,11 @@ public class JsonIndexTest {
                     "{'xpath':'/jcr:root//element(*, oak:QueryIndexDefinition)[@type=`counter`] " +
                         "order by @jcr:path'}");
             assertCommand(index,
-                    combineLines("[nt:unstructured] as [a] /* property test = 1 " +
-                            "where ([a].[x] = 1) and (isdescendantnode([a], [/])) */"),
+                    combineLines("[nt:unstructured] as [a] /* property test\n"
+                            + "    indexDefinition: /oak:index/test\n"
+                            + "    values: '1'\n"
+                            + "    estimatedCost: 4.0\n"
+                            + " */"),
                     "{'addNode':'/oak:index/test', 'node':{ " +
                         "'jcr:primaryType':'oak:QueryIndexDefinition', " +
                         "'type':'property', " +
@@ -162,18 +165,20 @@ public class JsonIndexTest {
                     "{'print': '$y'}"
                     );
             assertCommand(index,
-                    combineLines("[nt:unstructured] as [a] /* nodeType Filter(query=" +
-                            "explain select [jcr:path], [jcr:score], * from [nt:unstructured] as a " +
-                            "where [x] = 1 and isdescendantnode(a, '/') /* xpath: " +
-                            "/jcr:root//element(*, nt:unstructured)[@x=1] */, path=//*, " +
-                            "property=[x=[1]]) where ([a].[x] = 1) and (isdescendantnode([a], [/])) */"),
+                    combineLines("[nt:unstructured] as [a] /* nodeType\n"
+                            + "    path: /\n"
+                            + "    primaryTypes: [nt:unstructured, rep:root]\n"
+                            + "    mixinTypes: []\n"
+                            + " */"),
                     "{'setProperty': '/oak:index/test/type', 'value': 'disabled'}",
                     "{'session':'save'}",
                     "{'xpath':'explain /jcr:root//element(*, nt:unstructured)[@x=1]'}"
                     );
             assertCommand(index,
-                    combineLines("[nt:unstructured] as [a] /* traverse '*' " +
-                            "where [a].[x] = 1 */"),
+                    combineLines("[nt:unstructured] as [a] /* traverse\n"
+                            + "    allNodes (warning: slow)\n"
+                            + "    estimatedEntries: 1.0E8\n"
+                            + " */"),
                     "{'removeNode': '/oak:index/nodetype'}",
                     "{'session':'save'}",
                     "{'sql':'explain select * from [nt:unstructured] as [a] where [x]=1'}"

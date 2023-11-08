@@ -82,6 +82,11 @@ public class IndexCommand implements Command {
         Class.forName("org.apache.tika.parser.pdf.PDFParser");
     }
 
+    // to be overridden by test cases that want to check the return value
+    public void exit(int status) {
+        System.exit(status);
+    }
+
     @Override
     public void execute(String... args) throws Exception {
         OptionParser parser = new OptionParser();
@@ -100,7 +105,8 @@ public class IndexCommand implements Command {
                 checkTikaDependency();
             } catch (Throwable e) {
                 System.err.println("Missing tika parser dependencies, use --ignore-missing-tika-dep to force continue");
-                System.exit(1);
+                exit(1);
+                return;
             }
         }
 

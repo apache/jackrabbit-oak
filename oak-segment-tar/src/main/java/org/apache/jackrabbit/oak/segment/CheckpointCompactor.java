@@ -36,11 +36,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.plugins.memory.MemoryChildNodeEntry;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
+import org.apache.jackrabbit.oak.spi.state.DefaultNodeStateDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
@@ -117,7 +119,7 @@ public class CheckpointCompactor implements Compactor {
     ) throws IOException {
         // Collect a chronologically ordered list of roots for the uncompacted
         // state. This list consists of all checkpoints followed by the root.
-        LinkedHashMap<String, NodeState> uncompactedRoots = collectRoots(uncompacted);
+        LinkedHashMap<String, NodeState> uncompactedRoots = collectRoots(base, uncompacted);
 
         // Compact the list of uncompacted roots to a list of compacted roots.
         LinkedHashMap<String, NodeState> compactedRoots = compact(
@@ -183,27 +185,35 @@ public class CheckpointCompactor implements Compactor {
      * the root.
      */
     @NotNull
-    private LinkedHashMap<String, NodeState> collectRoots(@Nullable NodeState superRoot) {
+    private LinkedHashMap<String, NodeState> collectRoots(@NotNull NodeState superRootBefore, @NotNull NodeState superRootAfter) {
         LinkedHashMap<String, NodeState> roots = newLinkedHashMap();
-        if (superRoot != null) {
-            List<ChildNodeEntry> checkpoints = newArrayList(
-                    superRoot.getChildNode("checkpoints").getChildNodeEntries());
 
-            checkpoints.sort((cne1, cne2) -> {
-                long c1 = cne1.getNodeState().getLong("created");
-                long c2 = cne2.getNodeState().getLong("created");
-                return Long.compare(c1, c2);
-            });
+        List<ChildNodeEntry> checkpoints = newArrayList();
+        superRootAfter.getChildNode("checkpoints").compareAgainstBaseState(
+                superRootBefore.getChildNode("checkpoints"), new DefaultNodeStateDiff() {
+                    @Override
+                    public boolean childNodeAdded(String name, NodeState after) {
+                        checkpoints.add(new MemoryChildNodeEntry(name, after));
+                        return true;
+                    }
+                }
+        );
 
-            for (ChildNodeEntry checkpoint : checkpoints) {
-                String name = checkpoint.getName();
-                NodeState node = checkpoint.getNodeState();
-                gcListener.info("found checkpoint {} created at {}.",
-                    name, new Date(node.getLong("created")));
-                roots.put("checkpoints/" + name + "/root", node.getChildNode("root"));
-            }
-            roots.put("root", superRoot.getChildNode("root"));
+        checkpoints.sort((cne1, cne2) -> {
+            long c1 = cne1.getNodeState().getLong("created");
+            long c2 = cne2.getNodeState().getLong("created");
+            return Long.compare(c1, c2);
+        });
+
+        for (ChildNodeEntry checkpoint : checkpoints) {
+            String name = checkpoint.getName();
+            NodeState node = checkpoint.getNodeState();
+            gcListener.info("found checkpoint {} created at {}.",
+                name, new Date(node.getLong("created")));
+            roots.put("checkpoints/" + name + "/root", node.getChildNode("root"));
         }
+        roots.put("root", superRootAfter.getChildNode("root"));
+
         return roots;
     }
 

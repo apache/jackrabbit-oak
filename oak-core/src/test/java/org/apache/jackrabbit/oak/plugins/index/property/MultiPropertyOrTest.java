@@ -85,22 +85,22 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
                 Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
-        assertTrue(lines.get(0).contains("property xyz IS NOT NULL"));
+        assertTrue(lines.toString(), lines.get(0).contains("all values in the index"));
 
         lines = executeQuery(
                 "explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
                 Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
-        assertTrue(lines.get(0).contains("property xyz = foo"));
+        assertTrue(lines.toString(), lines.get(0).contains("values: 'foo'"));
 
         lines = executeQuery(
                 "explain select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'bar'",
                 Query.JCR_SQL2);
         assertEquals(1, lines.size());
         // make sure it used the property index
-        assertTrue(lines.get(0), lines.get(0).contains("property xyz = foo"));
-        assertTrue(lines.get(0), lines.get(0).contains("property xyz = bar"));
+        assertTrue(lines.get(0), lines.get(0).contains("values: 'foo'"));
+        assertTrue(lines.get(0), lines.get(0).contains("values: 'bar'"));
 
         assertQuery(
                 "select [jcr:path] from [nt:base] where [x] = 'foo' OR [y] = 'foo'",
@@ -121,22 +121,17 @@ public class MultiPropertyOrTest extends AbstractQueryTest {
         root.commit();
 
         List<Integer> nodes = Lists.newArrayList();
-        Random r = new Random();
-        int seed = -2;
+        Random r = new Random(1);
         for (int i = 0; i < 1000; i++) {
             Tree a = test.addChild("a" + i);
             a.setProperty("x", "fooa");
-            seed += 2;
             int num = r.nextInt(100);
             a.setProperty("z", num);
             nodes.add(num);
         }
-
-        seed = -1;
         for (int i = 0; i < 1000; i++) {
             Tree a = test.addChild("b" + i);
             a.setProperty("y", "foob");
-            seed += 2;
             int num = 100 + r.nextInt(100);
             a.setProperty("z",  num);
             nodes.add(num);
