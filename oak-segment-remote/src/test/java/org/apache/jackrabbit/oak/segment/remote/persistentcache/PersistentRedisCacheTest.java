@@ -101,7 +101,7 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
     }
 
     @Test
-    @Ignore
+    @Ignore("OAK-10543")
     public void writeAndReadManySegments() {
         super.writeAndReadManySegments();
     }
