@@ -20,64 +20,77 @@
 package org.apache.jackrabbit.oak.security.user;
 
 import org.apache.jackrabbit.JcrConstants;
+import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.ContentSession;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.security.principal.AbstractPrincipalProviderTest;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
 import org.apache.jackrabbit.oak.spi.security.authentication.SystemSubject;
-import org.apache.jackrabbit.oak.spi.security.principal.PrincipalProvider;
 import org.apache.jackrabbit.oak.spi.security.user.UserConfiguration;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.slf4j.Logger;
 
-import javax.jcr.RepositoryException;
 import javax.security.auth.Subject;
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.security.Principal;
 import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class CachedPrincipalMembershipReaderTest extends AbstractPrincipalProviderTest {
+@RunWith(Parameterized.class)
+public class CachedPrincipalMembershipReaderTest extends PrincipalMembershipReaderTest {
 
-    static final int NUM_THREADS = 100;
-    private Root systemRoot;
+    @Parameterized.Parameters(name = "name={1}")
+    public static Collection<Object[]> parameters() {
+        return Lists.newArrayList(
+                new Object[] { 10000L, "Cache Max Stale = 10000" },
+                new Object[] { UserPrincipalProvider.NO_STALE_CACHE, "Cache Max Stale = 0" });
+    }
+    
+    private static final int NUM_THREADS = 100;
+    
+    private final long cacheMaxStale;
+
+    private final Logger mockedLogger = mock(Logger.class);
+
     private ContentSession systemSession;
-    private UserConfiguration config;
     private String userPath;
     private Root mockedRoot;
     private Tree mockedUser;
-    private Logger mockedLogger;
     private PrincipalMembershipReader.GroupPrincipalFactory mockedGroupPrincipalFactory;
     private MembershipProvider mockedMembershipProvider;
-    
+
+    public CachedPrincipalMembershipReaderTest(long cacheMaxStale, @NotNull String name) {
+        super();
+        this.cacheMaxStale = cacheMaxStale;
+    }
     @Override
     public void before() throws Exception {
         super.before();
-
-        systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
-        systemRoot = systemSession.getLatestRoot();
         userPath = getTestUser().getPath();
-        
-        config = getUserConfiguration();
+        setFinalStaticField(CachedPrincipalMembershipReader.class, "LOG", mockedLogger);
     }
 
     @Override
@@ -87,13 +100,14 @@ public class CachedPrincipalMembershipReaderTest extends AbstractPrincipalProvid
                 systemSession.close();
             }
         } finally {
+            clearInvocations(mockedLogger);
             super.after();
         }
     }
 
     @Override
-    protected @NotNull PrincipalProvider createPrincipalProvider() {
-        return new UserPrincipalProvider(root, getUserConfiguration(), namePathMapper);
+    @NotNull CachedPrincipalMembershipReader createPrincipalMembershipReader(@NotNull Root root) throws Exception {
+        return new CachedPrincipalMembershipReader(createMembershipProvider(root), createFactory(root), getUserConfiguration(), root);
     }
 
     @Override
@@ -102,13 +116,19 @@ public class CachedPrincipalMembershipReaderTest extends AbstractPrincipalProvid
                 UserConfiguration.NAME,
                 ConfigurationParameters.of(
                         UserPrincipalProvider.PARAM_CACHE_EXPIRATION, 50000,
-                        UserPrincipalProvider.PARAM_CACHE_MAX_STALE, 10000
+                        UserPrincipalProvider.PARAM_CACHE_MAX_STALE, cacheMaxStale
                 )
         );
     }
+    
+    private Root getSystemRoot() throws Exception {
+        if (systemSession == null) {
+            systemSession = Subject.doAs(SystemSubject.INSTANCE, (PrivilegedExceptionAction<ContentSession>) () -> login(null));
+        }
+        return systemSession.getLatestRoot();
+    }
 
-    private static void setFinalStaticField(@NotNull Class<?> clazz, @NotNull String fieldName, @NotNull Object value)
-            throws ReflectiveOperationException {
+    private static void setFinalStaticField(@NotNull Class<?> clazz, @NotNull String fieldName, @NotNull Object value) throws Exception {
 
         Field field = clazz.getDeclaredField(fieldName);
         field.setAccessible(true);
@@ -120,25 +140,36 @@ public class CachedPrincipalMembershipReaderTest extends AbstractPrincipalProvid
         field.set(null, value);
     }
     
-    private PrincipalMembershipReader.GroupPrincipalFactory createFactory() throws Exception {
-        UserPrincipalProvider userPrincipalProvider = (UserPrincipalProvider) createPrincipalProvider();
-        Method m = UserPrincipalProvider.class.getDeclaredMethod("createGroupPrincipalFactory");
-        m.setAccessible(true);
-        return (PrincipalMembershipReader.GroupPrincipalFactory) m.invoke(userPrincipalProvider);
+    @Test
+    public void testWritingCacheFailsWithException() throws Exception {
+        CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(root);
+        
+        Set<Principal> groupPrincipals = new HashSet<>();
+        cachedGroupMembershipReader.readMembership(root.getTree(userPath), groupPrincipals);
+        
+        Set<Principal> expected = Collections.singleton(getUserManager(root).getAuthorizable(groupId).getPrincipal());
+        assertEquals(expected, groupPrincipals);
+
+        verify(mockedLogger, times(1)).debug("Attempting to create new membership cache at {}", userPath);
+        verify(mockedLogger, times(1)).debug("Failed to cache membership: {}", "OakConstraint0034: Attempt to create or change the system maintained cache.");
+        verifyNoMoreInteractions(mockedLogger);
     }
 
     /**
      * This test checks that 'readMembership' works for objects that are not users
-     * @throws RepositoryException
+     * @throws Exception
      */
     @Test
     public void testCacheGroupMembershipGetMemberNotUser() throws Exception {
-        MembershipProvider membershipProvider = new MembershipProvider(root, getSecurityConfigParameters());
-
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = new CachedPrincipalMembershipReader(membershipProvider, createFactory(), config, root);
-        HashSet<Principal> groupPrincipals = new HashSet<>();
-        cachedGroupMembershipReader.readMembership(systemRoot.getTree(testGroup2.getPath()), groupPrincipals);
-        assertEquals(1, groupPrincipals.size());
+        CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(root);
+        
+        Set<Principal> groupPrincipals = new HashSet<>();
+        cachedGroupMembershipReader.readMembership(getTree(groupId2, root), groupPrincipals);
+        
+        Set<Principal> expected = Collections.singleton(getUserManager(root).getAuthorizable(groupId).getPrincipal());
+        assertEquals(expected, groupPrincipals);
+        
+        verifyNoInteractions(mockedLogger);
     }
 
     /**
@@ -147,89 +178,40 @@ public class CachedPrincipalMembershipReaderTest extends AbstractPrincipalProvid
      */
     @Test
     public void testCacheGroupMembershipGetMember() throws Exception {
-        MembershipProvider membershipProvider = new MembershipProvider(root, getSecurityConfigParameters());
-
-        CachedPrincipalMembershipReader cachedGroupMembershipReader = new CachedPrincipalMembershipReader(membershipProvider, createFactory(), config, root);
-
-        Logger log = Mockito.mock(Logger.class);
-        setFinalStaticField(cachedGroupMembershipReader.getClass(), "LOG", log);
-
+        Root systemRoot = getSystemRoot();
+        CachedPrincipalMembershipReader cachedGroupMembershipReader = createPrincipalMembershipReader(systemRoot);
+        
         Set<Principal> groupPrincipal = new HashSet<>();
         cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), groupPrincipal);
 
         //Assert that the first time the cache was created
-        verify(log, times(1)).debug("Create new group membership cache at {}", userPath);
+        verify(mockedLogger, times(1)).debug("Attempting to create new membership cache at {}", userPath);
         assertEquals(1, groupPrincipal.size());
 
         cachedGroupMembershipReader.readMembership(systemRoot.getTree(userPath), groupPrincipal);
         //Assert that the cache was used
-        verify(log, times(1)).debug("Reading group membership from cache for {}", userPath);
+        verify(mockedLogger, times(1)).debug("Reading membership from cache for {}", userPath);
         assertEquals(1, groupPrincipal.size());
-
     }
 
     /**
-     * This test checks that stale value is provided during a long commit.
-     * Cache is expired, Commit is 3 second longs and NUM_THREADS threads execute getMembership
+     * This test checks the behavior for an expired cache when the commit is 3 second longs and NUM_THREADS threads execute readMembership:
+     * - if UserPrincipalProvider.PARAM_CACHE_MAX_STALE is 0, no stale cache should be provided during a long commit when 
+     * - if UserPrincipalProvider.PARAM_CACHE_MAX_STALE is >0, the stale cache must be returned during a long commit.
      * @throws Exception
      */
     @Test
-    public void testCacheGroupMembershipGetMemberServeStale() throws Exception {
-
+    public void testCacheGroupMembershipGetMemberStaleCache() throws Exception {
         initMocks();
 
         // Test getMembership from multiple threads on expired cache and verify that:
         // - only one thread updated the cache
         // - the stale value was provided
-
-        //Mock UserConfiguration
-        UserConfiguration mockedUserConfiguration = mock(UserConfiguration.class);
-        @NotNull ConfigurationParameters configurationParameters = ConfigurationParameters.of(
-                UserPrincipalProvider.PARAM_CACHE_EXPIRATION, 50000,
-                UserPrincipalProvider.PARAM_CACHE_MAX_STALE, 10000
-        );
-        when(mockedUserConfiguration.getParameters()).thenReturn(configurationParameters);
-        testStaleCache(mockedUserConfiguration);
-        verify(mockedRoot, times(1)).commit(CacheValidatorProvider.asCommitAttributes());
-        verify(mockedLogger, times(NUM_THREADS - 1)).debug("Another thread is updating the cache, returning a stale cache.");
-    }
-    /**
-     * This test checks that stale value is not provided during a long commit when UserPrincipalProvider.PARAM_CACHE_MAX_STALE is 0.
-     * Cache is expired, Commit is 3 second longs and NUM_THREADS threads execute getMembership
-     * @throws Exception
-     */
-    @Test
-    public void testCacheGroupMembershipGetMemberStaleNotAllowed() throws Exception {
-
-        initMocks();
-
-        // Test getMembership from multiple threads on expired cache and verify that:
-        // - only one thread updated the cache
-        // - others threads didn't get values since it was not allowed by configuration
-        //Mock UserConfiguration
-        UserConfiguration mockedUserConfiguration = mock(UserConfiguration.class);
-        ConfigurationParameters configurationParameters = ConfigurationParameters.of(
-            UserPrincipalProvider.PARAM_CACHE_EXPIRATION, 50000,
-            UserPrincipalProvider.PARAM_CACHE_MAX_STALE, 0
-        );
-        when(mockedUserConfiguration.getParameters()).thenReturn(configurationParameters);
-
-        testStaleCache(mockedUserConfiguration);
-        verify(mockedRoot,times(1)).commit(CacheValidatorProvider.asCommitAttributes());
-        verify(mockedLogger, times(NUM_THREADS - 1)).debug("Another thread is updating the cache and this thread is not allowed to serve a stale cache; reading from persistence without caching.");
-    }
-
-    private void testStaleCache(UserConfiguration mockedUserConfiguration) throws InterruptedException {
         Thread[] getMembershipThreads = new Thread[NUM_THREADS];
         for (int i = 0; i < getMembershipThreads.length; i++) {
             getMembershipThreads[i] = new Thread(() -> {
                 Set<Principal> groupPrincipals = new HashSet<>();
-                CachedPrincipalMembershipReader cachedGroupMembershipReader = new CachedPrincipalMembershipReader(mockedMembershipProvider, mockedGroupPrincipalFactory, mockedUserConfiguration, mockedRoot);
-                try {
-                    setFinalStaticField(cachedGroupMembershipReader.getClass(),"LOG", mockedLogger);
-                } catch (ReflectiveOperationException e) {
-                    throw new RuntimeException(e);
-                }
+                CachedPrincipalMembershipReader cachedGroupMembershipReader = new CachedPrincipalMembershipReader(mockedMembershipProvider, mockedGroupPrincipalFactory, getUserConfiguration(), mockedRoot);
                 cachedGroupMembershipReader.readMembership(mockedUser, groupPrincipals);
                 assertEquals(groupPrincipals.size(),1);
             });
@@ -237,6 +219,13 @@ public class CachedPrincipalMembershipReaderTest extends AbstractPrincipalProvid
         }
         for (Thread getMembershipThread : getMembershipThreads) {
             getMembershipThread.join();
+        }
+        
+        verify(mockedRoot, times(1)).commit(CacheValidatorProvider.asCommitAttributes());
+        if (cacheMaxStale == UserPrincipalProvider.NO_STALE_CACHE) {
+            verify(mockedLogger, times(NUM_THREADS - 1)).debug("Another thread is updating the cache and this thread is not allowed to serve a stale cache; reading from persistence without caching.");
+        } else {
+            verify(mockedLogger, times(NUM_THREADS - 1)).debug("Another thread is updating the cache, returning a stale cache.");
         }
     }
 
@@ -281,9 +270,6 @@ public class CachedPrincipalMembershipReaderTest extends AbstractPrincipalProvid
         Principal groupPrincipal = mock(Principal.class);
         when(groupPrincipal.getName()).thenReturn("groupPrincipal");
         when(mockedGroupPrincipalFactory.create(mockedGroupTree)).thenReturn(groupPrincipal);
-
-        //Mock logger
-        mockedLogger = mock(Logger.class);
     }
 
 }

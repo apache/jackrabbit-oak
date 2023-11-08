@@ -103,18 +103,16 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
     private void readGroupsFromCache(@NotNull Tree authorizableTree,
                                      @NotNull Set<Principal> groups,
                                      @NotNull BiConsumer<Tree, Set<Principal>> loader) {
-        long expirationTime = 0;
         String authorizablePath = authorizableTree.getPath();
         Tree principalCache = authorizableTree.getChild(CacheConstants.REP_CACHE);
-        if (principalCache.exists()) {
-            expirationTime = TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
-        }
+        long expirationTime = readExpirationTime(principalCache);
         long now = System.currentTimeMillis();
-        if (expirationTime > EXPIRATION_NO_CACHE && now < expirationTime) {
+        if (isValidCache(expirationTime, now)) {
             serveGroupsFromCache(authorizablePath, principalCache, groups);
             return;
         }
 
+        // the cache is either expired or does not yet exist
         // test if the cache can be updated 
         boolean updateCache;
         Map<String, Long> updates = getCacheUpdateMap();
@@ -123,7 +121,7 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
         }
 
         // if the cache cannot be updated by the current thread, verify if a stale cache can be returned
-        if (!updateCache && canServeStaleCache(now, expirationTime)) {
+        if (!updateCache && canServeStaleCache(expirationTime, now)) {
             LOG.debug("Another thread is updating the cache, returning a stale cache.");
             serveGroupsFromCache(authorizablePath, principalCache, groups);
             return;
@@ -136,9 +134,10 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
                 cacheGroups(authorizableTree, groups);
                 cacheSuccess = true;
             } catch (AccessDeniedException | CommitFailedException e) {
-                LOG.debug("Failed to cache group membership: {}", e.getMessage());
+                LOG.debug("Failed to cache membership: {}", e.getMessage());
             } finally {
-                if (!cacheSuccess || expirationTime == 0) {
+                // TODO: clarify
+                if (!cacheSuccess || expirationTime == EXPIRATION_NO_CACHE) {
                     synchronized (updates) {
                         Long exp = updates.get(authorizablePath);
                         if (Objects.equals(exp, expirationTime)) {
@@ -155,7 +154,17 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
         }
     }
 
-    private boolean canUpdateCache(@NotNull Map<String, Long> updates, @NotNull String authorizablePath, long expirationTime) {
+    private static long readExpirationTime(@NotNull Tree principalCache) {
+        if (!principalCache.exists()) {
+            return EXPIRATION_NO_CACHE;
+        }
+        return TreeUtil.getLong(principalCache, CacheConstants.REP_EXPIRATION, EXPIRATION_NO_CACHE);
+    }
+    private static boolean isValidCache(long expirationTime, long now)  {
+        return expirationTime > EXPIRATION_NO_CACHE && now < expirationTime;
+    }
+
+    private static boolean canUpdateCache(@NotNull Map<String, Long> updates, @NotNull String authorizablePath, long expirationTime) {
         // verify if another thread is updating that same entry
         Long exp = updates.get(authorizablePath);
         boolean updateCache = (exp == null || expirationTime > exp);
@@ -167,14 +176,14 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
         return updateCache;
     }
     
-    private boolean canServeStaleCache(long now, long expirationTime) {
+    private boolean canServeStaleCache(long expirationTime, long now) {
         return now - expirationTime < maxStale;
     }
 
     private void serveGroupsFromCache(@NotNull String authorizablePath,
                                       @NotNull Tree principalCache,
                                       @NotNull Set<Principal> groups) {
-        LOG.debug("Reading group membership from cache for {}", authorizablePath);
+        LOG.debug("Reading membership from cache for {}", authorizablePath);
 
         String str = TreeUtil.getString(principalCache, REP_GROUP_PRINCIPAL_NAMES);
         if (Strings.isNullOrEmpty(str)) {
@@ -195,10 +204,10 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
             String authorizablePath = authorizableTree.getPath();
             if (!cache.exists()) {
                 if (groupPrincipals.size() <= MEMBERSHIP_THRESHOLD) {
-                    LOG.debug("Omit cache creation for user without group membership at {}", authorizablePath);
+                    LOG.debug("Omit cache creation for user without membership at {}", authorizablePath);
                     return;
                 } else {
-                    LOG.debug("Create new group membership cache at {}", authorizablePath);
+                    LOG.debug("Attempting to create new membership cache at {}", authorizablePath);
                     cache = TreeUtil.addChild(authorizableTree, CacheConstants.REP_CACHE, CacheConstants.NT_REP_CACHE);
                 }
             }
@@ -208,12 +217,17 @@ class CachedPrincipalMembershipReader extends PrincipalMembershipReader {
             cache.setProperty(REP_GROUP_PRINCIPAL_NAMES, value);
 
             root.commit(CacheValidatorProvider.asCommitAttributes());
-            LOG.debug("Cached group membership at {}", authorizablePath);
+            LOG.debug("Cached membership at {}", authorizablePath);
         } finally {
             root.refresh();
         }
     }
 
+    /**
+     * Given that every Oak repository instance can be expected to have one {@code UserConfiguration} tied to the 
+     * {@code SecurityProvider}, synchronize cache updates for each repository separately. Note however, that {@code CACHE_UPDATES}
+     * is intended to contain just one single entry for most usages of Apache Jackrabbit Oak.
+     */
     private @NotNull Map<String, Long> getCacheUpdateMap() {
         return CACHE_UPDATES.computeIfAbsent(config, cfg -> new LinkedHashMap<>(){
             @Override
