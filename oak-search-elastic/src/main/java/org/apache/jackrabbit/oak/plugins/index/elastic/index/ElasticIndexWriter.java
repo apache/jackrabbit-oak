@@ -57,9 +57,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private final ElasticIndexTracker indexTracker;
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
-
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
-
     private final boolean reindex;
     private final String indexName;
 

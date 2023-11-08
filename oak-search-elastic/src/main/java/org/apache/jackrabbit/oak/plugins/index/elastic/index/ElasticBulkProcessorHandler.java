@@ -135,6 +135,8 @@ class ElasticBulkProcessorHandler {
     }
 
     private BulkIngester<String> initBulkIngester() {
+        // BulkIngester does not support retry policies. Some retries though are already implemented in the transport layer.
+        // More details here: https://github.com/elastic/elasticsearch-java/issues/478
         return BulkIngester.of(b -> {
             b = b.client(elasticConnection.getAsyncClient())
                     .listener(new OAKBulkListener());
@@ -295,6 +297,11 @@ class ElasticBulkProcessorHandler {
      * {@link ElasticBulkProcessorHandler} extension with real time behaviour.
      * It also uses the same async bulk processor as the parent except for the last flush that waits until the
      * indexed documents are searchable.
+     * <p>
+     * BulkIngester does not support customization of intermediate requests. This means we cannot intercept the last
+     * request and apply a WAIT_UNTIL refresh policy. The workaround is to force a refresh when the handler is closed.
+     * We can improve this when this issue gets fixed:
+     * <a href="https://github.com/elastic/elasticsearch-java/issues/703">elasticsearch-java#703</a>
      */
     protected static class RealTimeBulkProcessorHandler extends ElasticBulkProcessorHandler {
 

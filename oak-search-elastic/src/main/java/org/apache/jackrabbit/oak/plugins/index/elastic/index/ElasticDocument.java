@@ -44,11 +44,12 @@ public class ElasticDocument {
     public final Set<Map<String, String>> suggest;
     @JsonProperty(FieldNames.SPELLCHECK)
     public final Set<String> spellcheck;
-    private final Map<String, Object> properties;
     @JsonProperty(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT)
     public final Set<String> dbFullText;
     @JsonProperty(ElasticIndexDefinition.SIMILARITY_TAGS)
     public final Set<String> similarityTags;
+    // these are dynamic properties that need to be added to the document unwrapped. See the use of @JsonAnyGetter in the getter
+    private final Map<String, Object> properties;
 
     ElasticDocument(String path) {
         this.path = path;
@@ -76,10 +77,10 @@ public class ElasticDocument {
         spellcheck.add(value);
     }
 
-    // ES for String values (that are not interpreted as date or numbers etc) would analyze in the same
+    // ES for String values (that are not interpreted as date or numbers etc.) would analyze in the same
     // field and would index a sub-field "keyword" for non-analyzed value.
     // ref: https://www.elastic.co/blog/strings-are-dead-long-live-strings
-    // (interpretation of date etc: https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-field-mapping.html)
+    // (interpretation of date etc.: https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-field-mapping.html)
     void addProperty(String fieldName, Object value) {
         Object existing = properties.get(fieldName);
         Object finalValue;

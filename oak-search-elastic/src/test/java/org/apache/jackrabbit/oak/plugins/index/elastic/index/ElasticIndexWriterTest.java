@@ -77,7 +77,6 @@ public class ElasticIndexWriterTest {
         ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
         verify(bulkProcessorHandlerMock).update(idCaptor.capture(), esDocumentCaptor.capture());
 
-        ElasticDocument operation = esDocumentCaptor.getValue();
         assertEquals("/foo", idCaptor.getValue());
         assertEquals("/foo", esDocumentCaptor.getValue().path);
     }
