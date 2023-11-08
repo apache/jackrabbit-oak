@@ -105,8 +105,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
                 assertQuery(propaQuery, List.of("/test/a" + docCountBreachingBulkSize));
             });
 
-            Assert.assertEquals(1, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 2 processed with status OK in")).count());
-            Assert.assertEquals(0, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 3 processed with status OK in")).count());
+            Assert.assertEquals(1, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 2 processed in")).count());
+            Assert.assertEquals(0, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 3 processed in")).count());
         } finally {
             customLogger.finished();
         }

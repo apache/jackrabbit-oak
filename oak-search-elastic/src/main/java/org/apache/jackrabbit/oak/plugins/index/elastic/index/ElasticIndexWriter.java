@@ -40,13 +40,10 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.elasticsearch.ElasticsearchStatusException;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.IndicesClient;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.xcontent.XContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
@@ -134,16 +131,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public void updateDocument(String path, ElasticDocument doc) throws IOException {
-        IndexRequest request = new IndexRequest(indexName)
-                .id(ElasticIndexUtils.idFromPath(path))
-                .source(doc.build(), XContentType.JSON);
-        bulkProcessorHandler.add(request);
+        bulkProcessorHandler.update(ElasticIndexUtils.idFromPath(path), doc);
     }
 
     @Override
     public void deleteDocuments(String path) throws IOException {
-        DeleteRequest request = new DeleteRequest(indexName).id(ElasticIndexUtils.idFromPath(path));
-        bulkProcessorHandler.add(request);
+        bulkProcessorHandler.delete(ElasticIndexUtils.idFromPath(path));
     }
 
     @Override
