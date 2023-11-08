@@ -349,7 +349,7 @@ public class VersionGarbageCollectorIT {
         // step 2 : create a _deleted=true entry with clusterId 1
         store.runBackgroundOperations();
         deleteLeaf(store, "t", "target");
-        // clusterId 1 leaves /t/target according to !exists param before checkpoint
+        // create a checkpoint where /t/target should not exist
         final String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
 
         // step 2 : cause a split doc with _deleted with clusterId 1
