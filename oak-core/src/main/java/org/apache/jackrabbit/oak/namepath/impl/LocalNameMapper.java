@@ -81,6 +81,7 @@ public class LocalNameMapper extends GlobalNameMapper {
                     for (int i = 2; true; i++) {
                         String jcrPrefix = oakPrefix + i;
                         if (!local.containsKey(jcrPrefix)) {
+                            local.put(jcrPrefix, uri);
                             return jcrPrefix + oakName.substring(colon);
                         }
                     }
