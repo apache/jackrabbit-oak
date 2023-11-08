@@ -290,6 +290,69 @@ public class VersionGarbageCollectorIT {
     }
 
     /**
+     * OAK-10542 with OAK-10526 : This reproduces a case where a _deleted revision
+     * that is still used by a checkpoint is split away and then GCed. This variant
+     * tests a checkpoint when /t/target is deleted.
+     */
+    @Test
+    @Ignore(value = "requires fix for OAK-10526 and OAK-10542")
+    public void gcSplitDocWithReferencedDeleted_combined() throws Exception {
+        // step 1 : create a _delete entry with clusterId 2, plus do a GC
+        final DocumentNodeStore store2 = createSecondary();
+        createLeaf(store2, "t", "target");
+        store2.runBackgroundOperations();
+        assertEquals(0, store2.getVersionGarbageCollector().gc(24, HOURS).splitDocGCCount);
+
+        // step 2 : nearly cause target docu split - via clusterId 1
+        store.runBackgroundOperations();
+        for (int i = 0; i < (NUM_REVS_THRESHOLD / 2) - 1; i++) {
+            deleteLeaf(store, "t", "target");
+            createLeaf(store, "t", "target");
+        }
+        // last change should be deleted (that's what this test case is for)
+        deleteLeaf(store, "t", "target");
+        store.runBackgroundOperations();
+
+        // step 3 : do a minimal sleep + bcOps between last change and the checkpoint to
+        // ensure maxRev and checkpoint are more than precisionMs apart
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(61));
+        store.runBackgroundOperations();
+
+        // step 4 : then take a checkpoint refering to the last rev in the split doc
+        // (which is 'deleted')
+        final String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
+
+        // step 5 : ensure another precisionMs apart between checkpoint and
+        // split-triggering change
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(61));
+
+        // step 6 : trigger the split - main doc will contain "_deleted"="false"
+        createLeaf(store, "t", "target");
+        store.runBackgroundOperations();
+
+        // step 7 : wait for 25h - to also be more than 24 away from maxRev
+        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(25));
+
+        // step 8 : do the gc
+        // expect a split doc at depth 4 for /t/target to exist
+        assertEquals(1, store.getDocumentStore()
+                .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
+        gc.gc(24, HOURS);
+        // before a fix the split doc is GCed (but can't make that an assert)
+        //assertEquals(0, store.getDocumentStore()
+        //        .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
+
+        // step 9 : make assertions about /t/target at root and checkpoint
+        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
+        store.getNodeCache().invalidateAll();
+        assertTrue(store.getRoot().getChildNode("t").getChildNode("target").exists());
+        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
+        store.getNodeCache().invalidateAll();
+        assertEquals(false, store.retrieve(checkpoint).getChildNode("t")
+                .getChildNode("target").exists());
+    }
+
+    /**
      * OAK-10542 : This reproduces a case where a split doc is created that contains
      * a revision of _deleted that is still referred by a checkpoint. The fact that
      * _deleted is split "in the middle" used to confuse the getLiveRevision lookup,
