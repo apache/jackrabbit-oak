@@ -23,6 +23,7 @@ import co.elastic.clients.elasticsearch._types.mapping.TypeMapping;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.IndexSettings;
 import co.elastic.clients.elasticsearch.indices.IndexSettingsAnalysis;
+import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.util.ObjectBuilder;
 import org.apache.jackrabbit.oak.api.Type;
@@ -30,8 +31,6 @@ import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticPropertyDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Reader;
@@ -121,29 +120,28 @@ class ElasticIndexHelper {
 
 
     /**
-     * Returns a {@code UpdateSettingsRequest} to make an index ready to be queried and updated in near real time.
+     * Returns a {@code PutIndicesSettingsRequest} to make an index ready to be queried and updated in near real time.
      *
      * @param remoteIndexName the final index name (no alias)
      * @param indexDefinition the definition used to read settings/mappings
-     * @return an {@code UpdateSettingsRequest}
-     * <p>
-     * TODO: migrate to Elasticsearch Java client when the following issue will be fixed
-     * <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
+     * @return an {@code PutIndicesSettingsRequest}
      */
-    public static UpdateSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
-        UpdateSettingsRequest request = new UpdateSettingsRequest(remoteIndexName);
+    public static PutIndicesSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
+        IndexSettings indexSettings = IndexSettings.of(is -> is
+                .numberOfReplicas(Integer.toString(indexDefinition.numberOfReplicas))
+                // TODO: we should pass null to reset the refresh interval to the default value but the following bug prevents it. We need to wait for a fix
+                // <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
+                .refreshInterval(Time.of(t -> t.time("1s"))));
 
-        Settings.Builder settingsBuilder = Settings.builder()
-                .putNull("index.refresh_interval") // null=reset a setting back to the default value
-                .put("index.number_of_replicas", indexDefinition.numberOfReplicas);
-
-        return request.settings(settingsBuilder);
+        return PutIndicesSettingsRequest.of(pisr -> pisr
+                .index(remoteIndexName)
+                .settings(indexSettings));
     }
 
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
-        if (indexDefinition.getSimilarityProperties().size() > 0) {
+        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
             builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
         }
 
