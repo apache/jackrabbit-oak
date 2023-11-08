@@ -82,19 +82,22 @@ public class ElasticDocument {
     // ref: https://www.elastic.co/blog/strings-are-dead-long-live-strings
     // (interpretation of date etc.: https://www.elastic.co/guide/en/elasticsearch/reference/current/dynamic-field-mapping.html)
     void addProperty(String fieldName, Object value) {
-        Object existing = properties.get(fieldName);
+        Object existingValue = properties.get(fieldName);
         Object finalValue;
-        if (existing == null) {
+
+        if (existingValue == null) {
             finalValue = value;
-        } else if (existing instanceof Set) {
-            ((Set) existing).add(value);
-            finalValue = existing;
+        } else if (existingValue instanceof Set) {
+            Set<Object> existingSet = (Set<Object>) existingValue;
+            existingSet.add(value);
+            finalValue = existingSet;
         } else {
             Set<Object> set = new LinkedHashSet<>();
-            set.add(existing);
+            set.add(existingValue);
             set.add(value);
             finalValue = set.size() == 1 ? set.iterator().next() : set;
         }
+
         properties.put(fieldName, finalValue);
     }
 
