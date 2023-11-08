@@ -161,7 +161,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
         assertEventually(() -> {
             String explanation = explain(propabQuery);
-            assertThat(explanation, containsString("elasticsearch:test1(/oak:index/test1) "));
+            assertThat(explanation, containsString("/oak:index/test1"));
             assertThat(explanation, containsString("{\"term\":{\":nodeName\":{\"value\":\"foo\""));
             assertQuery(propabQuery, List.of("/test/foo"));
 

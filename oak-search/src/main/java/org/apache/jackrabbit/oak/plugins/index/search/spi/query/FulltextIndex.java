@@ -161,18 +161,18 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         checkState(index != null, "The fulltext index of type " + getType() + "  index is not available");
         try {
             FullTextExpression ft = filter.getFullTextConstraint();
-            StringBuilder sb = new StringBuilder(getType()).append(":");
+            StringBuilder sb = new StringBuilder();
+            sb.append(getType()).append(":").append(getIndexName(plan)).append("\n");
             String path = getPlanResult(plan).indexPath;
-            sb.append(getIndexName(plan))
-                    .append("(")
-                    .append(path)
-                    .append(") ");
-            sb.append(getFulltextRequestString(plan, index, root));
+            sb.append("    indexDefinition: ").append(path).append("\n");
+            sb.append("    estimatedEntries: ").append(plan.getEstimatedEntryCount()).append("\n");
+            // luceneQuery / elasticQuery
+            sb.append("    ").append(getType()).append("Query: ").append(getFulltextRequestString(plan, index, root)).append("\n");
             if (plan.getSortOrder() != null && !plan.getSortOrder().isEmpty()) {
-                sb.append(" ordering:").append(plan.getSortOrder());
+                sb.append("    sortOrder: ").append(plan.getSortOrder()).append("\n");
             }
             if (ft != null) {
-                sb.append(" ft:(").append(ft).append(")");
+                sb.append("    fulltextCondition: ").append(ft).append("\n");
             }
             addSyncIndexPlan(plan, sb);
             return sb.toString();
@@ -185,22 +185,18 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         PlanResult pr = getPlanResult(plan);
         if (pr.hasPropertyIndexResult()) {
             FulltextIndexPlanner.PropertyIndexResult pres = pr.getPropertyIndexResult();
-            sb.append(" sync:(")
-                    .append(pres.propertyName);
-
+            sb.append("    synchronousPropertyCondition: ").append(pres.propertyName);
             if (!pres.propertyName.equals(pres.pr.propertyName)) {
                 sb.append("[").append(pres.pr.propertyName).append("]");
             }
-
             sb.append(" ").append(pres.pr);
-            sb.append(")");
+            sb.append("\n");
         }
-
         if (pr.evaluateSyncNodeTypeRestriction()) {
-            sb.append(" sync:(nodeType");
-            sb.append(" primaryTypes : ").append(plan.getFilter().getPrimaryTypes());
-            sb.append(" mixinTypes : ").append(plan.getFilter().getMixinTypes());
-            sb.append(")");
+            sb.append("    synchronousNodeType: ");
+            sb.append("primaryTypes=").append(plan.getFilter().getPrimaryTypes());
+            sb.append(" mixinTypes=").append(plan.getFilter().getMixinTypes());
+            sb.append("\n");
         }
     }
 
