@@ -17,11 +17,15 @@
 package org.apache.jackrabbit.oak.jcr;
 
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
+import java.util.Random;
 
+import javax.jcr.NamespaceException;
 import javax.jcr.Node;
 import javax.jcr.Repository;
 import javax.jcr.RepositoryException;
@@ -30,8 +34,10 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.apache.jackrabbit.spi.commons.conversion.DefaultNamePathResolver;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class NamePathTest {
@@ -210,6 +216,47 @@ public class NamePathTest {
     public void testSpaceInNames() throws RepositoryException {
         Node n = session.getRootNode().addNode("c o n t e n t");
         session.getNode(n.getPath());
+    }
+
+    @Test
+    @Ignore("OAK-10544")
+    public void testPrefixRemapping() throws NamespaceException, RepositoryException {
+        Random r = new Random();
+        int i1 = r.nextInt();
+        int i2 = r.nextInt();
+        String prefix = "nstest" + i1;
+        String uri1 = "foobar:1-" + i1;
+        String uri2 = "foobar:2-" + i2;
+        String testLocalName = "test";
+        String expandedTestName ="{" + uri1  + "}" + testLocalName;
+
+        DefaultNamePathResolver resolver = new DefaultNamePathResolver(session);
+
+        try {
+            session.getWorkspace().getNamespaceRegistry().registerNamespace(prefix, uri1);
+
+            Node testNode = session.getRootNode().addNode(prefix + ":" + testLocalName);
+            session.save();
+
+            // verify that name resolver finds correct namespaceURI
+            assertEquals(uri1, resolver.getQName(testNode.getName()).getNamespaceURI());
+
+            // check that expanded name works
+            Node n2 = session.getRootNode().getNode(expandedTestName);
+            assertTrue(testNode.isSame(n2));
+
+            // remap prefix1 to uri2
+            session.setNamespacePrefix(prefix, uri2);
+
+            // check that expanded name still works
+            Node n3 = session.getRootNode().getNode(expandedTestName);
+            assertTrue(testNode.isSame(n3));
+
+            // verify that name resolver still finds correct namespaceURI
+            assertEquals(uri1, resolver.getQName(testNode.getName()).getNamespaceURI());
+        } finally {
+            session.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefix);
+        }
     }
 
 
