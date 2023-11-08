@@ -134,28 +134,21 @@ class ElasticBulkProcessorHandler {
         return new ElasticBulkProcessorHandler(elasticConnection, indexName, indexDefinition, definitionBuilder, waitForESAcknowledgement);
     }
 
-//    private BulkProcessor initBulkProcessor() {
-//        return BulkProcessor.builder(requestConsumer(),
-//                new OakBulkProcessorListener(), this.indexName + "-bulk-processor")
-//                .setBulkActions(indexDefinition.bulkActions)
-//                .setConcurrentRequests(BULK_PROCESSOR_CONCURRENCY)
-//                .setBulkSize(new ByteSizeValue(indexDefinition.bulkSizeBytes))
-//                .setFlushInterval(TimeValue.timeValueMillis(indexDefinition.bulkFlushIntervalMs))
-//                .setBackoffPolicy(BackoffPolicy.exponentialBackoff(
-//                        TimeValue.timeValueMillis(indexDefinition.bulkRetriesBackoff), indexDefinition.bulkRetries)
-//                )
-//                .build();
-//    }
-
     private BulkIngester<String> initBulkIngester() {
-        return BulkIngester.of(b -> b
-                .client(elasticConnection.getAsyncClient())
-                .listener(new OAKBulkListener())
-                .maxOperations(indexDefinition.bulkActions)
-                .maxSize(indexDefinition.bulkSizeBytes)
-                .flushInterval(indexDefinition.bulkFlushIntervalMs, TimeUnit.MILLISECONDS)
-                .maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY)
-        );
+        return BulkIngester.of(b -> {
+            b = b.client(elasticConnection.getAsyncClient())
+                    .listener(new OAKBulkListener());
+            if (indexDefinition.bulkActions > 0) {
+                b = b.maxOperations(indexDefinition.bulkActions);
+            }
+            if (indexDefinition.bulkSizeBytes > 0) {
+                b = b.maxSize(indexDefinition.bulkSizeBytes);
+            }
+            if (indexDefinition.bulkFlushIntervalMs > 0) {
+                b = b.flushInterval(indexDefinition.bulkFlushIntervalMs, TimeUnit.MILLISECONDS);
+            }
+            return b.maxConcurrentRequests(BULK_PROCESSOR_CONCURRENCY);
+        });
     }
 
     private void checkFailures() throws IOException {

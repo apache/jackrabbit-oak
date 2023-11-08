@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.jackrabbit.oak.api.Blob;
@@ -46,10 +45,6 @@ public class ElasticDocument {
     @JsonProperty(FieldNames.SPELLCHECK)
     public final Set<String> spellcheck;
     private final Map<String, Object> properties;
-    @JsonIgnore
-    private final Map<String, Object> similarityFields;
-    @JsonIgnore
-    private final Map<String, Map<String, Object>> dynamicBoostFields;
     @JsonProperty(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT)
     public final Set<String> dbFullText;
     @JsonProperty(ElasticIndexDefinition.SIMILARITY_TAGS)
@@ -61,8 +56,6 @@ public class ElasticDocument {
         this.suggest = new LinkedHashSet<>();
         this.spellcheck = new LinkedHashSet<>();
         this.properties = new HashMap<>();
-        this.similarityFields = new HashMap<>();
-        this.dynamicBoostFields = new HashMap<>();
         this.dbFullText = new LinkedHashSet<>();
         this.similarityTags = new LinkedHashSet<>();
     }
@@ -99,14 +92,14 @@ public class ElasticDocument {
             Set<Object> set = new LinkedHashSet<>();
             set.add(existing);
             set.add(value);
-            finalValue = set;
+            finalValue = set.size() == 1 ? set.iterator().next() : set;
         }
         properties.put(fieldName, finalValue);
     }
 
     void addSimilarityField(String name, Blob value) throws IOException {
         byte[] bytes = new BlobByteSource(value).read();
-        similarityFields.put(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
+        addProperty(FieldNames.createSimilarityFieldName(name), toDoubles(bytes));
     }
 
     void indexAncestors(String path) {
@@ -118,7 +111,7 @@ public class ElasticDocument {
     }
 
     void addDynamicBoostField(String propName, String value, double boost) {
-        dynamicBoostFields.computeIfAbsent(propName, s -> Map.of("value", value, "boost", boost));
+        addProperty(propName, Map.of("value", value, "boost", boost));
 
         // add value into the dynamic boost specific fulltext field. We cannot add this in the standard
         // field since dynamic boosted terms require lower weight compared to standard terms
@@ -129,17 +122,9 @@ public class ElasticDocument {
         similarityTags.add(value);
     }
 
-    public Map<String, Object> getSimilarityFields() {
-        return similarityFields;
-    }
-
     @JsonAnyGetter
     public Map<String, Object> getProperties() {
         return properties;
-    }
-
-    public Map<String, Map<String, Object>> getDynamicBoostFields() {
-        return dynamicBoostFields;
     }
 
 }
