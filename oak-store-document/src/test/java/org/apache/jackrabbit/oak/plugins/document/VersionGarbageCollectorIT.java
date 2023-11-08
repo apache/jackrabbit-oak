@@ -291,10 +291,11 @@ public class VersionGarbageCollectorIT {
 
     /**
      * OAK-10542 : This reproduces a case where a split doc is created that contains
-     * a revision of _deleted that is still referred to by a checkpoint. The fact
-     * that d_deleted is split later used to confuse the getLiveRevision lookup, as
-     * it was not considering split document for the _deleted property. This variant
-     * tests a checkpoint when /t/target is deleted.
+     * a revision of _deleted that is still referred by a checkpoint. The fact that
+     * _deleted is later split used to confuse the getLiveRevision lookup, as it was
+     * not considering split document for the _deleted property as long as it found
+     * a valid revision in the main document. This variant tests a checkpoint when
+     * /t/target is deleted.
      */
     @Test
     @Ignore(value = "requires fix for OAK-10542 first")
@@ -331,10 +332,11 @@ public class VersionGarbageCollectorIT {
 
     /**
      * OAK-10542 : This reproduces a case where a split doc is created that contains
-     * a revision of _deleted that is still referred to by a checkpoint. The fact
-     * that d_deleted is split later used to confuse the getLiveRevision lookup, as
-     * it was not considering split document for the _deleted property. This variant
-     * tests a checkpoint when /t/target exists.
+     * a revision of _deleted that is still referred by a checkpoint. The fact that
+     * _deleted is later split used to confuse the getLiveRevision lookup, as it was
+     * not considering split document for the _deleted property as long as it found
+     * a valid revision in the main document. This variant tests a checkpoint when
+     * /t/target exists.
      */
     @Test
     @Ignore(value = "requires fix for OAK-10542 first")
