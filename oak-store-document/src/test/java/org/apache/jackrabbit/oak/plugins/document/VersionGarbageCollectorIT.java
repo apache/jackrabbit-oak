@@ -290,6 +290,114 @@ public class VersionGarbageCollectorIT {
     }
 
     /**
+     * OAK-10542 : This reproduces a case where a split doc is created that contains
+     * a revision of _deleted that is still referred to by a checkpoint. The fact
+     * that d_deleted is split later used to confuse the getLiveRevision lookup, as
+     * it was not considering split document for the _deleted property. This variant
+     * tests a checkpoint when /t/target is deleted.
+     */
+    @Test
+    @Ignore(value = "requires fix for OAK-10542 first")
+    public void gcSplitDocWithReferencedDeleted_true() throws Exception {
+        // step 1 : create some _deleted entries with clusterId 2
+        final DocumentNodeStore store2 = createSecondary();
+        createLeaf(store2, "t", "target");
+        deleteLeaf(store2, "t", "target");
+        store2.runBackgroundOperations();
+
+        // step 2 : create a _deleted=true entry with clusterId 1
+        store.runBackgroundOperations();
+        createLeaf(store, "t", "target");
+        // create a checkpoint where /t/target should exist
+        final String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
+
+        // step 3 : cause a split doc with _deleted with clusterId 1
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            createLeaf(store, "t", "target");
+            deleteLeaf(store, "t", "target");
+        }
+        store.runBackgroundOperations();
+
+        // step 4 : make assertions about /t/target at root and checkpoint
+        // invalidate node cache to ensure readNode is called below
+        store.getNodeCache().invalidateAll();
+        assertFalse(store.getRoot().getChildNode("t").getChildNode("target").exists());
+        // invalidate node cache to ensure readNode is called below
+        store.getNodeCache().invalidateAll();
+        assertEquals(true, store.retrieve(checkpoint).getChildNode("t")
+                .getChildNode("target").exists());
+
+    }
+
+    /**
+     * OAK-10542 : This reproduces a case where a split doc is created that contains
+     * a revision of _deleted that is still referred to by a checkpoint. The fact
+     * that d_deleted is split later used to confuse the getLiveRevision lookup, as
+     * it was not considering split document for the _deleted property. This variant
+     * tests a checkpoint when /t/target exists.
+     */
+    @Test
+    @Ignore(value = "requires fix for OAK-10542 first")
+    public void gcSplitDocWithReferencedDeleted_false() throws Exception {
+        // step 1 : create a _delete entry with clusterId 2
+        final DocumentNodeStore store2 = createSecondary();
+        createLeaf(store2, "t", "target");
+        store2.runBackgroundOperations();
+
+        // step 2 : create a _deleted=true entry with clusterId 1
+        store.runBackgroundOperations();
+        deleteLeaf(store, "t", "target");
+        // clusterId 1 leaves /t/target according to !exists param before checkpoint
+        final String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
+
+        // step 2 : cause a split doc with _deleted with clusterId 1
+        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
+            createLeaf(store, "t", "target");
+            deleteLeaf(store, "t", "target");
+        }
+        store.runBackgroundOperations();
+
+        // step 4 : make assertions about /t/target at root and checkpoint
+        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
+        store.getNodeCache().invalidateAll();
+        assertFalse(store.getRoot().getChildNode("t").getChildNode("target").exists());
+        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
+        store.getNodeCache().invalidateAll();
+        assertEquals(false, store.retrieve(checkpoint).getChildNode("t")
+                .getChildNode("target").exists());
+
+    }
+
+    private DocumentNodeStore createSecondary() {
+        return new DocumentMK.Builder().clock(clock)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
+                .setDocumentStore(store.getDocumentStore()).setAsyncDelay(0)
+                .setClusterId(2).getNodeStore();
+    }
+
+    private void createLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
+        createOrDeleteLeaf(s, false, pathElems);
+    }
+
+    private void deleteLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
+        createOrDeleteLeaf(s, true, pathElems);
+    }
+
+    private void createOrDeleteLeaf(DocumentNodeStore s, boolean delete,
+            String... pathElems) throws Exception {
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(10));
+        final NodeBuilder rb = s.getRoot().builder();
+        NodeBuilder b = rb;
+        for (String pathElem : pathElems) {
+            b = b.child(pathElem);
+        }
+        if (delete) {
+            b.remove();
+        }
+        s.merge(rb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+    }
+
+    /**
      * OAK-10526 : This reproduces a case where a split doc is created then GCed,
      * while there is a checkpoint that still refers to a revision contained in that
      * split doc.
