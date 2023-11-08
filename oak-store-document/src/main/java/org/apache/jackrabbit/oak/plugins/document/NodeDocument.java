@@ -1067,8 +1067,24 @@ public final class NodeDocument extends Document {
                                     RevisionVector readRevision,
                                     Map<Revision, String> validRevisions,
                                     LastRevs lastRevs) {
+        final SortedMap<Revision, String> local = getLocalDeleted();
         // check local deleted map first
-        Value value = getLatestValue(context, getLocalDeleted().entrySet(), readRevision, validRevisions, lastRevs);
+        Value value = getLatestValue(context, local.entrySet(), readRevision, validRevisions, lastRevs);
+        // check if there may be more recent values in a previous document
+        if (value != null
+                && !getPreviousRanges().isEmpty()
+                && !isMostRecentCommitted(local, value.revision, context)) {
+            // not reading the most recent value, we may need to
+            // consider previous documents as well
+            for (Revision prev : getPreviousRanges().keySet()) {
+                if (prev.compareRevisionTimeThenClusterId(value.revision) > 0) {
+                    // a previous document has more recent changes
+                    // than value.revision
+                    value = null;
+                    break;
+                }
+            }
+        }
         if (value == null && !getPreviousRanges().isEmpty()) {
             // need to check complete map
             value = getLatestValue(context, getDeleted().entrySet(), readRevision, validRevisions, lastRevs);
