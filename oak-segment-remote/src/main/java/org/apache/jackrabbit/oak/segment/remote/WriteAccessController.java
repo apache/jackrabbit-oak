@@ -23,23 +23,15 @@ public class WriteAccessController {
     private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     public void disableWriting() {
-        try {
-
-
         lock.writeLock().lock();
         try {
             this.isWritingAllowed = false;
         } finally {
             lock.writeLock().unlock();
         }
-
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
     }
 
     public void enableWriting() {
-        try {
             lock.writeLock().lock();
             try {
                 this.isWritingAllowed = true;
@@ -49,10 +41,6 @@ public class WriteAccessController {
             } finally {
                 lock.writeLock().unlock();
             }
-
-        } catch (Throwable e) {
-            e.printStackTrace();
-        }
     }
 
     public void checkWritingAllowed() {
