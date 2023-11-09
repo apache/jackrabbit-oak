@@ -21,7 +21,6 @@ import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import redis.embedded.RedisExecProvider;
@@ -98,11 +97,5 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
         persistentCache.readSegment(msb, lsb, () -> null);
 
         verify(ioMonitorAdapter, times(1)).afterSegmentRead(any(), eq(msb), eq(lsb), anyInt(), anyLong());
-    }
-
-    @Test
-    @Ignore("OAK-10543")
-    public void writeAndReadManySegments() {
-        super.writeAndReadManySegments();
     }
 }
