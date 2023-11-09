@@ -35,7 +35,6 @@ public class NodeStateEntryBatch {
     }
 
     public static final byte DELIMITER = '|';
-
     // Must be large enough to hold a full node state entry
     static final int MIN_BUFFER_SIZE = 256 * 1024;
 
