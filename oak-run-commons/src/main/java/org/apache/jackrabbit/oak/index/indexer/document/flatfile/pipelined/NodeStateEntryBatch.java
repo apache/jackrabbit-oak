@@ -25,7 +25,6 @@ import java.util.ArrayList;
 
 public class NodeStateEntryBatch {
     public static class BufferFullException extends RuntimeException {
-
         public BufferFullException(String message) {
             super(message);
         }
@@ -34,6 +33,7 @@ public class NodeStateEntryBatch {
             super(message, cause);
         }
     }
+
     public static final byte DELIMITER = '|';
 
     // Must be large enough to hold a full node state entry
