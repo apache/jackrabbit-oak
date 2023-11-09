@@ -62,7 +62,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
     protected final IOMonitor ioMonitor;
 
     protected final FileStoreMonitor monitor;
-    private WriteAccessController writeAccessController = null;
+    private WriteAccessController writeAccessController;
 
     public AzureArchiveManager(CloudBlobDirectory cloudBlobDirectory, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor) {
         this.cloudBlobDirectory = cloudBlobDirectory;
