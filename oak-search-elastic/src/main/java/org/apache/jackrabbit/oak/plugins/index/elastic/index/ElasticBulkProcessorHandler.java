@@ -176,7 +176,13 @@ class ElasticBulkProcessorHandler {
         totalOperations++;
     }
 
-    public boolean close() throws IOException {
+    /**
+     * Closes the bulk ingester and waits for all the bulk requests to return.
+     * @return {@code true} if at least one update was performed, {@code false} otherwise
+     * @throws IOException if an error happened while processing the bulk requests
+     * @throws InterruptedException if the current thread is interrupted while waiting for the bulk requests to return
+     */
+    public boolean close() throws IOException, InterruptedException {
         LOG.trace("Calling close on bulk ingester {}", bulkIngester);
         bulkIngester.close();
         LOG.trace("Bulk Ingester {} closed", bulkIngester);
@@ -192,7 +198,7 @@ class ElasticBulkProcessorHandler {
         if (waitForESAcknowledgement) {
             try {
                 phaser.awaitAdvanceInterruptibly(phase, indexDefinition.bulkFlushIntervalMs * 5, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException | TimeoutException e) {
+            } catch (TimeoutException e) {
                 LOG.error("Error waiting for bulk requests to return", e);
             }
         }
@@ -314,7 +320,7 @@ class ElasticBulkProcessorHandler {
         }
 
         @Override
-        public boolean close() throws IOException {
+        public boolean close() throws IOException, InterruptedException {
             // calling super closes the bulk processor. If not empty it calls #requestConsumer for the last time
             boolean closed = super.close();
             // it could happen that close gets called when the bulk has already been flushed. In these cases we trigger

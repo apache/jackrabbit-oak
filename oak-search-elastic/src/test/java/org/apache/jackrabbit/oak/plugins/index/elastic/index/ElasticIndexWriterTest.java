@@ -118,7 +118,7 @@ public class ElasticIndexWriterTest {
     }
 
     @Test
-    public void closeBulkProcessor() throws IOException {
+    public void closeBulkProcessor() throws Exception {
         indexWriter.close(System.currentTimeMillis());
         verify(bulkProcessorHandlerMock).close();
     }
