@@ -70,7 +70,7 @@ public class ElasticDocument {
     }
 
     void addSuggest(String value) {
-        suggest.add(Map.of("value", value));
+        suggest.add(Map.of(ElasticIndexHelper.SUGGEST_NESTED_VALUE, value));
     }
 
     void addSpellcheck(String value) {
@@ -115,7 +115,12 @@ public class ElasticDocument {
     }
 
     void addDynamicBoostField(String propName, String value, double boost) {
-        addProperty(propName, Map.of("value", value, "boost", boost));
+        addProperty(propName,
+                Map.of(
+                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_VALUE, value,
+                        ElasticIndexHelper.DYNAMIC_BOOST_NESTED_BOOST, boost
+                )
+        );
 
         // add value into the dynamic boost specific fulltext field. We cannot add this in the standard
         // field since dynamic boosted terms require lower weight compared to standard terms

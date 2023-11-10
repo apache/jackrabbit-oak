@@ -58,9 +58,16 @@ class ElasticIndexHelper {
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
     private static final Time INITIAL_REFRESH_INTERVAL = Time.of(b -> b.time("-1"));
+
     private static final String INITIAL_NUMBER_OF_REPLICAS = "0";
 
     private static final String OAK_WORD_DELIMITER_GRAPH_FILTER = "oak_word_delimiter_graph_filter";
+
+    protected static final String SUGGEST_NESTED_VALUE = "value";
+
+    protected static final String DYNAMIC_BOOST_NESTED_VALUE = "value";
+
+    protected static final String DYNAMIC_BOOST_NESTED_BOOST = "boost";
 
     /**
      * Returns a {@code CreateIndexRequest} with settings and mappings translated from the specified {@code ElasticIndexDefinition}.
@@ -244,7 +251,7 @@ class ElasticIndexHelper {
                 builder.properties(FieldNames.SUGGEST,
                         b1 -> b1.nested(
                                 // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
-                                b2 -> b2.properties("value",
+                                b2 -> b2.properties(SUGGEST_NESTED_VALUE,
                                         b3 -> b3.text(
                                                 b4 -> b4.analyzer("oak_analyzer")
                                         )
@@ -256,10 +263,10 @@ class ElasticIndexHelper {
             for (PropertyDefinition pd : indexDefinition.getDynamicBoostProperties()) {
                 builder.properties(pd.nodeName,
                         b1 -> b1.nested(
-                                b2 -> b2.properties("value",
+                                b2 -> b2.properties(DYNAMIC_BOOST_NESTED_VALUE,
                                                 b3 -> b3.text(
                                                         b4 -> b4.analyzer("oak_analyzer")))
-                                        .properties("boost",
+                                        .properties(DYNAMIC_BOOST_NESTED_BOOST,
                                                 b3 -> b3.double_(f -> f)
                                         )
                         )
