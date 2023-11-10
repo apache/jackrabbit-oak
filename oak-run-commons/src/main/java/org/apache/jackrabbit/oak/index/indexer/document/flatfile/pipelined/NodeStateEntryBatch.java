@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 public class NodeStateEntryBatch {
+
     public static class BufferFullException extends RuntimeException {
         public BufferFullException(String message) {
             super(message);
