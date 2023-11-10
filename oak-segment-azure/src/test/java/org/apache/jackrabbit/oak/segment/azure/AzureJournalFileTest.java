@@ -57,7 +57,7 @@ public class AzureJournalFileTest {
         container = azurite.getContainer("oak-test");
         WriteAccessController writeAccessController = new WriteAccessController();
         writeAccessController.enableWriting();
-        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", 50, writeAccessController);
+        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", writeAccessController, 50);
     }
 
     @Test

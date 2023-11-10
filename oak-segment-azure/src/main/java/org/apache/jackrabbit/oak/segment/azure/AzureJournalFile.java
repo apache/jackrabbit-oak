@@ -56,7 +56,7 @@ public class AzureJournalFile implements JournalFile {
 
     private final WriteAccessController writeAccessController;
 
-    AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, int lineLimit, WriteAccessController writeAccessController) {
+    AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, WriteAccessController writeAccessController, int lineLimit) {
         this.directory = directory;
         this.journalNamePrefix = journalNamePrefix;
         this.lineLimit = lineLimit;
@@ -64,7 +64,7 @@ public class AzureJournalFile implements JournalFile {
     }
 
     public AzureJournalFile(CloudBlobDirectory directory, String journalNamePrefix, WriteAccessController writeAccessController) {
-        this(directory, journalNamePrefix, JOURNAL_LINE_LIMIT, writeAccessController);
+        this(directory, journalNamePrefix, writeAccessController, JOURNAL_LINE_LIMIT);
     }
 
     @Override
