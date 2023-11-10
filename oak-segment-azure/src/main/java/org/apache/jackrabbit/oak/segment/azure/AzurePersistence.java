@@ -65,7 +65,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     protected final CloudBlobDirectory segmentstoreDirectory;
 
-    private WriteAccessController writeAccessController = new WriteAccessController();
+    protected WriteAccessController writeAccessController = new WriteAccessController();
 
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
@@ -181,8 +181,11 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         });
     }
 
-        public CloudBlobDirectory getSegmentstoreDirectory() {
-            return segmentstoreDirectory;
-        }
+    public CloudBlobDirectory getSegmentstoreDirectory() {
+        return segmentstoreDirectory;
+    }
 
+    public void setWriteAccessController(WriteAccessController writeAccessController) {
+        this.writeAccessController = writeAccessController;
+    }
 }

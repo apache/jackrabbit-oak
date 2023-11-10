@@ -47,13 +47,9 @@ public class AzureSegmentArchiveWriter extends AbstractRemoteSegmentArchiveWrite
             Integer.getInteger("azure.segment.archive.writer.retries.intervalMs", 5000)
     );
 
-    public AzureSegmentArchiveWriter(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor) {
+    public AzureSegmentArchiveWriter(CloudBlobDirectory archiveDirectory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
         super(ioMonitor, monitor);
         this.archiveDirectory = archiveDirectory;
-    }
-
-    public AzureSegmentArchiveWriter(CloudBlobDirectory directory, IOMonitor ioMonitor, FileStoreMonitor monitor, WriteAccessController writeAccessController) {
-        this(directory, ioMonitor, monitor);
         this.writeAccessController = writeAccessController;
     }
 

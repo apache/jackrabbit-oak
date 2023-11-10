@@ -55,7 +55,9 @@ public class AzureJournalFileTest {
     @Before
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
-        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", 50, new WriteAccessController());
+        WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController.enableWriting();
+        journal = new AzureJournalFile(container.getDirectoryReference("journal"), "journal.log", 50, writeAccessController);
     }
 
     @Test

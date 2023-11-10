@@ -91,14 +91,21 @@ public class AzureArchiveManagerTest {
 
     private CloudBlobContainer container;
 
+    private AzurePersistence azurePersistence;
+
     @Before
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
+
+        WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController.enableWriting();
+        azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));
+        azurePersistence.setWriteAccessController(writeAccessController);
     }
 
     @Test
     public void testRecovery() throws StorageException, URISyntaxException, IOException {
-        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -120,7 +127,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testBackupWithRecoveredEntries() throws StorageException, URISyntaxException, IOException {
-        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -259,7 +266,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testExists() throws IOException, URISyntaxException {
-        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         List<UUID> uuids = new ArrayList<>();
@@ -278,7 +285,7 @@ public class AzureArchiveManagerTest {
 
     @Test
     public void testArchiveExistsAfterFlush() throws URISyntaxException, IOException {
-        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
         Assert.assertFalse(manager.exists("data00000a.tar"));
@@ -289,10 +296,7 @@ public class AzureArchiveManagerTest {
     }
 
     @Test(expected = FileNotFoundException.class)
-    public void testSegmentDeletedAfterCreatingReader() throws IOException, URISyntaxException, StorageException, InvalidFileStoreVersionException {
-
-        AzurePersistence azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));
-
+    public void testSegmentDeletedAfterCreatingReader() throws IOException, URISyntaxException, StorageException {
         SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
 
@@ -537,6 +541,8 @@ public class AzureArchiveManagerTest {
         assertNull(builder2.getProperty("foo"));
 
         rwFileStore2.close();
+
+        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any());
     }
 
     private PersistentCache createPersistenceCache() {

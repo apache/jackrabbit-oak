@@ -16,48 +16,31 @@
  */
 package org.apache.jackrabbit.oak.segment.remote;
 
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-
 public class WriteAccessController {
-    private boolean isWritingAllowed = false;
-    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private volatile boolean isWritingAllowed = false;
 
     public void disableWriting() {
-        lock.writeLock().lock();
-        try {
-            this.isWritingAllowed = false;
-        } finally {
-            lock.writeLock().unlock();
-        }
+        this.isWritingAllowed = false;
     }
 
     public void enableWriting() {
-            lock.writeLock().lock();
-            try {
-                this.isWritingAllowed = true;
-                synchronized (this) {
-                    this.notifyAll();
-                }
-            } finally {
-                lock.writeLock().unlock();
-            }
+        this.isWritingAllowed = true;
+
+        synchronized (this) {
+            this.notifyAll();
+        }
     }
 
     public void checkWritingAllowed() {
-        lock.readLock().lock();
-        try {
-            while (!isWritingAllowed) {
-                synchronized (this) {
-                    try {
-                        this.wait();
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        throw new RuntimeException("Interrupted while waiting for writing to be allowed", e);
-                    }
+        while (!isWritingAllowed) {
+            synchronized (this) {
+                try {
+                    this.wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted while waiting for writing to be allowed", e);
                 }
             }
-        } finally {
-            lock.readLock().unlock();
         }
     }
 }

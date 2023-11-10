@@ -51,13 +51,7 @@ import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.spi.monitor.*;
-import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
-import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
-import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
+import org.apache.jackrabbit.oak.segment.spi.persistence.*;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -92,6 +86,8 @@ public abstract class SegmentCopyTestBase {
         SegmentNodeStorePersistence srcPersistence = getSrcPersistence();
         SegmentNodeStorePersistence destPersistence = getDestPersistence();
 
+        RepositoryLock desetRepositoryLock = destPersistence.lockRepository();
+
         String srcPathOrUri = getSrcPathOrUri();
         String destPathOrUri = getDestPathOrUri();
 
@@ -111,6 +107,8 @@ public abstract class SegmentCopyTestBase {
         checkJournal(srcPersistence, destPersistence);
         checkGCJournal(srcPersistence, destPersistence);
         checkManifest(srcPersistence, destPersistence);
+
+        desetRepositoryLock.unlock();
     }
 
     private int runSegmentCopy(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence,
