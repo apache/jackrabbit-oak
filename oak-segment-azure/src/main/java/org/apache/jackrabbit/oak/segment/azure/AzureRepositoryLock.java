@@ -53,10 +53,10 @@ public class AzureRepositoryLock implements RepositoryLock {
     private volatile boolean doUpdate;
 
     public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController) {
-        this(blob, shutdownHook, TIMEOUT_SEC, writeAccessController);
+        this(blob, shutdownHook, writeAccessController, TIMEOUT_SEC);
     }
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, int timeoutSec, WriteAccessController writeAccessController) {
+    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController, int timeoutSec) {
         this.shutdownHook = shutdownHook;
         this.blob = blob;
         this.executor = Executors.newSingleThreadExecutor();
