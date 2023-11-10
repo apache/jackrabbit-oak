@@ -161,7 +161,7 @@ public abstract class AbstractSharedCachingDataStore extends AbstractDataStore
      * DataRecord cache size
      */
     private long recordCacheSize = SystemPropertySupplier
-            .create("oak.blob.recordcache.size", 10000L)
+            .create("oak.blob.recordcache.size", 0L)
             .loggingTo(LOG)
             .formatSetMessage( (name, value) -> String.format("%s set to: %s", name, value) )
             .get();
