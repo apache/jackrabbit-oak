@@ -21,12 +21,13 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,7 +40,6 @@ import java.util.concurrent.Callable;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
-import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.createOutputStream;
 
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
@@ -67,6 +67,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
     private final BlockingQueue<Path> sortedFilesQueue;
     private final Path sortWorkDir;
+    private final ArrayList<SortKey> sortBuffer = new ArrayList<>(32 * 1024);
     private byte[] copyBuffer = new byte[4096];
     private long entriesProcessed = 0;
     private long batchesProcessed = 0;
@@ -95,6 +96,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
+                    sortBuffer.clear(); // It should be empty already
+                    sortBuffer.trimToSize();  // Release the internal array which may be very large, several millions
                     String metrics = MetricsFormatter.newBuilder()
                             .add("batchesProcessed", batchesProcessed)
                             .add("entriesProcessed", entriesProcessed)
@@ -117,8 +120,6 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
     }
 
-    private final ArrayList<SortKey> sortBuffer = new ArrayList<>(64 * 1024);
-
     private void buildSortBuffer(NodeStateEntryBatch nseb) {
         Stopwatch startTime = Stopwatch.createStarted();
         ByteBuffer buffer = nseb.getBuffer();
@@ -140,7 +141,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             String path = new String(copyBuffer, 0, pathLength, StandardCharsets.UTF_8);
             sortBuffer.add(new SortKey(SortKey.genSortKeyPathElements(path), positionInBuffer));
         }
-        LOG.info("Built sort buffer in {}. Total path size: {}", startTime, totalPathSize);
+        LOG.info("Built sort buffer in {}. Entries: {}, Total size of path strings: {}",
+                startTime, sortBuffer.size(), humanReadableByteCountBin(totalPathSize));
     }
 
     private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
@@ -159,7 +161,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
         long textSize = 0;
         batchesProcessed++;
-        try (BufferedOutputStream bos = createOutputStream(newtmpfile, algorithm)) {
+        try (OutputStream os = IndexStoreUtils.createOutputStream(newtmpfile, algorithm)) {
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;
                 // Retrieve the entry from the buffer
@@ -167,24 +169,27 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 buffer.position(posInBuffer);
 
                 int pathSize = buffer.getInt();
-                copyField(bos, buffer, pathSize);
-                bos.write(PipelinedStrategy.FLATFILESTORE_DELIMITER);
+                copyField(os, buffer, pathSize);
+                os.write(PipelinedStrategy.FLATFILESTORE_DELIMITER);
                 int jsonSize = buffer.getInt();
-                copyField(bos, buffer, jsonSize);
-                bos.write(PipelinedStrategy.FLATFILESTORE_LINE_SEPARATOR);
+                copyField(os, buffer, jsonSize);
+                os.write(PipelinedStrategy.FLATFILESTORE_LINE_SEPARATOR);
                 textSize += pathSize + jsonSize + 2;
             }
         }
+        long compressedSize = Files.size(newtmpfile);
+        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {} MB/s",
+                humanReadableByteCountBin(compressedSize),
+                humanReadableByteCountBin(textSize),
+                sortBuffer.size(), saveClock,
+                String.format("%2.2f", ((1.0 * compressedSize / saveClock.elapsed().toMillis()) * 1000) / FileUtils.ONE_MB)
+        );
         // Free the memory taken by the entries in the buffer
         sortBuffer.clear();
-        LOG.info("Stored batch of size {} (uncompressed {}) with {} entries in {}",
-                humanReadableByteCountBin(Files.size(newtmpfile)),
-                humanReadableByteCountBin(textSize),
-                sortBuffer.size(), saveClock);
         sortedFilesQueue.put(newtmpfile);
     }
 
-    private void copyField(BufferedOutputStream writer, ByteBuffer buffer, int fieldSize) throws IOException {
+    private void copyField(OutputStream writer, ByteBuffer buffer, int fieldSize) throws IOException {
         // Write the entry to the file without creating intermediate byte[]
         int bytesRemaining = fieldSize;
         while (bytesRemaining > 0) {

@@ -19,11 +19,11 @@ package org.apache.jackrabbit.oak.commons.sort;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.oak.commons.Compression;
 
-import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -39,14 +39,14 @@ import java.util.function.Function;
 public class ExternalSortByteArray {
     private final static int DEFAULT_BUFFER_SIZE = 16 * 1024;
 
-    public static <T> void mergeSortedFilesBinary(List<Path> files, BufferedOutputStream fbw, final Comparator<T> cmp,
+    public static <T> void mergeSortedFilesBinary(List<Path> files, OutputStream fbw, final Comparator<T> cmp,
                                                   boolean distinct, Compression algorithm,
                                                   Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType)
             throws IOException {
         mergeSortedFilesBinary(files, fbw, cmp, distinct, algorithm, typeToByteArray, byteArrayToType, DEFAULT_BUFFER_SIZE);
     }
 
-    public static <T> void mergeSortedFilesBinary(List<Path> files, BufferedOutputStream fbw, final Comparator<T> cmp,
+    public static <T> void mergeSortedFilesBinary(List<Path> files, OutputStream fbw, final Comparator<T> cmp,
                                                   boolean distinct, Compression algorithm,
                                                   Function<T, byte[]> typeToByteArray, Function<byte[], T> byteArrayToType, int readBufferSize)
             throws IOException {
@@ -70,7 +70,7 @@ public class ExternalSortByteArray {
         }
     }
 
-    private static <T> int mergeBinary(BufferedOutputStream fbw, final Comparator<T> cmp, boolean distinct,
+    private static <T> int mergeBinary(OutputStream fbw, final Comparator<T> cmp, boolean distinct,
                                        List<BinaryFileBuffer<T>> buffers, Function<T, byte[]> typeToByteArray)
             throws IOException {
         PriorityQueue<BinaryFileBuffer<T>> pq = new PriorityQueue<>(

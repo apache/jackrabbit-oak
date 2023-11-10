@@ -71,6 +71,7 @@ public class NodeStateEntryBatch {
         byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
         int totalSize = 4 + pathBytes.length + 4 + entryData.length;
         try {
+            // Each nse is written as: "len(path)|path|len(json)|json"
             buffer.putInt(pathBytes.length);
             buffer.put(pathBytes);
             buffer.putInt(entryData.length);
