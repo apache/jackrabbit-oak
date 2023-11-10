@@ -134,7 +134,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     static final Path SENTINEL_SORTED_FILES_QUEUE = Paths.get("SENTINEL");
     static final Charset FLATFILESTORE_CHARSET = StandardCharsets.UTF_8;
     static final char FLATFILESTORE_LINE_SEPARATOR = '\n';
-
+    static final byte FLATFILESTORE_DELIMITER = '|';
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedStrategy.class);
     // A MongoDB document is at most 16MB, so the buffer that holds node state entries must be at least that big
     private static final int MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB = 16;
@@ -284,13 +284,16 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         // - #transforThreads   NSE Binary buffers
         // - 1x                 Metadata of NSE entries in Binary buffers, list of SortKeys
         // A ByteBuffer can be at most Integer.MAX_VALUE bytes long
-        this.nseBuffersSizeBytes = limitToIntegerRange(nseBuffersReservedMemoryBytes / (nseBuffersCount + 1));
+//        this.nseBuffersSizeBytes = limitToIntegerRange(nseBuffersReservedMemoryBytes / (nseBuffersCount + 1));
+        long sortBufferReservedMemory = (nseBuffersReservedMemoryBytes / nseBuffersCount) / 4;
+        this.nseBuffersSizeBytes = limitToIntegerRange((nseBuffersReservedMemoryBytes - sortBufferReservedMemory) / nseBuffersCount);
 
         // Assuming 1 instance of SortKey takes around 256 bytes. We have #transformThreads + 1 regions of nseBufferSizeBytes.
         // The extra region is for the SortKey instances. Below we compute the total number of SortKey instances that
         // fit in the memory region reserved for them, assuming that each SortKey instance takes 256 bytes. Then we
         // distribute equally these available entries among the nse buffers
-        this.nseBufferMaxEntriesPerBuffer = (this.nseBuffersSizeBytes / 256) / this.nseBuffersCount;
+//        this.nseBufferMaxEntriesPerBuffer = (this.nseBuffersSizeBytes / 256) / this.nseBuffersCount;
+        this.nseBufferMaxEntriesPerBuffer = Integer.MAX_VALUE;
 
         if (nseBuffersSizeBytes < MIN_ENTRY_BATCH_BUFFER_SIZE_MB * FileUtils.ONE_MB) {
             throw new IllegalArgumentException("Entry batch buffer size too small: " + nseBuffersSizeBytes +
@@ -304,11 +307,13 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 mongoDocQueueReservedMemoryMB,
                 mongoDocBatchMaxSizeMB,
                 mongoDocQueueSize);
-        LOG.info("NodeStateEntryBuffers: [ workingMemory: {} MB, numberOfBuffers: {}, bufferSize: {}, maxEntriesPerBuffer: {} ]",
+        LOG.info("NodeStateEntryBuffers: [ workingMemory: {} MB, numberOfBuffers: {}, bufferSize: {}, maxEntriesPerBuffer: {}, sortBufferReservedMemory: {} ]",
                 nseBuffersReservedMemoryMB,
                 nseBuffersCount,
                 IOUtils.humanReadableByteCountBin(nseBuffersSizeBytes),
-                nseBufferMaxEntriesPerBuffer);
+                nseBufferMaxEntriesPerBuffer,
+                IOUtils.humanReadableByteCountBin(sortBufferReservedMemory)
+        );
     }
 
     private int readNSEBuffersReservedMemory() {
@@ -388,21 +393,18 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
-            PipelinedMongoDownloadTask downloadTask = new PipelinedMongoDownloadTask(
+            ecs.submit(new PipelinedMongoDownloadTask(
                     mongoDatabase,
                     docStore,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
                     pathFilters
-            );
-            ecs.submit(downloadTask);
-
-            Path flatFileStore = null;
+            ));
 
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                PipelinedTransformTask transformTask = new PipelinedTransformTask(
+                ecs.submit(new PipelinedTransformTask(
                         docStore,
                         documentNodeStore,
                         rootRevision,
@@ -412,20 +414,18 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         emptyBatchesQueue,
                         nonEmptyBatchesQueue,
                         transformStageStatistics
-                );
-                ecs.submit(transformTask);
+                ));
             }
 
-            PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
+            ecs.submit(new PipelinedSortBatchTask(
                     this.getStoreDir().toPath(), pathComparator, this.getAlgorithm(), emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
-            );
-            ecs.submit(sortTask);
+            ));
 
             PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(this.getStoreDir().toPath(), pathComparator,
                     this.getAlgorithm(), sortedFilesQueue);
             ecs.submit(mergeSortTask);
 
-
+            Path flatFileStore = null;
             try {
                 LOG.info("Waiting for tasks to complete");
                 int tasksFinished = 0;

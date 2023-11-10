@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -66,7 +67,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
     private final BlockingQueue<Path> sortedFilesQueue;
     private final Path sortWorkDir;
-    private final byte[] copyBuffer = new byte[4096];
+    private byte[] copyBuffer = new byte[4096];
     private long entriesProcessed = 0;
     private long batchesProcessed = 0;
 
@@ -116,11 +117,38 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
     }
 
+    private final ArrayList<SortKey> sortBuffer = new ArrayList<>(64 * 1024);
+
+    private void buildSortBuffer(NodeStateEntryBatch nseb) {
+        Stopwatch startTime = Stopwatch.createStarted();
+        ByteBuffer buffer = nseb.getBuffer();
+        int totalPathSize = 0;
+        while (buffer.hasRemaining()) {
+            int positionInBuffer = buffer.position();
+            // Read the next key from the buffer
+            int pathLength = buffer.getInt();
+            totalPathSize += pathLength;
+            if (pathLength > copyBuffer.length) {
+                LOG.info("Resizing buffer from {} to {}", copyBuffer.length, pathLength);
+                copyBuffer = new byte[pathLength];
+            }
+            buffer.get(copyBuffer, 0, pathLength);
+            // Skip the json
+            int entryLength = buffer.getInt();
+            buffer.position(buffer.position() + entryLength);
+            // Create the sort key
+            String path = new String(copyBuffer, 0, pathLength, StandardCharsets.UTF_8);
+            sortBuffer.add(new SortKey(SortKey.genSortKeyPathElements(path), positionInBuffer));
+        }
+        LOG.info("Built sort buffer in {}. Total path size: {}", startTime, totalPathSize);
+    }
+
     private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
-        ArrayList<SortKey> sortBuffer = nseb.getSortBuffer();
         ByteBuffer buffer = nseb.getBuffer();
         LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
-                sortBuffer.size(), humanReadableByteCountBin(buffer.remaining()));
+                nseb.numberOfEntries(), humanReadableByteCountBin(nseb.sizeOfEntries()));
+        sortBuffer.clear();
+        buildSortBuffer(nseb);
         if (sortBuffer.isEmpty()) {
             return;
         }
@@ -131,31 +159,40 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
         long textSize = 0;
         batchesProcessed++;
-        try (BufferedOutputStream writer = createOutputStream(newtmpfile, algorithm)) {
+        try (BufferedOutputStream bos = createOutputStream(newtmpfile, algorithm)) {
             for (SortKey entry : sortBuffer) {
                 entriesProcessed++;
                 // Retrieve the entry from the buffer
                 int posInBuffer = entry.getBufferPos();
                 buffer.position(posInBuffer);
-                int entrySize = buffer.getInt();
 
-                // Write the entry to the file without creating intermediate byte[]
-                int bytesRemaining = entrySize;
-                while (bytesRemaining > 0) {
-                    int bytesRead = Math.min(copyBuffer.length, bytesRemaining);
-                    buffer.get(copyBuffer, 0, bytesRead);
-                    writer.write(copyBuffer, 0, bytesRead);
-                    bytesRemaining -= bytesRead;
-                }
-                writer.write(PipelinedStrategy.FLATFILESTORE_LINE_SEPARATOR);
-                textSize += entrySize + 1;
+                int pathSize = buffer.getInt();
+                copyField(bos, buffer, pathSize);
+                bos.write(PipelinedStrategy.FLATFILESTORE_DELIMITER);
+                int jsonSize = buffer.getInt();
+                copyField(bos, buffer, jsonSize);
+                bos.write(PipelinedStrategy.FLATFILESTORE_LINE_SEPARATOR);
+                textSize += pathSize + jsonSize + 2;
             }
         }
+        // Free the memory taken by the entries in the buffer
+        sortBuffer.clear();
         LOG.info("Stored batch of size {} (uncompressed {}) with {} entries in {}",
                 humanReadableByteCountBin(Files.size(newtmpfile)),
                 humanReadableByteCountBin(textSize),
                 sortBuffer.size(), saveClock);
         sortedFilesQueue.put(newtmpfile);
+    }
+
+    private void copyField(BufferedOutputStream writer, ByteBuffer buffer, int fieldSize) throws IOException {
+        // Write the entry to the file without creating intermediate byte[]
+        int bytesRemaining = fieldSize;
+        while (bytesRemaining > 0) {
+            int bytesRead = Math.min(copyBuffer.length, bytesRemaining);
+            buffer.get(copyBuffer, 0, bytesRead);
+            writer.write(copyBuffer, 0, bytesRead);
+            bytesRemaining -= bytesRead;
+        }
     }
 
     private static Path createdSortWorkDir(Path storeDir) throws IOException {

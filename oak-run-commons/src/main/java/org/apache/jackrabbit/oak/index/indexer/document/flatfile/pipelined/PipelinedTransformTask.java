@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -88,6 +89,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     private final TransformStageStatistics statistics;
     private final int threadId = threadIdGenerator.getAndIncrement();
     private long totalEnqueueDelayMillis = 0;
+    private long totalEmptyBatchQueueWaitTimeMillis = 0;
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
@@ -142,6 +144,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                             .add("enqueueDelayPercentage", totalEnqueueDelayPercentage)
                             .add("documentQueueWaitMillis", totalDocumentQueueWaitTimeMillis)
                             .add("documentQueueWaitPercentage", totalDocumentQueueWaitPercentage)
+                            .add("totalEmptyBatchQueueWaitTimeMillis", totalEmptyBatchQueueWaitTimeMillis)
                             .build();
                     LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
                     //Save the last batch
@@ -182,11 +185,14 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
                                         } catch (NodeStateEntryBatch.BufferFullException e) {
                                             LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
-                                                    totalEntryCount, nseBatch.numberOfEntries(), nseBatch.sizeOfEntries());
+                                                    totalEntryCount, nseBatch.numberOfEntries(), IOUtils.humanReadableByteCount(nseBatch.sizeOfEntries()));
                                             nseBatch.flip();
                                             tryEnqueue(nseBatch);
                                             // Get an empty buffer
+                                            Stopwatch emptyBatchesQueueStopwatch = Stopwatch.createStarted();
                                             nseBatch = emptyBatchesQueue.take();
+                                            totalEmptyBatchQueueWaitTimeMillis += emptyBatchesQueueStopwatch.elapsed(TimeUnit.MILLISECONDS);
+
                                             // Now it must fit, otherwise it means that the buffer is smaller than a single
                                             // entry, which is an error.
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
