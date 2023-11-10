@@ -51,8 +51,6 @@ import static org.mockito.Mockito.when;
 
 public class ElasticIndexerTest {
 
-    private final NodeState root = INITIAL_CONTENT;
-
     @Test
     public void nodeIndexed_WithIncludedPaths() throws Exception {
         ElasticIndexDefinitionBuilder idxb = new ElasticIndexDefinitionBuilder();
@@ -60,9 +58,9 @@ public class ElasticIndexerTest {
         idxb.includedPaths("/content");
 
         NodeState defn = idxb.build();
-        IndexDefinition idxDefn = new ElasticIndexDefinition(root, defn, "/oak:index/testIndex", "testPrefix");
+        IndexDefinition idxDefn = new ElasticIndexDefinition(INITIAL_CONTENT, defn, "/oak:index/testIndex", "testPrefix");
 
-        NodeBuilder builder = root.builder();
+        NodeBuilder builder = INITIAL_CONTENT.builder();
 
         ElasticConnection elasticConnectionMock = mock(ElasticConnection.class);
         ElasticsearchAsyncClient elasticsearchAsyncClientMock = mock(ElasticsearchAsyncClient.class);

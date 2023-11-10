@@ -20,6 +20,7 @@ import co.elastic.clients.elasticsearch._helpers.bulk.BulkIngester;
 import co.elastic.clients.elasticsearch._helpers.bulk.BulkListener;
 import co.elastic.clients.elasticsearch._types.ErrorCause;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
+import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.bulk.BulkResponseItem;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -66,7 +67,7 @@ class ElasticBulkProcessorHandler {
     /**
      * Coordinates communication between bulk processes. It has a main controller registered at creation time and
      * de-registered on {@link ElasticIndexWriter#close(long)}. Each bulk request register a new party in
-     * this Phaser in {@link OAKBulkListener#beforeBulk(long, BulkRequest, List)} and de-register itself when
+     * this Phaser in {@link OakBulkListener#beforeBulk(long, BulkRequest, List)} and de-register itself when
      * the request returns.
      */
     private final Phaser phaser = new Phaser(1); // register main controller
@@ -139,7 +140,7 @@ class ElasticBulkProcessorHandler {
         // More details here: https://github.com/elastic/elasticsearch-java/issues/478
         return BulkIngester.of(b -> {
             b = b.client(elasticConnection.getAsyncClient())
-                    .listener(new OAKBulkListener());
+                    .listener(new OakBulkListener());
             if (indexDefinition.bulkActions > 0) {
                 b = b.maxOperations(indexDefinition.bulkActions);
             }
@@ -211,7 +212,7 @@ class ElasticBulkProcessorHandler {
         return updatesMap.containsValue(Boolean.TRUE);
     }
 
-    private class OAKBulkListener implements BulkListener<String> {
+    private class OakBulkListener implements BulkListener<String> {
 
         @Override
         public void beforeBulk(long executionId, BulkRequest request, List<String> contexts) {
@@ -232,70 +233,75 @@ class ElasticBulkProcessorHandler {
         }
 
         @Override
-        public void afterBulk(long executionId, BulkRequest request, List<String> contexts, co.elastic.clients.elasticsearch.core.BulkResponse response) {
-            LOG.debug("Bulk with id {} processed in {}", executionId, response.took());
-            if (LOG.isTraceEnabled()) {
-                LOG.trace(response.toString());
-            }
-            if (response.items().stream().anyMatch(i -> i.error() != null)) { // check if some operations failed to execute
-                Set<String> failedDocSet = new LinkedHashSet<>();
-                NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
-                // Read the current failed paths (if any) on the :status node into failedDocList
-                if (status.hasProperty(IndexDefinition.FAILED_DOC_PATHS)) {
-                    for (String str : status.getProperty(IndexDefinition.FAILED_DOC_PATHS).getValue(Type.STRINGS)) {
-                        failedDocSet.add(str);
-                    }
+        public void afterBulk(long executionId, BulkRequest request, List<String> contexts, BulkResponse response) {
+            try {
+                LOG.debug("Bulk with id {} processed in {} ms", executionId, response.took());
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace(response.toString());
                 }
-
-                int initialSize = failedDocSet.size();
-                boolean isFailedDocSetFull = false;
-
-                boolean hasSuccesses = false;
-                for (int i = 0; i < contexts.size(); i++) {
-                    BulkResponseItem item = response.items().get(i);
-                    if (item.error() != null) {
-                        if (indexDefinition.failOnError) {
-                            suppressedErrorCauses.add(item.error());
+                if (response.items().stream().anyMatch(i -> i.error() != null)) { // check if some operations failed to execute
+                    Set<String> failedDocSet = new LinkedHashSet<>();
+                    NodeBuilder status = definitionBuilder.child(IndexDefinition.STATUS_NODE);
+                    // Read the current failed paths (if any) on the :status node into failedDocList
+                    if (status.hasProperty(IndexDefinition.FAILED_DOC_PATHS)) {
+                        for (String str : status.getProperty(IndexDefinition.FAILED_DOC_PATHS).getValue(Type.STRINGS)) {
+                            failedDocSet.add(str);
                         }
-                        if (!isFailedDocSetFull && failedDocSet.size() < FAILED_DOC_COUNT_FOR_STATUS_NODE) {
-                            failedDocSet.add(contexts.get(i));
-                        } else {
-                            isFailedDocSetFull = true;
-                        }
-                        // Log entry to be used to parse logs to get the failed doc id/path if needed
-                        LOG.error("ElasticIndex Update Doc Failure: Error while adding/updating doc with id: [{}]", contexts.get(i));
-                        LOG.error("Failure Details: BulkItem ID: {}, Index: {}, Failure Cause: {}",
-                                item.id(), item.index(), item.error());
-                    } else if (!hasSuccesses) {
-                        // Set indexUpdated to true even if 1 item was updated successfully
-                        updatesMap.put(executionId, Boolean.TRUE);
-                        hasSuccesses = true;
                     }
-                }
 
-                if (isFailedDocSetFull) {
-                    LOG.info("Cannot store all new Failed Docs because {} has been filled up. " +
-                            "See previous log entries to find out the details of failed paths", IndexDefinition.FAILED_DOC_PATHS);
-                } else if (failedDocSet.size() != initialSize) {
-                    status.setProperty(IndexDefinition.FAILED_DOC_PATHS, failedDocSet, Type.STRINGS);
+                    int initialSize = failedDocSet.size();
+                    boolean isFailedDocSetFull = false;
+
+                    boolean hasSuccesses = false;
+                    for (int i = 0; i < contexts.size(); i++) {
+                        BulkResponseItem item = response.items().get(i);
+                        if (item.error() != null) {
+                            if (indexDefinition.failOnError) {
+                                suppressedErrorCauses.add(item.error());
+                            }
+                            if (!isFailedDocSetFull && failedDocSet.size() < FAILED_DOC_COUNT_FOR_STATUS_NODE) {
+                                failedDocSet.add(contexts.get(i));
+                            } else {
+                                isFailedDocSetFull = true;
+                            }
+                            // Log entry to be used to parse logs to get the failed doc id/path if needed
+                            LOG.error("ElasticIndex Update Doc Failure: Error while adding/updating doc with id: [{}]", contexts.get(i));
+                            LOG.error("Failure Details: BulkItem ID: {}, Index: {}, Failure Cause: {}",
+                                    item.id(), item.index(), item.error());
+                        } else if (!hasSuccesses) {
+                            // Set indexUpdated to true even if 1 item was updated successfully
+                            updatesMap.put(executionId, Boolean.TRUE);
+                            hasSuccesses = true;
+                        }
+                    }
+
+                    if (isFailedDocSetFull) {
+                        LOG.info("Cannot store all new Failed Docs because {} has been filled up. " +
+                                "See previous log entries to find out the details of failed paths", IndexDefinition.FAILED_DOC_PATHS);
+                    } else if (failedDocSet.size() != initialSize) {
+                        status.setProperty(IndexDefinition.FAILED_DOC_PATHS, failedDocSet, Type.STRINGS);
+                    }
+                } else {
+                    updatesMap.put(executionId, Boolean.TRUE);
                 }
-            } else {
-                updatesMap.put(executionId, Boolean.TRUE);
+            } finally {
+                phaser.arriveAndDeregister();
             }
-            phaser.arriveAndDeregister();
         }
 
         @Override
         public void afterBulk(long executionId, BulkRequest request, List<String> contexts, Throwable failure) {
-            LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, failure);
-            suppressedErrorCauses.add(ErrorCause.of(ec -> {
+            try {
+                LOG.error("ElasticIndex Update Bulk Failure : Bulk with id {} threw an error", executionId, failure);
+                suppressedErrorCauses.add(ErrorCause.of(ec -> {
                     StringWriter sw = new StringWriter();
                     PrintWriter pw = new PrintWriter(sw);
                     failure.printStackTrace(pw);
                     return ec.reason(failure.getMessage()).stackTrace(sw.toString());
-            }));
-            phaser.arriveAndDeregister();
-
+                }));
+            } finally {
+                phaser.arriveAndDeregister();
+            }
         }
     }
 
