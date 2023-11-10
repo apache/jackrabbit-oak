@@ -133,14 +133,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public boolean close(long timestamp) throws IOException {
-        boolean updateStatus;
-        try {
-            updateStatus = bulkProcessorHandler.close();
-        } catch (InterruptedException e) {
-            LOG.warn("Interrupted while waiting for bulk processor to close", e);
-            Thread.currentThread().interrupt();  // restore interrupt status
-            return false;
-        }
+        boolean updateStatus = bulkProcessorHandler.close();
         if (reindex) {
             // if we are closing a writer in reindex mode, it means we need to open the new index for queries
             this.enableIndex();
