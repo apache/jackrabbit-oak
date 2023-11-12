@@ -18,18 +18,28 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 public class FormattingUtils {
     public static String formatToSeconds(Stopwatch stopwatch) {
-        LocalTime seconds = LocalTime.ofSecondOfDay(stopwatch.elapsed(TimeUnit.SECONDS));
-        return DateTimeFormatter.ISO_TIME.format(seconds);
+        long seconds = stopwatch.elapsed(TimeUnit.SECONDS);
+        long absSeconds = Math.abs(seconds);
+        return String.format(
+                "%02d:%02d:%02d",
+                absSeconds / 3600,
+                (absSeconds % 3600) / 60,
+                absSeconds % 60);
     }
 
     public static String formatToMillis(Stopwatch stopwatch) {
-        LocalTime nanoSeconds = LocalTime.ofNanoOfDay(stopwatch.elapsed(TimeUnit.MILLISECONDS)*1000000);
-        return DateTimeFormatter.ISO_TIME.format(nanoSeconds);
+        long millis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        long absMillis = Math.abs(millis);
+        return String.format(
+                "%02d:%02d:%02d.%03d",
+                absMillis / 3_600_000,
+                (absMillis % 3_600_000) / 60_000,
+                absMillis % 60_000/1_000,
+                absMillis % 1_000
+                );
     }
 }
