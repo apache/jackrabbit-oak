@@ -81,7 +81,7 @@ public class NodeStateEntryBatch {
             return totalSize;
         } catch (BufferOverflowException e) {
             buffer.position(bufferPos);
-            throw new BufferFullException(" while adding entry " + path + " of size: " + totalSize, e);
+            throw new BufferFullException("while adding entry " + path + " of size: " + totalSize, e);
         }
     }
 

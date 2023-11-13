@@ -130,7 +130,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             int pathLength = buffer.getInt();
             totalPathSize += pathLength;
             if (pathLength > copyBuffer.length) {
-                LOG.info("Resizing buffer from {} to {}", copyBuffer.length, pathLength);
+                LOG.debug("Resizing copy buffer from {} to {}", copyBuffer.length, pathLength);
                 copyBuffer = new byte[pathLength];
             }
             buffer.get(copyBuffer, 0, pathLength);
@@ -139,7 +139,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             buffer.position(buffer.position() + entryLength);
             // Create the sort key
             String path = new String(copyBuffer, 0, pathLength, StandardCharsets.UTF_8);
-            sortBuffer.add(new SortKey(SortKey.genSortKeyPathElements(path), positionInBuffer));
+            String[] pathSegments = SortKey.genSortKeyPathElements(path);
+            sortBuffer.add(new SortKey(pathSegments, positionInBuffer));
         }
         LOG.info("Built sort buffer in {}. Entries: {}, Total size of path strings: {}",
                 startTime, sortBuffer.size(), humanReadableByteCountBin(totalPathSize));
