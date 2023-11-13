@@ -24,22 +24,21 @@ public class FormattingUtils {
     public static String formatToSeconds(Stopwatch stopwatch) {
         long seconds = stopwatch.elapsed(TimeUnit.SECONDS);
         long absSeconds = Math.abs(seconds);
-        return String.format(
-                "%02d:%02d:%02d",
-                absSeconds / 3600,
-                (absSeconds % 3600) / 60,
-                absSeconds % 60);
+        long hoursPart = TimeUnit.SECONDS.toHours(absSeconds);
+        long minutesPart = TimeUnit.SECONDS.toMinutes(absSeconds) % 60;
+        long secondsPart = TimeUnit.SECONDS.toSeconds(absSeconds) % 60;
+        String sign = seconds < 0 ? "-" : "";
+        return String.format("%s%02d:%02d:%02d", sign, hoursPart, minutesPart, secondsPart);
     }
 
     public static String formatToMillis(Stopwatch stopwatch) {
         long millis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
         long absMillis = Math.abs(millis);
-        return String.format(
-                "%02d:%02d:%02d.%03d",
-                absMillis / 3_600_000,
-                (absMillis % 3_600_000) / 60_000,
-                absMillis % 60_000/1_000,
-                absMillis % 1_000
-                );
+        long hoursPart = TimeUnit.MILLISECONDS.toHours(absMillis);
+        long minutesPart = TimeUnit.MILLISECONDS.toMinutes(absMillis) % 60;
+        long secondsPart = TimeUnit.MILLISECONDS.toSeconds(absMillis) % 60;
+        long millisPart = TimeUnit.MILLISECONDS.toMillis(absMillis) % 1000;
+        String sign = millis < 0 ? "-" : "";
+        return String.format("%s%02d:%02d:%02d.%03d", sign, hoursPart, minutesPart, secondsPart, millisPart);
     }
 }

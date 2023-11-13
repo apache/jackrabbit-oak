@@ -54,6 +54,7 @@ public class FormattingUtilsTest {
                 TimeUnit.SECONDS.toNanos(59) +
                 TimeUnit.MILLISECONDS.toNanos(999)
         );
+        testFormatToSeconds("-00:01:00", -TimeUnit.SECONDS.toNanos(60));
     }
 
     private void testFormatToSeconds(String expected, long nanos) {
@@ -76,7 +77,7 @@ public class FormattingUtilsTest {
                 TimeUnit.SECONDS.toNanos(59) +
                 TimeUnit.MILLISECONDS.toNanos(999)
         );
-
+        testFormatToMillis("-00:01:00.000", -TimeUnit.SECONDS.toNanos(60));
     }
 
     private void testFormatToMillis(String expected, long nanos) {
