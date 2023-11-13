@@ -40,7 +40,7 @@ import java.util.concurrent.Callable;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatPercentage;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatAsPercentage;
 
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
@@ -104,9 +104,9 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                     long totalTimeMillis = taskStartTime.elapsed().toMillis();
                     sortBuffer.clear(); // It should be empty already
                     sortBuffer.trimToSize();  // Release the internal array which may be very large, several millions
-                    String timeCreatingSortArrayPercentage = formatPercentage(timeCreatingSortArrayMillis, totalTimeMillis);
-                    String timeSortingPercentage = formatPercentage(timeSortingMillis, totalTimeMillis);
-                    String timeWritingPercentage = formatPercentage(timeWritingMillis, totalTimeMillis);
+                    String timeCreatingSortArrayPercentage = formatAsPercentage(timeCreatingSortArrayMillis, totalTimeMillis);
+                    String timeSortingPercentage = formatAsPercentage(timeSortingMillis, totalTimeMillis);
+                    String timeWritingPercentage = formatAsPercentage(timeWritingMillis, totalTimeMillis);
                     String metrics = MetricsFormatter.newBuilder()
                             .add("batchesProcessed", batchesProcessed)
                             .add("entriesProcessed", entriesProcessed)

@@ -19,7 +19,11 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 public class PipelinedUtils {
-    public static String formatPercentage(long numerator, long denominator) {
+    /**
+     * <p>Format a percentage as a string with 2 decimal places. For instance:
+     * <code>formatAsPercentage(52, 1000)</code> returns <code>"5.20"</code>.</p>
+     */
+    public static String formatAsPercentage(long numerator, long denominator) {
         if (denominator == 0) {
             return "N/A";
         } else {

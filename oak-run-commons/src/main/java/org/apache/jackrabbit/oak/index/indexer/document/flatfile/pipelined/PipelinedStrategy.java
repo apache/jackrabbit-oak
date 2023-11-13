@@ -474,8 +474,10 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                             PipelinedSortBatchTask.Result sortTaskResult = (PipelinedSortBatchTask.Result) result;
                             LOG.info("Sort batch task finished. Entries processed: {}", sortTaskResult.getTotalEntries());
                             sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
-                            // The buffers between transform and merge sort tasks are no longer need, so release the references to them
-                            // These buffers can be very large, so this is important to avoid running out of memory in the merge-sort phase
+                            // The buffers between transform and merge sort tasks are no longer needed, so remove them
+                            // from the queues so they can be garbage collected.
+                            // These buffers can be very large, so this is important to avoid running out of memory in
+                            // the merge-sort phase
                             if (!nonEmptyBatchesQueue.isEmpty()) {
                                 LOG.warn("emptyBatchesQueue is not empty. Size: {}", emptyBatchesQueue.size());
                             }

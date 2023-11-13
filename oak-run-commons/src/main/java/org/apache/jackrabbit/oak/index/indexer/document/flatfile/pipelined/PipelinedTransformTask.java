@@ -135,9 +135,9 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
                 if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
                     long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
-                    String totalDocumentQueueWaitPercentage = PipelinedUtils.formatPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
-                    String totalEnqueueDelayPercentage = PipelinedUtils.formatPercentage(totalEnqueueDelayMillis, totalDurationMillis);
-                    String totalEmptyBatchQueueWaitPercentage = PipelinedUtils.formatPercentage(totalEmptyBatchQueueWaitTimeMillis, totalDurationMillis);
+                    String totalDocumentQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
+                    String totalEnqueueDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueDelayMillis, totalDurationMillis);
+                    String totalEmptyBatchQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalEmptyBatchQueueWaitTimeMillis, totalDurationMillis);
                     String metrics = MetricsFormatter.newBuilder()
                             .add("duration", FormattingUtils.formatToSeconds(taskStartWatch))
                             .add("durationSeconds", totalDurationMillis / 1000)

@@ -192,7 +192,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 downloadWithNaturalOrdering();
             }
             long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
-            String enqueueingDelayPercentage = PipelinedUtils.formatPercentage(totalEnqueueWaitTimeMillis, durationMillis);
+            String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueWaitTimeMillis, durationMillis);
             String metrics = MetricsFormatter.newBuilder()
                     .add("duration", FormattingUtils.formatToSeconds(downloadStartWatch))
                     .add("durationSeconds", durationMillis/1000)
