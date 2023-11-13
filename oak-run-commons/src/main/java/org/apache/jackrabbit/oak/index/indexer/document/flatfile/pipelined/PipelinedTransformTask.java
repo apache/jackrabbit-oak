@@ -134,17 +134,20 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                 NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
                 if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
-                    String totalDocumentQueueWaitPercentage = String.format("%1.2f", (100.0 * totalDocumentQueueWaitTimeMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
-                    String totalEnqueueDelayPercentage = String.format("%1.2f", (100.0 * totalEnqueueDelayMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
+                    long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
+                    String totalDocumentQueueWaitPercentage = PipelinedUtils.formatPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
+                    String totalEnqueueDelayPercentage = PipelinedUtils.formatPercentage(totalEnqueueDelayMillis, totalDurationMillis);
+                    String totalEmptyBatchQueueWaitPercentage = PipelinedUtils.formatPercentage(totalEmptyBatchQueueWaitTimeMillis, totalDurationMillis);
                     String metrics = MetricsFormatter.newBuilder()
                             .add("duration", FormattingUtils.formatToSeconds(taskStartWatch))
-                            .add("durationSeconds", taskStartWatch.elapsed(TimeUnit.SECONDS))
+                            .add("durationSeconds", totalDurationMillis / 1000)
                             .add("nodeStateEntriesGenerated", totalEntryCount)
                             .add("enqueueDelayMillis", totalEnqueueDelayMillis)
                             .add("enqueueDelayPercentage", totalEnqueueDelayPercentage)
                             .add("documentQueueWaitMillis", totalDocumentQueueWaitTimeMillis)
                             .add("documentQueueWaitPercentage", totalDocumentQueueWaitPercentage)
                             .add("totalEmptyBatchQueueWaitTimeMillis", totalEmptyBatchQueueWaitTimeMillis)
+                            .add("totalEmptyBatchQueueWaitPercentage", totalEmptyBatchQueueWaitPercentage)
                             .build();
                     LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
                     //Save the last batch
@@ -185,7 +188,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
                                         } catch (NodeStateEntryBatch.BufferFullException e) {
                                             LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
-                                                    totalEntryCount, nseBatch.numberOfEntries(), IOUtils.humanReadableByteCount(nseBatch.sizeOfEntries()));
+                                                    totalEntryCount, nseBatch.numberOfEntries(), IOUtils.humanReadableByteCountBin(nseBatch.sizeOfEntries()));
                                             nseBatch.flip();
                                             tryEnqueue(nseBatch);
                                             // Get an empty buffer

@@ -40,6 +40,7 @@ import java.util.concurrent.Callable;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_NSE_BUFFER;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatPercentage;
 
 /**
  * Receives batches of node state entries, sorts then in memory, and finally writes them to a file.
@@ -71,6 +72,9 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private byte[] copyBuffer = new byte[4096];
     private long entriesProcessed = 0;
     private long batchesProcessed = 0;
+    private long timeCreatingSortArrayMillis = 0;
+    private long timeSortingMillis = 0;
+    private long timeWritingMillis = 0;
 
     public PipelinedSortBatchTask(Path storeDir,
                                   PathElementComparator pathComparator,
@@ -88,6 +92,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
 
     @Override
     public Result call() throws Exception {
+        Stopwatch taskStartTime = Stopwatch.createStarted();
         String originalName = Thread.currentThread().getName();
         Thread.currentThread().setName(THREAD_NAME);
         try {
@@ -96,11 +101,22 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 LOG.info("Waiting for next batch");
                 NodeStateEntryBatch nseBuffer = nonEmptyBuffersQueue.take();
                 if (nseBuffer == SENTINEL_NSE_BUFFER) {
+                    long totalTimeMillis = taskStartTime.elapsed().toMillis();
                     sortBuffer.clear(); // It should be empty already
                     sortBuffer.trimToSize();  // Release the internal array which may be very large, several millions
+                    String timeCreatingSortArrayPercentage = formatPercentage(timeCreatingSortArrayMillis, totalTimeMillis);
+                    String timeSortingPercentage = formatPercentage(timeSortingMillis, totalTimeMillis);
+                    String timeWritingPercentage = formatPercentage(timeWritingMillis, totalTimeMillis);
                     String metrics = MetricsFormatter.newBuilder()
                             .add("batchesProcessed", batchesProcessed)
                             .add("entriesProcessed", entriesProcessed)
+                            .add("timeCreatingSortArrayMillis", timeCreatingSortArrayMillis)
+                            .add("timeCreatingSortArrayPercentage", timeCreatingSortArrayPercentage)
+                            .add("timeSortingMillis", timeSortingMillis)
+                            .add("timeSortingPercentage", timeSortingPercentage)
+                            .add("timeWritingMillis", timeWritingMillis)
+                            .add("timeWritingPercentage", timeWritingPercentage)
+                            .add("totalTimeSeconds", totalTimeMillis / 1000)
                             .build();
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
                     return new Result(entriesProcessed);
@@ -120,7 +136,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
     }
 
-    private void buildSortBuffer(NodeStateEntryBatch nseb) {
+    private void buildSortArray(NodeStateEntryBatch nseb) {
         Stopwatch startTime = Stopwatch.createStarted();
         ByteBuffer buffer = nseb.getBuffer();
         int totalPathSize = 0;
@@ -142,7 +158,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             String[] pathSegments = SortKey.genSortKeyPathElements(path);
             sortBuffer.add(new SortKey(pathSegments, positionInBuffer));
         }
-        LOG.info("Built sort buffer in {}. Entries: {}, Total size of path strings: {}",
+        timeCreatingSortArrayMillis += startTime.elapsed().toMillis();
+        LOG.info("Built sort array in {}. Entries: {}, Total size of path strings: {}",
                 startTime, sortBuffer.size(), humanReadableByteCountBin(totalPathSize));
     }
 
@@ -151,12 +168,13 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
                 nseb.numberOfEntries(), humanReadableByteCountBin(nseb.sizeOfEntries()));
         sortBuffer.clear();
-        buildSortBuffer(nseb);
+        buildSortArray(nseb);
         if (sortBuffer.isEmpty()) {
             return;
         }
         Stopwatch sortClock = Stopwatch.createStarted();
         sortBuffer.sort(pathComparator);
+        timeSortingMillis += sortClock.elapsed().toMillis();
         LOG.info("Sorted batch in {}. Saving to disk", sortClock);
         Stopwatch saveClock = Stopwatch.createStarted();
         Path newtmpfile = Files.createTempFile(sortWorkDir, "sortInBatch", "flatfile");
@@ -178,6 +196,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                 textSize += pathSize + jsonSize + 2;
             }
         }
+        timeWritingMillis += saveClock.elapsed().toMillis();
         long compressedSize = Files.size(newtmpfile);
         LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {} MB/s",
                 humanReadableByteCountBin(compressedSize),
