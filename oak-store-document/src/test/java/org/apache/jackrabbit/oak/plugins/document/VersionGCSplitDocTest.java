@@ -273,7 +273,7 @@ public class VersionGCSplitDocTest {
         ns.runBackgroundOperations();
 
         // wait 59 min
-        clock.waitUntil(clock.getTime() + MINUTES.toMillis(60));
+        clock.waitUntil(clock.getTime() + MINUTES.toMillis(59));
 
         int nodesBeforeGc = countNodeDocuments();
         assertEquals(0, countStalePrev());
