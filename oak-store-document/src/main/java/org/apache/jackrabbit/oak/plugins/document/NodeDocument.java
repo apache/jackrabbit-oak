@@ -1067,6 +1067,7 @@ public final class NodeDocument extends Document {
                                     RevisionVector readRevision,
                                     Map<Revision, String> validRevisions,
                                     LastRevs lastRevs) {
+        // TODO / OAK-10542 : below might be a candidate for refactoring with getNodeAtRevision
         final SortedMap<Revision, String> local = getLocalDeleted();
         // check local deleted map first
         Value value = getLatestValue(context, local.entrySet(), readRevision, validRevisions, lastRevs);
