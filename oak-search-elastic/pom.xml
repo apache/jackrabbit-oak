@@ -48,29 +48,20 @@
               org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService
             </_exportcontents>
             <Import-Package>
+              !io.opentelemetry.sdk.autoconfigure.*,
               !jdk.net.*,
-              !org.apache.avalon.framework.logger.*,
               !org.apache.log.*,
               !org.apache.logging.*,
-              !org.elasticsearch.geometry.*,
-              !org.joda.convert.*,
-              !org.locationtech.jts.geom.*,
-              !org.locationtech.spatial4j.*,
               !sun.misc.*,
-              !org.apache.lucene.search.similarity.*,
               !org.apache.lucene.analysis.*,
               !org.glassfish.json.*,
               !com.sun.management.*,
-              !joptsimple.*,
-              !org.apache.lucene.search.suggest.document.*,
               !jakarta.json.bind.*,
-              !com.carrotsearch.randomizedtesting.*,
-              !org.yaml.snakeyaml.*,
               *
             </Import-Package>
             <Embed-Dependency>
               oak-search;scope=compile|runtime;inline=true,
-              elasticsearch;groupId=org.elasticsearch,
+              elasticsearch-java;groupId=co.elastic.clients,
               *;scope=compile|runtime
             </Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
