@@ -122,7 +122,6 @@ public class AzureRepositoryLock implements RepositoryLock {
                 if (timeSinceLastUpdate > RENEWAL_FREQUENCY) {
 
                     BlobRequestOptions requestOptions = new BlobRequestOptions();
-
                     requestOptions.setMaximumExecutionTimeInMs(LEASE_RENEWAL_TIMEOUT_MS);
                     requestOptions.setRetryPolicyFactory(new RetryNoRetry());
                     blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), requestOptions, null);
