@@ -259,8 +259,21 @@ public class VersionGCSplitDocTest {
 
         ns.runBackgroundOperations();
 
-        // wait one hour
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
+        // with OAK-10526 split doc maxRev is now set to now
+        // the split doc type 70 GC on mongo uses sweepRev
+        // so to get 70 GCed we need to advance sweepRev
+        // hence instead of a 1 HOUR wait, we now do :
+        // wait 1 min
+        clock.waitUntil(clock.getTime() + MINUTES.toMillis(1));
+
+        // to advance sweepRev : unrelated change + sweep
+        builder = ns.getRoot().builder();
+        builder.child("unrelated");
+        ns.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        ns.runBackgroundOperations();
+
+        // wait 59 min
+        clock.waitUntil(clock.getTime() + MINUTES.toMillis(60));
 
         int nodesBeforeGc = countNodeDocuments();
         assertEquals(0, countStalePrev());
