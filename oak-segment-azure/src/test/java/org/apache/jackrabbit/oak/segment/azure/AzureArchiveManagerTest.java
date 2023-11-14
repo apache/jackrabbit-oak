@@ -486,7 +486,7 @@ public class AzureArchiveManagerTest {
 
         Mockito
                 .doCallRealMethod()
-                .when(blobMocked).renewLease(Mockito.any());
+                .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
 
         AzurePersistence mockedRwPersistence = Mockito.spy(rwPersistence);
         WriteAccessController writeAccessController = new WriteAccessController();
@@ -516,7 +516,7 @@ public class AzureArchiveManagerTest {
         StorageException storageException =
                 new StorageException(StorageErrorCodeStrings.OPERATION_TIMED_OUT, "operation timeout", new TimeoutException());
 
-        Mockito.doThrow(storageException).when(blobMocked).renewLease(Mockito.any());
+        Mockito.doThrow(storageException).when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
 
 
         // wait till lease expires
@@ -546,7 +546,7 @@ public class AzureArchiveManagerTest {
 
         rwFileStore2.close();
 
-        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any());
+        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     private PersistentCache createPersistenceCache() {
