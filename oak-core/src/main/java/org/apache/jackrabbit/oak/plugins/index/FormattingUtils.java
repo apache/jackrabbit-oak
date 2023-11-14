@@ -22,17 +22,16 @@ import java.util.concurrent.TimeUnit;
 
 public class FormattingUtils {
     public static String formatToSeconds(Stopwatch stopwatch) {
-        long seconds = stopwatch.elapsed(TimeUnit.SECONDS);
+        return formatToSeconds(stopwatch.elapsed(TimeUnit.SECONDS));
+    }
+
+    public static String formatToSeconds(long seconds) {
         long absSeconds = Math.abs(seconds);
         long hoursPart = TimeUnit.SECONDS.toHours(absSeconds);
         long minutesPart = TimeUnit.SECONDS.toMinutes(absSeconds) % 60;
         long secondsPart = TimeUnit.SECONDS.toSeconds(absSeconds) % 60;
         String sign = seconds < 0 ? "-" : "";
         return String.format("%s%02d:%02d:%02d", sign, hoursPart, minutesPart, secondsPart);
-    }
-
-    public static String formatToSeconds(long seconds) {
-        return DateTimeFormatter.ISO_TIME.format(LocalTime.ofSecondOfDay(seconds));
     }
 
     public static String formatToMillis(Stopwatch stopwatch) {
