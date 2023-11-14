@@ -55,6 +55,7 @@
         <include>org.apache.jackrabbit:oak-segment-azure</include>
         <include>org.apache.jackrabbit:oak-jcr</include>
         <include>org.apache.jackrabbit:oak-lucene</include>
+        <include>org.apache.jackrabbit:oak-search-elastic</include>
         <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
         <include>org.apache.jackrabbit:oak-blob-cloud-azure</include>
