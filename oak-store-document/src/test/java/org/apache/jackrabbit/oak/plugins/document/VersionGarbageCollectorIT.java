@@ -82,7 +82,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -468,7 +467,6 @@ public class VersionGarbageCollectorIT {
      * split doc.
      */
     @Test
-    @Ignore(value = "requires fix for OAK-10526")
     public void gcSplitDocsWithReferencedRevisions() throws Exception {
         final String exp;
 
@@ -500,7 +498,14 @@ public class VersionGarbageCollectorIT {
         exp = lastValue;
         store.runBackgroundOperations();
 
-        // step 5 : create a checkpoint at t(+1w)
+        // step 4b : another change to further lastRev for clusterId 1
+        // required to ensure 5sec rounding of mongo variant is also covered
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(6));
+        b1 = store.getRoot().builder();
+        b1.child("unrelated").setProperty("unrelated", "unrelated");
+        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // step 5 : create a checkpoint at t(+1w+6sec)
         String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
         assertEquals(exp, store.getRoot().getChildNode("t").getString("foo"));
         assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
@@ -521,8 +526,8 @@ public class VersionGarbageCollectorIT {
         // as we'd be in the same rounded second) -> t(+2w:30s)
         clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(30));
 
-        // step 9 : trigger another GC - this now splits away the referenced revision
-        assertEquals(1, gc.gc(24, HOURS).splitDocGCCount);
+        // step 9 : trigger another GC - previously split away the referenced revision
+        assertEquals(0, gc.gc(24, HOURS).splitDocGCCount);
         // flush the caches as otherwise it might deliver stale data
         store.getNodeCache().invalidateAll();
         assertEquals("barZ", store.getRoot().getChildNode("t").getString("foo"));

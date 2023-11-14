@@ -20,8 +20,10 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.junit.Test;
 
-import java.nio.BufferOverflowException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -40,31 +42,37 @@ public class NodeStateEntryBatchTest {
         batch.addEntry("b", new byte[1]);
         assertEquals(2, batch.numberOfEntries());
         assertTrue(batch.isAtMaxEntries());
-        assertThrows(IllegalStateException.class, () -> batch.addEntry("c", new byte[1]));
+        assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("c", new byte[1]));
     }
 
     @Test
     public void testMaximumBufferSize() {
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
-        assertTrue(batch.hasSpaceForEntry(new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE -4])); // Needs 4 bytes for the length
-        assertFalse(batch.hasSpaceForEntry(new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE]));
+        batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE - 4 - 2]); // Needs 4 bytes for the length and 2 for the key
+        assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE]));
 
-        batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE -4]);
         assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntries());
         assertEquals(1, batch.numberOfEntries());
-        assertFalse(batch.hasSpaceForEntry(new byte[1]));
-        assertThrows(BufferOverflowException.class, () -> batch.addEntry("b", new byte[1]));
+        assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[1]));
     }
 
     @Test
-    public void flipAndResetBuffer() {
+    public void flipAndResetBuffer() throws IOException {
         int sizeOfEntry = NodeStateEntryBatch.MIN_BUFFER_SIZE-4;
+        String key = "a";
+        int jsonNodeLength = sizeOfEntry-2; // minus key and pipe characters
+
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
-        byte[] testArray = new byte[sizeOfEntry];
-        for (int i = 0; i < sizeOfEntry; i++) {
-            testArray[i] = (byte) (i % 127);
+        byte[] jsonNodeBytes = new byte[jsonNodeLength];
+        for (int i = 0; i < jsonNodeLength; i++) {
+            jsonNodeBytes[i] = (byte) (i % 127);
         }
-        batch.addEntry("a", testArray);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        baos.write("a|".getBytes(StandardCharsets.UTF_8));
+        baos.write(jsonNodeBytes);
+        byte[] expectedContents = baos.toByteArray();
+        int size = batch.addEntry(key, jsonNodeBytes);
+        assertEquals(size, sizeOfEntry);
         assertEquals(batch.getBuffer().position(), sizeOfEntry + 4);
 
         batch.flip();
@@ -76,7 +84,7 @@ public class NodeStateEntryBatchTest {
         byte[] entryData = new byte[sizeOfEntry];
         buffer.get(entryData);
         assertEquals(buffer.position(), sizeOfEntry + 4);
-        assertArrayEquals(testArray, entryData);
+        assertArrayEquals(expectedContents, entryData);
 
         batch.reset();
 
