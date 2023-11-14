@@ -45,16 +45,10 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final int BULK_ACTIONS_DEFAULT = 250;
 
     public static final String BULK_SIZE_BYTES = "bulkSizeBytes";
-    public static final long BULK_SIZE_BYTES_DEFAULT = 1 * 1024 * 1024; // 1MB
+    public static final long BULK_SIZE_BYTES_DEFAULT = 1024 * 1024; // 1MB
 
     public static final String BULK_FLUSH_INTERVAL_MS = "bulkFlushIntervalMs";
     public static final long BULK_FLUSH_INTERVAL_MS_DEFAULT = 3000;
-
-    public static final String BULK_RETRIES = "bulkRetries";
-    public static final int BULK_RETRIES_DEFAULT = 3;
-
-    public static final String BULK_RETRIES_BACKOFF = "bulkRetriesBackoff";
-    public static final long BULK_RETRIES_BACKOFF_DEFAULT = 200;
 
     public static final String NUMBER_OF_SHARDS = "numberOfShards";
     public static final int NUMBER_OF_SHARDS_DEFAULT = 1;
@@ -133,8 +127,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final int bulkActions;
     public final long bulkSizeBytes;
     public final long bulkFlushIntervalMs;
-    public final int bulkRetries;
-    public final long bulkRetriesBackoff;
     private final boolean similarityTagsEnabled;
     private final float similarityTagsBoost;
     public final int numberOfShards;
@@ -157,8 +149,6 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.bulkActions = getOptionalValue(defn, BULK_ACTIONS, BULK_ACTIONS_DEFAULT);
         this.bulkSizeBytes = getOptionalValue(defn, BULK_SIZE_BYTES, BULK_SIZE_BYTES_DEFAULT);
         this.bulkFlushIntervalMs = getOptionalValue(defn, BULK_FLUSH_INTERVAL_MS, BULK_FLUSH_INTERVAL_MS_DEFAULT);
-        this.bulkRetries = getOptionalValue(defn, BULK_RETRIES, BULK_RETRIES_DEFAULT);
-        this.bulkRetriesBackoff = getOptionalValue(defn, BULK_RETRIES_BACKOFF, BULK_RETRIES_BACKOFF_DEFAULT);
         this.numberOfShards = getOptionalValue(defn, NUMBER_OF_SHARDS, NUMBER_OF_SHARDS_DEFAULT);
         this.numberOfReplicas = getOptionalValue(defn, NUMBER_OF_REPLICAS, NUMBER_OF_REPLICAS_DEFAULT);
         this.similarityTagsEnabled = getOptionalValue(defn, SIMILARITY_TAGS_ENABLED, SIMILARITY_TAGS_ENABLED_DEFAULT);

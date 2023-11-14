@@ -36,7 +36,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
 
     @Test
-    public void testBulkProcessorEventsFlushLimit() throws Exception {
+    public void bulkProcessorEventsFlushLimit() throws Exception {
         setIndex("test1", createIndex("propa"));
 
         Tree test = root.getTree("/").addChild("test");
@@ -46,7 +46,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
         root.commit();
 
         // 250 is the default flush limit for bulk processor, and we added just less than 250 nodes
-        // So once the index writer is closed , bulk Processor would be closed and all the 248 entries should be flushed.
+        // So once the index writer is closed, bulk Processor would be closed and all the 248 entries should be flushed.
         // Make sure that the last entry is indexed correctly.
         String propaQuery = "select [jcr:path] from [nt:base] where [propa] = 'foo248'";
         assertEventually(() -> {
@@ -68,7 +68,7 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    public void testBulkProcessorSizeFlushLimit() throws Exception {
+    public void bulkProcessorSizeFlushLimit() throws Exception {
         LogCustomizer customLogger = LogCustomizer
                 .forLogger(
                         "org.apache.jackrabbit.oak.plugins.index.elastic.index.ElasticBulkProcessorHandler")
@@ -105,8 +105,8 @@ public class ElasticPropertyIndexTest extends ElasticAbstractQueryTest {
                 assertQuery(propaQuery, List.of("/test/a" + docCountBreachingBulkSize));
             });
 
-            Assert.assertEquals(1, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 2 processed with status OK in")).count());
-            Assert.assertEquals(0, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 3 processed with status OK in")).count());
+            Assert.assertEquals(1, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 2 processed in")).count());
+            Assert.assertEquals(0, customLogger.getLogs().stream().filter(n -> n.contains("Bulk with id 3 processed in")).count());
         } finally {
             customLogger.finished();
         }

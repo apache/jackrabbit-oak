@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import co.elastic.clients.elasticsearch.ElasticsearchAsyncClient;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
@@ -23,6 +24,7 @@ import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -32,7 +34,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.when;
 
@@ -48,16 +50,27 @@ public class ElasticBulkProcessorHandlerTest {
     private ElasticConnection elasticConnectionMock;
 
     @Mock
+    private ElasticsearchAsyncClient esAsyncClientMock;
+
+    @Mock
     private NodeBuilder definitionBuilder;
 
     @Mock
     private CommitInfo commitInfo;
 
+    private AutoCloseable closeable;
+
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getDefinitionNodeState()).thenReturn(definitionNodeStateMock);
         when(commitInfo.getInfo()).thenReturn(Collections.emptyMap());
+        when(elasticConnectionMock.getAsyncClient()).thenReturn(esAsyncClientMock);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        closeable.close();
     }
 
     @Test
