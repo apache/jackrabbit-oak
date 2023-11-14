@@ -1154,10 +1154,6 @@ public class QueryImpl implements Query {
                         almostBestPlan = p;
                     }
                 }
-
-                if (indexPlan != null && indexPlan.getPlanName() != null) {
-                    indexName += "[" + indexPlan.getPlanName() + "]";
-                }
             } else {
                 cost = index.getCost(filter, rootState);
             }

@@ -36,8 +36,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -124,10 +123,6 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
             long mongoObjectsProcessed = 0;
             LOG.debug("Waiting for an empty buffer");
             NodeStateEntryBatch nseBatch = emptyBatchesQueue.take();
-
-            // Used to serialize a node state entry before writing it to the buffer
-            ByteArrayOutputStream baos = new ByteArrayOutputStream(4096);
-            OutputStreamWriter writer = new OutputStreamWriter(baos, PipelinedStrategy.FLATFILESTORE_CHARSET);
             LOG.debug("Obtained an empty buffer. Starting to convert Mongo documents to node state entries");
 
             ArrayList<NodeStateEntry> nodeStateEntries = new ArrayList<>();
@@ -181,21 +176,22 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                         statistics.incrementEntriesAccepted();
                                         totalEntryCount++;
                                         // Serialize entry
-                                        entryWriter.writeTo(writer, nse);
-                                        writer.flush();
-                                        byte[] entryData = baos.toByteArray();
-                                        baos.reset();
-                                        statistics.incrementTotalExtractedEntriesSize(entryData.length);
-                                        if (!nseBatch.hasSpaceForEntry(entryData)) {
+                                        byte[] jsonBytes = entryWriter.asJson(nse.getNodeState()).getBytes(StandardCharsets.UTF_8);
+                                        int entrySize;
+                                        try {
+                                            entrySize = nseBatch.addEntry(path, jsonBytes);
+                                        } catch (NodeStateEntryBatch.BufferFullException e) {
                                             LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
                                                     totalEntryCount, nseBatch.numberOfEntries(), nseBatch.sizeOfEntries());
                                             nseBatch.flip();
                                             tryEnqueue(nseBatch);
                                             // Get an empty buffer
                                             nseBatch = emptyBatchesQueue.take();
+                                            // Now it must fit, otherwise it means that the buffer is smaller than a single
+                                            // entry, which is an error.
+                                            entrySize = nseBatch.addEntry(path, jsonBytes);
                                         }
-                                        // Write entry to buffer
-                                        nseBatch.addEntry(nse.getPath(), entryData);
+                                        statistics.incrementTotalExtractedEntriesSize(entrySize);
                                     } else {
                                         statistics.incrementEntriesRejected();
                                         if (NodeStateUtils.isHiddenPath(path)) {

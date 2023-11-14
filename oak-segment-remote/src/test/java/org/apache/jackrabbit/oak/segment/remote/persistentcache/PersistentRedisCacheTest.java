@@ -98,5 +98,4 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
 
         verify(ioMonitorAdapter, times(1)).afterSegmentRead(any(), eq(msb), eq(lsb), anyInt(), anyLong());
     }
-
 }
