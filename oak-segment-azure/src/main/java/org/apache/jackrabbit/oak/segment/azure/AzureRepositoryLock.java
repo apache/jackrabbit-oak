@@ -42,7 +42,7 @@ public class AzureRepositoryLock implements RepositoryLock {
     public static final String INTERVAL_PROP = "oak.segment.azure.lock.leaseDuration";
     private static int INTERVAL = Integer.getInteger(INTERVAL_PROP, 60);
 
-    public static final String RENEWAL_FREQUENCY_PROP = "oak.segment.azure.lock.leaseRenewalPeriod";
+    public static final String RENEWAL_FREQUENCY_PROP = "oak.segment.azure.lock.leaseRenewalFrequency";
     private static int RENEWAL_FREQUENCY = Integer.getInteger(RENEWAL_FREQUENCY_PROP, 5);
 
     public static final String TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP = "oak.segment.azure.lock.blockWritesAfter";
