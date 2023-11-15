@@ -23,14 +23,12 @@ import java.util.Map;
 
 import javax.jcr.Repository;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceStrategy;
-import org.apache.felix.scr.annotations.References;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -51,6 +49,8 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
 
 /**
  * RepositoryManager constructs the Repository instance and registers it with OSGi Service Registry.
@@ -58,13 +58,16 @@ import org.osgi.framework.ServiceRegistration;
  * create repository. This is done to prevent repository creation in scenarios where repository needs
  * to be configured in a custom way
  */
-@Component(policy = ConfigurationPolicy.REQUIRE)
-@References({
-        @Reference(referenceInterface = StatisticsProvider.class,
-                strategy = ReferenceStrategy.LOOKUP
-        )
-})
+@Component(
+        configurationPolicy = ConfigurationPolicy.REQUIRE,
+        property = {
+                "oak.observation.queue-length:Integer=10000",
+                "oak.observation.limit-commit-rate:Boolean=false",
+                "oak.query.fastResultSize:Boolean=false"
+        }
+)
 public class RepositoryManager {
+
     private static final int DEFAULT_OBSERVATION_QUEUE_LENGTH = BackgroundObserver.DEFAULT_QUEUE_SIZE;
     private static final boolean DEFAULT_COMMIT_RATE_LIMIT = false;
     private static final boolean DEFAULT_FAST_QUERY_RESULT_SIZE = false;
@@ -102,23 +105,13 @@ public class RepositoryManager {
     @Reference(target = "(type=reference)")
     private IndexEditorProvider referenceIndex;
 
-    @Property(
-        intValue = DEFAULT_OBSERVATION_QUEUE_LENGTH,
-        name = "Observation queue length",
-        description = "Maximum number of pending revisions in a observation listener queue")
+    @Reference(name = "org.apache.jackrabbit.oak.stats.StatisticsProvider")
+    private StatisticsProvider statisticsProvider;
+
     private static final String OBSERVATION_QUEUE_LENGTH = "oak.observation.queue-length";
 
-    @Property(
-        boolValue = DEFAULT_COMMIT_RATE_LIMIT,
-        name = "Commit rate limiter",
-        description = "Limit the commit rate once the number of pending revisions in the observation " +
-                "queue exceed 90% of its capacity.")
     private static final String COMMIT_RATE_LIMIT = "oak.observation.limit-commit-rate";
 
-    @Property(
-            boolValue = DEFAULT_FAST_QUERY_RESULT_SIZE,
-            name = "Fast query result size",
-            description = "Whether the query result size should return an estimation (or -1 if disabled) for large queries")
     private static final String FAST_QUERY_RESULT_SIZE = "oak.query.fastResultSize";
 
     private OsgiRepository repository;

@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -85,6 +86,7 @@ public class RepositoryManagerTest {
 
 
     private void registerRequiredServices() {
+        context.registerService(StatisticsProvider.class, StatisticsProvider.NOOP);
         context.registerService(SecurityProvider.class, new OpenSecurityProvider());
         context.registerService(NodeStore.class, new MemoryNodeStore());
         context.registerService(IndexEditorProvider.class, new PropertyIndexEditorProvider(),
