@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.BufferedWriter;
@@ -48,8 +50,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
-    private final ClassLoader classLoader = getClass().getClassLoader();
-    private final Compression algorithm = Compression.NONE;
+    private static ScheduledExecutorService metricsExecutor;
+    private static final ClassLoader classLoader = PipelinedMergeSortTaskTest.class.getClassLoader();
+    private static final Compression algorithm = Compression.NONE;
+
+    @BeforeClass
+    public static void init() {
+        metricsExecutor = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    @AfterClass
+    public static void shutdown() {
+        metricsExecutor.shutdown();
+    }
 
     @Test
     public void noFileToMerge() throws Exception {
@@ -97,8 +110,7 @@ public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
         Path sortRoot = sortFolder.getRoot().toPath();
         // +1 for the Sentinel.
         ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(files.length + 1);
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, executor)) {
+        try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, metricsExecutor)) {
             PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(sortRoot,
                     pathComparator,
                     algorithm,

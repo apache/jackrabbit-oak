@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.codahale.metrics.Counter;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -62,7 +61,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
@@ -153,17 +151,6 @@ public class PipelinedIT {
         List<PathFilter> pathFilters = List.of(contentDamPathFilter);
 
         testSuccessfulDownload(pathPredicate, pathFilters);
-
-        SortedMap<String, Counter> counters = statsProvider.getRegistry().getCounters();
-//        assertEquals(1, counters.get(TransformStageStatistics. "oak_indexer_pipelined_mongo_download_retry").getCount());
-
-        // Check the statistics
-        String pipelinedMetrics = statsProvider.getRegistry()
-                .getCounters()
-                .entrySet().stream()
-                .map(e -> e.getKey() + " " + e.getValue().getCount())
-                .collect(Collectors.joining("\n"));
-        LOG.info("Metrics\n{}", pipelinedMetrics);
     }
 
     @Test

@@ -105,23 +105,27 @@ public class PipelinedMongoDownloadTaskTest {
         MongoDocumentStore mongoDocumentStore = mock(MongoDocumentStore.class);
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, executor)) {
-            PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoDatabase, mongoDocumentStore,
-                    batchMaxMemorySize, batchMaxElements, queue, null,
-                    metricStatisticsProvider);
+        try {
+            try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, executor)) {
+                PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoDatabase, mongoDocumentStore,
+                        batchMaxMemorySize, batchMaxElements, queue, null,
+                        metricStatisticsProvider);
 
-            // Execute
-            PipelinedMongoDownloadTask.Result result = task.call();
+                // Execute
+                PipelinedMongoDownloadTask.Result result = task.call();
 
-            // Verify results
-            assertEquals(documents.size(), result.getDocumentsDownloaded());
-            ArrayList<NodeDocument[]> c = new ArrayList<>();
-            queue.drainTo(c);
-            List<NodeDocument> actualDocuments = c.stream().flatMap(Arrays::stream).collect(Collectors.toList());
-            assertEquals(documents, actualDocuments);
+                // Verify results
+                assertEquals(documents.size(), result.getDocumentsDownloaded());
+                ArrayList<NodeDocument[]> c = new ArrayList<>();
+                queue.drainTo(c);
+                List<NodeDocument> actualDocuments = c.stream().flatMap(Arrays::stream).collect(Collectors.toList());
+                assertEquals(documents, actualDocuments);
 
-            Set<String> metricNames = metricStatisticsProvider.getRegistry().getCounters().keySet();
-            assertEquals(metricNames, Set.of(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE));
+                Set<String> metricNames = metricStatisticsProvider.getRegistry().getCounters().keySet();
+                assertEquals(metricNames, Set.of(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE));
+            }
+        } finally {
+            executor.shutdown();
         }
 
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 0}}"));

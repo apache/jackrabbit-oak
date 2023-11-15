@@ -399,75 +399,78 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         Registration r1 = wb.register(MongoDocumentStore.class, ds, emptyMap());
 
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        MetricStatisticsProvider metricsStatisticsProvider = new MetricStatisticsProvider(null, executor);
-        wb.register(StatisticsProvider.class, metricsStatisticsProvider, emptyMap());
-        Registration c1Registration = wb.register(MongoDatabase.class, mongoConnection.getDatabase(), emptyMap());
+        try {
+            MetricStatisticsProvider metricsStatisticsProvider = new MetricStatisticsProvider(null, executor);
+            wb.register(StatisticsProvider.class, metricsStatisticsProvider, emptyMap());
+            Registration c1Registration = wb.register(MongoDatabase.class, mongoConnection.getDatabase(), emptyMap());
 
-        configureIndex(store);
+            configureIndex(store);
 
-        NodeBuilder builder = store.getRoot().builder();
-        NodeBuilder appNB = newNode("app:Asset");
-        createChild(appNB,
-                "jcr:content",
-                "jcr:content/comments",
-                "jcr:content/metadata",
-                "jcr:content/metadata/xmp",
-                "jcr:content/renditions",
-                "jcr:content/renditions/original",
-                "jcr:content/renditions/original/jcr:content"
-        );
-        builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
-        store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+            NodeBuilder builder = store.getRoot().builder();
+            NodeBuilder appNB = newNode("app:Asset");
+            createChild(appNB,
+                    "jcr:content",
+                    "jcr:content/comments",
+                    "jcr:content/metadata",
+                    "jcr:content/metadata/xmp",
+                    "jcr:content/renditions",
+                    "jcr:content/renditions/original",
+                    "jcr:content/renditions/original/jcr:content"
+            );
+            builder.child("test").setChildNode("book.jpg", appNB.getNodeState());
+            store.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        String checkpoint = store.checkpoint(100000);
+            String checkpoint = store.checkpoint(100000);
 
-        //Shut down this store and restart in readOnly mode
-        store.dispose();
-        r1.unregister();
-        c1Registration.unregister();
+            //Shut down this store and restart in readOnly mode
+            store.dispose();
+            r1.unregister();
+            c1Registration.unregister();
 
-        MongoConnection c2 = connectionFactory.getConnection();
-        DocumentNodeStoreBuilder<?> docBuilderRO = builderProvider.newBuilder().setReadOnlyMode()
-                .setMongoDB(c2.getMongoClient(), c2.getDBName());
-        ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
-        store = docBuilderRO.build();
-        wb.register(MongoDocumentStore.class, ds, emptyMap());
-        wb.register(MongoDatabase.class, c2.getDatabase(), emptyMap());
+            MongoConnection c2 = connectionFactory.getConnection();
+            DocumentNodeStoreBuilder<?> docBuilderRO = builderProvider.newBuilder().setReadOnlyMode()
+                    .setMongoDB(c2.getMongoClient(), c2.getDBName());
+            ds = (MongoDocumentStore) docBuilderRO.getDocumentStore();
+            store = docBuilderRO.build();
+            wb.register(MongoDocumentStore.class, ds, emptyMap());
+            wb.register(MongoDatabase.class, c2.getDatabase(), emptyMap());
 
-        ExtendedIndexHelper helper = new ExtendedIndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
-                temporaryFolder.newFolder(), List.of(TEST_INDEX_PATH));
-        IndexerSupport support = new IndexerSupport(helper, checkpoint);
+            ExtendedIndexHelper helper = new ExtendedIndexHelper(store, store.getBlobStore(), wb, temporaryFolder.newFolder(),
+                    temporaryFolder.newFolder(), List.of(TEST_INDEX_PATH));
+            IndexerSupport support = new IndexerSupport(helper, checkpoint);
 
-        CollectingIndexer testIndexer = new CollectingIndexer(p -> p.startsWith("/test"));
-        DocumentStoreIndexer index = new DocumentStoreIndexer(helper, support) {
-            @Override
-            protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder,
-                                                       IndexingProgressReporter progressReporter) {
-                return new CompositeIndexer(List.of(testIndexer));
-            }
-        };
+            CollectingIndexer testIndexer = new CollectingIndexer(p -> p.startsWith("/test"));
+            DocumentStoreIndexer index = new DocumentStoreIndexer(helper, support) {
+                @Override
+                protected CompositeIndexer prepareIndexers(NodeStore nodeStore, NodeBuilder builder,
+                                                           IndexingProgressReporter progressReporter) {
+                    return new CompositeIndexer(List.of(testIndexer));
+                }
+            };
 
+            index.reindex();
 
-        index.reindex();
+            assertThat(testIndexer.paths, containsInAnyOrder(
+                    "/test",
+                    "/test/book.jpg",
+                    "/test/book.jpg/jcr:content",
+                    "/test/book.jpg/jcr:content/comments",
+                    "/test/book.jpg/jcr:content/metadata",
+                    "/test/book.jpg/jcr:content/metadata/xmp",
+                    "/test/book.jpg/jcr:content/renditions",
+                    "/test/book.jpg/jcr:content/renditions/original",
+                    "/test/book.jpg/jcr:content/renditions/original/jcr:content"
+            ));
 
-        assertThat(testIndexer.paths, containsInAnyOrder(
-                "/test",
-                "/test/book.jpg",
-                "/test/book.jpg/jcr:content",
-                "/test/book.jpg/jcr:content/comments",
-                "/test/book.jpg/jcr:content/metadata",
-                "/test/book.jpg/jcr:content/metadata/xmp",
-                "/test/book.jpg/jcr:content/renditions",
-                "/test/book.jpg/jcr:content/renditions/original",
-                "/test/book.jpg/jcr:content/renditions/original/jcr:content"
-        ));
+            store.dispose();
 
-        store.dispose();
-
-        SortedMap<String, Counter> counters = metricsStatisticsProvider.getRegistry().getCounters();
-        assertMetric(counters, DocumentStoreIndexerBase.METRIC_INDEXING_DURATION_SECONDS);
-        assertMetric(counters, DocumentStoreIndexerBase.METRIC_MERGE_NODE_STORE_DURATION_SECONDS);
-        assertMetric(counters, DocumentStoreIndexerBase.METRIC_FULL_INDEX_CREATION_DURATION_SECONDS);
+            SortedMap<String, Counter> counters = metricsStatisticsProvider.getRegistry().getCounters();
+            assertMetric(counters, DocumentStoreIndexerBase.METRIC_INDEXING_DURATION_SECONDS);
+            assertMetric(counters, DocumentStoreIndexerBase.METRIC_MERGE_NODE_STORE_DURATION_SECONDS);
+            assertMetric(counters, DocumentStoreIndexerBase.METRIC_FULL_INDEX_CREATION_DURATION_SECONDS);
+        } finally {
+            executor.shutdown();
+        }
     }
 
     private void assertMetric(SortedMap<String, Counter> counters, String metricName) {
