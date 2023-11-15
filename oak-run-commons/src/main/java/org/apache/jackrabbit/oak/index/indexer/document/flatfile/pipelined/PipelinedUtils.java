@@ -34,10 +34,10 @@ public class PipelinedUtils {
     }
 
     public static String formatAsTransferSpeedMBs(long numberOfBytes, long timeMillis) {
-        if (timeMiilis == 0) {
+        if (timeMillis == 0) {
             return "N/A";
         } else {
-            double speed = 1000 * (((double) numberOfBytes) / timeMiilis) / FileUtils.ONE_MB;
+            double speed = 1000 * (((double) numberOfBytes) / timeMillis) / FileUtils.ONE_MB;
             return String.format("%1.2f MB/s", speed);
         }
     }
