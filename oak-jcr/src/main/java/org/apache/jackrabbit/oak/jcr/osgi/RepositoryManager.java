@@ -104,20 +104,17 @@ public class RepositoryManager {
 
     @Property(
         intValue = DEFAULT_OBSERVATION_QUEUE_LENGTH,
-        name = "Observation queue length",
         description = "Maximum number of pending revisions in a observation listener queue")
     private static final String OBSERVATION_QUEUE_LENGTH = "oak.observation.queue-length";
 
     @Property(
         boolValue = DEFAULT_COMMIT_RATE_LIMIT,
-        name = "Commit rate limiter",
         description = "Limit the commit rate once the number of pending revisions in the observation " +
                 "queue exceed 90% of its capacity.")
     private static final String COMMIT_RATE_LIMIT = "oak.observation.limit-commit-rate";
 
     @Property(
             boolValue = DEFAULT_FAST_QUERY_RESULT_SIZE,
-            name = "Fast query result size",
             description = "Whether the query result size should return an estimation (or -1 if disabled) for large queries")
     private static final String FAST_QUERY_RESULT_SIZE = "oak.query.fastResultSize";
 
