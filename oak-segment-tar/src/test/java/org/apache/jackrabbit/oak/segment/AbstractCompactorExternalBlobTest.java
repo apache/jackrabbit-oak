@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.segment;
 
 import static java.util.concurrent.TimeUnit.DAYS;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactor;
+import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.SimpleCompactorFactory;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.addTestContent;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.assertSameRecord;
 import static org.apache.jackrabbit.oak.segment.CompactorTestUtils.assertSameStableId;
@@ -49,27 +51,47 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
+@RunWith(Parameterized.class)
 public abstract class AbstractCompactorExternalBlobTest {
 
-    private TemporaryFolder folder = new TemporaryFolder(new File("target"));
+    final private TemporaryFolder folder = new TemporaryFolder(new File("target"));
 
-    private TemporaryBlobStore temporaryBlobStore = new TemporaryBlobStore(folder);
+    final private TemporaryBlobStore temporaryBlobStore = new TemporaryBlobStore(folder);
 
     private FileStore fileStore;
 
     private SegmentNodeStore nodeStore;
 
-    private Compactor compactor;
+    private SimpleCompactor simpleCompactor;
+
+    private final SimpleCompactorFactory compactorFactory;
 
     private GCGeneration compactedGeneration;
 
     @Rule
     public RuleChain rules = RuleChain.outerRule(folder)
         .around(temporaryBlobStore);
+
+    @Parameterized.Parameters
+    public static List<SimpleCompactorFactory> compactorFactories() {
+        return Arrays.asList(
+                compactor -> compactor::compactUp,
+                compactor -> (node, canceller) -> compactor.compactDown(node, canceller, canceller),
+                compactor -> (node, canceller) -> compactor.compact(EMPTY_NODE, node, EMPTY_NODE, canceller)
+        );
+    }
+
+    public AbstractCompactorExternalBlobTest(@NotNull SimpleCompactorFactory compactorFactory) {
+        this.compactorFactory = compactorFactory;
+    }
 
     public void setup(boolean withBlobStore) throws IOException, InvalidFileStoreVersionException {
         BlobStore blobStore = temporaryBlobStore.blobStore();
@@ -82,7 +104,7 @@ public abstract class AbstractCompactorExternalBlobTest {
         fileStore = fileStoreBuilder.build();
         nodeStore = SegmentNodeStoreBuilders.builder(fileStore).build();
         compactedGeneration = newGCGeneration(1,1, true);
-        compactor = createCompactor(fileStore, compactedGeneration);
+        simpleCompactor = compactorFactory.newSimpleCompactor(createCompactor(fileStore, compactedGeneration));
     }
 
     protected abstract Compactor createCompactor(@NotNull FileStore fileStore, @NotNull GCGeneration generation);
@@ -117,7 +139,7 @@ public abstract class AbstractCompactorExternalBlobTest {
         String cp5 = nodeStore.checkpoint(DAYS.toMillis(1));
 
         SegmentNodeState uncompacted1 = fileStore.getHead();
-        SegmentNodeState compacted1 = compactor.compact(EMPTY_NODE, uncompacted1, EMPTY_NODE, Canceller.newCanceller());
+        SegmentNodeState compacted1 = simpleCompactor.compact(uncompacted1, Canceller.newCanceller());
 
         assertNotNull(compacted1);
         assertNotSame(uncompacted1, compacted1);

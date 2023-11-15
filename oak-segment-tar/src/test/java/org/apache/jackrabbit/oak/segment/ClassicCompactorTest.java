@@ -40,8 +40,10 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.GCNodeWriteMonitor;
+import org.apache.jackrabbit.oak.segment.file.CompactionWriter;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.cancel.Canceller;
+import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -80,7 +82,7 @@ public class ClassicCompactorTest {
         addTestContent(nodeStore);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
-        SegmentNodeState compacted = compactor.compact(uncompacted, Canceller.newCanceller());
+        SegmentNodeState compacted = compactor.compactUp(uncompacted, Canceller.newCanceller());
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
@@ -101,7 +103,7 @@ public class ClassicCompactorTest {
         addNodes(nodeStore, ClassicCompactor.UPDATE_LIMIT * 2 + 1);
 
         SegmentNodeState uncompacted = (SegmentNodeState) nodeStore.getRoot();
-        SegmentNodeState compacted = compactor.compact(uncompacted, Canceller.newCanceller());
+        SegmentNodeState compacted = compactor.compactUp(uncompacted, Canceller.newCanceller());
         assertNotNull(compacted);
         assertFalse(uncompacted == compacted);
         assertEquals(uncompacted, compacted);
@@ -116,25 +118,27 @@ public class ClassicCompactorTest {
         builder.setChildNode("cancel").setProperty("cancel", "cancel");
         nodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        assertNull(compactor.compact(nodeStore.getRoot(), Canceller.newCanceller().withCondition("reason", () -> true)));
+        assertNull(compactor.compactUp(nodeStore.getRoot(), Canceller.newCanceller().withCondition("reason", () -> true)));
     }
 
     @Test(expected = IOException.class)
     public void testIOException() throws IOException, CommitFailedException {
         ClassicCompactor compactor = createCompactor(fileStore, "IOException");
         addTestContent(nodeStore);
-        compactor.compact(nodeStore.getRoot(), Canceller.newCanceller());
+        compactor.compactUp(nodeStore.getRoot(), Canceller.newCanceller());
     }
 
     @NotNull
     private static ClassicCompactor createCompactor(FileStore fileStore, String failOnName) {
+        GCGeneration generation = newGCGeneration(1, 1, true);
         SegmentWriter writer = defaultSegmentWriterBuilder("c")
-                .withGeneration(newGCGeneration(1, 1, true))
+                .withGeneration(generation)
                 .build(fileStore);
         if (failOnName != null) {
             writer = new FailingSegmentWriter(writer, failOnName);
         }
-        return new ClassicCompactor(fileStore.getReader(), writer, fileStore.getBlobStore(), GCNodeWriteMonitor.EMPTY);
+        CompactionWriter compactionWriter = new CompactionWriter(fileStore.getReader(), fileStore.getBlobStore(), generation, writer);
+        return new ClassicCompactor(compactionWriter, GCNodeWriteMonitor.EMPTY);
     }
 
     private static void addNodes(SegmentNodeStore nodeStore, int count)
