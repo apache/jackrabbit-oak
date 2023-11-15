@@ -18,18 +18,27 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
 public class FormattingUtils {
     public static String formatToSeconds(Stopwatch stopwatch) {
-        LocalTime seconds = LocalTime.ofSecondOfDay(stopwatch.elapsed(TimeUnit.SECONDS));
-        return DateTimeFormatter.ISO_TIME.format(seconds);
+        long seconds = stopwatch.elapsed(TimeUnit.SECONDS);
+        long absSeconds = Math.abs(seconds);
+        long hoursPart = TimeUnit.SECONDS.toHours(absSeconds);
+        long minutesPart = TimeUnit.SECONDS.toMinutes(absSeconds) % 60;
+        long secondsPart = TimeUnit.SECONDS.toSeconds(absSeconds) % 60;
+        String sign = seconds < 0 ? "-" : "";
+        return String.format("%s%02d:%02d:%02d", sign, hoursPart, minutesPart, secondsPart);
     }
 
     public static String formatToMillis(Stopwatch stopwatch) {
-        LocalTime nanoSeconds = LocalTime.ofNanoOfDay(stopwatch.elapsed(TimeUnit.MILLISECONDS)*1000000);
-        return DateTimeFormatter.ISO_TIME.format(nanoSeconds);
+        long millis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+        long absMillis = Math.abs(millis);
+        long hoursPart = TimeUnit.MILLISECONDS.toHours(absMillis);
+        long minutesPart = TimeUnit.MILLISECONDS.toMinutes(absMillis) % 60;
+        long secondsPart = TimeUnit.MILLISECONDS.toSeconds(absMillis) % 60;
+        long millisPart = TimeUnit.MILLISECONDS.toMillis(absMillis) % 1000;
+        String sign = millis < 0 ? "-" : "";
+        return String.format("%s%02d:%02d:%02d.%03d", sign, hoursPart, minutesPart, secondsPart, millisPart);
     }
 }

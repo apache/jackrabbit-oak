@@ -17,11 +17,14 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
 import co.elastic.clients.elasticsearch._types.AcknowledgedResponseBase;
+import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexResponse;
 import co.elastic.clients.elasticsearch.indices.DeleteIndexResponse;
 import co.elastic.clients.elasticsearch.indices.ElasticsearchIndicesClient;
 import co.elastic.clients.elasticsearch.indices.GetAliasResponse;
+import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsRequest;
+import co.elastic.clients.elasticsearch.indices.PutIndicesSettingsResponse;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesRequest;
 import co.elastic.clients.elasticsearch.indices.UpdateAliasesResponse;
 import co.elastic.clients.json.JsonpUtils;
@@ -38,15 +41,6 @@ import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriter;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.IndicesClient;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.xcontent.XContentType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.TestOnly;
 import org.slf4j.Logger;
@@ -57,18 +51,13 @@ import java.util.ArrayList;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.elasticsearch.xcontent.ToXContent.EMPTY_PARAMS;
-import static org.elasticsearch.xcontent.XContentFactory.jsonBuilder;
-
 class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     private static final Logger LOG = LoggerFactory.getLogger(ElasticIndexWriter.class);
 
     private final ElasticIndexTracker indexTracker;
     private final ElasticConnection elasticConnection;
     private final ElasticIndexDefinition indexDefinition;
-
     private final ElasticBulkProcessorHandler bulkProcessorHandler;
-
     private final boolean reindex;
     private final String indexName;
 
@@ -134,16 +123,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
 
     @Override
     public void updateDocument(String path, ElasticDocument doc) throws IOException {
-        IndexRequest request = new IndexRequest(indexName)
-                .id(ElasticIndexUtils.idFromPath(path))
-                .source(doc.build(), XContentType.JSON);
-        bulkProcessorHandler.add(request);
+        bulkProcessorHandler.update(ElasticIndexUtils.idFromPath(path), doc);
     }
 
     @Override
     public void deleteDocuments(String path) throws IOException {
-        DeleteRequest request = new DeleteRequest(indexName).id(ElasticIndexUtils.idFromPath(path));
-        bulkProcessorHandler.add(request);
+        bulkProcessorHandler.delete(ElasticIndexUtils.idFromPath(path));
     }
 
     @Override
@@ -196,12 +181,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             final CreateIndexResponse response = esClient.create(request);
             LOG.info("Created index {}. Response acknowledged: {}", indexName, response.acknowledged());
             checkResponseAcknowledgement(response, "Create index call not acknowledged for index " + indexName);
-        } catch (ElasticsearchStatusException ese) {
+        } catch (ElasticsearchException ese) {
             // We already check index existence as first thing in this method, if we get here it means we have got into
             // a conflict (eg: multiple cluster nodes provision concurrently).
             // Elasticsearch does not have a CREATE IF NOT EXIST, need to inspect exception
             // https://github.com/elastic/elasticsearch/issues/19862
-            if (ese.status().getStatus() == 400 && ese.getDetailedMessage().contains("resource_already_exists_exception")) {
+            if (ese.status() == 400 && ese.getMessage().contains("resource_already_exists_exception")) {
                 LOG.warn("Index {} already exists. Ignoring error", indexName);
             } else {
                 throw ese;
@@ -216,14 +201,12 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
             throw new IllegalStateException("cannot enable an index that does not exist");
         }
 
-        UpdateSettingsRequest request = ElasticIndexHelper.enableIndexRequest(indexName, indexDefinition);
+        PutIndicesSettingsRequest request = ElasticIndexHelper.enableIndexRequest(indexName, indexDefinition);
         if (LOG.isDebugEnabled()) {
-            final String requestMsg = Strings.toString(request.toXContent(jsonBuilder(), EMPTY_PARAMS));
-            LOG.debug("Updating Index Settings with request {}", requestMsg);
+            LOG.debug("Updating Index Settings with request {}", request);
         }
-        IndicesClient oldClient = elasticConnection.getOldClient().indices();
-        AcknowledgedResponse response = oldClient.putSettings(request, RequestOptions.DEFAULT);
-        LOG.info("Updated settings for index {}. Response acknowledged: {}", indexName, response.isAcknowledged());
+        PutIndicesSettingsResponse response = client.putSettings(request);
+        LOG.info("Updated settings for index {}. Response acknowledged: {}", indexName, response.acknowledged());
         checkResponseAcknowledgement(response, "Update index settings call not acknowledged for index " + indexName);
 
         // update the alias
@@ -246,12 +229,6 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         deleteOldIndices(client, aliasResponse.result().keySet());
     }
 
-    private void checkResponseAcknowledgement(AcknowledgedResponse response, String exceptionMessage) {
-        if (!response.isAcknowledged()) {
-            throw new IllegalStateException(exceptionMessage);
-        }
-    }
-
     private void checkResponseAcknowledgement(AcknowledgedResponseBase response, String exceptionMessage) {
         if (!response.acknowledged()) {
             throw new IllegalStateException(exceptionMessage);
@@ -265,7 +242,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
     }
 
     private void deleteOldIndices(ElasticsearchIndicesClient indicesClient, Set<String> indices) throws IOException {
-        if (indices.size() == 0)
+        if (indices.isEmpty())
             return;
         DeleteIndexResponse deleteIndexResponse = indicesClient.delete(db -> db.index(new ArrayList<>(indices)));
         checkResponseAcknowledgement(deleteIndexResponse, "Delete index call not acknowledged for indices " + indices);
