@@ -279,7 +279,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         // Derived values for transform <-> sort-save
         int nseWorkingMemoryMB = readNSEBuffersReservedMemory();
         this.nseBuffersCount = 1 + numberOfTransformThreads;
-        long nseWorkingMemoryBytes = nseWorkingMemoryMB * FileUtils.ONE_MB;
+        long nseWorkingMemoryBytes = (long) nseWorkingMemoryMB * FileUtils.ONE_MB;
         // The working memory is divided in the following regions:
         // - #transforThreads   NSE Binary buffers
         // - x1                 Memory reserved for the array created by the sort-batch thread with the keys of the entries
