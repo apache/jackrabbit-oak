@@ -27,6 +27,7 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSortByteArray;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
@@ -48,10 +49,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.getSortedStoreFileName;
 

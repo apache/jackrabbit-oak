@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -61,7 +62,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MetricsUtils.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED;
 
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:

@@ -37,7 +37,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.FLATFILESTORE_CHARSET;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
 import static org.junit.Assert.assertArrayEquals;
@@ -122,9 +125,9 @@ public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
             assertTrue(Files.exists(result.getFlatFileStoreFile()));
             Set<String> metricNames = metricStatisticsProvider.getRegistry().getCounters().keySet();
             assertEquals(metricNames, Set.of(
-                    MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME,
-                    MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT,
-                    MetricsUtils.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS,
+                    OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME,
+                    OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT,
+                    OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS,
                     OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT
             ));
             return result;

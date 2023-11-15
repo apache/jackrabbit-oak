@@ -18,41 +18,24 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.jackrabbit.oak.stats.CounterStats;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-public class MetricsUtils {
-    private final static Logger LOG = LoggerFactory.getLogger(MetricsUtils.class);
-    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED = "oak_indexer_pipelined_documentsDownloaded";
-    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED = "oak_indexer_pipelined_documentsTraversed";
-    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT = "oak_indexer_pipelined_documentsRejectedSplit";
-    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED = "oak_indexer_pipelined_documentsAccepted";
-    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED = "oak_indexer_pipelined_documentsRejected";
-    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE = "oak_indexer_pipelined_documentsRejectedEmptyNodeState";
-    public static final String OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED = "oak_indexer_pipelined_entriesTraversed";
-    public static final String OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED = "oak_indexer_pipelined_entriesAccepted";
-    public static final String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED = "oak_indexer_pipelined_entriesRejected";
-    public static final String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS = "oak_indexer_pipelined_entriesRejectedHiddenPaths";
-    public static final String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED = "oak_indexer_pipelined_entriesRejectedPathFiltered";
-    public static final String OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE = "oak_indexer_pipelined_extractedEntriesTotalSize";
-    public static final String OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE= "oak_indexer_pipelined_mongoDownloadEnqueueDelayPercentage";
-    public static final String OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT = "oak_indexer_pipelined_mergeSortIntermediateFilesCount";
-    public static final String OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS = "oak_indexer_pipelined_mergeSortEagerMergesRuns";
-    public static final String OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT = "oak_indexer_pipelined_mergeSortFinalMergeFilesCount";
-    public static final String OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME = "oak_indexer_pipelined_mergeSortFinalMergeTime";
-
-    public static void setCounter(StatisticsProvider statisticsProvider, String name, long value) {
-        CounterStats metric = statisticsProvider.getCounterStats(name, StatsOptions.METRICS_ONLY);
-        LOG.debug("Adding metric: {} {}", name, value);
-        if (metric.getCount() != 0) {
-            LOG.warn("Counter was not 0: {} {}", name, metric.getCount());
-            // Reset to 0
-            metric.dec(metric.getCount());
-        }
-        metric.inc(value);
-    }
+interface PipelinedMetrics {
+    String METRIC_NAME_PREFIX = "oak_indexer_pipelined_";
+    String OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED = METRIC_NAME_PREFIX + "documentsDownloaded";
+    String OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED = METRIC_NAME_PREFIX + "documentsTraversed";
+    String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT = METRIC_NAME_PREFIX + "documentsRejectedSplit";
+    String OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED = METRIC_NAME_PREFIX + "documentsAccepted";
+    String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED = METRIC_NAME_PREFIX + "documentsRejected";
+    String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE = METRIC_NAME_PREFIX + "documentsRejectedEmptyNodeState";
+    String OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED = METRIC_NAME_PREFIX + "entriesTraversed";
+    String OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED = METRIC_NAME_PREFIX + "entriesAccepted";
+    String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED = METRIC_NAME_PREFIX + "entriesRejected";
+    String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS = METRIC_NAME_PREFIX + "entriesRejectedHiddenPaths";
+    String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED = METRIC_NAME_PREFIX + "entriesRejectedPathFiltered";
+    String OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE = METRIC_NAME_PREFIX + "extractedEntriesTotalSize";
+    String OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE= METRIC_NAME_PREFIX + "mongoDownloadEnqueueDelayPercentage";
+    String OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT = METRIC_NAME_PREFIX + "mergeSortIntermediateFilesCount";
+    String OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS = METRIC_NAME_PREFIX + "mergeSortEagerMergesRuns";
+    String OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT = METRIC_NAME_PREFIX + "mergeSortFinalMergeFilesCount";
+    String OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME = METRIC_NAME_PREFIX + "mergeSortFinalMergeTime";
 
 }

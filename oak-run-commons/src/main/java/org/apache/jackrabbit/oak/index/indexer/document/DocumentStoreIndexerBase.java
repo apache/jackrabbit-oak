@@ -45,6 +45,7 @@ import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
@@ -58,7 +59,6 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -311,8 +311,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(indexingDurationSeconds))
                 .add("durationSeconds", indexingDurationSeconds)
                 .build());
-        addMetric(METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
-
+        MetricsUtils.setCounter(indexHelper.getStatisticsProvider(), METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
 
         log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
         Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
@@ -322,7 +321,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds))
                 .add("durationSeconds", mergeNodeStoreDurationSeconds)
                 .build());
-        addMetric(METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
+        MetricsUtils.setCounter(indexHelper.getStatisticsProvider(), METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
 
         indexerSupport.postIndexWork(copyOnWriteStore);
 
@@ -331,14 +330,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds))
                 .add("durationSeconds", fullIndexCreationDurationSeconds)
                 .build());
-        addMetric(METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
-    }
-
-    private void addMetric(String metricName, long metricValue) {
-        log.info("Saving metric: {}={}", metricName, metricValue);
-        indexHelper.getStatisticsProvider()
-                .getCounterStats(metricName, StatsOptions.METRICS_ONLY)
-                .inc(metricValue);
+        MetricsUtils.setCounter(indexHelper.getStatisticsProvider(), METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)

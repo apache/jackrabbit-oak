@@ -121,7 +121,7 @@ public class PipelinedMongoDownloadTaskTest {
             assertEquals(documents, actualDocuments);
 
             Set<String> metricNames = metricStatisticsProvider.getRegistry().getCounters().keySet();
-            assertEquals(metricNames, Set.of(MetricsUtils.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE));
+            assertEquals(metricNames, Set.of(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE));
         }
 
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 0}}"));

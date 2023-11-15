@@ -19,15 +19,6 @@
 
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.ListMultimap;
@@ -41,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdate;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.LockToken;
 import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -49,11 +41,18 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.CounterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
-import org.apache.jackrabbit.oak.stats.StatsOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -486,20 +485,15 @@ public class IndexImporter {
                 long durationSeconds = start.elapsed(TimeUnit.SECONDS);
                 LOG.info("[TASK:{}:END] Metrics: {}", indexImportPhaseName,
                         MetricsFormatter.newBuilder()
-                                .add("duration", FormattingUtils.formatToSeconds(start))
+                                .add("duration", FormattingUtils.formatToSeconds(durationSeconds))
                                 .add("durationSeconds", durationSeconds)
                                 .build()
                 );
 
-                String name = "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds";
-                CounterStats metric = statisticsProvider.getCounterStats(name, StatsOptions.METRICS_ONLY);
-                LOG.debug("Adding metric: {} {}", name, durationSeconds);
-                if (metric.getCount() != 0) {
-                    LOG.warn("Counter was not 0: {} {}", name, metric.getCount());
-                    // Reset to 0
-                    metric.dec(metric.getCount());
-                }
-                metric.inc(durationSeconds);
+                MetricsUtils.setCounter(statisticsProvider,
+                        "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                        durationSeconds);
+
                 break;
             } catch (CommitFailedException | IOException e) {
                 LOG.warn("IndexImporterStepExecutor:{} fail count: {}, retries left: {}", indexImportState, count, maxRetries - count, e);
