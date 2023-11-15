@@ -93,12 +93,12 @@ If there is not enough garbage to justify the creation of a new generation, the 
 If the output of this phase reports that the amount of garbage is beyond a certain threshold, the system creates a new generation and goes on with the next phase.
 
 Compaction executes after a new generation is created.
-The purpose of compaction is to create a compact representation of the current generation. For this the current generation is copied to the new generation leaving out anything from the current generation that is not reachable anymore. Starting with Oak 1.8 compaction can operate in either of two modes: full compaction and tail compaction. Full compaction copies all revisions pertaining to the current generation to the new generation. In contrast tail compaction only copies the most recent ones. The two compaction modes differ in usage of system resources and how much time they consume. While full compaction is more thorough overall, it usually requires much more time, disk spice and disk IO than tail compaction.
+The purpose of compaction is to create a compact representation of the current generation. For this the current generation is copied to the new generation leaving out anything from the current generation that is not reachable anymore. Starting with Oak 1.8 compaction can operate in either of two modes: full compaction and tail compaction. Full compaction copies all revisions pertaining to the current generation to the new generation. In contrast tail compaction only copies the most recent ones. The two compaction modes differ in usage of system resources and how much time they consume. While full compaction is more thorough overall, it usually requires much more time, disk space and disk IO than tail compaction.
 
 Cleanup is the last phase of garbage collection and kicks in as soon as compaction is done.
 Once relevant data is safe in the new generation, old and unused data from a previous generation can be removed.
 This phase locates outdated pieces of data from one of the oldest generations and removes it from the system.
-This is the only phase where data is actually deleted and disk space is finally freed. The amount of freed disk space depends on the preceding compaction operation. In general cleanup can free less space after a tail compaction than after a full compaction. However, this only becomes effective a further garbage collection cycle due to the system always retaining a total of two generations. 
+This is the only phase where data is actually deleted and disk space is finally freed. The amount of freed disk space depends on the preceding compaction operation. In general cleanup can free less space after a tail compaction than after a full compaction. However, this usually only becomes effective after a further garbage collection cycle as the system retains a total of two generations by default. 
 
 ### <a name="offline-garbage-collection"/> Offline Garbage Collection
 
@@ -133,7 +133,7 @@ This section groups those log messages by function, so to provide a useful refer
 
 Please note that the following messages are to be used as an example only.
 To make the examples clear, some information like the date and time, the name of the thread, and the name of the logger are removed.
-These information depend on the configuration of your logging framework.
+This information depends on the configuration of your logging framework.
 Moreover, some of those messages contain data that can and will change from one execution to the other.
 
 Every log message generated during the garbage collection process includes a sequence number 
@@ -291,17 +291,17 @@ TarMK GC #2: compacting root.
 ##### <a name="how-does-compaction-make-use-of-multithreading"/> How does compaction make use of multithreading?
 
 The parallel compactor adds an initial exploration phase to the compaction process, which scans and splits the content tree
-into multiple parts to be processed simultaneously. For this to be efficient, the tree is only expanded until a certain 
-number of nodes is reached, which is defined relative to the number of threads (main thread + compaction workers).
-
+into multiple parts to be processed simultaneously. For this to be efficient, the tree is only expanded until a pre-defined
+(currently 10,000) number of nodes is reached.
 ```
 TarMK GC #2: compacting with 8 threads.
 TarMK GC #2: exploring content tree to find subtrees for parallel compaction.
-TarMK GC #2: target node count for expansion is 7000, based on 7 available workers.
-TarMK GC #2: Found 3 nodes at depth 1, target is 7000.
-TarMK GC #2: Found 48 nodes at depth 2, target is 7000.
-TarMK GC #2: Found 663 nodes at depth 3, target is 7000.
-TarMK GC #2: Found 66944 nodes at depth 4, target is 7000.
+TarMK GC #2: target node count for expansion is 10000.
+TarMK GC #2: found 1 nodes at depth 0.
+TarMK GC #2: found 3 nodes at depth 1.
+TarMK GC #2: found 48 nodes at depth 2.
+TarMK GC #2: found 663 nodes at depth 3.
+TarMK GC #2: found 66944 nodes at depth 4.
 ```
 
 ##### <a name="how-does-compaction-works-with-concurrent-writes"/> How does compaction work with concurrent writes?
