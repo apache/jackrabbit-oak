@@ -52,6 +52,8 @@
                             org.apache.zookeeper.txn.*;resolution:=optional,
                             org.eclipse.*;resolution:=optional,
                             org.xerial.snappy.*;resolution:=optional,
+                            com.fasterxml.jackson.annotation.*;resolution:=optional,
+                            com.fasterxml.jackson.databind.*;resolution:=optional,
                             *
                         </Import-Package>
                         <Embed-Dependency>*;scope=runtime;inline=true</Embed-Dependency>
@@ -136,26 +138,6 @@
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
             <version><!-- see OAK-10548-->3.9.1</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-smile</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>
