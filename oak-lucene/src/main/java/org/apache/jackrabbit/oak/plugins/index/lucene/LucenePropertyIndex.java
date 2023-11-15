@@ -209,6 +209,9 @@ public class LucenePropertyIndex extends FulltextIndex {
     public final static String CACHE_FACET_RESULTS_NAME = "oak.lucene.cacheFacetResults";
     private final boolean CACHE_FACET_RESULTS =
             Boolean.parseBoolean(System.getProperty(CACHE_FACET_RESULTS_NAME, "true"));
+    public final static String EAGER_FACET_CACHE_FILL_NAME = "oak.lucene.cacheFacetEagerFill";
+    private final static boolean EAGER_FACET_CACHE_FILL =
+            Boolean.parseBoolean(System.getProperty(EAGER_FACET_CACHE_FILL_NAME, "true"));
 
     private static boolean FLAG_CACHE_FACET_RESULTS_CHANGE = true;
 
@@ -1644,8 +1647,36 @@ public class LucenePropertyIndex extends FulltextIndex {
                 return cachedResults.get(cacheKey);
             }
             LOG.trace("columnName = {} facet Data not present in cache...", columnName);
+            if (EAGER_FACET_CACHE_FILL) {
+                fillFacetCache(numberOfFacets);
+                if (cachedResults.containsKey(cacheKey)) {
+                    LOG.trace("columnName = {} now found");
+                    return cachedResults.get(cacheKey);
+                }
+                LOG.warn("Facet data for {} not found: read using query", cacheKey);
+            }
             List<Facet> result = getFacetsUncached(numberOfFacets, columnName);
             cachedResults.put(cacheKey, result);
+            return result;
+        }
+
+        private List<Facet> fillFacetCache(int numberOfFacets) throws IOException {
+            List<Facet> result = null;
+            LuceneIndexNode indexNode = index.acquireIndexNode(plan);
+            try {
+                IndexSearcher searcher = indexNode.getSearcher();
+                Facets facets = FacetHelper.getFacets(searcher, query, plan, config);
+                if (facets != null) {
+                    List<String> allColumnNames = FacetHelper.getFacetColumnNamesFromPlan(plan);
+                    for (String column : allColumnNames) {
+                        result = getFacetsUncached(facets, numberOfFacets, column);
+                        String cc = column + "/" + numberOfFacets;
+                        cachedResults.put(cc, result);
+                    }
+                }
+            } finally {
+                indexNode.release();
+            }
             return result;
         }
 
@@ -1677,6 +1708,28 @@ public class LucenePropertyIndex extends FulltextIndex {
                 indexNode.release();
             }
         }
+
+        private List<Facet> getFacetsUncached(Facets facets, int numberOfFacets, String columnName) throws IOException {
+            String facetFieldName = FulltextIndex.parseFacetField(columnName);
+            try {
+                ImmutableList.Builder<Facet> res = new ImmutableList.Builder<>();
+                FacetResult topChildren = facets.getTopChildren(numberOfFacets, facetFieldName);
+                if (topChildren == null) {
+                    return null;
+                }
+                for (LabelAndValue lav : topChildren.labelValues) {
+                    res.add(new Facet(
+                            lav.label, lav.value.intValue()
+                    ));
+                }
+                return res.build();
+            } catch (IllegalArgumentException iae) {
+                LOG.debug(iae.getMessage(), iae);
+                LOG.warn("facets for {} not yet indexed: " + iae, facetFieldName);
+                return null;
+            }
+        }
+
     }
 
     static class LuceneFacetProvider implements FacetProvider {
