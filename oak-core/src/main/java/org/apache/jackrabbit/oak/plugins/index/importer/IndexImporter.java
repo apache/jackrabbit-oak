@@ -490,7 +490,7 @@ public class IndexImporter {
                                 .build()
                 );
 
-                MetricsUtils.setCounter(statisticsProvider,
+                MetricsUtils.setCounterOnce(statisticsProvider,
                         "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
                         durationSeconds);
 

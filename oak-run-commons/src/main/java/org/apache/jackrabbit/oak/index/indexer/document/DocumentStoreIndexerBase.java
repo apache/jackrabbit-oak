@@ -311,7 +311,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(indexingDurationSeconds))
                 .add("durationSeconds", indexingDurationSeconds)
                 .build());
-        MetricsUtils.setCounter(indexHelper.getStatisticsProvider(), METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
+        MetricsUtils.setCounterOnce(indexHelper.getStatisticsProvider(), METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
 
         log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
         Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
@@ -321,7 +321,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds))
                 .add("durationSeconds", mergeNodeStoreDurationSeconds)
                 .build());
-        MetricsUtils.setCounter(indexHelper.getStatisticsProvider(), METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
+        MetricsUtils.setCounterOnce(indexHelper.getStatisticsProvider(), METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
 
         indexerSupport.postIndexWork(copyOnWriteStore);
 
@@ -330,7 +330,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds))
                 .add("durationSeconds", fullIndexCreationDurationSeconds)
                 .build());
-        MetricsUtils.setCounter(indexHelper.getStatisticsProvider(), METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
+        MetricsUtils.setCounterOnce(indexHelper.getStatisticsProvider(), METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)

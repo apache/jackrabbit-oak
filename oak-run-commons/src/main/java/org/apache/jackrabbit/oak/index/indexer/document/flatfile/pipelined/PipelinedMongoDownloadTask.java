@@ -205,7 +205,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .add("enqueueingDelayPercentage", String.format("%1.2f", enqueueingDelayPercentage))
                     .build();
 
-            MetricsUtils.setCounter(statisticsProvider,
+            MetricsUtils.setCounterOnce(statisticsProvider,
                     PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                     Math.round(enqueueingDelayPercentage)
             );

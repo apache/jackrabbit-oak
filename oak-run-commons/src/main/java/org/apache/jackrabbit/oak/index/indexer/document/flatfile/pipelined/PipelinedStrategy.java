@@ -460,7 +460,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                                 mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
                             }
                             mergeSortTask.stopEagerMerging();
-                            MetricsUtils.setCounter(statisticsProvider, OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED, downloadResult.getDocumentsDownloaded());
+                            MetricsUtils.setCounterOnce(statisticsProvider, OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED, downloadResult.getDocumentsDownloaded());
 
                         } else if (result instanceof PipelinedTransformTask.Result) {
                             PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;

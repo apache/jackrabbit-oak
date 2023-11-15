@@ -146,17 +146,17 @@ public class TransformStageStatistics {
         long entriesRejectedSum = entriesRejected.sum();
         long entriesTraversed = entriesAcceptedSum + entriesRejectedSum;
 
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED, mongoDocumentsTraversedSum);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT, documentsRejectedSplitSum);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE, documentsRejectedEmptyNodeStateSum);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED, documentsAcceptedTotal);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED, documentsRejectedTotal);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED, entriesTraversed);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED, entriesAcceptedSum);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED, entriesRejectedSum);
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS, entriesRejectedHiddenPaths.sum());
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED, entriesRejectedPathFiltered.sum());
-        MetricsUtils.setCounter(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE, entriesAcceptedTotalSizeSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED, mongoDocumentsTraversedSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT, documentsRejectedSplitSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE, documentsRejectedEmptyNodeStateSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED, documentsAcceptedTotal);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED, documentsRejectedTotal);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED, entriesTraversed);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED, entriesAcceptedSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED, entriesRejectedSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS, entriesRejectedHiddenPaths.sum());
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED, entriesRejectedPathFiltered.sum());
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE, entriesAcceptedTotalSizeSum);
     }
 
     public String formatStats() {

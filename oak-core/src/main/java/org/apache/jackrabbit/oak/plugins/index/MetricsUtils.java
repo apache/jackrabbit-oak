@@ -31,15 +31,17 @@ public class MetricsUtils {
      * <p>Set a counter metric to the given value. The previous value of the metric is discarded and replaced by the
      * given value.</p>
      * <p>
-     * Note that this method is to support a use case of the counter metrics that deviate from the normal use case.
+     * Note that this method is to support a non-standard use case of the counter metrics.
      * Normally counters are incremented periodically to keep track of how many times an event occurred. This method
-     * instead discards the previous value, so it is intended for cases where we are only interested in the final value.
+     * instead is intended to be called only once for a given metric, to provide the final value of the metrics. If
+     * called more than once for the same metric, it will log a warning and discard the old value.
+     * </p>
      *
      * @param statisticsProvider The statistics provider to use.
      * @param name               The name of the counter to set.
      * @param value              The value to set
      */
-    public static void setCounter(StatisticsProvider statisticsProvider, String name, long value) {
+    public static void setCounterOnce(StatisticsProvider statisticsProvider, String name, long value) {
         CounterStats metric = statisticsProvider.getCounterStats(name, StatsOptions.METRICS_ONLY);
         LOG.debug("Setting counter {} to {}", name, value);
         if (metric.getCount() != 0) {
