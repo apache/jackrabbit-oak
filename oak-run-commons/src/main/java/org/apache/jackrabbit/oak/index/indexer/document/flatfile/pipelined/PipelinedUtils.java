@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import org.apache.commons.io.FileUtils;
+
 public class PipelinedUtils {
     /**
      * <p>Format a percentage as a string with 2 decimal places. For instance:
@@ -28,6 +30,15 @@ public class PipelinedUtils {
             return "N/A";
         } else {
             return String.format("%1.2f", (100.0 * numerator) / denominator);
+        }
+    }
+
+    public static String formatAsTransferSpeedMBs(long numberOfBytes, long timeMiilis) {
+        if (timeMiilis == 0) {
+            return "N/A";
+        } else {
+            double speed = 1000 * (((double) numberOfBytes) / timeMiilis) / FileUtils.ONE_MB;
+            return String.format("%1.2f MB/s", speed);
         }
     }
 

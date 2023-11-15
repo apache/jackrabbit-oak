@@ -50,7 +50,7 @@ public class NodeStateEntryBatchTest {
         batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE - 4 - 4 - keySize]); // Needs 4 bytes for the length of the path and of the entry data
         assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE]));
 
-        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntries());
+        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntriesBytes());
         assertEquals(1, batch.numberOfEntries());
         assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[1]));
     }

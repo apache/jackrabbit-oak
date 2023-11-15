@@ -51,16 +51,10 @@ public class NodeStateEntryBatch {
     private final ByteBuffer buffer;
     private final int maxEntries;
     private int numberOfEntries;
-    private int sizeOfEntries;
-
 
     public NodeStateEntryBatch(ByteBuffer buffer, int maxEntries) {
         this.buffer = buffer;
         this.maxEntries = maxEntries;
-    }
-
-    public ByteBuffer getBuffer() {
-        return buffer;
     }
 
     public int addEntry(String path, byte[] entryData) throws BufferFullException {
@@ -77,12 +71,15 @@ public class NodeStateEntryBatch {
             buffer.putInt(entryData.length);
             buffer.put(entryData);
             numberOfEntries++;
-            sizeOfEntries += totalSize;
             return totalSize;
         } catch (BufferOverflowException e) {
             buffer.position(bufferPos);
             throw new BufferFullException("while adding entry " + path + " of size: " + totalSize, e);
         }
+    }
+
+    public ByteBuffer getBuffer() {
+        return buffer;
     }
 
     public boolean isAtMaxEntries() {
@@ -99,11 +96,10 @@ public class NodeStateEntryBatch {
     public void reset() {
         buffer.clear();
         numberOfEntries = 0;
-        sizeOfEntries = 0;
     }
 
-    public int sizeOfEntries() {
-        return sizeOfEntries;
+    public int sizeOfEntriesBytes() {
+        return buffer.position();
     }
 
     public int numberOfEntries() {

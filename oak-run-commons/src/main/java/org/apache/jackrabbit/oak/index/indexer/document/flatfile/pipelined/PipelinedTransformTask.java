@@ -161,7 +161,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                         if (mongoObjectsProcessed % 50000 == 0) {
                             LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
                                     mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
-                                    nseBatch.sizeOfEntries() / FileUtils.ONE_MB,
+                                    nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
                                     nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
@@ -188,7 +188,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
                                         } catch (NodeStateEntryBatch.BufferFullException e) {
                                             LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
-                                                    totalEntryCount, nseBatch.numberOfEntries(), IOUtils.humanReadableByteCountBin(nseBatch.sizeOfEntries()));
+                                                    totalEntryCount, nseBatch.numberOfEntries(), IOUtils.humanReadableByteCountBin(nseBatch.sizeOfEntriesBytes()));
                                             nseBatch.flip();
                                             tryEnqueue(nseBatch);
                                             // Get an empty buffer

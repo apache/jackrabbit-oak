@@ -166,7 +166,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private void sortAndSaveBatch(NodeStateEntryBatch nseb) throws Exception {
         ByteBuffer buffer = nseb.getBuffer();
         LOG.info("Going to sort batch in memory. Entries: {}, Size: {}",
-                nseb.numberOfEntries(), humanReadableByteCountBin(nseb.sizeOfEntries()));
+                nseb.numberOfEntries(), humanReadableByteCountBin(nseb.sizeOfEntriesBytes()));
         sortBuffer.clear();
         buildSortArray(nseb);
         if (sortBuffer.isEmpty()) {
@@ -198,11 +198,11 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
         }
         timeWritingMillis += saveClock.elapsed().toMillis();
         long compressedSize = Files.size(newtmpfile);
-        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {} MB/s",
+        LOG.info("Wrote batch of size {} (uncompressed {}) with {} entries in {} at {}",
                 humanReadableByteCountBin(compressedSize),
                 humanReadableByteCountBin(textSize),
                 sortBuffer.size(), saveClock,
-                String.format("%2.2f", ((1.0 * compressedSize / saveClock.elapsed().toMillis()) * 1000) / FileUtils.ONE_MB)
+                PipelinedUtils.formatAsTransferSpeedMBs(compressedSize, saveClock.elapsed().toMillis())
         );
         // Free the memory taken by the entries in the buffer
         sortBuffer.clear();
