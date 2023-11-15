@@ -19,9 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexTracker;
-import org.elasticsearch.action.DocWriteRequest;
-import org.elasticsearch.action.delete.DeleteRequest;
-import org.elasticsearch.action.index.IndexRequest;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,6 +33,8 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.OrderingComparison.lessThan;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,35 +55,41 @@ public class ElasticIndexWriterTest {
 
     private ElasticIndexWriter indexWriter;
 
+    private AutoCloseable closeable;
+
     @Before
     public void setUp() {
-        MockitoAnnotations.initMocks(this);
+        closeable = MockitoAnnotations.openMocks(this);
         when(indexDefinitionMock.getIndexAlias()).thenReturn("test-index");
         indexWriter = new ElasticIndexWriter(indexTrackerMock, elasticConnectionMock, indexDefinitionMock, bulkProcessorHandlerMock);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        closeable.close();
     }
 
     @Test
     public void singleUpdateDocument() throws IOException {
         indexWriter.updateDocument("/foo", new ElasticDocument("/foo"));
 
-        ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(bulkProcessorHandlerMock).add(acIndexRequest.capture());
+        ArgumentCaptor<ElasticDocument> esDocumentCaptor = ArgumentCaptor.forClass(ElasticDocument.class);
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        verify(bulkProcessorHandlerMock).update(idCaptor.capture(), esDocumentCaptor.capture());
 
-        IndexRequest request = acIndexRequest.getValue();
-        assertEquals("test-index", request.index());
-        assertEquals("/foo", request.id());
+        assertEquals("/foo", idCaptor.getValue());
+        assertEquals("/foo", esDocumentCaptor.getValue().path);
     }
 
     @Test
     public void singleDeleteDocument() throws IOException {
         indexWriter.deleteDocuments("/bar");
 
-        ArgumentCaptor<DeleteRequest> acDeleteRequest = ArgumentCaptor.forClass(DeleteRequest.class);
-        verify(bulkProcessorHandlerMock).add(acDeleteRequest.capture());
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        verify(bulkProcessorHandlerMock).delete(idCaptor.capture());
 
-        DeleteRequest request = acDeleteRequest.getValue();
-        assertEquals("test-index", request.index());
-        assertEquals("/bar", request.id());
+        String id = idCaptor.getValue();
+        assertEquals("/bar", id);
     }
 
     @Test
@@ -93,8 +99,8 @@ public class ElasticIndexWriterTest {
         indexWriter.deleteDocuments("/foo");
         indexWriter.deleteDocuments("/bar");
 
-        ArgumentCaptor<DocWriteRequest<?>> request = ArgumentCaptor.forClass(DocWriteRequest.class);
-        verify(bulkProcessorHandlerMock, times(4)).add(request.capture());
+        verify(bulkProcessorHandlerMock, times(2)).update(anyString(), any(ElasticDocument.class));
+        verify(bulkProcessorHandlerMock, times(2)).delete(anyString());
     }
 
     @Test
@@ -103,12 +109,12 @@ public class ElasticIndexWriterTest {
 
         indexWriter.updateDocument(generatedPath, new ElasticDocument(generatedPath));
 
-        ArgumentCaptor<IndexRequest> acIndexRequest = ArgumentCaptor.forClass(IndexRequest.class);
-        verify(bulkProcessorHandlerMock).add(acIndexRequest.capture());
+        ArgumentCaptor<String> idCaptor = ArgumentCaptor.forClass(String.class);
+        verify(bulkProcessorHandlerMock).update(idCaptor.capture(), any(ElasticDocument.class));
 
-        IndexRequest request = acIndexRequest.getValue();
-        assertThat(request.id(), not(generatedPath));
-        assertThat(request.id().length(), lessThan(513));
+        String id = idCaptor.getValue();
+        assertThat(id, not(generatedPath));
+        assertThat(id.length(), lessThan(513));
     }
 
     @Test
