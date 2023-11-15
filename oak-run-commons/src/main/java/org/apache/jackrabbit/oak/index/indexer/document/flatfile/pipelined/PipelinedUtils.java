@@ -33,7 +33,7 @@ public class PipelinedUtils {
         }
     }
 
-    public static String formatAsTransferSpeedMBs(long numberOfBytes, long timeMiilis) {
+    public static String formatAsTransferSpeedMBs(long numberOfBytes, long timeMillis) {
         if (timeMiilis == 0) {
             return "N/A";
         } else {
