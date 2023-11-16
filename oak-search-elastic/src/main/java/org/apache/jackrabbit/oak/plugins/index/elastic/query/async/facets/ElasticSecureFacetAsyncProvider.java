@@ -119,8 +119,12 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
         LOG.trace("Requested facets for {} - Latch count: {}", columnName, latch.getCount());
         try {
-            latch.await(15, TimeUnit.SECONDS);
+            boolean completed = latch.await(15, TimeUnit.SECONDS);
+            if (!completed) {
+                throw new IllegalStateException("Error while waiting for facets");
+            }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // restore interrupt status
             throw new IllegalStateException("Error while waiting for facets", e);
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);

@@ -110,6 +110,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             try {
                 nextRow = queue.take();
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error reading next result from Elastic", e);
             }
         }
@@ -155,6 +156,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 queue.put(new FulltextResultRow(path, searchHit.score() != null ? searchHit.score() : 0.0,
                         elasticResponseHandler.excerpts(searchHit), elasticFacetProvider, null));
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error producing results into the iterator queue", e);
             }
         }
@@ -165,6 +167,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         try {
             queue.put(POISON_PILL);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // restore interrupt status
             throw new IllegalStateException("Error inserting poison pill into the iterator queue", e);
         }
     }
