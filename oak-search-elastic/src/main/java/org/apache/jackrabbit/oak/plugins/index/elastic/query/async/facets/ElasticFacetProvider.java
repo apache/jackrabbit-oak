@@ -16,6 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.query.async.facets;
 
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticConnection;
+import org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticRequestHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.ElasticResponseHandler;
 import org.apache.jackrabbit.oak.plugins.index.elastic.query.async.ElasticResponseListener;
@@ -27,7 +29,7 @@ import java.util.function.Predicate;
 /**
  * Provider of facets through an {@link ElasticResponseListener}
  */
-public interface ElasticFacetProvider extends FulltextIndex.FacetProvider, ElasticResponseListener {
+public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
 
     /**
      * Returns the appropriate provider based on the {@link SecureFacetConfiguration}
@@ -41,6 +43,8 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider, Elast
      */
     static ElasticFacetProvider getProvider(
             SecureFacetConfiguration facetConfiguration,
+            ElasticConnection connection,
+            ElasticIndexDefinition indexDefinition,
             ElasticRequestHandler requestHandler,
             ElasticResponseHandler responseHandler,
             Predicate<String> isAccessible
@@ -51,9 +55,9 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider, Elast
                 facetProvider = new ElasticInsecureFacetAsyncProvider();
                 break;
             case STATISTICAL:
-                facetProvider = new ElasticStatisticalFacetAsyncProvider(
-                        requestHandler, responseHandler, isAccessible,
-                        facetConfiguration.getRandomSeed(), facetConfiguration.getStatisticalFacetSampleSize()
+                facetProvider = new ElasticStatisticalFacetAsyncProvider(connection, indexDefinition,
+                        requestHandler, responseHandler, isAccessible, facetConfiguration.getRandomSeed(),
+                        facetConfiguration.getStatisticalFacetSampleSize()
                 );
                 break;
             case SECURE:

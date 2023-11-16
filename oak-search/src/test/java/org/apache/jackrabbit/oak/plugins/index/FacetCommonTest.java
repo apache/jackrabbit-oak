@@ -37,11 +37,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
+import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_SECURE_FACETS_VALUE_INSECURE;
@@ -67,14 +67,17 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     private final Map<String, Integer> actualLabelCount = new HashMap<>();
     private final Map<String, Integer> actualAclLabelCount = new HashMap<>();
     private final Map<String, Integer> actualAclPar1LabelCount = new HashMap<>();
+    private static final Random INDEX_SUFFIX_RANDOMIZER = new Random(7);
 
 
     @Before
     public void createIndex() throws RepositoryException {
-        String indexName = UUID.randomUUID().toString();
+        String indexName = "FacetCommonTestIndex" + INDEX_SUFFIX_RANDOMIZER.nextInt(1000);
         IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
         builder.noAsync().evaluatePathRestrictions();
         builder.getBuilderTree().setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
+        builder.getBuilderTree().setProperty(PROP_RANDOM_SEED, 3000L, Type.LONG);
+        builder.getBuilderTree().setProperty("indexNameSeed", 300L, Type.LONG);
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
         indexRule.property("cons").propertyIndex();
         indexRule.property("foo").propertyIndex().getBuilderTree().setProperty(FACET_PROP, true, Type.BOOLEAN);
@@ -312,7 +315,7 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
         if (path != null) {
             pathCons = " AND ISDESCENDANTNODE('" + path + "')";
         }
-        String query = "SELECT [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
+        String query = "SELECT [jcr:path], [rep:facet(foo)], [rep:facet(bar)], [rep:facet(baz)] FROM [nt:base] WHERE [cons] = 'val'" + pathCons;
         Query q;
         QueryResult queryResult;
         try {

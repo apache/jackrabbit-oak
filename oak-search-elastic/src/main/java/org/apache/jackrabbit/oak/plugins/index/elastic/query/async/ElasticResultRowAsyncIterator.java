@@ -95,7 +95,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         this.indexPlan = indexPlan;
         this.rowInclusionPredicate = rowInclusionPredicate;
         this.metricHandler = metricHandler;
-        this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(elasticResponseHandler);
+        this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(indexNode.getConnection(), elasticResponseHandler);
         this.elasticQueryScanner = initScanner();
     }
 
@@ -173,8 +173,8 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         List<ElasticResponseListener> listeners = new ArrayList<>();
         // TODO: we could avoid to register this listener when the client is interested in facets only. It would save space and time
         listeners.add(this);
-        if (elasticFacetProvider != null) {
-            listeners.add(elasticFacetProvider);
+        if (elasticFacetProvider != null && elasticFacetProvider instanceof ElasticResponseListener) {
+            listeners.add((ElasticResponseListener) elasticFacetProvider);
         }
 
         return new ElasticQueryScanner(listeners);
