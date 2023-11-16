@@ -166,7 +166,8 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
                 for (FulltextIndex.Facet facet : uncheckedFacet) {
                     if (accessibleFacet.containsKey(facet.getLabel())) {
                         double sampleProportion = (double) accessibleFacet.get(facet.getLabel()) / sampled;
-                        accessibleFacet.put(facet.getLabel(), (int) (sampleProportion * totalHits));
+                        // returned count is the minimum between the accessible count and the count computed from the sample
+                        accessibleFacet.put(facet.getLabel(), Math.min(facet.getCount(), (int) (sampleProportion * totalHits)));
                     }
                 }
             }
