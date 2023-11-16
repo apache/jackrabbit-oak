@@ -69,7 +69,6 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private final BlockingQueue<Path> sortedFilesQueue;
     private final Path sortWorkDir;
     private final ArrayList<SortKey> sortBuffer = new ArrayList<>(32 * 1024);
-    private byte[] copyBuffer = new byte[4096];
     private long entriesProcessed = 0;
     private long batchesProcessed = 0;
     private long timeCreatingSortArrayMillis = 0;
@@ -145,16 +144,12 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
             // Read the next key from the buffer
             int pathLength = buffer.getInt();
             totalPathSize += pathLength;
-            if (pathLength > copyBuffer.length) {
-                LOG.debug("Resizing copy buffer from {} to {}", copyBuffer.length, pathLength);
-                copyBuffer = new byte[pathLength];
-            }
-            buffer.get(copyBuffer, 0, pathLength);
+            // Create the String directly from the buffer without creating an intermediate byte[]
+            String path = new String(buffer.array(), buffer.position(), pathLength, StandardCharsets.UTF_8);
+            buffer.position(buffer.position() + pathLength);
             // Skip the json
             int entryLength = buffer.getInt();
             buffer.position(buffer.position() + entryLength);
-            // Create the sort key
-            String path = new String(copyBuffer, 0, pathLength, StandardCharsets.UTF_8);
             String[] pathSegments = SortKey.genSortKeyPathElements(path);
             sortBuffer.add(new SortKey(pathSegments, positionInBuffer));
         }
@@ -211,13 +206,8 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
 
     private void copyField(OutputStream writer, ByteBuffer buffer, int fieldSize) throws IOException {
         // Write the entry to the file without creating intermediate byte[]
-        int bytesRemaining = fieldSize;
-        while (bytesRemaining > 0) {
-            int bytesRead = Math.min(copyBuffer.length, bytesRemaining);
-            buffer.get(copyBuffer, 0, bytesRead);
-            writer.write(copyBuffer, 0, bytesRead);
-            bytesRemaining -= bytesRead;
-        }
+        writer.write(buffer.array(), buffer.position(), fieldSize);
+        buffer.position(buffer.position() + fieldSize);
     }
 
     private static Path createdSortWorkDir(Path storeDir) throws IOException {

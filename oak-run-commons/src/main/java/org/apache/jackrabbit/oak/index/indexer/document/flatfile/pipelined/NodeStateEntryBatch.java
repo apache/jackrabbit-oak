@@ -50,7 +50,8 @@ public class NodeStateEntryBatch {
 
     private final ByteBuffer buffer;
     private final int maxEntries;
-    private int numberOfEntries;
+    private int numberOfEntries = 0;
+    private int sizeOfEntriesBytes = 0;
 
     public NodeStateEntryBatch(ByteBuffer buffer, int maxEntries) {
         this.buffer = buffer;
@@ -71,6 +72,7 @@ public class NodeStateEntryBatch {
             buffer.putInt(entryData.length);
             buffer.put(entryData);
             numberOfEntries++;
+            sizeOfEntriesBytes += totalSize;
             return totalSize;
         } catch (BufferOverflowException e) {
             buffer.position(bufferPos);
@@ -96,10 +98,11 @@ public class NodeStateEntryBatch {
     public void reset() {
         buffer.clear();
         numberOfEntries = 0;
+        sizeOfEntriesBytes = 0;
     }
 
     public int sizeOfEntriesBytes() {
-        return buffer.position();
+        return sizeOfEntriesBytes;
     }
 
     public int numberOfEntries() {
