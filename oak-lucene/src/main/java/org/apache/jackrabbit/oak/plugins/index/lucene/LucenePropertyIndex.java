@@ -1650,7 +1650,7 @@ public class LucenePropertyIndex extends FulltextIndex {
             if (EAGER_FACET_CACHE_FILL) {
                 fillFacetCache(numberOfFacets);
                 if (cachedResults.containsKey(cacheKey)) {
-                    LOG.trace("columnName = {} now found");
+                    LOG.trace("columnName = {} now found", cacheKey);
                     return cachedResults.get(cacheKey);
                 }
                 LOG.warn("Facet data for {} not found: read using query", cacheKey);
@@ -1725,7 +1725,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                 return res.build();
             } catch (IllegalArgumentException iae) {
                 LOG.debug(iae.getMessage(), iae);
-                LOG.warn("facets for {} not yet indexed: " + iae, facetFieldName);
+                LOG.warn("facets for {} not yet indexed: {}", facetFieldName, iae);
                 return null;
             }
         }

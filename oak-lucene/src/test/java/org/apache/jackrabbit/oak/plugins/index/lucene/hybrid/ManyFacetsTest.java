@@ -210,7 +210,7 @@ public class ManyFacetsTest extends AbstractQueryTest {
         System.setProperty(LucenePropertyIndex.OLD_FACET_PROVIDER_CONFIG_NAME, "false");
         // The variable is static final so once set it remains same for all tests and which will lead to slow execution
         // of other tests as this add a sleep of specified milliseconds in refresh reader method in LuceneIndexNodeManager.
-       // System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
+        // System.setProperty(LuceneIndexNodeManager.OLD_FACET_PROVIDER_TEST_FAILURE_SLEEP_INSTRUMENT_NAME, "40");
         Thread.currentThread().setName("main");
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName);
@@ -250,7 +250,7 @@ public class ManyFacetsTest extends AbstractQueryTest {
                     JsonObject json = JsonObject.fromJson(v, true);
                     for (int j = 0; j < NUM_LABELS; j++) {
                         String n = json.getProperties().get("foo" + i + "x" + j);
-                        assertTrue(n != null);
+                        assertNotNull(n);
                     }
                 }
             }
