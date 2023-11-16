@@ -27,13 +27,15 @@ import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import java.util.function.Predicate;
 
 /**
- * Provider of facets through an {@link ElasticResponseListener}
+ * Provider of facets for Elasticsearch
  */
 public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
 
     /**
      * Returns the appropriate provider based on the {@link SecureFacetConfiguration}
      * @param facetConfiguration the {@link SecureFacetConfiguration} to extract facet options
+     * @param connection the {@link ElasticConnection} to perform requests
+     * @param indexDefinition the {@link ElasticIndexDefinition} to extract index options
      * @param requestHandler the {@link ElasticRequestHandler} to perform actions at request time
      * @param responseHandler the {@link ElasticResponseHandler} to decode responses
      * @param isAccessible a {@link Predicate} to check if a node is accessible

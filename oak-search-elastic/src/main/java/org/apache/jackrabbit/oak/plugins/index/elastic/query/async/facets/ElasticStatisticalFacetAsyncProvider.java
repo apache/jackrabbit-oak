@@ -48,9 +48,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * An {@link ElasticSecureFacetAsyncProvider} extension that subscribes also on Elastic Aggregation events.
+ * An {@link ElasticFacetProvider} extension that performs random sampling on the result set to compute facets.
  * SearchHit events are sampled and then used to adjust facets coming from Aggregations in order to minimize
- * access checks. This provider could improve facets performance but only when the result set is quite big.
+ * access checks. This provider could improve facets performance especially when the result set is quite big.
  */
 public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvider {
 

@@ -73,10 +73,12 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     @Before
     public void createIndex() throws RepositoryException {
-        String indexName = "FacetCommonTestIndex" + INDEX_SUFFIX_RANDOMIZER.nextInt(1000);
         IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
         builder.noAsync().evaluatePathRestrictions();
         builder.getBuilderTree().setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
+        // Statistical facets in Elasticsearch use a random function with a fixed seed but the results are not
+        // consistent when the index name changes. So we set the index name to a fixed values.
+        String indexName = "FacetCommonTestIndex" + INDEX_SUFFIX_RANDOMIZER.nextInt(1000);
         builder.getBuilderTree().setProperty(PROP_RANDOM_SEED, 3000L, Type.LONG);
         builder.getBuilderTree().setProperty("indexNameSeed", 300L, Type.LONG);
         IndexDefinitionBuilder.IndexRule indexRule = builder.indexRule(JcrConstants.NT_BASE);
