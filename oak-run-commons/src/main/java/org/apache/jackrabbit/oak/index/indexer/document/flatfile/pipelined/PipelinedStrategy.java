@@ -229,7 +229,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
      * @param pathPredicate      Used by the transform stage to test if a node should be kept or discarded.
      * @param pathFilters        If non-empty, the download stage will use these filters to try to create a query that downloads
      *                           only the matching MongoDB documents.
-     * @param statisticsProvider
+     * @param statisticsProvider Used to collect statistics about the indexing process.
      */
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              MongoDatabase mongoDatabase,
