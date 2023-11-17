@@ -41,15 +41,14 @@ import java.util.stream.Collectors;
  */
 class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticResponseListener.SearchHitListener {
 
-    protected static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ElasticSecureFacetAsyncProvider.class);
 
-    protected final Set<String> facetFields;
-    private final Map<String, Map<String, Integer>> facetsMap = new ConcurrentHashMap<>();
-    private Map<String, List<FulltextIndex.Facet>> facets;
-    protected final ElasticResponseHandler elasticResponseHandler;
-    protected final Predicate<String> isAccessible;
-
+    private final Set<String> facetFields;
+    private final Map<String, Map<String, Integer>> accessibleFacetCounts = new ConcurrentHashMap<>();
+    private final ElasticResponseHandler elasticResponseHandler;
+    private final Predicate<String> isAccessible;
     private final CountDownLatch latch = new CountDownLatch(1);
+    private Map<String, List<FulltextIndex.Facet>> facets;
 
     ElasticSecureFacetAsyncProvider(
             ElasticRequestHandler elasticRequestHandler,
@@ -78,7 +77,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
             for (String field: facetFields) {
                 JsonNode value = searchHit.source().get(field);
                 if (value != null) {
-                    facetsMap.compute(field, (column, facetValues) -> {
+                    accessibleFacetCounts.compute(field, (column, facetValues) -> {
                         if (facetValues == null) {
                             Map<String, Integer> values = new HashMap<>();
                             values.put(value.asText(), 1);
@@ -96,7 +95,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     @Override
     public void endData() {
         // create Facet objects, order by count (desc) and then by label (asc)
-        facets = facetsMap.entrySet()
+        facets = accessibleFacetCounts.entrySet()
                 .stream()
                 .collect(Collectors.toMap
                         (Map.Entry::getKey, x -> x.getValue().entrySet()
@@ -112,7 +111,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
                                 .collect(Collectors.toList())
                         )
                 );
-        LOG.trace("End data {}", facetsMap);
+        LOG.trace("End data {}", facets);
         latch.countDown();
     }
 
@@ -120,8 +119,12 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     public List<FulltextIndex.Facet> getFacets(int numberOfFacets, String columnName) {
         LOG.trace("Requested facets for {} - Latch count: {}", columnName, latch.getCount());
         try {
-            latch.await(15, TimeUnit.SECONDS);
+            boolean completed = latch.await(15, TimeUnit.SECONDS);
+            if (!completed) {
+                throw new IllegalStateException("Timed out while waiting for facets");
+            }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // restore interrupt status
             throw new IllegalStateException("Error while waiting for facets", e);
         }
         LOG.trace("Reading facets for {} from {}", columnName, facets);

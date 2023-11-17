@@ -76,7 +76,7 @@ class ElasticIndexWriter implements FulltextIndexWriter<ElasticDocument> {
         // old index until the new one gets enabled) during incremental reindexing
         if (this.reindex) {
             try {
-                long seed = UUID.randomUUID().getMostSignificantBits();
+                long seed = indexDefinition.indexNameSeed == 0L ? UUID.randomUUID().getMostSignificantBits() : indexDefinition.indexNameSeed;
                 // merge gets called on node store later in the indexing flow
                 definitionBuilder.setProperty(ElasticIndexDefinition.PROP_INDEX_NAME_SEED, seed);
                 // let's store the current mapping version in the index definition
