@@ -615,7 +615,26 @@ public abstract class FulltextIndex implements AdvancedQueryIndex, QueryIndex, N
         }
     }
 
+    /**
+     * Get the facet name from a column name.
+     *
+     * This method silently assumes(!) that the column name starts with "rep:facet("
+     * and ends with ")".
+     *
+     * @param columnName the column name, e.g. "rep:facet(abc)"
+     * @return the facet name, e.g. "abc"
+     */
     public static String parseFacetField(String columnName) {
         return columnName.substring(QueryConstants.REP_FACET.length() + 1, columnName.length() - 1);
+    }
+
+    /**
+     * Convert the facet name to a column name.
+     *
+     * @param facetFieldName the facet field name, e.g. "abc"
+     * @return the column name, e.g. "rep:facet(abc)"
+     */
+    public static String convertFacetFieldNameToColumnName(String facetFieldName) {
+        return QueryConstants.REP_FACET + "(" + facetFieldName + ")";
     }
 }
