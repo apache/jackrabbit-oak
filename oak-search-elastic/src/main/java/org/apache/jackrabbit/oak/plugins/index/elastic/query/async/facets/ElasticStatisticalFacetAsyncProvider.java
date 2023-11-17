@@ -117,7 +117,7 @@ public class ElasticStatisticalFacetAsyncProvider implements ElasticFacetProvide
         try {
             boolean completed = latch.await(15, TimeUnit.SECONDS);
             if (!completed) {
-                throw new IllegalStateException("Error while waiting for facets");
+                throw new IllegalStateException("Timed out while waiting for facets");
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();  // restore interrupt status
