@@ -33,8 +33,10 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,6 +62,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED;
 
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:
@@ -213,6 +216,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private final BlobStore blobStore;
     private final PathElementComparator pathComparator;
     private final List<PathFilter> pathFilters;
+    private final StatisticsProvider statisticsProvider;
     private final int numberOfTransformThreads;
     private final int mongoDocQueueSize;
     private final int mongoDocBatchMaxSizeMB;
@@ -223,9 +227,10 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private long nodeStateEntriesExtracted;
 
     /**
-     * @param pathPredicate Used by the transform stage to test if a node should be kept or discarded.
-     * @param pathFilters   If non-empty, the download stage will use these filters to try to create a query that downloads
-     *                      only the matching MongoDB documents.
+     * @param pathPredicate      Used by the transform stage to test if a node should be kept or discarded.
+     * @param pathFilters        If non-empty, the download stage will use these filters to try to create a query that downloads
+     *                           only the matching MongoDB documents.
+     * @param statisticsProvider Used to collect statistics about the indexing process.
      */
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              MongoDatabase mongoDatabase,
@@ -237,7 +242,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                              Compression algorithm,
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters,
-                             String checkpoint) {
+                             String checkpoint,
+                             StatisticsProvider statisticsProvider) {
         super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
         this.docStore = documentStore;
         this.mongoDatabase = mongoDatabase;
@@ -246,6 +252,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         this.blobStore = blobStore;
         this.pathComparator = new PathElementComparator(preferredPathElements);
         this.pathFilters = pathFilters;
+        this.statisticsProvider = statisticsProvider;
         Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
 
         int mongoDocQueueReservedMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
@@ -403,7 +410,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
-                    pathFilters
+                    pathFilters,
+                    statisticsProvider
             ));
 
             for (int i = 0; i < numberOfTransformThreads; i++) {
@@ -434,8 +442,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     this.getStoreDir().toPath(),
                     pathComparator,
                     this.getAlgorithm(),
-                    sortedFilesQueue
-            );
+                    sortedFilesQueue, statisticsProvider);
+
             ecs.submit(mergeSortTask);
 
             Path flatFileStore = null;
@@ -455,6 +463,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                                 mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
                             }
                             mergeSortTask.stopEagerMerging();
+                            MetricsUtils.setCounterOnce(statisticsProvider, OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED, downloadResult.getDocumentsDownloaded());
 
                         } else if (result instanceof PipelinedTransformTask.Result) {
                             PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
@@ -468,6 +477,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                                 monitorFuture.cancel(false);
                                 // Terminate the sort thread.
                                 nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
+                                transformStageStatistics.publishStatistics(statisticsProvider);
                             }
 
                         } else if (result instanceof PipelinedSortBatchTask.Result) {
