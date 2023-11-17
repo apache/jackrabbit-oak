@@ -22,7 +22,10 @@ import java.util.concurrent.TimeUnit;
 
 public class FormattingUtils {
     public static String formatToSeconds(Stopwatch stopwatch) {
-        long seconds = stopwatch.elapsed(TimeUnit.SECONDS);
+        return formatToSeconds(stopwatch.elapsed(TimeUnit.SECONDS));
+    }
+
+    public static String formatToSeconds(long seconds) {
         long absSeconds = Math.abs(seconds);
         long hoursPart = TimeUnit.SECONDS.toHours(absSeconds);
         long minutesPart = TimeUnit.SECONDS.toMinutes(absSeconds) % 60;

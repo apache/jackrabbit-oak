@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -40,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -48,6 +50,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -57,8 +61,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
 import static org.junit.Assert.assertArrayEquals;
@@ -67,10 +75,12 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class PipelinedIT {
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedIT.class);
     private static final PathFilter contentDamPathFilter = new PathFilter(List.of("/content/dam"), List.of());
     private static final int LONG_PATH_TEST_LEVELS = 30;
     private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
 
+    private static ScheduledExecutorService executorService;
     @Rule
     public final MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
     @Rule
@@ -79,6 +89,9 @@ public class PipelinedIT {
     public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
     @Rule
     public final TemporaryFolder sortFolder = new TemporaryFolder();
+
+
+    private MetricStatisticsProvider statsProvider;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -89,14 +102,33 @@ public class PipelinedIT {
             path.append("/").append(LONG_PATH_LEVEL_STRING).append(i);
             EXPECTED_FFS.add(path + "|{}");
         }
+        executorService = Executors.newSingleThreadScheduledExecutor();
     }
 
-    @After @Before
+    @AfterClass
+    public static void teardown() {
+        if (executorService != null) {
+            executorService.shutdown();
+        }
+    }
+
+    @Before
+    public void before() {
+        MongoConnection c = connectionFactory.getConnection();
+        if (c != null) {
+            c.getDatabase().drop();
+        }
+        statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
+    }
+
+    @After
     public void tear() {
         MongoConnection c = connectionFactory.getConnection();
         if (c != null) {
             c.getDatabase().drop();
         }
+        statsProvider.close();
+        statsProvider = null;
     }
 
     @Test
@@ -188,6 +220,39 @@ public class PipelinedIT {
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
         assertEquals(expected, Files.readAllLines(file.toPath()));
+        assertMetrics();
+    }
+
+    private void assertMetrics() {
+        // Check the statistics
+        Set<String> metricsNames = statsProvider.getRegistry().getCounters().keySet();
+
+        assertEquals(Set.of(
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME
+        ), metricsNames);
+
+        String pipelinedMetrics = statsProvider.getRegistry()
+                .getCounters()
+                .entrySet().stream()
+                .map(e -> e.getKey() + " " + e.getValue().getCount())
+                .collect(Collectors.joining("\n"));
+        LOG.info("Metrics\n{}", pipelinedMetrics);
     }
 
     @Test
@@ -281,6 +346,7 @@ public class PipelinedIT {
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
         assertArrayEquals(expected.toArray(new String[0]), Files.readAllLines(file.toPath()).toArray(new String[0]));
+        assertMetrics();
     }
 
 
@@ -317,7 +383,8 @@ public class PipelinedIT {
                 Compression.NONE,
                 pathPredicate,
                 pathFilters,
-                null);
+                null,
+                statsProvider);
     }
 
     private void createContent(NodeStore rwNodeStore) throws CommitFailedException {
