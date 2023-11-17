@@ -24,6 +24,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatAsPercentage;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.formatAsTransferSpeedMBs;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedUtils.toPercentage;
 import static org.junit.Assert.assertEquals;
 
 public class PipelinedUtilsTest {
@@ -41,7 +42,6 @@ public class PipelinedUtilsTest {
 
     @Test
     public void testFormatAsTransferSpeedMBs() {
-        System.out.println("max: " + Long.MAX_VALUE);
         assertEquals("0.95 MB/s", formatAsTransferSpeedMBs(1_000_000, TimeUnit.SECONDS.toMillis(1)));
         assertEquals("0.00 MB/s", formatAsTransferSpeedMBs(0, TimeUnit.SECONDS.toMillis(1)));
         assertEquals("0.00 MB/s", formatAsTransferSpeedMBs(1, TimeUnit.SECONDS.toMillis(1)));
@@ -50,5 +50,17 @@ public class PipelinedUtilsTest {
         assertEquals("-8796093022208.00 MB/s", formatAsTransferSpeedMBs(Long.MIN_VALUE, TimeUnit.SECONDS.toMillis(1)));
         assertEquals("0.00 MB/s", formatAsTransferSpeedMBs(1_000_000, Long.MAX_VALUE));
         assertEquals("-0.00 MB/s", formatAsTransferSpeedMBs(1_000_000, Long.MIN_VALUE));
+    }
+
+    @Test
+    public void testToPercentage() {
+        assertEquals(0, toPercentage (0, 100));
+        assertEquals(1, toPercentage(1, 100));
+        assertEquals(0, toPercentage(1, 1000));
+        assertEquals(0, toPercentage(1, 10_000));
+        assertEquals(-1, toPercentage(1, 0));
+        assertEquals(100, toPercentage(100, 100));
+        assertEquals(120, toPercentage(120, 100));
+        assertEquals(314, toPercentage(355, 113));
     }
 }

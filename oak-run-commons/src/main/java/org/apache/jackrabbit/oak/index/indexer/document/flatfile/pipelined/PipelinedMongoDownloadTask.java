@@ -208,7 +208,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
             MetricsUtils.setCounterOnce(statisticsProvider,
                     PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
-                    Math.round(enqueueingDelayPercentage)
+                    PipelinedUtils.toPercentage(totalEnqueueWaitTimeMillis, durationMillis)
             );
             LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
             return new Result(documentsRead);
@@ -226,7 +226,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private void reportProgress(String id) {
         if (this.documentsRead % 10000 == 0) {
             double rate = ((double) this.documentsRead) / downloadStartWatch.elapsed(TimeUnit.SECONDS);
-            String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
+            String formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
             LOG.info("Dumping from NSET Traversed #{} {} [{}] (Elapsed {})",
                     this.documentsRead, id, formattedRate, FormattingUtils.formatToSeconds(downloadStartWatch));
         }

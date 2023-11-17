@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
 
+import java.util.Locale;
+
 public class PipelinedUtils {
     /**
      * <p>Format a percentage as a string with 2 decimal places. For instance:
@@ -29,7 +31,18 @@ public class PipelinedUtils {
         if (denominator == 0) {
             return "N/A";
         } else {
-            return String.format("%1.2f", (100.0 * numerator) / denominator);
+            return String.format(Locale.ROOT, "%1.2f", (100.0 * numerator) / denominator);
+        }
+    }
+
+    /**
+     * <p>Convert to a percentage as an integer from 0 to 100, with -1 representing an undefined value.</p>
+     */
+    public static int toPercentage(long numerator, long denominator) {
+        if (denominator == 0) {
+            return -1;
+        } else {
+            return (int) Math.round((100.0 * numerator) / denominator);
         }
     }
 
@@ -38,7 +51,7 @@ public class PipelinedUtils {
             return "N/A";
         } else {
             double speed = 1000 * (((double) numberOfBytes) / timeMillis) / FileUtils.ONE_MB;
-            return String.format("%1.2f MB/s", speed);
+            return String.format(Locale.ROOT, "%1.2f MB/s", speed);
         }
     }
 
