@@ -169,10 +169,8 @@ public class TransformStageStatistics {
         long documentsRejectedTotal = documentsRejectedSplitSum + documentsRejectedEmptyNodeStateSum;
         long documentsAcceptedTotal = mongoDocumentsTraversedSum - documentsRejectedTotal;
         long totalEntries = entriesAcceptedSum + entriesRejectedSum;
-        String documentsAcceptedPercentage = mongoDocumentsTraversedSum == 0 ? "N/A" :
-                String.format("%2.1f%%", (100.0 * documentsAcceptedTotal) / mongoDocumentsTraversedSum);
-        String entriesAcceptedPercentage = totalEntries == 0 ? "N/A" :
-                String.format("%1.1f%%", (100.0 * entriesAcceptedSum) / totalEntries);
+        String documentsAcceptedPercentage = PipelinedUtils.formatAsPercentage(documentsAcceptedTotal, mongoDocumentsTraversedSum);
+        String entriesAcceptedPercentage = PipelinedUtils.formatAsPercentage(entriesAcceptedSum, totalEntries);
         long avgEntrySize = entriesAcceptedSum == 0 ? -1 :
                 extractedEntriesTotalSizeSum / entriesAcceptedSum;
         return MetricsFormatter.newBuilder()

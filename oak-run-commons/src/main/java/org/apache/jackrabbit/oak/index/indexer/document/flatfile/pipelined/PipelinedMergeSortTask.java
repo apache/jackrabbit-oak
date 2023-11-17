@@ -33,8 +33,8 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -328,7 +328,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
 
     private Path sortStoreFile(List<Path> sortedFilesBatch) throws IOException {
         Path sortedFile = storeDir.resolve(getSortedStoreFileName(algorithm));
-        try (BufferedOutputStream writer = IndexStoreUtils.createOutputStream(sortedFile, algorithm)) {
+        try (OutputStream writer = IndexStoreUtils.createOutputStream(sortedFile, algorithm)) {
             Function<byte[], NodeStateHolder> byteArrayToType = new NodeStateHolderFactory();
             Function<NodeStateHolder, byte[]> typeToByteArray = holder -> holder == null ? null : holder.getLine();
             ExternalSortByteArray.mergeSortedFilesBinary(sortedFilesBatch,
