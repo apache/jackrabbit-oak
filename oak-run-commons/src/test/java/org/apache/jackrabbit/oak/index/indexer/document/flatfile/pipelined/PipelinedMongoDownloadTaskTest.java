@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
@@ -36,8 +37,11 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
@@ -100,17 +104,29 @@ public class PipelinedMongoDownloadTaskTest {
         BlockingQueue<NodeDocument[]> queue = new ArrayBlockingQueue<>(100);
         MongoDocumentStore mongoDocumentStore = mock(MongoDocumentStore.class);
 
-        PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoDatabase, mongoDocumentStore, batchMaxMemorySize, batchMaxElements, queue, null);
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        try {
+            try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, executor)) {
+                PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoDatabase, mongoDocumentStore,
+                        batchMaxMemorySize, batchMaxElements, queue, null,
+                        metricStatisticsProvider);
 
-        // Execute
-        PipelinedMongoDownloadTask.Result result = task.call();
+                // Execute
+                PipelinedMongoDownloadTask.Result result = task.call();
 
-        // Verify results
-        assertEquals(documents.size(), result.getDocumentsDownloaded());
-        ArrayList<NodeDocument[]> c = new ArrayList<>();
-        queue.drainTo(c);
-        List<NodeDocument> actualDocuments = c.stream().flatMap(Arrays::stream).collect(Collectors.toList());
-        assertEquals(documents, actualDocuments);
+                // Verify results
+                assertEquals(documents.size(), result.getDocumentsDownloaded());
+                ArrayList<NodeDocument[]> c = new ArrayList<>();
+                queue.drainTo(c);
+                List<NodeDocument> actualDocuments = c.stream().flatMap(Arrays::stream).collect(Collectors.toList());
+                assertEquals(documents, actualDocuments);
+
+                Set<String> metricNames = metricStatisticsProvider.getRegistry().getCounters().keySet();
+                assertEquals(metricNames, Set.of(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE));
+            }
+        } finally {
+            executor.shutdown();
+        }
 
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 0}}"));
         verify(dbCollection).find(BsonDocument.parse("{\"_modified\": {\"$gte\": 123000, \"$lt\": 123001}, \"_id\": {\"$gt\": \"3:/content/dam/asset1\"}}"));

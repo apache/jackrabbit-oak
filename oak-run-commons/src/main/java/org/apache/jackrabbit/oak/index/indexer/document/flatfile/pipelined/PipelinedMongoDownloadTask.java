@@ -38,7 +38,9 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.BsonDocument;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -128,6 +130,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final ReadPreference readPreference;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final int maxBatchSizeBytes;
+    private final StatisticsProvider statisticsProvider;
 
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
@@ -141,7 +144,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       int maxBatchSizeBytes,
                                       int maxBatchNumberOfDocuments,
                                       BlockingQueue<NodeDocument[]> queue,
-                                      List<PathFilter> pathFilters) {
+                                      List<PathFilter> pathFilters,
+                                      StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
         NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
         CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
                 CodecRegistries.fromProviders(nodeDocumentCodecProvider),
@@ -191,15 +196,19 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             } else {
                 downloadWithNaturalOrdering();
             }
-            String enqueueingDelayPercentage = String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS));
+            double enqueueingDelayPercentage = (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
             String metrics = MetricsFormatter.newBuilder()
                     .add("duration", FormattingUtils.formatToSeconds(downloadStartWatch))
                     .add("durationSeconds", downloadStartWatch.elapsed(TimeUnit.SECONDS))
                     .add("documentsDownloaded", documentsRead)
                     .add("enqueueingDelayMs", totalEnqueueWaitTimeMillis)
-                    .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
+                    .add("enqueueingDelayPercentage", String.format("%1.2f", enqueueingDelayPercentage))
                     .build();
 
+            MetricsUtils.setCounterOnce(statisticsProvider,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+                    Math.round(enqueueingDelayPercentage)
+            );
             LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
             return new Result(documentsRead);
         } catch (InterruptedException t) {
