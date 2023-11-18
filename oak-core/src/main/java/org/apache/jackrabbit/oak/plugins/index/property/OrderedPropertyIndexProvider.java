@@ -51,6 +51,14 @@ public class OrderedPropertyIndexProvider implements QueryIndexProvider {
     
     /**
      * used only for testing purposes. Not thread safe.
+     *
+     */
+    static void resetHits() {
+        hits = 0;
+    }
+    
+    /**
+     * used only for testing purposes. Not thread safe.
      * 
      * @param t
      */
