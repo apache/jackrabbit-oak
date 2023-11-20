@@ -48,17 +48,18 @@ public class GCNodeWriteMonitor {
     private long estimated = -1;
 
     /**
-     * Number of compacted nodes
+     * Number of compacted nodes. This is queried much more often than other properties,
+     * therefore it is the only one to use {@link AtomicLong} instead of {@link LongAdder}.
      */
     private long nodes;
 
     /**
-     * Number of compacted properties
+     * Number of compacted properties.
      */
     private long properties;
 
     /**
-     * Number of compacted binaries
+     * Number of compacted binaries.
      */
     private long binaries;
 

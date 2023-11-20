@@ -59,11 +59,12 @@ import org.apache.directory.ldap.client.api.LdapConnectionPool;
 import org.apache.directory.ldap.client.api.LookupLdapConnectionValidator;
 import org.apache.directory.ldap.client.api.NoVerificationTrustManager;
 import org.apache.directory.ldap.client.api.ValidatingPoolableLdapConnectionFactory;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Service;
+
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+
 import org.apache.jackrabbit.commons.iterator.AbstractLazyIterator;
 import org.apache.jackrabbit.oak.commons.DebugTimer;
 import org.apache.jackrabbit.oak.spi.security.ConfigurationParameters;
@@ -77,6 +78,7 @@ import org.apache.jackrabbit.oak.spi.security.authentication.external.PrincipalN
 import org.apache.jackrabbit.util.Text;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.service.metatype.annotations.Designate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,10 +89,11 @@ import org.slf4j.LoggerFactory;
  * Please refer to {@link LdapProviderConfig} for configuration options.
  */
 @Component(
-        // note that the metatype information is generated from LdapProviderConfig
-        policy = ConfigurationPolicy.REQUIRE
-)
-@Service
+        service = { ExternalIdentityProvider.class, PrincipalNameResolver.class },
+        configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Designate(
+        ocd = LdapProviderConfig.Configuration.class,
+        factory = true )
 public class LdapIdentityProvider implements ExternalIdentityProvider, PrincipalNameResolver {
 
     /**

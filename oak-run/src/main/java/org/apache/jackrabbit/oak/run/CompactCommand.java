@@ -25,6 +25,7 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.segment.azure.tool.AzureCompact;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.aws.tool.AwsCompact;
 import org.apache.jackrabbit.oak.segment.tool.Compact;
@@ -48,12 +49,11 @@ class CompactCommand implements Command {
                     "is always enforced and this option is ignored.")
                 .withOptionalArg()
                 .ofType(Boolean.class);
-        OptionSpec<Boolean> forceArg = parser.accepts("force",
+        OptionSpec<Void> forceArg = parser.accepts("force",
                 "Force compaction and ignore a non matching segment store version. " +
                         "CAUTION: this will upgrade the segment store to the latest version, " +
-                        "which is incompatible with older versions of Oak.")
-                .withOptionalArg()
-                .ofType(Boolean.class);
+                        "which is incompatible with older versions of Oak.");
+        OptionSpec<Void> tailArg = parser.accepts("tail", "Use tail compaction instead of a full repository rewrite.");
         OptionSpec<String> compactor = parser.accepts("compactor",
                 "Allow the user to control compactor type to be used. Valid choices are \"classic\", \"diff\", \"parallel\". " +
                         "While \"classic\" is slower, it might be more stable, due to lack of optimisations employed " +
@@ -110,10 +110,13 @@ class CompactCommand implements Command {
                     .withTargetPath(targetPath.value(options))
                     .withPersistentCachePath(persistentCachePath.value(options))
                     .withPersistentCacheSizeGb(persistentCacheSizeGb.value(options))
-                    .withForce(isTrue(forceArg.value(options)))
+                    .withForce(options.has(forceArg))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
                     .withConcurrency(nThreads.value(options));
 
+            if (options.has(tailArg)) {
+                azureBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
+            }
             if (options.has(compactor)) {
                 azureBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
             }
@@ -122,11 +125,14 @@ class CompactCommand implements Command {
         } else if (path.startsWith("aws:")) {
             AwsCompact.Builder awsBuilder = AwsCompact.builder()
                     .withPath(path)
-                    .withForce(isTrue(forceArg.value(options)))
+                    .withForce(options.has(forceArg))
                     .withSegmentCacheSize(Integer.getInteger("cache", 256))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
                     .withConcurrency(nThreads.value(options));
 
+            if (options.has(tailArg)) {
+                awsBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
+            }
             if (options.has(compactor)) {
                 awsBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
             }
@@ -135,13 +141,16 @@ class CompactCommand implements Command {
         } else {
             Compact.Builder tarBuilder = Compact.builder()
                     .withPath(new File(path))
-                    .withForce(isTrue(forceArg.value(options)))
+                    .withForce(options.has(forceArg))
                     .withMmap(mmapArg.value(options))
                     .withOs(StandardSystemProperty.OS_NAME.value())
                     .withSegmentCacheSize(Integer.getInteger("cache", 256))
                     .withGCLogInterval(Long.getLong("compaction-progress-log", 150000))
                     .withConcurrency(nThreads.value(options));
 
+            if (options.has(tailArg)) {
+                tarBuilder.withGCType(SegmentGCOptions.GCType.TAIL);
+            }
             if (options.has(compactor)) {
                 tarBuilder.withCompactorType(CompactorType.fromDescription(compactor.value(options)));
             }

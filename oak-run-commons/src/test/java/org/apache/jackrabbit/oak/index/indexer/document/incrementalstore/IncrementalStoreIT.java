@@ -49,6 +49,7 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Assume;
@@ -309,7 +310,8 @@ public class IncrementalStoreIT {
                 algorithm,
                 pathPredicate,
                 pathFilters,
-                checkpoint);
+                checkpoint,
+                StatisticsProvider.NOOP);
     }
 
     private IncrementalFlatFileStoreStrategy createIncrementalStrategy(Backend backend,

@@ -95,7 +95,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         this.indexPlan = indexPlan;
         this.rowInclusionPredicate = rowInclusionPredicate;
         this.metricHandler = metricHandler;
-        this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(elasticResponseHandler);
+        this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(indexNode.getConnection(), elasticResponseHandler);
         this.elasticQueryScanner = initScanner();
     }
 
@@ -110,6 +110,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
             try {
                 nextRow = queue.take();
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error reading next result from Elastic", e);
             }
         }
@@ -155,6 +156,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 queue.put(new FulltextResultRow(path, searchHit.score() != null ? searchHit.score() : 0.0,
                         elasticResponseHandler.excerpts(searchHit), elasticFacetProvider, null));
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error producing results into the iterator queue", e);
             }
         }
@@ -165,6 +167,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         try {
             queue.put(POISON_PILL);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();  // restore interrupt status
             throw new IllegalStateException("Error inserting poison pill into the iterator queue", e);
         }
     }
@@ -173,8 +176,8 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         List<ElasticResponseListener> listeners = new ArrayList<>();
         // TODO: we could avoid to register this listener when the client is interested in facets only. It would save space and time
         listeners.add(this);
-        if (elasticFacetProvider != null) {
-            listeners.add(elasticFacetProvider);
+        if (elasticFacetProvider != null && elasticFacetProvider instanceof ElasticResponseListener) {
+            listeners.add((ElasticResponseListener) elasticFacetProvider);
         }
 
         return new ElasticQueryScanner(listeners);
