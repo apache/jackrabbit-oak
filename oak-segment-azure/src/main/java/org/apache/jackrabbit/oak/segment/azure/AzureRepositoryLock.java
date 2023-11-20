@@ -39,13 +39,13 @@ public class AzureRepositoryLock implements RepositoryLock {
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
     private static final Integer LEASE_RENEWAL_TIMEOUT_MS = 5000;
 
-    public static final String INTERVAL_PROP = "oak.segment.azure.lock.leaseDuration";
-    private static int INTERVAL = Integer.getInteger(INTERVAL_PROP, 60);
+    public static final String LEASE_DURATION_PROP = "oak.segment.azure.lock.leaseDurationInSec";
+    private static int LEASE_DURATION = Integer.getInteger(LEASE_DURATION_PROP, 60);
 
-    public static final String RENEWAL_FREQUENCY_PROP = "oak.segment.azure.lock.leaseRenewalFrequency";
-    private static int RENEWAL_FREQUENCY = Integer.getInteger(RENEWAL_FREQUENCY_PROP, 5);
+    public static final String RENEWAL_INTERVAL_PROP = "oak.segment.azure.lock.leaseRenewalIntervalInSec";
+    private static int RENEWAL_INTERVAL = Integer.getInteger(RENEWAL_INTERVAL_PROP, 5);
 
-    public static final String TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP = "oak.segment.azure.lock.blockWritesAfter";
+    public static final String TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP = "oak.segment.azure.lock.blockWritesAfterInSec";
     private static int TIME_TO_WAIT_BEFORE_WRITE_BLOCK = Integer.getInteger(TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, 20);
 
     private final Runnable shutdownHook;
@@ -73,9 +73,9 @@ public class AzureRepositoryLock implements RepositoryLock {
         this.timeoutSec = timeoutSec;
         this.writeAccessController = writeAccessController;
 
-        if (INTERVAL < TIME_TO_WAIT_BEFORE_WRITE_BLOCK || TIME_TO_WAIT_BEFORE_WRITE_BLOCK < RENEWAL_FREQUENCY) {
+        if (LEASE_DURATION < TIME_TO_WAIT_BEFORE_WRITE_BLOCK || TIME_TO_WAIT_BEFORE_WRITE_BLOCK < RENEWAL_INTERVAL) {
             throw new IllegalStateException(String.format("The value of %s must be greater than %s and the value of %s must be greater than %s",
-                    INTERVAL_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, RENEWAL_FREQUENCY_PROP));
+                    LEASE_DURATION_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, RENEWAL_INTERVAL_PROP));
         }
     }
 
@@ -85,7 +85,7 @@ public class AzureRepositoryLock implements RepositoryLock {
         do {
             try {
                 blob.openOutputStream().close();
-                leaseId = blob.acquireLease(INTERVAL, null);
+                leaseId = blob.acquireLease(LEASE_DURATION, null);
                 writeAccessController.enableWriting();
                 log.info("Acquired lease {}", leaseId);
             } catch (StorageException | IOException e) {
@@ -119,7 +119,7 @@ public class AzureRepositoryLock implements RepositoryLock {
         while (doUpdate) {
             long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
             try {
-                if (timeSinceLastUpdate > RENEWAL_FREQUENCY) {
+                if (timeSinceLastUpdate > RENEWAL_INTERVAL) {
 
                     BlobRequestOptions requestOptions = new BlobRequestOptions();
                     requestOptions.setMaximumExecutionTimeInMs(LEASE_RENEWAL_TIMEOUT_MS);
