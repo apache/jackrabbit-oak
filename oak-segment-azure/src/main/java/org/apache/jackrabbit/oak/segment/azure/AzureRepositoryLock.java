@@ -85,9 +85,11 @@ public class AzureRepositoryLock implements RepositoryLock {
         do {
             try {
                 blob.openOutputStream().close();
-                log.info("######## LEASE DURATION: " + leaseDuration +"    ##########");
-                log.info("---- " + Integer.getInteger(LEASE_DURATION_PROP));
-                log.info("==== " + System.getProperty(LEASE_DURATION_PROP));
+
+                log.info("{} = {}", LEASE_DURATION_PROP, leaseDuration);
+                log.info("{} = {}", RENEWAL_INTERVAL_PROP, renewalInterval);
+                log.info("{} = {}", TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, timeToWaitBeforeWriteBlock);
+
                 leaseId = blob.acquireLease(leaseDuration, null);
                 writeAccessController.enableWriting();
                 log.info("Acquired lease {}", leaseId);
