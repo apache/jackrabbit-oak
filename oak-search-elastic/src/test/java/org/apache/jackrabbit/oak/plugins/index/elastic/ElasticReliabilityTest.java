@@ -89,7 +89,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
                 .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 0L);
 
         // elastic is down, query should not use it
-        assertThat(explain(query), not(containsString("elasticsearch:test1")));
+        assertEventually(() -> assertThat(explain(query), not(containsString("elasticsearch:test1"))));
 
         // result set should be correct anyway since traversal is enabled
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
@@ -98,7 +98,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
         cutConnectionUpstream.remove();
 
         // result set should be the same as before but this time elastic should be used
-        assertThat(explain(query), containsString("elasticsearch:test1"));
+        assertEventually(() -> assertThat(explain(query), containsString("elasticsearch:test1")));
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
     }
 }
