@@ -28,7 +28,9 @@ import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +56,11 @@ public class AzureRepositoryLockTest {
     public void setup() throws StorageException, InvalidKeyException, URISyntaxException {
         container = azurite.getContainer("oak-test");
     }
+
+    @Rule
+    public final ProvideSystemProperty systemPropertyRule = new ProvideSystemProperty(AzureRepositoryLock.LEASE_DURATION_PROP, "15")
+            .and(AzureRepositoryLock.RENEWAL_INTERVAL_PROP, "3")
+            .and(AzureRepositoryLock.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, "9");
 
     @Test
     public void testFailingLock() throws URISyntaxException, IOException, StorageException {
@@ -103,7 +110,7 @@ public class AzureRepositoryLockTest {
         new AzureRepositoryLock(blobMocked, () -> {}, new WriteAccessController()).lock();
 
         // wait till lease expires
-        Thread.sleep(70000);
+        Thread.sleep(16000);
 
         // reset the mock to default behaviour
         Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any());
