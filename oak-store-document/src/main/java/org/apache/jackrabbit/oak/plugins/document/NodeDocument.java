@@ -971,7 +971,7 @@ public final class NodeDocument extends Document {
                     readRevision, validRevisions, lastRevs);
 
             // check if there may be more recent values in a previous document
-            value = checkIsMostRecentCommitted(value, local, nodeStore);
+            value = requiresCompleteMapCheck(value, local, nodeStore) ? null : value;
 
             if (value == null && !getPreviousRanges().isEmpty()) {
                 // check revision history
@@ -1058,7 +1058,7 @@ public final class NodeDocument extends Document {
         // check local deleted map first
         Value value = getLatestValue(context, local.entrySet(), readRevision, validRevisions, lastRevs);
         // check if there may be more recent values in a previous document
-        value = checkIsMostRecentCommitted(value, local, context);
+        value = requiresCompleteMapCheck(value, local, context) ? null : value;
         if (value == null && !getPreviousRanges().isEmpty()) {
             // need to check complete map
             value = getLatestValue(context, getDeleted().entrySet(), readRevision, validRevisions, lastRevs);
@@ -2172,15 +2172,15 @@ public final class NodeDocument extends Document {
     }
 
     /**
-     * Check if there may be more recent values in a previous document and return
-     * null if the latter is the case
+     * Check if there may be more recent values in a previous document and thus a
+     * complete map check is required.
      *
      * @param localValue value as resolved from local value map
      * @param local      local value map
      * @param context    the revision context
-     * @return localValue if it is most recent, null otherwise
+     * @return false if it is most recent, true otherwise
      */
-    private Value checkIsMostRecentCommitted(@Nullable Value localValue,
+    private boolean requiresCompleteMapCheck(@Nullable Value localValue,
             @NotNull SortedMap<Revision, String> local,
             @NotNull RevisionContext context) {
         if (localValue != null
@@ -2192,11 +2192,11 @@ public final class NodeDocument extends Document {
                 if (prev.compareRevisionTimeThenClusterId(localValue.revision) > 0) {
                     // a previous document has more recent changes
                     // than localValue.revision
-                    return null;
+                    return true;
                 }
             }
         }
-        return localValue;
+        return false;
     }
 
     /**
