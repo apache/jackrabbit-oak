@@ -53,11 +53,8 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.split.SplitPersistence;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
+import org.junit.contrib.java.lang.system.ProvideSystemProperty;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
 
@@ -106,6 +103,11 @@ public class AzureArchiveManagerTest {
         azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));
         azurePersistence.setWriteAccessController(writeAccessController);
     }
+
+    @Rule
+    public final ProvideSystemProperty systemPropertyRule = new ProvideSystemProperty(AzureRepositoryLock.LEASE_DURATION_PROP, "15")
+            .and(AzureRepositoryLock.RENEWAL_INTERVAL_PROP, "3")
+            .and(AzureRepositoryLock.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, "9");
 
     @Test
     public void testRecovery() throws StorageException, URISyntaxException, IOException {
@@ -476,7 +478,7 @@ public class AzureArchiveManagerTest {
     }
 
     @Test
-    public void testWriteAfterLoosingRepoLock() throws URISyntaxException, InvalidFileStoreVersionException, IOException, CommitFailedException, StorageException, InterruptedException {
+    public void testWriteAfterLosingRepoLock() throws Exception {
         CloudBlobDirectory oakDirectory = container.getDirectoryReference("oak");
         AzurePersistence rwPersistence = new AzurePersistence(oakDirectory);
 
@@ -520,7 +522,7 @@ public class AzureArchiveManagerTest {
 
 
         // wait till lease expires
-        Thread.sleep(70000);
+        Thread.sleep(16000);
 
         // try updating repository
         Thread thread = new Thread(() -> {
