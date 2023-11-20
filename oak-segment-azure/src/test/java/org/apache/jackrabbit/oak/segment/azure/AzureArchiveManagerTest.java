@@ -522,7 +522,7 @@ public class AzureArchiveManagerTest {
 
 
         // wait till lease expires
-        Thread.sleep(16000);
+        Thread.sleep(17000);
 
         // try updating repository
         Thread thread = new Thread(() -> {
