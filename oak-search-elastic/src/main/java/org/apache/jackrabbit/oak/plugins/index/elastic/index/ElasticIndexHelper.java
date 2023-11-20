@@ -135,10 +135,10 @@ class ElasticIndexHelper {
      */
     public static PutIndicesSettingsRequest enableIndexRequest(String remoteIndexName, ElasticIndexDefinition indexDefinition) {
         IndexSettings indexSettings = IndexSettings.of(is -> is
-                .numberOfReplicas(Integer.toString(indexDefinition.numberOfReplicas))
+                //.numberOfReplicas(Integer.toString(indexDefinition.numberOfReplicas))
                 // TODO: we should pass null to reset the refresh interval to the default value but the following bug prevents it. We need to wait for a fix
                 // <a href="https://github.com/elastic/elasticsearch-java/issues/283">https://github.com/elastic/elasticsearch-java/issues/283</a>
-                .refreshInterval(Time.of(t -> t.time("1s"))));
+                .refreshInterval(Time.of(t -> t.time("5s"))));
 
         return PutIndicesSettingsRequest.of(pisr -> pisr
                 .index(remoteIndexName)
