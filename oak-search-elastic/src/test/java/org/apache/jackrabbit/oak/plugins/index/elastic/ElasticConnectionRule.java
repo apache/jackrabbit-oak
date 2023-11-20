@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch.indices.GetIndexRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.rules.ExternalResource;
@@ -83,7 +84,14 @@ public class ElasticConnectionRule extends ExternalResource {
         ElasticConnection esConnection = getElasticConnection();
         if (esConnection != null) {
             try {
-                esConnection.getClient().indices().delete(d -> d.index(this.indexPrefix + "*"));
+                esConnection.getClient().indices().get(GetIndexRequest.of(f -> f.index(esConnection.getIndexPrefix() + "*")))
+                        .result().forEach((key, value) -> {
+                            try {
+                                esConnection.getClient().indices().delete(i -> i.index(key));
+                            } catch (IOException e) {
+                                throw new IllegalStateException(e);
+                            }
+                        });
             } catch (IOException e) {
                 LOG.error("Unable to delete indexes with prefix {}", this.indexPrefix);
             } finally {

@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import co.elastic.clients.elasticsearch.core.GetRequest;
+import co.elastic.clients.elasticsearch.indices.GetIndexRequest;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.InitialContent;
@@ -83,8 +84,16 @@ public abstract class ElasticAbstractQueryTest extends AbstractQueryTest {
     @After
     public void tearDown() throws IOException {
         if (esConnection != null) {
-        	esConnection.getClient().indices().delete(i->i
-        	        .index(esConnection.getIndexPrefix() + "*"));
+            esConnection.getClient().indices().get(GetIndexRequest.of(f -> f.index(esConnection.getIndexPrefix() + "*")))
+                    .result().forEach((key, value) -> {
+                        try {
+                            esConnection.getClient().indices().delete(i -> i.index(key));
+                        } catch (IOException e) {
+                            throw new IllegalStateException(e);
+                        }
+                    });
+//        	esConnection.getClient().indices().delete(i->i
+//        	        .index(esConnection.getIndexPrefix() + "*"));
             esConnection.close();
         }
     }
