@@ -117,10 +117,10 @@ public class ElasticConnection implements Closeable {
                             );
                             Header[] headers = new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeyAuth)};
                             builder.setDefaultHeaders(headers);
+                        } else {
+                            // use plain secret when no API key is provided
+                            builder.setDefaultHeaders(new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeySecret)});
                         }
-                    } else {
-                        // use plain secret when no API key is provided
-                        builder.setDefaultHeaders(new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKeySecret)});
                     }
                     builder.setRequestConfigCallback(
                             requestConfigBuilder -> requestConfigBuilder.setSocketTimeout(ES_SOCKET_TIMEOUT));
