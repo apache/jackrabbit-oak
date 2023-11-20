@@ -73,9 +73,10 @@ public class AzureRepositoryLock implements RepositoryLock {
         this.timeoutSec = timeoutSec;
         this.writeAccessController = writeAccessController;
 
-        if (INTERVAL < RENEWAL_FREQUENCY || INTERVAL < TIME_TO_WAIT_BEFORE_WRITE_BLOCK) {
-            throw new IllegalStateException(String.format("The lease duration (%s) must be greater than the lease renewal period (%s) " +
-                    "and the time to wait before blocking writes (%s).", INTERVAL, RENEWAL_FREQUENCY, TIME_TO_WAIT_BEFORE_WRITE_BLOCK));
+        if (INTERVAL < RENEWAL_FREQUENCY || RENEWAL_FREQUENCY > TIME_TO_WAIT_BEFORE_WRITE_BLOCK || INTERVAL < TIME_TO_WAIT_BEFORE_WRITE_BLOCK) {
+            throw new IllegalStateException(String.format("The value of %s should be greater than the value of %s and the value of %s should be less than " +
+                    "the value of %s and the value of %s should be greater than the value of %s.",
+                    INTERVAL_PROP, RENEWAL_FREQUENCY_PROP, RENEWAL_FREQUENCY_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, INTERVAL_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP));
         }
     }
 
