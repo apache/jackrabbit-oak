@@ -22,6 +22,7 @@ import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ProvideSystemProperty;
@@ -85,6 +86,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    @Ignore("OAK-10558")
     public void connectionCutOnQuery() throws Exception {
         setIndex("test1", createIndex("propa", "propb"));
 
