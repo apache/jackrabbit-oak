@@ -41,11 +41,14 @@ import java.security.InvalidKeyException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class AzureRepositoryLockTest {
 
     private static final Logger log = LoggerFactory.getLogger(AzureRepositoryLockTest.class);
+    public static final String LEASE_DURATION = "15";
+    public static final String RENEWAL_INTERVAL = "3";
+    public static final String TIME_TO_WAIT_BEFORE_BLOCK = "9";
 
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
@@ -58,9 +61,9 @@ public class AzureRepositoryLockTest {
     }
 
     @Rule
-    public final ProvideSystemProperty systemPropertyRule = new ProvideSystemProperty(AzureRepositoryLock.LEASE_DURATION_PROP, "15")
-            .and(AzureRepositoryLock.RENEWAL_INTERVAL_PROP, "3")
-            .and(AzureRepositoryLock.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, "9");
+    public final ProvideSystemProperty systemPropertyRule = new ProvideSystemProperty(AzureRepositoryLock.LEASE_DURATION_PROP, LEASE_DURATION)
+            .and(AzureRepositoryLock.RENEWAL_INTERVAL_PROP, RENEWAL_INTERVAL)
+            .and(AzureRepositoryLock.TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_BLOCK);
 
     @Test
     public void testFailingLock() throws URISyntaxException, IOException, StorageException {
@@ -105,7 +108,7 @@ public class AzureRepositoryLockTest {
         Mockito.doThrow(storageException)
                 .doThrow(storageException)
                 .doCallRealMethod()
-                .when(blobMocked).renewLease(Mockito.any());
+                .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
 
         new AzureRepositoryLock(blobMocked, () -> {}, new WriteAccessController()).lock();
 
@@ -113,7 +116,7 @@ public class AzureRepositoryLockTest {
         Thread.sleep(16000);
 
         // reset the mock to default behaviour
-        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any());
+        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
 
         try {
             new AzureRepositoryLock(blobMocked, () -> {}, new WriteAccessController()).lock();
@@ -121,5 +124,48 @@ public class AzureRepositoryLockTest {
         } catch (IOException e) {
             // it's fine
         }
+    }
+
+    @Test
+    public void testWritesBlockedOnlyAfterFewUnsuccessfulAttempts() throws Exception {
+
+        CloudBlockBlob blob = container.getBlockBlobReference("oak/repo.lock");
+
+        CloudBlockBlob blobMocked = Mockito.spy(blob);
+
+        // instrument the mock to throw the exception twice when renewing the lease
+        StorageException storageException =
+                new StorageException(StorageErrorCodeStrings.OPERATION_TIMED_OUT, "operation timeout", new TimeoutException());
+        Mockito
+                .doCallRealMethod()
+                .doThrow(storageException)
+                .when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
+
+
+        WriteAccessController writeAccessController = new WriteAccessController();
+
+        new AzureRepositoryLock(blobMocked, () -> {}, writeAccessController).lock();
+
+
+        Thread thread = new Thread(() -> {
+
+            while (true) {
+                writeAccessController.checkWritingAllowed();
+
+            }
+        });
+
+        thread.start();
+
+        Thread.sleep(3000);
+        assertFalse("after 3 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
+
+        Thread.sleep(3000);
+        assertFalse("after 6 seconds thread should not be in a waiting state", thread.getState().equals(Thread.State.WAITING));
+
+        Thread.sleep(5000);
+        assertTrue("after more than 9 seconds thread should be in a waiting state", thread.getState().equals(Thread.State.WAITING));
+
+        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
     }
 }
