@@ -82,7 +82,6 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -295,7 +294,6 @@ public class VersionGarbageCollectorIT {
      * tests a checkpoint when /t/target is deleted.
      */
     @Test
-    @Ignore(value = "requires fix for OAK-10526 and OAK-10542")
     public void gcSplitDocWithReferencedDeleted_combined() throws Exception {
         // step 1 : create a _delete entry with clusterId 2, plus do a GC
         final DocumentNodeStore store2 = createSecondary();
@@ -361,7 +359,6 @@ public class VersionGarbageCollectorIT {
      * checkpoint when /t/target is deleted.
      */
     @Test
-    @Ignore(value = "requires fix for OAK-10542 first")
     public void gcSplitDocWithReferencedDeleted_true() throws Exception {
         // step 1 : create some _deleted entries with clusterId 2
         final DocumentNodeStore store2 = createSecondary();
@@ -402,7 +399,6 @@ public class VersionGarbageCollectorIT {
      * checkpoint when /t/target exists.
      */
     @Test
-    @Ignore(value = "requires fix for OAK-10542 first")
     public void gcSplitDocWithReferencedDeleted_false() throws Exception {
         // step 1 : create a _delete entry with clusterId 2
         final DocumentNodeStore store2 = createSecondary();
