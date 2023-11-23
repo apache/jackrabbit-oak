@@ -148,9 +148,9 @@ class ElasticIndexHelper {
 
     private static ObjectBuilder<IndexSettings> loadSettings(@NotNull IndexSettings.Builder builder,
                                                              @NotNull ElasticIndexDefinition indexDefinition) {
-        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
-            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
-        }
+//        if (!indexDefinition.getSimilarityProperties().isEmpty()) {
+//            builder.otherSettings(ElasticIndexDefinition.ELASTIKNN, JsonData.of(true));
+//        }
 
         // collect analyzer settings
         IndexSettingsAnalysis.Builder analyzerBuilder =
@@ -273,25 +273,25 @@ class ElasticIndexHelper {
                 );
             }
 
-            for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
-                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
-                int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
-
-                Reader eknnConfig = new StringReader(
-                        "{" +
-                                "  \"type\": \"elastiknn_dense_float_vector\"," +
-                                "  \"elastiknn\": {" +
-                                "    \"dims\": " + denseVectorSize + "," +
-                                "    \"model\": \"lsh\"," +
-                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
-                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
-                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
-                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
-                                "  }" +
-                                "}");
-
-                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
-            }
+//            for (PropertyDefinition propertyDefinition : indexDefinition.getSimilarityProperties()) {
+//                ElasticPropertyDefinition pd = (ElasticPropertyDefinition) propertyDefinition;
+//                int denseVectorSize = pd.getSimilaritySearchDenseVectorSize();
+//
+//                Reader eknnConfig = new StringReader(
+//                        "{" +
+//                                "  \"type\": \"elastiknn_dense_float_vector\"," +
+//                                "  \"elastiknn\": {" +
+//                                "    \"dims\": " + denseVectorSize + "," +
+//                                "    \"model\": \"lsh\"," +
+//                                "    \"similarity\": \"" + pd.getSimilaritySearchParameters().getIndexTimeSimilarityFunction() + "\"," +
+//                                "    \"L\": " + pd.getSimilaritySearchParameters().getL() + "," +
+//                                "    \"k\": " + pd.getSimilaritySearchParameters().getK() + "," +
+//                                "    \"w\": " + pd.getSimilaritySearchParameters().getW() +
+//                                "  }" +
+//                                "}");
+//
+//                builder.properties(FieldNames.createSimilarityFieldName(pd.name), b1 -> b1.withJson(eknnConfig));
+//            }
 
             builder.properties(ElasticIndexDefinition.SIMILARITY_TAGS,
                     b1 -> b1.text(
