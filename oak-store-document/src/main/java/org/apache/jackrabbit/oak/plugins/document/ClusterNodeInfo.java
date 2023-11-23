@@ -27,6 +27,7 @@ import java.lang.management.ManagementFactory;
 import java.net.NetworkInterface;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -1163,6 +1164,9 @@ public class ClusterNodeInfo {
                 "invisible: " + invisible;
     }
 
+    /** keep track of test classes that have set a custom clock */
+    static Exception lastClockSetter;
+
     /**
      * Specify a custom clock to be used for determining current time.
      *
@@ -1170,6 +1174,13 @@ public class ClusterNodeInfo {
      */
     static void setClock(Clock c) {
         checkNotNull(c);
+
+        if (lastClockSetter != null) {
+            throw new RuntimeException(
+                    "custom clock (" + clock + ") already in use, set by: " + Arrays.asList(lastClockSetter.getStackTrace()));
+        }
+        lastClockSetter = new Exception("call stack");
+
         clock = c;
     }
 
@@ -1178,6 +1189,7 @@ public class ClusterNodeInfo {
      */
     static void resetClockToDefault() {
         clock = Clock.SIMPLE;
+        lastClockSetter = null;
     }
 
     private static long getProcessId() {

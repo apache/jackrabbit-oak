@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.stats.Clock;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 
+import java.util.Arrays;
+
 /**
  * A revision.
  */
@@ -61,6 +63,9 @@ public final class Revision implements CacheValue {
      */
     private final boolean branch;
 
+    /** keep track of test classes that have set a custom clock */
+    static Exception lastClockSetter;
+
     /** Only set for testing */
     private static Clock clock;
 
@@ -74,6 +79,13 @@ public final class Revision implements CacheValue {
      */
     static void setClock(Clock c) {
         checkNotNull(c);
+
+        if (lastClockSetter != null) {
+            throw new RuntimeException(
+                    "custom clock (" + clock + ") already in use, set by: " + Arrays.asList(lastClockSetter.getStackTrace()));
+        }
+        lastClockSetter = new Exception("call stack");
+
         clock = c;
         lastTimestamp = clock.getTime();
         lastRevisionTimestamp = clock.getTime();
@@ -86,7 +98,8 @@ public final class Revision implements CacheValue {
      * </b>
      */
     static void resetClockToDefault() {
-        setClock(Clock.SIMPLE);
+        clock = Clock.SIMPLE;
+        lastClockSetter = null;
     }
 
     public Revision(long timestamp, int counter, int clusterId) {
