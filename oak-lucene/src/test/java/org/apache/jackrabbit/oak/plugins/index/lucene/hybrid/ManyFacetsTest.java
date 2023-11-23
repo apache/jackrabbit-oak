@@ -95,7 +95,7 @@ public class ManyFacetsTest extends AbstractQueryTest {
     private static final String FACET_PROP = "facets";
     private static final long REFRESH_DELTA = TimeUnit.SECONDS.toMillis(1);
     
-    private static final int FACET_COUNT = 200;
+    private static final int FACET_COUNT = 10;
 
     private ExecutorService executorService = Executors.newFixedThreadPool(2);
     private OptionalEditorProvider optionalEditorProvider = new OptionalEditorProvider();

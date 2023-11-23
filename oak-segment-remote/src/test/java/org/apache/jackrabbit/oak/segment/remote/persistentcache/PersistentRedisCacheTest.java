@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,7 +56,11 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
         Path redisTargetExecutable = new File("target", redisTempExecutable.getFileName().toString()).toPath();
         Files.copy(redisTempExecutable, redisTargetExecutable, StandardCopyOption.REPLACE_EXISTING);
         redisServer = RedisServer.newRedisServer().setting("maxmemory 768mb").bind(REDIS_HOST).executableProvider(redisTargetExecutable::toFile).build();
-        redisServer.start();
+        try {
+            redisServer.start();
+        } catch (IOException e) {
+            Assume.assumeNoException(e);
+        }
         int port = redisServer.ports().get(0);
         ioMonitorAdapter = mock(IOMonitorAdapter.class);
 

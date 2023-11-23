@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.file.tar.TarWriterTest;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
@@ -44,16 +45,21 @@ public class AzureTarWriterTest extends TarWriterTest {
     @NotNull
     @Override
     protected SegmentArchiveManager getSegmentArchiveManager() throws Exception {
-        return new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor);
+        WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController.enableWriting();
+        AzureArchiveManager azureArchiveManager = new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor, writeAccessController);
+        return azureArchiveManager;
     }
 
     @NotNull
     @Override
     protected SegmentArchiveManager getFailingSegmentArchiveManager() throws Exception {
-        return new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor) {
+        final WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController.enableWriting();
+        return new AzureArchiveManager(container.getDirectoryReference("oak"), new IOMonitorAdapter(), monitor, writeAccessController) {
             @Override
             public SegmentArchiveWriter create(String archiveName) throws IOException {
-                return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor) {
+                return new AzureSegmentArchiveWriter(getDirectory(archiveName), ioMonitor, monitor, writeAccessController) {
                     @Override
                     public void writeGraph(@NotNull byte[] data) throws IOException {
                         throw new IOException("test");
