@@ -22,6 +22,7 @@ import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -74,6 +75,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    @Ignore("http-to-https proxying not supported by toxiproxy")
     public void connectionCutOnQuery() throws Exception {
         String indexName = UUID.randomUUID().toString();
         setIndex(indexName, createIndex("propa", "propb"));
