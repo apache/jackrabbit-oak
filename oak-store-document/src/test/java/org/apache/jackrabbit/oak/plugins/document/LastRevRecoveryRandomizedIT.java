@@ -76,9 +76,6 @@ public class LastRevRecoveryRandomizedIT {
 
     @Before
     public void setUp() throws Exception {
-        LOG.info("LastRevRecoveryRandomizedIT : OAK-10559 safety sleep of 2min");
-        Thread.sleep(120000);
-        LOG.info("LastRevRecoveryRandomizedIT : OAK-10559 safety sleep of 2min done.");
         LOG.info("Running " + getClass().getSimpleName() + " with seed " + SEED);
         clock = new Clock.Virtual();
         Revision.setClock(clock);
