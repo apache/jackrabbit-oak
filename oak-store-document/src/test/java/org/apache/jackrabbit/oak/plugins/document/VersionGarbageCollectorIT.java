@@ -97,8 +97,6 @@ public class VersionGarbageCollectorIT {
 
     private DocumentNodeStore store;
 
-    private DocumentNodeStore secondary;
-
     private VersionGarbageCollector gc;
 
     private ExecutorService execService;
@@ -142,13 +140,6 @@ public class VersionGarbageCollectorIT {
         closer.close();
         if (store != null) {
             store.dispose();
-        }
-        if (secondary != null) {
-            try {
-                secondary.dispose();
-            } catch(Exception e) {
-                // ignore
-            }
         }
         Revision.resetClockToDefault();
         execService.shutdown();
@@ -439,11 +430,10 @@ public class VersionGarbageCollectorIT {
     }
 
     private DocumentNodeStore createSecondary() {
-        secondary = new DocumentMK.Builder().clock(clock)
+        return new DocumentMK.Builder().clock(clock)
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(store.getDocumentStore()).setAsyncDelay(0)
                 .setClusterId(2).getNodeStore();
-        return secondary;
     }
 
     private void createLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
