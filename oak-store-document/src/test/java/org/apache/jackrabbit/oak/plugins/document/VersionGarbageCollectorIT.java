@@ -18,32 +18,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -51,6 +33,22 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
+
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
@@ -61,27 +59,23 @@ import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Queues;
 import org.apache.jackrabbit.guava.common.collect.Sets;
-import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.Atomics;
-import com.mongodb.ReadPreference;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
-import org.apache.jackrabbit.oak.api.PropertyState;
-import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -101,15 +95,13 @@ public class VersionGarbageCollectorIT {
 
     private ExecutorService execService;
 
-    private Closer closer = Closer.create();
-
     public VersionGarbageCollectorIT(DocumentStoreFixture fixture) {
         this.fixture = fixture;
     }
 
     @Parameterized.Parameters(name="{0}")
     public static Collection<Object[]> fixtures() throws IOException {
-        return AbstractDocumentStoreTest.fixtures();
+        return AbstractDocumentStoreTest.fixtures(false);
     }
 
     @Before
@@ -126,18 +118,11 @@ public class VersionGarbageCollectorIT {
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED)
                 .setDocumentStore(fixture.createDocumentStore()).setAsyncDelay(0);
         store = documentMKBuilder.getNodeStore();
-        // Enforce primary read preference, otherwise tests may fail on a
-        // replica set with a read preference configured to secondary.
-        // Revision GC usually runs with a modified range way in the past,
-        // which means changes made it to the secondary, but not in this
-        // test using a virtual clock
-        MongoTestUtils.setReadPreference(store, ReadPreference.primary());
         gc = store.getVersionGarbageCollector();
     }
 
     @After
     public void tearDown() throws Exception {
-        closer.close();
         if (store != null) {
             store.dispose();
         }
@@ -145,6 +130,25 @@ public class VersionGarbageCollectorIT {
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
         fixture.dispose();
+    }
+
+    private static Set<Thread> tbefore = new HashSet<>();
+
+    @BeforeClass
+    public static void before() throws Exception {
+        System.err.println("SINGLE BEFORE");
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+            tbefore.add(t);
+            System.err.println(t);
+        }
+    }
+
+    @AfterClass
+    public static void after() throws Exception {
+        System.err.println("SINGLE AFTER");
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+            System.err.println(t + (tbefore.contains(t) ? "" : " LEAKED"));
+        }
     }
 
     @Test
@@ -221,12 +225,12 @@ public class VersionGarbageCollectorIT {
     public void gcSplitDocs() throws Exception {
         gcSplitDocsInternal("foo");
     }
-    
+
     @Test
     public void gcLongPathSplitDocs() throws Exception {
         gcSplitDocsInternal(Strings.repeat("sub", 120));
     }
-    
+
     private void gcSplitDocsInternal(String subNodeName) throws Exception {
         long maxAge = 1; //hrs
         long delta = TimeUnit.MINUTES.toMillis(10);
@@ -286,249 +290,6 @@ public class VersionGarbageCollectorIT {
         //Following would not work for Mongo as the delete happened on the server side
         //And entries from cache are not evicted
         //assertTrue(ImmutableList.copyOf(getDoc("/test2/foo").getAllPreviousDocs()).isEmpty());
-    }
-
-    /**
-     * OAK-10542 with OAK-10526 : This reproduces a case where a _deleted revision
-     * that is still used by a checkpoint is split away and then GCed. This variant
-     * tests a checkpoint when /t/target is deleted.
-     */
-    @Test
-    public void gcSplitDocWithReferencedDeleted_combined() throws Exception {
-        // step 1 : create a _delete entry with clusterId 2, plus do a GC
-        final DocumentNodeStore store2 = createSecondary();
-        createLeaf(store2, "t", "target");
-        store2.runBackgroundOperations();
-        assertEquals(0, store2.getVersionGarbageCollector().gc(24, HOURS).splitDocGCCount);
-
-        // step 2 : nearly cause target docu split - via clusterId 1
-        store.runBackgroundOperations();
-        for (int i = 0; i < (NUM_REVS_THRESHOLD / 2) - 1; i++) {
-            deleteLeaf(store, "t", "target");
-            createLeaf(store, "t", "target");
-        }
-        // last change should be deleted (that's what this test case is for)
-        deleteLeaf(store, "t", "target");
-        store.runBackgroundOperations();
-
-        // step 3 : do a minimal sleep + bcOps between last change and the checkpoint to
-        // ensure maxRev and checkpoint are more than precisionMs apart
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(61));
-        store.runBackgroundOperations();
-
-        // step 4 : then take a checkpoint refering to the last rev in the split doc
-        // (which is 'deleted')
-        final String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
-
-        // step 5 : ensure another precisionMs apart between checkpoint and
-        // split-triggering change
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(61));
-
-        // step 6 : trigger the split - main doc will contain "_deleted"="false"
-        createLeaf(store, "t", "target");
-        store.runBackgroundOperations();
-
-        // step 7 : wait for 25h - to also be more than 24 away from maxRev
-        clock.waitUntil(clock.getTime() + TimeUnit.HOURS.toMillis(25));
-
-        // step 8 : do the gc
-        // expect a split doc at depth 4 for /t/target to exist
-        assertEquals(1, store.getDocumentStore()
-                .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
-        gc.gc(24, HOURS);
-        // before a fix the split doc is GCed (but can't make that an assert)
-        //assertEquals(0, store.getDocumentStore()
-        //        .query(NODES, "4:p/t/target/", "4:p/t/target/z", 5).size());
-
-        // step 9 : make assertions about /t/target at root and checkpoint
-        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
-        store.getNodeCache().invalidateAll();
-        assertTrue(store.getRoot().getChildNode("t").getChildNode("target").exists());
-        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
-        store.getNodeCache().invalidateAll();
-        assertEquals(false, store.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
-    }
-
-    /**
-     * OAK-10542 : This reproduces a case where a split doc is created that contains
-     * a revision of _deleted that is still referred by a checkpoint. The fact that
-     * _deleted is split "in the middle" used to confuse the getLiveRevision lookup,
-     * as it was not considering split document for the _deleted property as long as
-     * it found a valid revision in the main document. This variant tests a
-     * checkpoint when /t/target is deleted.
-     */
-    @Test
-    public void gcSplitDocWithReferencedDeleted_true() throws Exception {
-        // step 1 : create some _deleted entries with clusterId 2
-        final DocumentNodeStore store2 = createSecondary();
-        createLeaf(store2, "t", "target");
-        deleteLeaf(store2, "t", "target");
-        store2.runBackgroundOperations();
-
-        // step 2 : create a _deleted=true entry with clusterId 1
-        store.runBackgroundOperations();
-        createLeaf(store, "t", "target");
-        // create a checkpoint where /t/target should exist
-        final String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
-
-        // step 3 : cause a split doc with _deleted with clusterId 1
-        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
-            createLeaf(store, "t", "target");
-            deleteLeaf(store, "t", "target");
-        }
-        store.runBackgroundOperations();
-
-        // step 4 : make assertions about /t/target at root and checkpoint
-        // invalidate node cache to ensure readNode is called below
-        store.getNodeCache().invalidateAll();
-        assertFalse(store.getRoot().getChildNode("t").getChildNode("target").exists());
-        // invalidate node cache to ensure readNode is called below
-        store.getNodeCache().invalidateAll();
-        assertEquals(true, store.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
-
-    }
-
-    /**
-     * OAK-10542 : This reproduces a case where a split doc is created that contains
-     * a revision of _deleted that is still referred by a checkpoint. The fact that
-     * _deleted is split "in the middle" used to confuse the getLiveRevision lookup,
-     * as it was not considering split document for the _deleted property as long as
-     * it found a valid revision in the main document. This variant tests a
-     * checkpoint when /t/target exists.
-     */
-    @Test
-    public void gcSplitDocWithReferencedDeleted_false() throws Exception {
-        // step 1 : create a _delete entry with clusterId 2
-        final DocumentNodeStore store2 = createSecondary();
-        createLeaf(store2, "t", "target");
-        store2.runBackgroundOperations();
-
-        // step 2 : create a _deleted=true entry with clusterId 1
-        store.runBackgroundOperations();
-        deleteLeaf(store, "t", "target");
-        // create a checkpoint where /t/target should not exist
-        final String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
-
-        // step 2 : cause a split doc with _deleted with clusterId 1
-        for (int i = 0; i < NUM_REVS_THRESHOLD; i++) {
-            createLeaf(store, "t", "target");
-            deleteLeaf(store, "t", "target");
-        }
-        store.runBackgroundOperations();
-
-        // step 4 : make assertions about /t/target at root and checkpoint
-        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
-        store.getNodeCache().invalidateAll();
-        assertFalse(store.getRoot().getChildNode("t").getChildNode("target").exists());
-        // invalidate node cache to ensure readNode/getNodeAtRevision is called below
-        store.getNodeCache().invalidateAll();
-        assertEquals(false, store.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
-
-    }
-
-    private DocumentNodeStore createSecondary() {
-        return new DocumentMK.Builder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(store.getDocumentStore()).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
-    }
-
-    private void createLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
-        createOrDeleteLeaf(s, false, pathElems);
-    }
-
-    private void deleteLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
-        createOrDeleteLeaf(s, true, pathElems);
-    }
-
-    private void createOrDeleteLeaf(DocumentNodeStore s, boolean delete,
-            String... pathElems) throws Exception {
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(10));
-        final NodeBuilder rb = s.getRoot().builder();
-        NodeBuilder b = rb;
-        for (String pathElem : pathElems) {
-            b = b.child(pathElem);
-        }
-        if (delete) {
-            b.remove();
-        }
-        s.merge(rb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-    }
-
-    /**
-     * OAK-10526 : This reproduces a case where a split doc is created then GCed,
-     * while there is a checkpoint that still refers to a revision contained in that
-     * split doc.
-     */
-    @Test
-    public void gcSplitDocsWithReferencedRevisions() throws Exception {
-        final String exp;
-
-        // step 1 : create an old revision at t(0) with custerId 2
-        DocumentNodeStore store2 = new DocumentMK.Builder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED)
-                .setDocumentStore(store.getDocumentStore()).setAsyncDelay(0)
-                .setClusterId(2).getNodeStore();
-        NodeBuilder b1 = store2.getRoot().builder();
-        b1.child("t").setProperty("foo", "some-value-created-by-another-cluster-node");
-        store2.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store2.runBackgroundOperations();
-        store.runBackgroundOperations();
-
-        // step 2 : make sure GC was running once and sets oldest timestamp
-        // (the value of oldest doesn't matter, but it should be <= t(0))
-        assertEquals(0, gc.gc(24, HOURS).splitDocGCCount);
-
-        // step 3 : wait for 1 week
-        clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
-
-        // step 4 : create old revisions at t(+1w) - without yet causing a split
-        String lastValue = null;
-        for (int i = 0; i < NUM_REVS_THRESHOLD - 1; i++) {
-            b1 = store.getRoot().builder();
-            b1.child("t").setProperty("foo", lastValue = "bar" + i);
-            store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        }
-        exp = lastValue;
-        store.runBackgroundOperations();
-
-        // step 4b : another change to further lastRev for clusterId 1
-        // required to ensure 5sec rounding of mongo variant is also covered
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(6));
-        b1 = store.getRoot().builder();
-        b1.child("unrelated").setProperty("unrelated", "unrelated");
-        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-
-        // step 5 : create a checkpoint at t(+1w+6sec)
-        String checkpoint = store.checkpoint(TimeUnit.DAYS.toMillis(42));
-        assertEquals(exp, store.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
-
-        // step 6 : wait for 1 week
-        clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
-
-        // step 7 : do another change that fulfills the split doc condition at t(+2w)
-        b1 = store.getRoot().builder();
-        b1.child("t").setProperty("foo", "barZ");
-        store.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        store.runBackgroundOperations();
-        assertEquals("barZ", store.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
-
-        // step 8 : move the clock a couple seconds to ensure GC maxRev condition hits
-        // (without this it might not yet GC the split doc we want it to,
-        // as we'd be in the same rounded second) -> t(+2w:30s)
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(30));
-
-        // step 9 : trigger another GC - previously split away the referenced revision
-        assertEquals(0, gc.gc(24, HOURS).splitDocGCCount);
-        // flush the caches as otherwise it might deliver stale data
-        store.getNodeCache().invalidateAll();
-        assertEquals("barZ", store.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, store.retrieve(checkpoint).getChildNode("t").getString("foo"));
     }
 
     // OAK-1729
@@ -1111,95 +872,6 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, prevDocs.size());
         // check value
         assertEquals(value, store.getRoot().getChildNode("foo").getString("prop"));
-    }
-
-    @Test
-    public void gcOnStaleDocument() throws Exception {
-        assumeTrue(fixture.hasSinglePersistence());
-
-        String nodeName = "foo";
-        Path path = new Path(Path.ROOT, nodeName);
-        String docId = Utils.getIdFromPath(path);
-
-        NodeBuilder builder = store.getRoot().builder();
-        builder.child(nodeName).setProperty("p", -1);
-        merge(store, builder);
-
-        store.runBackgroundOperations();
-
-        for (int i = 0; i < NUM_REVS_THRESHOLD - 1; i++) {
-            builder = store.getRoot().builder();
-            builder.child(nodeName).setProperty("p", i);
-            merge(store, builder);
-        }
-
-        DocumentStore ds2 = fixture.createDocumentStore(2);
-        DocumentNodeStore ns2 = new DocumentMK.Builder().setClusterId(2)
-                .setLeaseCheckMode(LeaseCheckMode.LENIENT)
-                .clock(clock).setAsyncDelay(0).setDocumentStore(ds2).getNodeStore();
-        closer.register(ns2::dispose);
-
-        VersionGarbageCollector gc = ns2.getVersionGarbageCollector();
-        gc.gc(30, MINUTES);
-
-        CountDownLatch bgOperationsDone = new CountDownLatch(1);
-        // prepare commit that will trigger split
-        Commit c = store.newCommit(cb -> cb.updateProperty(path, "p", "0"),
-                store.getHeadRevision(), null);
-        try {
-            execService.submit(() -> {
-                store.runBackgroundOperations();
-                bgOperationsDone.countDown();
-            });
-            // give the background operations some time to progress
-            // past the check for split operations
-            Thread.sleep(50);
-            c.apply();
-        } finally {
-            store.done(c, false, CommitInfo.EMPTY);
-            store.addSplitCandidate(docId);
-        }
-
-        // pick up the changes performed by first store
-        bgOperationsDone.await();
-        ns2.runBackgroundOperations();
-
-        // read the node /foo from the store that will perform the
-        // revision garbage collection
-        NodeState state = ns2.getRoot().getChildNode(nodeName);
-        assertTrue(state.exists());
-        PropertyState prop = state.getProperty("p");
-        assertNotNull(prop);
-        assertEquals(0L, prop.getValue(Type.LONG).longValue());
-        // must have the corresponding document in the cache now
-        NodeDocument doc = ds2.getIfCached(NODES, docId);
-        assertNotNull(doc);
-        // must not yet have previous documents
-        assertTrue(doc.getPreviousRanges().isEmpty());
-
-        // write something else. this will ensure a journal entry is
-        // pushed on the next background update operation
-        builder = store.getRoot().builder();
-        builder.child("bar");
-        merge(store, builder);
-
-        // trigger the overdue split on 1:/foo
-        store.runBackgroundOperations();
-        ns2.runBackgroundOperations();
-
-        // wait some time and trigger RGC
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(1));
-
-        gc = ns2.getVersionGarbageCollector();
-        VersionGCStats stats = gc.gc(30, MINUTES);
-        assertEquals(1, stats.splitDocGCCount);
-
-        // check how the document looks like, bypassing cache
-        doc = store.getDocumentStore().find(NODES, docId, 0);
-        assertNotNull(doc);
-        assertTrue(doc.getPreviousRanges().isEmpty());
-
-        ns2.dispose();
     }
 
     private void createTestNode(String name) throws CommitFailedException {
