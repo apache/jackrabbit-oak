@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -39,6 +40,7 @@ import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +57,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.unmodifiableSet;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 
 /**
  * This class is where the strategy being selected for building FlatFileStore.
@@ -63,8 +67,6 @@ public class FlatFileNodeStoreBuilder {
 
     private static final String FLAT_FILE_STORE_DIR_NAME_PREFIX = "flat-fs-";
 
-    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
-    public static final String OAK_INDEXER_USE_LZ4 = "oak.indexer.useLZ4";
     /**
      * System property name for sort strategy. If this is true, we use {@link MultithreadedTraverseWithSortStrategy}, else
      * {@link StoreAndSortStrategy} strategy is used.
@@ -129,20 +131,18 @@ public class FlatFileNodeStoreBuilder {
     private long dumpThreshold = Integer.getInteger(OAK_INDEXER_DUMP_THRESHOLD_IN_MB, OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT) * FileUtils.ONE_MB;
     private Predicate<String> pathPredicate = path -> true;
 
-    private final boolean compressionEnabled = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
-    private final boolean useLZ4 = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "false"));
-    private final Compression algorithm = compressionEnabled ? (useLZ4 ? new LZ4Compression() : Compression.GZIP) :
-            Compression.NONE;
-    private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true"));
+    private final Compression algorithm = IndexStoreUtils.compressionAlgorithm();
+    private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
     private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
-            (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.STORE_AND_SORT);
+            (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.PIPELINED);
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
+    private MongoDatabase mongoDatabase = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
-
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
     public enum SortStrategyType {
         /**
@@ -234,6 +234,16 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withCheckpoint(String checkpoint) {
         this.checkpoint = checkpoint;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMongoDatabase(MongoDatabase mongoDatabase) {
+        this.mongoDatabase = mongoDatabase;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
         return this;
     }
 
@@ -353,22 +363,25 @@ public class FlatFileNodeStoreBuilder {
     IndexStoreSortStrategy createSortStrategy(File dir) throws IOException {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
-                log.info("Using StoreAndSortStrategy");
+                log.info("Using StoreAndSortStrategy.");
+                log.warn("StoreAndSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new StoreAndSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
                         algorithm, pathPredicate, checkpoint);
             case TRAVERSE_WITH_SORT:
                 log.info("Using TraverseWithSortStrategy");
+                log.warn("TraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
                         algorithm, pathPredicate, checkpoint);
             case MULTITHREADED_TRAVERSE_WITH_SORT:
                 log.info("Using MultithreadedTraverseWithSortStrategy");
+                log.warn("MultithreadedTraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, preferredPathElements,
                         blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate, checkpoint);
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
-                return new PipelinedStrategy(mongoDocumentStore, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint);
+                return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint, statisticsProvider);
 
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
@@ -376,8 +389,8 @@ public class FlatFileNodeStoreBuilder {
 
     private void logFlags() {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
-        log.info("Compression enabled while sorting : {} ({})", compressionEnabled, OAK_INDEXER_USE_ZIP);
-        log.info("LZ4 enabled for compression algorithm : {} ({})", useLZ4, OAK_INDEXER_USE_LZ4);
+        log.info("Compression enabled while sorting : {} ({})", IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
+        log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(), OAK_INDEXER_USE_LZ4);
         log.info("Sort strategy : {} ({})", sortStrategyType, OAK_INDEXER_TRAVERSE_WITH_SORT);
     }
 

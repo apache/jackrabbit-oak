@@ -34,6 +34,7 @@ import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
@@ -64,6 +65,8 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     protected final CloudBlobDirectory segmentstoreDirectory;
 
+    protected WriteAccessController writeAccessController = new WriteAccessController();
+
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
 
@@ -92,7 +95,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     @Override
     public SegmentArchiveManager createArchiveManager(boolean mmap, boolean offHeapAccess, IOMonitor ioMonitor, FileStoreMonitor fileStoreMonitor, RemoteStoreMonitor remoteStoreMonitor) {
         attachRemoteStoreMonitor(remoteStoreMonitor);
-        return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor);
+        return new AzureArchiveManager(segmentstoreDirectory, ioMonitor, fileStoreMonitor, writeAccessController);
     }
 
     @Override
@@ -116,7 +119,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
 
     @Override
     public JournalFile getJournalFile() {
-        return new AzureJournalFile(segmentstoreDirectory, "journal.log");
+        return new AzureJournalFile(segmentstoreDirectory, "journal.log", writeAccessController);
     }
 
     @Override
@@ -134,7 +137,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         return new AzureRepositoryLock(getBlockBlob("repo.lock"), () -> {
             log.warn("Lost connection to the Azure. The client will be closed.");
             // TODO close the connection
-        }).lock();
+        }, writeAccessController).lock();
     }
 
     private CloudBlockBlob getBlockBlob(String path) throws IOException {
@@ -178,8 +181,11 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
         });
     }
 
-        public CloudBlobDirectory getSegmentstoreDirectory() {
-            return segmentstoreDirectory;
-        }
+    public CloudBlobDirectory getSegmentstoreDirectory() {
+        return segmentstoreDirectory;
+    }
 
+    public void setWriteAccessController(WriteAccessController writeAccessController) {
+        this.writeAccessController = writeAccessController;
+    }
 }

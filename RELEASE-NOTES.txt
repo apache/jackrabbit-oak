@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.56.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.58.0
 
 Introduction
 ------------
@@ -7,82 +7,72 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.56.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.58.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.54.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.58.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.56.0
+Changes in Oak 1.58.0
 ---------------------
-
-Sub-task
-
-    [OAK-10362] - Create benchmark test
-    [OAK-10363] - Benchmark results
-    [OAK-10364] - Consolidate inheritance related automembership tests
 
 Technical task
 
-    [OAK-7542] - oak-blob-*'s use of Guava File.fileTreeTraverser
-    [OAK-7549] - commons: avoid use of Guava beta APIs in FileIOUtils
-    [OAK-8684] - oak-core-spi: remove uses of Guava from exported API
-    [OAK-8717] - Remove deprecated Guava-based APIs
-    [OAK-10274] - oak-core-spi: remove Guava from public API
-    [OAK-10322] - oak-core: remove Guava from public API
-    [OAK-10323] - remove all remaining references of native Guava
-    [OAK-10368] - convert groovy sources to shaded guava
-    [OAK-10412] - AbstractTwoNodeTest: check preconditions in setup
-    [OAK-10415] - AbstractTwoNodeTest: make teardown more robust
-    [OAK-10416] - AbstractTwoNodeTest: ensure RDB fixture uses empty DB
+    [OAK-6759] - Convert oak-blob-cloud-azure to OSGi R6 annotations
 
 Bug
 
-    [OAK-10181] - Flaky test: DataStoreBlobStoreStatsTest
-    [OAK-10353] - Elastic custom analyzer should ignore unsupported properties (eg: hidden, arrays)
-    [OAK-10372] - oak-search-elastic: similarity queries produce no relevant results
-    [OAK-10379] - DynamicGroupsTest#testCrossIDPMembership() fails occasionally
-    [OAK-10405] - document-store: potential NPE in AbstractTwoNodeTest teardown
+    [OAK-10293] - AzureTarRevisionsTest fails occasionally
+    [OAK-10334] - Node.addMixin() may overwrite existing mixins
+    [OAK-10343] - AzureTarFilesTest.testCollectBlobReferencesWithGenerationFilter unreliable
+    [OAK-10359] - Unreliable test: TarFileTest.binaryReferencesIndexShouldBeTrimmedDownOnSweep
+    [OAK-10360] - unreliable test AzureTarFileTest.testWriteAndReadBinaryReferences
+    [OAK-10377] - Checked-out state of non-versionable nodes is not handled correctly
+    [OAK-10384] - Fix stripping of large indexed ordered properties
+    [OAK-10413] - DocumentStoreIndexerIT hanging
+    [OAK-10448] - org.apache.jackrabbit.api.security.user.Query must be a Consumer type
+    [OAK-10453] - Pipelined strategy: enforce size limit on memory taken by objects in the queue between download and transform thread
+    [OAK-10465] - Embed netty-transport-native-unix-common dependency in oak-segment-tar
 
 Improvement
 
-    [OAK-9837] - Reference individual OSGi dependencies in version shipped with R7
-    [OAK-10003] - Upgrade tika to 1.28.5
-    [OAK-10318] - Improve AutoMembershipPrincipals#isInheritedMember
-    [OAK-10333] - Improved logging for queries that that traverse more than 10'000 nodes
-    [OAK-10357] - Path option for documentstore-check
-    [OAK-10365] - introduce mapping version in oak-search-elastic
-    [OAK-10367] - update org.apache.sling.testing.osgi-mock dependency
+    [OAK-9922] - segment-tar: parallel compaction
+    [OAK-10358] - Indexing job: push filtering of paths to MongoDB
+    [OAK-10399] - Automatically pick a merged index over multiple levels
+    [OAK-10423] - Improve logging of metrics in indexing job
+    [OAK-10427] - Clear cache on NodeDocumentCache close
+    [OAK-10429] - Implementation for IncrementalFFS
+    [OAK-10450] - Bump testcontainers dependency to v1.19.0
+    [OAK-10452] - Indexing job/regex filtering: getting ancestors nodes of filtered path incorrectly does a full col scan on Mongo
+    [OAK-10456] - oak-search-elastic: log index name when bulk update fails
+    [OAK-10458] - Indexing job: Make LZ4 the default compression algorithm in OAK
+    [OAK-10463] - Retrieve flatFileStore for indexing from baseFlatFileStore
+    [OAK-10475] - Expose the mongo connection in MongoDocumentNodeStoreBuilderBase
 
 Task
 
-    [OAK-10272] - Reverse #OAK-10022
-    [OAK-10347] - Small util class for exporting a tree as flat file
-    [OAK-10366] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.11
-    [OAK-10369] - oak-segment-azure/oak-blob-cloud-azure leak Guava dependency
-    [OAK-10381] - DocumentStoreIndexerIT failures
-    [OAK-10385] - segment-azure: add javax.activation-api to test class path
-    [OAK-10386] - Bump netty dependency from 4.1.52.Final to 4.1.96.Final
-    [OAK-10389] - remove commons-lang dependency
-    [OAK-10390] - Update commons-io dependency to 2.13.0
-    [OAK-10391] - improve TarFilesTest.testCollectBlobReferencesWithGenerationFilter diagnostics
-    [OAK-10392] - Update (shaded) Guava to 32.1.2
-    [OAK-10394] - Update commons-lang3 dependency to 3.13.0
-    [OAK-10395] - Update commons-codec dependency to 1.16.0
-    [OAK-10396] - segment-aws: remove unused commons-lang3 dependency
-    [OAK-10397] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.23.0
-    [OAK-10400] - auth-ldap/benchmarks: use default dependency for commons-lang3
-    [OAK-10401] - search-mt/solr-osgi: use default versions of commons-math3
-    [OAK-10402] - benchmarks: remove commons-math dependency (use math3 instead)
-    [OAK-10403] - update Tomcat JDBC dependency to 8.5.92
-    [OAK-10404] - improve TarFilesTest.testCollectBlobReferences diagnostics
-    [OAK-10407] - run/lucene: update gson dependencies to 2.10.1
-    [OAK-10414] - RDB*Store: update Derby dependency to 10.15.2.0
+    [OAK-7182] - Make it possible to update Guava
+    [OAK-9491] - Address vulnerabilities found by dependency checker plugin
+    [OAK-10371] - oak-segment-azure/oak-blob-cloud-azure require provided Guava, embed it instead
+    [OAK-10374] - test coverage for modification of non-versioned node with jcr:isCheckedOut==false property
+    [OAK-10426] - oak-segment-azure: enable baseline check
+    [OAK-10430] - oak-*-azure: add to OSGi tests
+    [OAK-10433] - Throttle excessive warning log messages when reindexing environments with non-fatal issues in index definition
+    [OAK-10434] - oak-segment-azure/oak-blob-cloud-azure: update SDK dependencies
+    [OAK-10439] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.12
+    [OAK-10441] - oak-search-elastic embeds vulnerable SnakeYAML
+    [OAK-10442] - Lucene Index - node type inheritance is not properly working for aggregation
+    [OAK-10443] - refactor AbstractDataStoreService so that it doesn't need the statisticsProvider OSGi reference
+    [OAK-10445] - Cleanup logging (AbstractSharedCachingDataStore)
+    [OAK-10446] - Upgrade jackson-databind dependency to 2.15.2
+    [OAK-10447] - update Tomcat JDBC dependency to 9.0.80
+    [OAK-10449] - oak-solr-osgi embeds vulnerable Zookeeper
+    [OAK-10461] - oak-search-elastic does not build under Java 17
 
 
 In addition to the above-mentioned changes, this release contains all

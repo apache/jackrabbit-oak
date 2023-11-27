@@ -65,6 +65,7 @@ import org.apache.jackrabbit.oak.api.Blob;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.plugins.blob.BlobStoreBlob;
 import org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState;
 import org.apache.jackrabbit.oak.segment.RecordWriters.RecordWriter;
 import org.apache.jackrabbit.oak.segment.WriteOperationHandler.WriteOperation;
@@ -573,6 +574,13 @@ public class DefaultSegmentWriter implements SegmentWriter {
                 }
                 if (segmentBlob.isExternal()) {
                     return writeBlobId(segmentBlob.getBlobId());
+                }
+            }
+
+            if (blob instanceof BlobStoreBlob) {
+                String blobId = ((BlobStoreBlob) blob).getBlobId();
+                if (blobId != null) {
+                    return writeBlobId(blobId);
                 }
             }
 

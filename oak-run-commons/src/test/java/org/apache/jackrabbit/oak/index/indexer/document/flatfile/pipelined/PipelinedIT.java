@@ -18,7 +18,9 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import org.apache.commons.lang3.tuple.ImmutablePair;
+import com.mongodb.client.MongoDatabase;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.PathUtils;
@@ -30,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -38,13 +41,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assume;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -54,15 +61,26 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
+import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class PipelinedIT {
+    private static final Logger LOG = LoggerFactory.getLogger(PipelinedIT.class);
+    private static final PathFilter contentDamPathFilter = new PathFilter(List.of("/content/dam"), List.of());
+    private static final int LONG_PATH_TEST_LEVELS = 30;
+    private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
+
+    private static ScheduledExecutorService executorService;
     @Rule
     public final MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
     @Rule
@@ -72,10 +90,8 @@ public class PipelinedIT {
     @Rule
     public final TemporaryFolder sortFolder = new TemporaryFolder();
 
-    private static final PathFilter contentDamPathFilter = new PathFilter(List.of("/content/dam"), List.of());
 
-    private static final int LONG_PATH_TEST_LEVELS = 30;
-    private static final String LONG_PATH_LEVEL_STRING = "Z12345678901234567890-Level_";
+    private MetricStatisticsProvider statsProvider;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -86,6 +102,23 @@ public class PipelinedIT {
             path.append("/").append(LONG_PATH_LEVEL_STRING).append(i);
             EXPECTED_FFS.add(path + "|{}");
         }
+        executorService = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    @AfterClass
+    public static void teardown() {
+        if (executorService != null) {
+            executorService.shutdown();
+        }
+    }
+
+    @Before
+    public void before() {
+        MongoConnection c = connectionFactory.getConnection();
+        if (c != null) {
+            c.getDatabase().drop();
+        }
+        statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
     }
 
     @After
@@ -94,6 +127,8 @@ public class PipelinedIT {
         if (c != null) {
             c.getDatabase().drop();
         }
+        statsProvider.close();
+        statsProvider = null;
     }
 
     @Test
@@ -175,24 +210,57 @@ public class PipelinedIT {
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected)
             throws CommitFailedException, IOException {
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Backend roStore = createNodeStore(true);
 
         PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
 
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
         assertEquals(expected, Files.readAllLines(file.toPath()));
+        assertMetrics();
+    }
+
+    private void assertMetrics() {
+        // Check the statistics
+        Set<String> metricsNames = statsProvider.getRegistry().getCounters().keySet();
+
+        assertEquals(Set.of(
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME
+        ), metricsNames);
+
+        String pipelinedMetrics = statsProvider.getRegistry()
+                .getCounters()
+                .entrySet().stream()
+                .map(e -> e.getKey() + " " + e.getValue().getCount())
+                .collect(Collectors.joining("\n"));
+        LOG.info("Metrics\n{}", pipelinedMetrics);
     }
 
     @Test
     public void createFFS_pathPredicateDoesNotMatch() throws Exception {
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Backend roStore = createNodeStore(true);
         Predicate<String> pathPredicate = s -> s.startsWith("/content/dam/does-not-exist");
         PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, null);
 
@@ -206,15 +274,14 @@ public class PipelinedIT {
     public void createFFS_badNumberOfTransformThreads() throws CommitFailedException {
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, "0");
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore);
+        Backend roStore = createNodeStore(true);
 
         assertThrows("Invalid value for property " + PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": 0. Must be > 0",
                 IllegalArgumentException.class,
-                pipelinedStrategy::createSortedStoreFile
+                () -> createStrategy(roStore)
         );
     }
 
@@ -222,53 +289,102 @@ public class PipelinedIT {
     public void createFFS_badWorkingMemorySetting() throws CommitFailedException {
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, "-1");
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore);
+        Backend roStore = createNodeStore(true);
 
         assertThrows("Invalid value for property " + PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": -1. Must be >= 0",
                 IllegalArgumentException.class,
-                pipelinedStrategy::createSortedStoreFile
+                () -> createStrategy(roStore)
         );
     }
+
+    @Test
+    public void createFFS_smallNumberOfDocsPerBatch() throws Exception {
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, "2");
+
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        List<PathFilter> pathFilters = null;
+
+        testSuccessfulDownload(pathPredicate, pathFilters);
+    }
+
+    @Test
+    public void createFFS_largeMongoDocuments() throws Exception {
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, "1");
+        System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, "32");
+
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        List<PathFilter> pathFilters = null;
+
+        Backend rwStore = createNodeStore(false);
+        @NotNull NodeBuilder rootBuilder = rwStore.documentNodeStore.getRoot().builder();
+        // This property does not fit in the reserved memory, but must still be processed without errors
+        String longString = RandomStringUtils.random((int) (10 * FileUtils.ONE_MB), true, true);
+        @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
+        contentDamBuilder.child("2021").child("01").setProperty("p1", "v202101");
+        contentDamBuilder.child("2022").child("01").setProperty("p1", longString);
+        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
+        rwStore.documentNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        List<String> expected = List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/2021|{}",
+                "/content/dam/2021/01|{\"p1\":\"v202101\"}",
+                "/content/dam/2022|{}",
+                "/content/dam/2022/01|{\"p1\":\"" + longString + "\"}",
+                "/content/dam/2023|{}",
+                "/content/dam/2023/01|{\"p1\":\"v202301\"}"
+        );
+
+        Backend roStore = createNodeStore(true);
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
+
+        File file = pipelinedStrategy.createSortedStoreFile();
+        assertTrue(file.exists());
+        assertArrayEquals(expected.toArray(new String[0]), Files.readAllLines(file.toPath()).toArray(new String[0]));
+        assertMetrics();
+    }
+
 
     @Ignore("This test is for manual execution only. It allocates two byte buffers of 2GB each, which might exceed the memory available in the CI")
     public void createFFSWithPipelinedStrategy_veryLargeWorkingMemorySetting() throws Exception {
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, "1");
         System.setProperty(PipelinedStrategy.OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, "8000");
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> rwStore = createNodeStore(false);
-        createContent(rwStore.right);
+        Backend rwStore = createNodeStore(false);
+        createContent(rwStore.documentNodeStore);
 
-        ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore = createNodeStore(true);
+        Backend roStore = createNodeStore(true);
         Predicate<String> pathPredicate = s -> s.startsWith("/content/dam");
         PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, null);
 
         pipelinedStrategy.createSortedStoreFile();
     }
 
-    private PipelinedStrategy createStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore) {
+    private PipelinedStrategy createStrategy(Backend roStore) {
         return createStrategy(roStore, s -> true, null);
     }
 
-    private PipelinedStrategy createStrategy(ImmutablePair<MongoDocumentStore, DocumentNodeStore> roStore, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
-        DocumentNodeStore readOnlyNodeStore = roStore.right;
-        MongoDocumentStore readOnlyMongoDocStore = roStore.left;
-
+    private PipelinedStrategy createStrategy(Backend backend, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
         Set<String> preferredPathElements = Set.of();
-        RevisionVector rootRevision = readOnlyNodeStore.getRoot().getRootRevision();
+        RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         return new PipelinedStrategy(
-                readOnlyMongoDocStore,
-                readOnlyNodeStore,
+                backend.mongoDocumentStore,
+                backend.mongoDatabase,
+                backend.documentNodeStore,
                 rootRevision,
                 preferredPathElements,
                 new MemoryBlobStore(),
                 sortFolder.getRoot(),
                 Compression.NONE,
                 pathPredicate,
-                pathFilters);
+                pathFilters,
+                null,
+                statsProvider);
     }
 
     private void createContent(NodeStore rwNodeStore) throws CommitFailedException {
@@ -314,7 +430,7 @@ public class PipelinedIT {
             "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
     ));
 
-    private ImmutablePair<MongoDocumentStore, DocumentNodeStore> createNodeStore(boolean readOnly) {
+    private Backend createNodeStore(boolean readOnly) {
         MongoConnection c = connectionFactory.getConnection();
         DocumentMK.Builder builder = builderProvider.newBuilder();
         builder.setMongoDB(c.getMongoClient(), c.getDBName());
@@ -323,6 +439,18 @@ public class PipelinedIT {
         }
         builder.setAsyncDelay(1);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        return new ImmutablePair<>((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore);
+        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase());
+    }
+
+    static class Backend {
+        final MongoDocumentStore mongoDocumentStore;
+        final DocumentNodeStore documentNodeStore;
+        final MongoDatabase mongoDatabase;
+
+        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase) {
+            this.mongoDocumentStore = mongoDocumentStore;
+            this.documentNodeStore = documentNodeStore;
+            this.mongoDatabase = mongoDatabase;
+        }
     }
 }

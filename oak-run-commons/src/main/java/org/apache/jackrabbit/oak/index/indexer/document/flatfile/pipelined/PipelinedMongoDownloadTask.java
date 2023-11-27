@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.mongodb.BasicDBObject;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
 import com.mongodb.MongoIncompatibleDriverException;
 import com.mongodb.MongoInterruptedException;
@@ -26,16 +26,24 @@ import com.mongodb.ReadPreference;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.BsonDocument;
+import org.bson.codecs.configuration.CodecRegistries;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +52,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -85,6 +94,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS = true;
     public static final String OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = "oak.indexer.pipelined.mongoConnectionRetrySeconds";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS = 300;
+
     /**
      * Whether to do path filtering in the Mongo query instead of doing a full traversal of the document store and
      * filtering in the indexing job. This feature may significantly reduce the number of documents downloaded from
@@ -109,16 +119,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private static final String THREAD_NAME = "mongo-dump";
 
-    private final int batchSize;
-    private final BlockingQueue<BasicDBObject[]> mongoDocQueue;
+    private final int maxBatchNumberOfDocuments;
+    private final BlockingQueue<NodeDocument[]> mongoDocQueue;
     private final List<PathFilter> pathFilters;
     private final int retryDuringSeconds;
     private final boolean retryOnConnectionErrors;
     private final boolean regexPathFiltering;
     private final Logger traversalLog = LoggerFactory.getLogger(PipelinedMongoDownloadTask.class.getName() + ".traversal");
-    private final MongoCollection<BasicDBObject> dbCollection;
+    private final MongoCollection<NodeDocument> dbCollection;
     private final ReadPreference readPreference;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
+    private final int maxBatchSizeBytes;
+    private final StatisticsProvider statisticsProvider;
 
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
@@ -126,14 +138,28 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
 
-    public PipelinedMongoDownloadTask(MongoCollection<BasicDBObject> dbCollection,
-                                      int batchSize,
-                                      BlockingQueue<BasicDBObject[]> queue,
-                                      List<PathFilter> pathFilters) {
-        this.dbCollection = dbCollection;
-        this.batchSize = batchSize;
+
+    public PipelinedMongoDownloadTask(MongoDatabase mongoDatabase,
+                                      MongoDocumentStore mongoDocStore,
+                                      int maxBatchSizeBytes,
+                                      int maxBatchNumberOfDocuments,
+                                      BlockingQueue<NodeDocument[]> queue,
+                                      List<PathFilter> pathFilters,
+                                      StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
+        NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
+        CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
+                CodecRegistries.fromProviders(nodeDocumentCodecProvider),
+                MongoClientSettings.getDefaultCodecRegistry()
+        );
+        this.dbCollection = mongoDatabase
+                .withCodecRegistry(nodeDocumentCodecRegistry)
+                .getCollection(Collection.NODES.toString(), NodeDocument.class);
+        this.maxBatchSizeBytes = maxBatchSizeBytes;
+        this.maxBatchNumberOfDocuments = maxBatchNumberOfDocuments;
         this.mongoDocQueue = queue;
         this.pathFilters = pathFilters;
+
         // Default retries for 5 minutes.
         this.retryDuringSeconds = ConfigHelper.getSystemPropertyAsInt(
                 OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS,
@@ -151,7 +177,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         //So caller must ensure that its safe to read from secondary
 //        this.readPreference = MongoDocumentStoreHelper.getConfiguredReadPreference(mongoStore, collection);
         this.readPreference = ReadPreference.secondaryPreferred();
-        LOG.info("Using read preference {}", readPreference.getName());
+        LOG.info("maxBatchSizeBytes: {}, maxBatchNumberOfDocuments: {}, readPreference: {}",
+                maxBatchSizeBytes, maxBatchNumberOfDocuments, readPreference.getName());
     }
 
     @Override
@@ -169,15 +196,20 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             } else {
                 downloadWithNaturalOrdering();
             }
-            String enqueueingDelayPercentage = String.format("%1.2f", (100.0 * totalEnqueueWaitTimeMillis) / downloadStartWatch.elapsed(TimeUnit.MILLISECONDS));
+            long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
+            String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueWaitTimeMillis, durationMillis);
             String metrics = MetricsFormatter.newBuilder()
                     .add("duration", FormattingUtils.formatToSeconds(downloadStartWatch))
-                    .add("durationSeconds", downloadStartWatch.elapsed(TimeUnit.SECONDS))
+                    .add("durationSeconds", durationMillis/1000)
                     .add("documentsDownloaded", documentsRead)
-                    .add("enqueueingDelayMs", totalEnqueueWaitTimeMillis)
+                    .add("enqueueingDelayMillis", totalEnqueueWaitTimeMillis)
                     .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
                     .build();
 
+            MetricsUtils.setCounterOnce(statisticsProvider,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+                    PipelinedUtils.toPercentage(totalEnqueueWaitTimeMillis, durationMillis)
+            );
             LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
             return new Result(documentsRead);
         } catch (InterruptedException t) {
@@ -194,7 +226,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private void reportProgress(String id) {
         if (this.documentsRead % 10000 == 0) {
             double rate = ((double) this.documentsRead) / downloadStartWatch.elapsed(TimeUnit.SECONDS);
-            String formattedRate = String.format("%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
+            String formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
             LOG.info("Dumping from NSET Traversed #{} {} [{}] (Elapsed {})",
                     this.documentsRead, id, formattedRate, FormattingUtils.formatToSeconds(downloadStartWatch));
         }
@@ -278,7 +310,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             findQuery = Filters.and(findQuery, filter);
         }
         LOG.info("Traversing: {}. Query: {}", range, findQuery);
-        FindIterable<BasicDBObject> mongoIterable = dbCollection
+        FindIterable<NodeDocument> mongoIterable = dbCollection
                 .withReadPreference(readPreference)
                 .find(findQuery)
                 .sort(ascending(NodeDocument.MODIFIED_IN_SECS, NodeDocument.ID));
@@ -288,7 +320,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private void downloadAncestors(String basePath) throws InterruptedException, TimeoutException {
         Bson ancestorQuery = ancestorsFilter(basePath);
         LOG.info("Downloading using regex path filtering. Base path: {}, Ancestors query: {}.", basePath, ancestorQuery);
-        FindIterable<BasicDBObject> ancestorsIterable = dbCollection
+        FindIterable<NodeDocument> ancestorsIterable = dbCollection
                 .withReadPreference(readPreference)
                 .find(ancestorQuery)
                 // Use the index on _id: this query returns very few documents and the filter condition is on _id.
@@ -302,7 +334,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         String regexBasePath = getPathForRegexFiltering();
         if (regexBasePath == null) {
             LOG.info("Downloading full repository using natural order");
-            FindIterable<BasicDBObject> mongoIterable = dbCollection
+            FindIterable<NodeDocument> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
                     .find()
                     .hint(NATURAL_HINT);
@@ -313,7 +345,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
             Bson childrenQuery = descendantsFilter(regexBasePath);
             LOG.info("Downloading using regex path filtering. Downloading children: {}.", childrenQuery);
-            FindIterable<BasicDBObject> childrenIterable = dbCollection
+            FindIterable<NodeDocument> childrenIterable = dbCollection
                     .withReadPreference(readPreference)
                     .find(childrenQuery)
                     .hint(NATURAL_HINT);
@@ -380,32 +412,38 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         return Filters.or(parentFilters);
     }
 
-    private void download(FindIterable<BasicDBObject> mongoIterable) throws InterruptedException, TimeoutException {
-        try (MongoCursor<BasicDBObject> cursor = mongoIterable.iterator()) {
-            BasicDBObject[] block = new BasicDBObject[batchSize];
+    private void download(FindIterable<NodeDocument> mongoIterable) throws InterruptedException, TimeoutException {
+        try (MongoCursor<NodeDocument> cursor = mongoIterable.iterator()) {
+            NodeDocument[] batch = new NodeDocument[maxBatchNumberOfDocuments];
             int nextIndex = 0;
+            int batchSize = 0;
             try {
                 while (cursor.hasNext()) {
-                    BasicDBObject next = cursor.next();
-                    String id = next.getString(NodeDocument.ID);
+                    NodeDocument next = cursor.next();
+                    String id = next.getId();
                     // If we are retrying on connection errors, we need to keep track of the last _modified value
                     if (retryOnConnectionErrors) {
-                        this.nextLastModified = next.getLong(NodeDocument.MODIFIED_IN_SECS);
+                        this.nextLastModified = next.getModified();
                     }
                     this.lastIdDownloaded = id;
                     this.documentsRead++;
                     reportProgress(id);
-                    block[nextIndex] = next;
+
+                    batch[nextIndex] = next;
                     nextIndex++;
-                    if (nextIndex == batchSize) {
-                        tryEnqueue(block);
-                        block = new BasicDBObject[batchSize];
+                    int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);
+                    batchSize += docSize;
+                    if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
+                        LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
+                        tryEnqueueCopy(batch, nextIndex);
                         nextIndex = 0;
+                        batchSize = 0;
                     }
                 }
                 if (nextIndex > 0) {
-                    LOG.info("Enqueueing last block of size: {}", nextIndex);
-                    enqueuePartialBlock(block, nextIndex);
+                    LOG.info("Enqueueing last block with {} elements, estimated size: {}",
+                            nextIndex, IOUtils.humanReadableByteCountBin(batchSize));
+                    tryEnqueueCopy(batch, nextIndex);
                 }
             } catch (MongoException e) {
                 if (e instanceof MongoInterruptedException || e instanceof MongoIncompatibleDriverException) {
@@ -414,27 +452,19 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 }
                 // There may be some documents in the current batch, enqueue them and rethrow the exception
                 if (nextIndex > 0) {
-                    LOG.info("Connection interrupted with recoverable failure. Enqueueing partial block of size: {}", nextIndex);
-                    enqueuePartialBlock(block, nextIndex);
+                    LOG.info("Connection interrupted with recoverable failure. Enqueueing partial block with {} elements, estimated size: {}",
+                            nextIndex, IOUtils.humanReadableByteCountBin(batchSize));
+                    tryEnqueueCopy(batch, nextIndex);
                 }
                 throw e;
             }
         }
     }
 
-    private void enqueuePartialBlock(BasicDBObject[] block, int nextIndex) throws InterruptedException, TimeoutException {
-        if (block.length == nextIndex) {
-            tryEnqueue(block);
-        } else {
-            BasicDBObject[] partialBlock = new BasicDBObject[nextIndex];
-            System.arraycopy(block, 0, partialBlock, 0, nextIndex);
-            tryEnqueue(partialBlock);
-        }
-    }
-
-    private void tryEnqueue(BasicDBObject[] block) throws TimeoutException, InterruptedException {
+    private void tryEnqueueCopy(NodeDocument[] batch, int nextIndex) throws TimeoutException, InterruptedException {
+        NodeDocument[] copyOfBatch = Arrays.copyOfRange(batch, 0, nextIndex);
         Stopwatch enqueueDelayStopwatch = Stopwatch.createStarted();
-        if (!mongoDocQueue.offer(block, MONGO_QUEUE_OFFER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
+        if (!mongoDocQueue.offer(copyOfBatch, MONGO_QUEUE_OFFER_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS)) {
             throw new TimeoutException("Timeout trying to enqueue batch of MongoDB documents. Waited " + MONGO_QUEUE_OFFER_TIMEOUT);
         }
         long enqueueDelay = enqueueDelayStopwatch.elapsed(TimeUnit.MILLISECONDS);

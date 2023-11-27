@@ -25,7 +25,6 @@ import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -427,10 +426,14 @@ public class SelectorImpl extends SourceImpl {
                 buff.append(index.getPlan(createFilter(true), rootState));
             }
         } else {
-            buff.append("no-index");
+            buff.append("no-index\n");
         }
         if (!selectorConstraints.isEmpty()) {
-            buff.append(" where ").append(new AndImpl(selectorConstraints).toString());
+            // we could add the selector constraints here,
+            // but it turns out this distracts more than it helps -
+            // however for the JSON representation it would be useful,
+            // that's why I think it makes sense to keep the commented code for now
+            // buff.append("    selectorCondition: ").append(new AndImpl(selectorConstraints).toString()).append("\n");
         }
         buff.append(" */");
         return buff.toString();

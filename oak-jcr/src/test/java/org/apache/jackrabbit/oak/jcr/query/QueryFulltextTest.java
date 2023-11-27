@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.jcr.query;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -112,9 +114,8 @@ public class QueryFulltextTest extends AbstractRepositoryTest {
 
         q = qm.createQuery("explain " + sql2, Query.JCR_SQL2);
 
-        assertEquals("[nt:base] as [nt:base] /* traverse \"*\" " +
-                "where contains([nt:base].[text], 'hello OR hallo') */",
-                getResult(q.execute(), "plan"));
+        assertThat(getResult(q.execute(), "plan"), containsString("[nt:base] as [nt:base] /* traverse\n"
+                + "    allNodes (warning: slow)\n"));
 
         // verify the result
         // uppercase "OR" mean logical "or"

@@ -263,7 +263,7 @@ public class UserConfigurationImpl extends ConfigurationBase implements UserConf
     @NotNull
     @Override
     public List<ThreeWayConflictHandler> getConflictHandlers() {
-        return ImmutableList.of(new RepMembersConflictHandler());
+        return ImmutableList.of(new RepMembersConflictHandler(), new CacheConflictHandler());
     }
 
     @NotNull

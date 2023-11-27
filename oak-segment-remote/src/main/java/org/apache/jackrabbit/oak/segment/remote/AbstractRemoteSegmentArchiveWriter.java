@@ -46,6 +46,8 @@ public abstract class AbstractRemoteSegmentArchiveWriter implements SegmentArchi
 
     protected volatile boolean created = false;
 
+    protected WriteAccessController writeAccessController = null;
+
     public AbstractRemoteSegmentArchiveWriter(IOMonitor ioMonitor, FileStoreMonitor monitor) {
         this.ioMonitor = ioMonitor;
         this.monitor = monitor;

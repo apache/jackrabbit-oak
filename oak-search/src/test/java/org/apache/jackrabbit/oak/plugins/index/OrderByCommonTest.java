@@ -320,28 +320,28 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "/jcr:root/test/* order by fn:name() option(index tag fnName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnName(/oak:index/fnName)");
+        assertXpathPlan(query, "/oak:index/fnName");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:name() ascending option(index tag fnName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnName(/oak:index/fnName)");
+        assertXpathPlan(query, "/oak:index/fnName");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnName(/oak:index/fnName)");
+        assertXpathPlan(query, "/oak:index/fnName");
         assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
 
         // order by fn:name() although function index is on "name()"
         query = "/jcr:root/test/* order by fn:name() option(index tag name)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":name(/oak:index/name)");
+        assertXpathPlan(query, "/oak:index/name");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:name() ascending option(index tag name)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":name(/oak:index/name)");
+        assertXpathPlan(query, "/oak:index/name");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":name(/oak:index/name)");
+        assertXpathPlan(query, "/oak:index/name");
         assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
     }
 
@@ -392,28 +392,28 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "/jcr:root/test/* order by fn:local-name() option(index tag fnLocalName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnLocalName(/oak:index/fnLocalName)");
+        assertXpathPlan(query, "/oak:index/fnLocalName");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag fnLocalName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnLocalName(/oak:index/fnLocalName)");
+        assertXpathPlan(query, "/oak:index/fnLocalName");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:local-name() descending option(index tag fnLocalName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnLocalName(/oak:index/fnLocalName)");
+        assertXpathPlan(query, "/oak:index/fnLocalName");
         assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
 
         // order by fn:name() although function index is on "name()"
         query = "/jcr:root/test/* order by fn:local-name() option(index tag localName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":localName(/oak:index/localName)");
+        assertXpathPlan(query, "/oak:index/localName");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag localName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":localName(/oak:index/localName)");
+        assertXpathPlan(query, "/oak:index/localName");
         assertEquals(expected, executeQuery(query, XPATH));
 
         query = "/jcr:root/test/* order by fn:local-name() descending option(index tag localName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":localName(/oak:index/localName)");
+        assertXpathPlan(query, "/oak:index/localName");
         assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
     }
 

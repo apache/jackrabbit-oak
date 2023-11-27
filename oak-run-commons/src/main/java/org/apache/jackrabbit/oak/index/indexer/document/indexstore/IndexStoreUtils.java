@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.indexstore;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.BufferedOutputStream;
@@ -32,12 +33,32 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 public class IndexStoreUtils {
     public static final String METADATA_SUFFIX = ".metadata";
+
+    public static final String OAK_INDEXER_USE_ZIP = "oak.indexer.useZip";
+    public static final String OAK_INDEXER_USE_LZ4 = "oak.indexer.useLZ4";
+
+    public static boolean compressionEnabled() {
+        return Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_ZIP, "true"));
+    }
+
+    public static boolean useLZ4() {
+        return Boolean.parseBoolean(System.getProperty(OAK_INDEXER_USE_LZ4, "true"));
+    }
+
+    public static Compression compressionAlgorithm() {
+        if (!compressionEnabled()) {
+            return Compression.NONE;
+        }
+        return useLZ4() ? new LZ4Compression() : Compression.GZIP;
+    }
 
     /**
      * This function by default uses GNU zip as compression algorithm for backward compatibility.
@@ -67,20 +88,16 @@ public class IndexStoreUtils {
         return new BufferedWriter(new OutputStreamWriter(algorithm.getOutputStream(out)));
     }
 
-    public static BufferedOutputStream createOutputStream(File file, Compression algorithm) throws IOException {
-        OutputStream out = new FileOutputStream(file);
-        return new BufferedOutputStream(algorithm.getOutputStream(out));
+    public static OutputStream createOutputStream(Path file, Compression algorithm) throws IOException {
+        // The output streams created by LZ4 and GZIP buffer their input, so we should not wrap then again.
+        // However, the implementation of the compression streams may make small writes to the underlying stream,
+        // so we buffer the FileOutputStream
+        OutputStream out = new BufferedOutputStream(Files.newOutputStream(file));
+        return algorithm.getOutputStream(out);
     }
 
     public static long sizeOf(List<File> sortedFiles) {
         return sortedFiles.stream().mapToLong(File::length).sum();
-    }
-
-    /**
-     * This function by default uses GNU zip as compression algorithm for backward compatibility.
-     */
-    public static String getSortedStoreFileName(boolean compressionEnabled) {
-        return getSortedStoreFileName(compressionEnabled ? Compression.GZIP : Compression.NONE);
     }
 
     public static String getSortedStoreFileName(Compression algorithm) {

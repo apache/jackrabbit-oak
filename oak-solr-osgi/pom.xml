@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.57-SNAPSHOT</version>
+        <version>1.59-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -40,36 +40,20 @@
                 <configuration>
                     <instructions>
                         <Import-Package>
-                            org.apache.lucene.*;resolution:=optional,
-                            com.googlecode.*;resolution:=optional,
-                            com.vividsolutions.jts.*;resolution:=optional,
                             com.sun.*;resolution:=optional,
-                            jline;resolution:=optional,
-                            org.apache.hadoop.*;resolution:=optional,
-                            org.apache.regexp.*;resolution:=optional,
+                            io.netty.*;resolution:=optional,
+                            jline.*;resolution:=optional,
+                            javax.annotation;resolution:=optional,
+                            org.apache.jute.*;resolution:=optional,
                             org.apache.log4j.*;resolution:=optional,
                             org.apache.yetus.audience.*;resolution:=optional,
-                            org.jboss.netty.*;resolution:=optional,
-                            org.restlet.*;resolution:=optional,
-                            org.joda.time.*;resolution:=optional,
+                            org.apache.zookeeper.data.*;resolution:=optional,
+                            org.apache.zookeeper.proto.*;resolution:=optional,
+                            org.apache.zookeeper.txn.*;resolution:=optional,
                             org.eclipse.*;resolution:=optional,
-                            javax.servlet.*;resolution:=optional,
-                            com.tdunning.math.*;resolution:=optional,
-                            com.codahale.metrics.*;resolution:=optional,
-                            info.ganglia.gmetric4j.*;resolution:=optional,
-                            org.apache.calcite.adapter.*;resolution:=optional,
-                            org.apache.calcite.ling4j.*;resolution:=optional,
-                            org.apache.calcite.rel.*;resolution:=optional,
-                            org.apache.calcite.schema.*;resolution:=optional,
-                            org.apache.calcite.sql.*;resolution:=optional,
-                            org.apache.calcite.*;resolution:=optional,
-                            org.apache.curator.framework.*;resolution:=optional,
-                            org.apache.curator.*;resolution:=optional,
-                            com.github.benmanes.caffeine.*;resolution:=optional,
-                            org.apache.solr.handler.extraction.*;resolution:=optional,
-                            com.ibm.security.krb5.internal.*;resolution:=optional,
-                            sun.misc.*;resolution:=optional,
-                            sun.security.krb5.*;resolution:=optional,
+                            org.xerial.snappy.*;resolution:=optional,
+                            com.fasterxml.jackson.annotation.*;resolution:=optional,
+                            com.fasterxml.jackson.databind.*;resolution:=optional,
                             *
                         </Import-Package>
                         <Embed-Dependency>*;scope=runtime;inline=true</Embed-Dependency>
@@ -153,25 +137,7 @@
         <dependency>
             <groupId>org.apache.zookeeper</groupId>
             <artifactId>zookeeper</artifactId>
-            <version>3.4.14</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version><!-- see OAK-8829-->2.9.10</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-smile</artifactId>
-            <version><!-- see OAK-8829-->2.9.10</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-exec</artifactId>
-            <version>1.3</version>
+            <version><!-- see OAK-10548-->3.9.1</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>

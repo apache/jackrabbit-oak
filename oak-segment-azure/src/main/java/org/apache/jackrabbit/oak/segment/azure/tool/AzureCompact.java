@@ -36,6 +36,7 @@ import com.microsoft.azure.storage.blob.ListBlobItem;
 
 import org.apache.jackrabbit.oak.segment.SegmentCache;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
+import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.GCType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
@@ -79,7 +80,11 @@ public class AzureCompact {
 
         private int segmentCacheSize = 2048;
 
-        private CompactorType compactorType = CompactorType.CHECKPOINT_COMPACTOR;
+        private GCType gcType = GCType.FULL;
+
+        private CompactorType compactorType = CompactorType.PARALLEL_COMPACTOR;
+
+        private int concurrency = 1;
 
         private String persistentCachePath;
 
@@ -158,13 +163,33 @@ public class AzureCompact {
         }
 
         /**
+         * The garbage collection type used. If not specified it defaults to full compaction
+         * @param gcType the GC type
+         * @return this builder
+         */
+        public Builder withGCType(GCType gcType) {
+            this.gcType = gcType;
+            return this;
+        }
+
+        /**
          * The compactor type to be used by compaction. If not specified it defaults to
-         * "diff" compactor
+         * "parallel" compactor
          * @param compactorType the compactor type
          * @return this builder
          */
         public Builder withCompactorType(CompactorType compactorType) {
             this.compactorType = compactorType;
+            return this;
+        }
+
+        /**
+         * The number of threads to be used for compaction. This only applies to the "parallel" compactor
+         * @param concurrency the number of threads
+         * @return this builder
+         */
+        public Builder withConcurrency(int concurrency) {
+            this.concurrency = concurrency;
             return this;
         }
 
@@ -213,7 +238,11 @@ public class AzureCompact {
 
     private final long gcLogInterval;
 
+    private final GCType gcType;
+
     private final CompactorType compactorType;
+
+    private final int concurrency;
 
     private String persistentCachePath;
 
@@ -225,7 +254,9 @@ public class AzureCompact {
         this.segmentCacheSize = builder.segmentCacheSize;
         this.strictVersionCheck = !builder.force;
         this.gcLogInterval = builder.gcLogInterval;
+        this.gcType = builder.gcType;
         this.compactorType = builder.compactorType;
+        this.concurrency = builder.concurrency;
         this.persistentCachePath = builder.persistentCachePath;
         this.persistentCacheSizeGb = builder.persistentCacheSizeGb;
     }
@@ -254,8 +285,18 @@ public class AzureCompact {
         System.out.printf("    -> compacting\n");
 
         try (FileStore store = newFileStore(splitPersistence, Files.createTempDir(), strictVersionCheck, segmentCacheSize,
-                gcLogInterval, compactorType)) {
-            if (!store.compactFull()) {
+                gcLogInterval, compactorType, concurrency)) {
+            boolean success = false;
+            switch (gcType) {
+                case FULL:
+                    success = store.compactFull();
+                    break;
+                case TAIL:
+                    success = store.compactTail();
+                    break;
+            }
+
+            if (!success) {
                 System.out.printf("Compaction cancelled after %s.\n", printableStopwatch(watch));
                 return 1;
             }

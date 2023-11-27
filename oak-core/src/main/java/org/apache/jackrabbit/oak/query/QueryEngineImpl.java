@@ -151,7 +151,10 @@ public abstract class QueryEngineImpl implements QueryEngine {
         if (isInternal) {
             LOG.trace("Parsing {} statement: {}", language, statement);
         } else {
-            LOG.debug("Parsing {} statement: {}", language, statement);
+            if (LOG.isDebugEnabled()) {
+                String formattedStatement = QueryFormatter.format(statement, language);
+                LOG.debug("Parsing {} statement: {}", language, formattedStatement);
+            }
         }
         QueryEngineSettings settings = context.getSettings();
         if (statement.length() > (settings.getQueryLengthErrorLimit())){

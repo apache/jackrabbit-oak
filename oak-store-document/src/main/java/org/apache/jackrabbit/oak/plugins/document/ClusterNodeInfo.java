@@ -600,7 +600,7 @@ public class ClusterNodeInfo {
                     // use it after a successful recovery
                     if (!recoveryHandler.recover(id)) {
                         reuseFailureReason = reject(id,
-                                "needs recovery and was unable to perform it myself");
+                                "needs recovery and was unable to perform it myself - now = " + getCurrentTime()); // OAK-10559 : temporary, to be removed asap
                         continue;
                     }
                 } else {

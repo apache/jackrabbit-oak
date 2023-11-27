@@ -50,7 +50,6 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
 
     @Before
     public void createIndex() throws RepositoryException {
-
         String indexName = UUID.randomUUID().toString();
         IndexDefinitionBuilder builder = indexOptions.createIndex(indexOptions.createIndexDefinitionBuilder(), false);
         builder.noAsync().evaluatePathRestrictions();
@@ -63,7 +62,6 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
 
         indexOptions.setIndex(adminSession, indexName, builder);
         indexNode = indexOptions.getIndexNode(adminSession, indexName);
-
     }
 
     @Test
@@ -154,7 +152,7 @@ public abstract class SpellcheckCommonTest extends AbstractJcrTest {
         });
     }
 
-    private Node allow(Node node) throws RepositoryException {
+    protected Node allow(Node node) throws RepositoryException {
         AccessControlUtils.allow(node, "anonymous", Privilege.JCR_READ);
         return node;
     }

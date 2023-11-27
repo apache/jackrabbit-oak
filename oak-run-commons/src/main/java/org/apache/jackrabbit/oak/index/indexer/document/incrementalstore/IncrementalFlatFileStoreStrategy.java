@@ -85,7 +85,11 @@ public class IncrementalFlatFileStoreStrategy implements IncrementalIndexStoreSo
         try (BufferedWriter w = FlatFileStoreUtils.createWriter(file, algorithm)) {
             NodeState before = Objects.requireNonNull(nodeStore.retrieve(beforeCheckpoint));
             NodeState after = Objects.requireNonNull(nodeStore.retrieve(afterCheckpoint));
-            EditorDiff.process(VisibleEditor.wrap(new IncrementalFlatFileStoreEditor(w, entryWriter, pathPredicate, this)), before, after);
+            Exception e = EditorDiff.process(VisibleEditor.wrap(new IncrementalFlatFileStoreEditor(w, entryWriter, pathPredicate, this)), before, after);
+            if (e != null) {
+                log.error("Exception while building incremental store for checkpoint before {}, after {}", beforeCheckpoint, afterCheckpoint, e);
+                throw new RuntimeException(e);
+            }
         }
         String sizeStr = algorithm.equals(Compression.NONE) ? "" : String.format("compressed/%s actual size", humanReadableByteCount(textSize));
         log.info("Dumped {} nodestates in json format in {} ({} {})", entryCount, sw, humanReadableByteCount(file.length()), sizeStr);

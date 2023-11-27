@@ -40,6 +40,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 
 import javax.jcr.AccessDeniedException;
@@ -472,13 +473,14 @@ public class AbstractAccessControlManagerTest extends AbstractAccessControlTest 
 
     @Test
     public void testGetPrivilegesSessionPrincipalSet() throws Exception {
-        AbstractAccessControlManager mgr = spy(acMgr);
-        Privilege[] privileges = mgr.getPrivileges(testPath, testPrincipals);
-        assertArrayEquals(acMgr.getPrivileges(testPath), privileges);
+        Mockito.reset(acMgr);
+        Privilege[] privileges = acMgr.getPrivileges(testPath, testPrincipals);
 
         // getPrivileges(String,Set) for the principals attached to the content session,
         // must result in forwarding the call to getPrivilege(String)
-        verify(mgr, times(1)).getPrivileges(testPath);
+        verify(acMgr, times(1)).getPrivileges(testPath);
+
+        assertArrayEquals(acMgr.getPrivileges(testPath), privileges);
     }
 
     @Test

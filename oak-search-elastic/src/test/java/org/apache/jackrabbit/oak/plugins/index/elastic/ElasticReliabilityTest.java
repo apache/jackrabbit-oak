@@ -29,6 +29,7 @@ import org.testcontainers.utility.DockerImageName;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
@@ -74,7 +75,8 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
 
     @Test
     public void connectionCutOnQuery() throws Exception {
-        setIndex("test1", createIndex("propa", "propb"));
+        String indexName = UUID.randomUUID().toString();
+        setIndex(indexName, createIndex("propa", "propb"));
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("propa", "a");
@@ -89,7 +91,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
                 .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 0L);
 
         // elastic is down, query should not use it
-        assertThat(explain(query), not(containsString("elasticsearch:test1")));
+        assertThat(explain(query), not(containsString("elasticsearch:" + indexName)));
 
         // result set should be correct anyway since traversal is enabled
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
@@ -98,7 +100,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
         cutConnectionUpstream.remove();
 
         // result set should be the same as before but this time elastic should be used
-        assertThat(explain(query), containsString("elasticsearch:test1"));
+        assertThat(explain(query), containsString("elasticsearch:" + indexName));
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
     }
 }

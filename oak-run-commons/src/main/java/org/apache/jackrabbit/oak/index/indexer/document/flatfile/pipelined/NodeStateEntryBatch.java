@@ -18,61 +18,77 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
 
 public class NodeStateEntryBatch {
+
+    public static class BufferFullException extends RuntimeException {
+        public BufferFullException(String message) {
+            super(message);
+        }
+
+        public BufferFullException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
     // Must be large enough to hold a full node state entry
     static final int MIN_BUFFER_SIZE = 256 * 1024;
-    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSize, int maxNumEntries) {
-        if (bufferSize < MIN_BUFFER_SIZE) {
+
+    public static NodeStateEntryBatch createNodeStateEntryBatch(int bufferSizeBytes, int maxNumEntries) {
+        if (bufferSizeBytes < MIN_BUFFER_SIZE) {
             throw new IllegalArgumentException("Buffer size must be at least " + MIN_BUFFER_SIZE + " bytes");
         }
         if (maxNumEntries < 1) {
             throw new IllegalArgumentException("Max number of entries must be at least 1");
         }
-        ByteBuffer buffer = ByteBuffer.allocate(bufferSize);
+        ByteBuffer buffer = ByteBuffer.allocate(bufferSizeBytes);
         return new NodeStateEntryBatch(buffer, maxNumEntries);
     }
 
     private final ByteBuffer buffer;
-    private final ArrayList<SortKey> sortBuffer;
     private final int maxEntries;
+    private int numberOfEntries = 0;
+    private int sizeOfEntriesBytes = 0;
 
     public NodeStateEntryBatch(ByteBuffer buffer, int maxEntries) {
         this.buffer = buffer;
         this.maxEntries = maxEntries;
-        this.sortBuffer = new ArrayList<>(maxEntries);
     }
 
-    public ArrayList<SortKey> getSortBuffer() {
-        return sortBuffer;
+    public int addEntry(String path, byte[] entryData) throws BufferFullException {
+        if (numberOfEntries == maxEntries) {
+            throw new BufferFullException("Sort buffer size is full, reached max entries: " + numberOfEntries);
+        }
+        int bufferPos = buffer.position();
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        int totalSize = 4 + pathBytes.length + 4 + entryData.length;
+        try {
+            // Each nse is written as: "len(path)|path|len(json)|json"
+            buffer.putInt(pathBytes.length);
+            buffer.put(pathBytes);
+            buffer.putInt(entryData.length);
+            buffer.put(entryData);
+            numberOfEntries++;
+            sizeOfEntriesBytes += totalSize;
+            return totalSize;
+        } catch (BufferOverflowException e) {
+            buffer.position(bufferPos);
+            throw new BufferFullException("while adding entry " + path + " of size: " + totalSize, e);
+        }
     }
 
     public ByteBuffer getBuffer() {
         return buffer;
     }
 
-    public void addEntry(String path, byte[] entryData) {
-        if (numberOfEntries() == maxEntries) {
-            throw new IllegalStateException("Sort buffer size exceeded max entries: " + sortBuffer.size() + " > " + maxEntries);
-        }
-        int bufferPos = buffer.position();
-        buffer.putInt(entryData.length);
-        buffer.put(entryData);
-        String[] key = SortKey.genSortKeyPathElements(path);
-        sortBuffer.add(new SortKey(key, bufferPos));
-    }
-
     public boolean isAtMaxEntries() {
-        if (sortBuffer.size() > maxEntries) {
-            throw new AssertionError("Sort buffer size exceeded max entries: " + sortBuffer.size() + " > " + maxEntries);
+        if (numberOfEntries > maxEntries) {
+            throw new AssertionError("Sort buffer size exceeded max entries: " + numberOfEntries + " > " + maxEntries);
         }
-        return sortBuffer.size() == maxEntries;
-    }
-
-    public boolean hasSpaceForEntry(byte[] entryData) {
-        return !isAtMaxEntries() && entryData.length + 4 <= buffer.remaining();
+        return numberOfEntries == maxEntries;
     }
 
     public void flip() {
@@ -81,15 +97,16 @@ public class NodeStateEntryBatch {
 
     public void reset() {
         buffer.clear();
-        sortBuffer.clear();
+        numberOfEntries = 0;
+        sizeOfEntriesBytes = 0;
     }
 
-    public int sizeOfEntries() {
-        return buffer.position();
+    public int sizeOfEntriesBytes() {
+        return sizeOfEntriesBytes;
     }
 
     public int numberOfEntries() {
-        return sortBuffer.size();
+        return numberOfEntries;
     }
 
     public int capacity() {
