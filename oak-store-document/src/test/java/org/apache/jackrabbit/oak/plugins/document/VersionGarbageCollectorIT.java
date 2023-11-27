@@ -150,7 +150,7 @@ public class VersionGarbageCollectorIT {
     private void createPrimaryStore() {
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
-                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(false));
+                    new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(true));
         }
         ds1 = fixture.createDocumentStore();
         documentMKBuilder = new DocumentMK.Builder().clock(clock).setClusterId(1)
