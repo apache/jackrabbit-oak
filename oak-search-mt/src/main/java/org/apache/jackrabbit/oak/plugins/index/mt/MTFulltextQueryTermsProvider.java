@@ -61,7 +61,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
         this.decoder = decoder;
         this.nodeTypes = nodeTypes;
         this.minScore = minScore;
-        this.qp = new SimpleQueryParser(new OakAnalyzer(Version.LUCENE_47), FieldNames.FULLTEXT);
+        this.qp = new SimpleQueryParser(new OakAnalyzer(Version.LUCENE_48), FieldNames.FULLTEXT);
     }
 
     @Override

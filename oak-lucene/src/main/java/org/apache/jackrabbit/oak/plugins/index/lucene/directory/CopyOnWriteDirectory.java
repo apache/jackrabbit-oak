@@ -517,6 +517,11 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             }
 
             @Override
+            public long getChecksum() throws IOException {
+                return delegate.getChecksum();
+            }
+
+            @Override
             public long length() throws IOException {
                 return delegate.length();
             }

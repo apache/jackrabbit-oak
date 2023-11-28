@@ -193,7 +193,7 @@ public class IndexConsistencyCheckerTest {
     }
 
     private void createIndex(Directory dir, int numOfDocs) throws IOException {
-        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(Version.LUCENE_47, new OakAnalyzer(Version.LUCENE_47)));
+        IndexWriter w = new IndexWriter(dir, new IndexWriterConfig(Version.LUCENE_48, new OakAnalyzer(Version.LUCENE_48)));
         for (int i = 0; i < numOfDocs; i++) {
             Document d1 = new Document();
             d1.add(newPathField("/a/b"));

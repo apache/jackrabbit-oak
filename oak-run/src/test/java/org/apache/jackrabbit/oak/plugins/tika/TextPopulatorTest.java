@@ -83,7 +83,7 @@ public class TextPopulatorTest {
         dataMap.put("/untrimmed", " untrimmed ");
 
         FSDirectory directory = FSDirectory.open(indexDir);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_47, new OakAnalyzer(Version.LUCENE_47));
+        IndexWriterConfig config = new IndexWriterConfig(Version.LUCENE_48, new OakAnalyzer(Version.LUCENE_48));
         try (IndexWriter writer = new IndexWriter(directory, config)) {
             for (Map.Entry<String, String> data : dataMap.entrySet()) {
                 writer.addDocument(createLuceneDocument(data.getKey(), data.getValue()));

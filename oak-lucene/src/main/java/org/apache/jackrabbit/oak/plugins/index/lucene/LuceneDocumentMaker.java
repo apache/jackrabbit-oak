@@ -128,7 +128,8 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         } else if (tag == Type.BOOLEAN.tag()) {
             f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
         } else {
-            f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
+            f = new StringField(pname, getTruncatedBytesRef(pname, property.getValue(Type.STRING, i), this.path,
+                    STRING_PROPERTY_MAX_LENGTH).utf8ToString(), Field.Store.NO);
         }
 
         doc.add(f);

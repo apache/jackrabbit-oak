@@ -63,7 +63,7 @@ public class OakAnalyzer extends Analyzer {
             final Reader reader) {
         StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
         TokenStream tok = new LowerCaseFilter(matchVersion, src);
-        tok = new WordDelimiterFilter(tok,
+        tok = new WordDelimiterFilter(matchVersion, tok,
                 WordDelimiterFilter.GENERATE_WORD_PARTS
                         | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE
                         | preserveOriginal

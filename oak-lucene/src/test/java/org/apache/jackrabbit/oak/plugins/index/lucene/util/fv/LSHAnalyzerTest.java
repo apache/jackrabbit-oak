@@ -53,7 +53,7 @@ public class LSHAnalyzerTest {
         for (String text : texts) {
             LSHAnalyzer analyzer = new LSHAnalyzer();
             Directory directory = new RAMDirectory();
-            IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+            IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_48, analyzer));
             DirectoryReader reader = null;
             try {
                 Document document = new Document();
@@ -77,7 +77,7 @@ public class LSHAnalyzerTest {
     public void testBinaryFVIndexAndSearch() throws Exception {
       LSHAnalyzer analyzer = new LSHAnalyzer();
       Directory directory = new RAMDirectory();
-      IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+      IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_48, analyzer));
       DirectoryReader reader = null;
       try {
           List<Double> values = new LinkedList<>();
