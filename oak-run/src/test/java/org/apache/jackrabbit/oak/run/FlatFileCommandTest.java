@@ -88,7 +88,7 @@ public class FlatFileCommandTest {
         FlatFileCommand cmd = new FlatFileCommand();
         assertFalse("File should not exist but does : " + tmpFlatfileOut,
                 tmpFlatfileOut.exists());
-        cmd.execute("mongodb://localhost:27017/MongoMKDB", "--out",
+        cmd.execute(MongoUtils.URL, "--out",
                 tmpFlatfileOut.getAbsolutePath(), "--fake-ds-path=.");
         assertTrue("File should exist but does not : " + tmpFlatfileOut,
                 tmpFlatfileOut.exists());
