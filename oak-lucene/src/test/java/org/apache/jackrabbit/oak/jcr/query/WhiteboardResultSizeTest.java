@@ -22,8 +22,8 @@ import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.LuceneOakRepositoryStub;
-import org.apache.jackrabbit.oak.query.QueryCountsSettingsProviderService;
 import org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider;
+import org.apache.jackrabbit.oak.query.QueryCountsSettingsProviderService;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.test.RepositoryStub;
@@ -49,18 +49,59 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+/**
+ * Performs the same queries as {@link ResultSizeTest#testResultSize()} and expects the same results, with the only
+ * differences being the registration of a {@link org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider} service
+ * in the whiteboard, and the runtime reconfiguration of the service before each login, in place of the calls to
+ * {@code System.setProperty("oak.fastQuerySize", true/false)}.
+ */
 public class WhiteboardResultSizeTest {
+
+    /**
+     * Non-static inner class extending RepositoryStub which is intended to be created directly by a test
+     * and not by the TCK RepositoryHelper, purely so that it can mirror the behavior of
+     * {@link org.apache.jackrabbit.oak.jcr.query.ResultSizeTest} with the only differences being the registration of
+     * a {@link org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider} service in the whiteboard, and the
+     * runtime reconfiguration of the service before each login, in place of the calls to
+     * {@code System.setProperty("oak.fastQuerySize", true/false)}.
+     */
+    public class OakResultSizeStub extends LuceneOakRepositoryStub {
+        public OakResultSizeStub(Properties settings) throws RepositoryException {
+            super(settings);
+        }
+
+        @Override
+        protected void preCreateRepository(Jcr jcr, Whiteboard whiteboard) {
+            // register the QueryCountsSettingsProvider service before creation of the repository.
+            whiteboard.register(QueryCountsSettingsProvider.class,
+                    queryCountsSettingsProviderService,
+                    Collections.emptyMap());
+            super.preCreateRepository(jcr, whiteboard);
+        }
+    }
 
     @QueryCountsSettingsProviderService.Configuration(directCountsPrincipals = {"admin"})
     static class AdminAllowed {
-
+        /* class which hosts a config annotation for reflection */
     }
 
     @QueryCountsSettingsProviderService.Configuration
     static class NoneAllowed {
-
+        /* class which hosts a config annotation for reflection */
     }
 
+    private QueryCountsSettingsProviderService queryCountsSettingsProviderService =
+            new QueryCountsSettingsProviderService();
+    private RepositoryStub stub;
+    private volatile Repository repository;
+    private volatile Session adminSession;
+
+    /**
+     * Reconfigures the singleton {@link QueryCountsSettingsProviderService} instance between queries.
+     *
+     * @param config a config annotation
+     * @throws Exception for reflection errors
+     */
     private void reconfigure(QueryCountsSettingsProviderService.Configuration config) throws Exception {
         Method method = QueryCountsSettingsProviderService.class.getDeclaredMethod("configure",
                 QueryCountsSettingsProviderService.Configuration.class);
@@ -68,22 +109,12 @@ public class WhiteboardResultSizeTest {
         method.invoke(queryCountsSettingsProviderService, config);
     }
 
-    private QueryCountsSettingsProviderService queryCountsSettingsProviderService = new QueryCountsSettingsProviderService();
-    private RepositoryStub stub;
-    private volatile Repository repository;
-    private volatile Session adminSession;
-
-    @Before
-    public void setUp() throws Exception {
-        adminSession = createAdminSession();
-    }
-
     protected Session getAdminSession() throws Exception {
         if (adminSession == null) {
             adminSession = createAdminSession();
-            Session admin = getAdminSession();
-            AccessControlUtils.addAccessControlEntry(admin, "/", EveryonePrincipal.getInstance(), new String[]{Privilege.JCR_READ}, true);
-            admin.save();
+            AccessControlUtils.addAccessControlEntry(adminSession, "/", EveryonePrincipal.getInstance(),
+                    new String[]{Privilege.JCR_READ}, true);
+            adminSession.save();
         }
         return adminSession;
     }
@@ -96,48 +127,6 @@ public class WhiteboardResultSizeTest {
             n.setProperty("text", "Hello World");
         }
         session.save();
-    }
-
-    protected RepositoryStub getStub() throws Exception {
-        if (stub == null) {
-            Properties properties = new Properties();
-            try (InputStream is = RepositoryStub.class.getClassLoader().getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS)) {
-                if (is != null) {
-                    properties.load(is);
-                }
-            }
-            stub = new OakResultSizeStub(properties);
-        }
-        return stub;
-    }
-
-    protected Repository getRepository() throws Exception {
-        if (repository == null) {
-            repository = getStub().getRepository();
-        }
-        return repository;
-    }
-
-    protected Session createAdminSession() throws Exception {
-        return getRepository().login(getAdminCredentials());
-    }
-
-    protected Credentials getAdminCredentials() {
-        return stub.getSuperuserCredentials();
-    }
-
-    @After
-    public void logout() {
-        if (adminSession != null) {
-            adminSession.logout();
-            adminSession = null;
-        }
-        // release repository field
-        if (repository instanceof JackrabbitRepository) {
-            ((JackrabbitRepository) repository).shutdown();
-        }
-        repository = null;
-        stub = null;
     }
 
     @Test
@@ -153,6 +142,9 @@ public class WhiteboardResultSizeTest {
         doTestResultSize(true, expectedForUnion);
     }
 
+    /**
+     * Compare with {@code org.apache.jackrabbit.oak.jcr.query.ResultSizeTest#doTestResultSize(boolean, int)}.
+     */
     private void doTestResultSize(boolean union, int expected) throws Exception {
         Session session = null;
         QueryManager qm;
@@ -220,27 +212,53 @@ public class WhiteboardResultSizeTest {
         }
     }
 
-    /**
-     * Non-static inner class extending RepositoryStub which is intended to be created directly by a test
-     * and not by the TCK RepositoryHelper, purely so that it can mirror the behavior of
-     * {@link org.apache.jackrabbit.oak.jcr.query.ResultSizeTest} with the only differences being the registration of
-     * a {@link org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider} service in the whiteboard, and the
-     * runtime reconfiguration of the service before each login, in place of the calls to
-     * {@code System.setProperty("oak.fastQuerySize", true/false)}.
-     */
-    public class OakResultSizeStub extends LuceneOakRepositoryStub {
-        public OakResultSizeStub(Properties settings) throws RepositoryException {
-            super(settings);
-        }
+    // ----< repository initialization methods >--------
 
-        @Override
-        protected void preCreateRepository(Jcr jcr, Whiteboard whiteboard) {
-            // register the QueryCountsSettingsProvider service before creation of the repository. Runtime
-            // reconfiguration
-            whiteboard.register(QueryCountsSettingsProvider.class,
-                    queryCountsSettingsProviderService,
-                    Collections.emptyMap());
-            super.preCreateRepository(jcr, whiteboard);
-        }
+    @Before
+    public void setUp() throws Exception {
+        getAdminSession();
     }
+
+    @After
+    public void logout() {
+        if (adminSession != null) {
+            adminSession.logout();
+            adminSession = null;
+        }
+        // release repository field
+        if (repository instanceof JackrabbitRepository) {
+            ((JackrabbitRepository) repository).shutdown();
+        }
+        repository = null;
+        stub = null;
+    }
+
+    protected RepositoryStub getStub() throws Exception {
+        if (stub == null) {
+            Properties properties = new Properties();
+            try (InputStream is = RepositoryStub.class.getClassLoader().getResourceAsStream(RepositoryStub.STUB_IMPL_PROPS)) {
+                if (is != null) {
+                    properties.load(is);
+                }
+            }
+            stub = new OakResultSizeStub(properties);
+        }
+        return stub;
+    }
+
+    protected Repository getRepository() throws Exception {
+        if (repository == null) {
+            repository = getStub().getRepository();
+        }
+        return repository;
+    }
+
+    protected Session createAdminSession() throws Exception {
+        return getRepository().login(getAdminCredentials());
+    }
+
+    protected Credentials getAdminCredentials() {
+        return stub.getSuperuserCredentials();
+    }
+
 }

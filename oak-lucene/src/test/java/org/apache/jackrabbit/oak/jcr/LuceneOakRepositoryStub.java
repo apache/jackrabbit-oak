@@ -67,7 +67,7 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
             .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
     }
 
-    public static class LuceneCompatModeInitializer extends LuceneInitializerHelper {
+    private static class LuceneCompatModeInitializer extends LuceneInitializerHelper {
         private final String name;
 
         public LuceneCompatModeInitializer(String name, Set<String> propertyTypes) {

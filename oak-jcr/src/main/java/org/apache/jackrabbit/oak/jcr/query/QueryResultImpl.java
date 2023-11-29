@@ -139,7 +139,7 @@ public class QueryResultImpl implements QueryResult {
                 sessionDelegate.sync(rowIterator),
                 new PrefetchOptions() { {
                     size = result.getSize();
-                    fastSize =  sessionContext.getFastQueryResultSize();
+                    fastSize = sessionContext.getFastQueryResultSize();
                     fastSizeCallback = result;
                 } });
         return new RowIteratorAdapter(prefIt) {
