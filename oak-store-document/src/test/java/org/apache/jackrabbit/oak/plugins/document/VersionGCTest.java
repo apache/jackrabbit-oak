@@ -408,7 +408,7 @@ public class VersionGCTest {
                 deletedOnceCountCalls.incrementAndGet();
                 return Iterables.size(Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
             }
-        }, false);
+        }, false, false);
 
         // run first RGC
         gc.gc(1, TimeUnit.HOURS);

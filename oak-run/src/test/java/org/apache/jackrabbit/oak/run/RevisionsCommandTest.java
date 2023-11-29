@@ -41,6 +41,7 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
@@ -131,6 +132,15 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("collect"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGC() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        assertTrue(output.contains("DryRun is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
