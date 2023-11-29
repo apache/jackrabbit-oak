@@ -38,7 +38,6 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.LuceneInitializerHelper;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
-import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
@@ -54,13 +53,9 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
 
     @Override
     protected void preCreateRepository(Jcr jcr) {
-        QueryEngineSettings queryLimits = new QueryEngineSettings();
-        // pre-set an insecure query options privilege name for testing
-        queryLimits.setInsecureQueryOptionsPrivilegeName("test:insecureQueryOptions");
         LuceneIndexProvider provider = new LuceneIndexProvider().with(getNodeAggregator());
         jcr.with(
                 new LuceneCompatModeInitializer("luceneGlobal", (Set<String>) null))
-                .with(queryLimits)
                 .with((QueryIndexProvider)provider)
                 .with((Observer) provider)
                 .withFastQueryResultSize(true)
@@ -72,7 +67,7 @@ public class LuceneOakRepositoryStub extends OakSegmentTarRepositoryStub {
             .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"));
     }
 
-    private static class LuceneCompatModeInitializer extends LuceneInitializerHelper {
+    public static class LuceneCompatModeInitializer extends LuceneInitializerHelper {
         private final String name;
 
         public LuceneCompatModeInitializer(String name, Set<String> propertyTypes) {

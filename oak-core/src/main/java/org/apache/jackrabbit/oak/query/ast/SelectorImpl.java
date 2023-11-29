@@ -515,7 +515,6 @@ public class SelectorImpl extends SourceImpl {
                         Operator.EQUAL, PropertyValues.newString(options.indexTag));
             }
         }
-        f.setQueryOptionInsecureFacets(query.isQueryOptionInsecureFacets());
         return f;
     }
 

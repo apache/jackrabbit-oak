@@ -70,7 +70,4 @@ public interface ElasticFacetProvider extends FulltextIndex.FacetProvider {
         return facetProvider;
     }
 
-    static ElasticFacetProvider getInsecureFacetProvider() {
-        return new ElasticInsecureFacetAsyncProvider();
-    }
 }

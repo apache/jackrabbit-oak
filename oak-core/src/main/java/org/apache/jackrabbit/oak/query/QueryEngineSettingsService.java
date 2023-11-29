@@ -86,13 +86,6 @@ public class QueryEngineSettingsService {
                 )
         String[] ignoredClassNamesInCallTrace() default {};
 
-        @AttributeDefinition(
-                name="JCR privilege name that grants a repository permission to use insecure query options",
-                description="Unless the name evaluates to a registered JCR privilege and has been granted " +
-                        "to the executing JCR session as a repository permission, a query using INSECURE options will fail."
-        )
-        String insecureQueryOptionsPrivilegeName() default "";
-
     }
 
     // should be the same as QueryEngineSettings.DEFAULT_QUERY_LIMIT_IN_MEMORY
@@ -144,8 +137,6 @@ public class QueryEngineSettingsService {
         queryEngineSettings.setFastQuerySize(fastQuerySizeFromConfig || fastQuerySizeSysProp);
         
         queryEngineSettings.setStrictPathRestriction(config.getStrictPathRestrictionsForIndexes());
-
-        queryEngineSettings.setInsecureQueryOptionsPrivilegeName(config.insecureQueryOptionsPrivilegeName());
 
         log.info("Initialize QueryEngine settings {}", queryEngineSettings);
     }

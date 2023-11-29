@@ -151,31 +151,4 @@ public class QueryEngineSettingsServiceTest {
         }
     }
 
-    @Test
-    public void testAutomaticQueryOptionsMappingInsecureOptions() {
-        QueryEngineSettings settings = new QueryEngineSettings();
-        settings.setAutoOptionsMappingJson("{\"just insecureResultSize\":{\"insecureResultSize\":true},\"just insecureFacets\":{\"insecureFacets\":true},\"both\":{\"insecureResultSize\":true,\"insecureFacets\":true}}");
-        assertFalse("expect default false for insecureResultSize",
-                settings.getAutomaticQueryOptions().getDefaultValues("")
-                        .insecureResultSize
-                        || settings.getAutomaticQueryOptions().getDefaultValues("")
-                        .insecureFacets);
-        assertTrue("expect true for insecureResultSize when just insecureResultSize",
-                settings.getAutomaticQueryOptions().getDefaultValues("just insecureResultSize")
-                        .insecureResultSize);
-        assertFalse("expect false for insecureFacets when just insecureResultSize",
-                settings.getAutomaticQueryOptions().getDefaultValues("just insecureResultSize")
-                        .insecureFacets);
-        assertFalse("expect false for insecureResultSize when just insecureFacets",
-                settings.getAutomaticQueryOptions().getDefaultValues("just insecureFacets")
-                        .insecureResultSize);
-        assertTrue("expect true for insecureFacets when just insecureFacets",
-                settings.getAutomaticQueryOptions().getDefaultValues("just insecureFacets")
-                        .insecureFacets);
-        assertTrue("expect true for both insecureResultSize and insecureFacets when both",
-                settings.getAutomaticQueryOptions().getDefaultValues("both")
-                        .insecureResultSize
-                        && settings.getAutomaticQueryOptions().getDefaultValues("both")
-                        .insecureFacets);
-    }
 }

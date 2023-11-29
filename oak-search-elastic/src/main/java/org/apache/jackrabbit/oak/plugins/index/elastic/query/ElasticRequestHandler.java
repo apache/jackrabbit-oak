@@ -272,15 +272,10 @@ public class ElasticRequestHandler {
     }
 
     public ElasticFacetProvider getAsyncFacetProvider(ElasticConnection connection, ElasticResponseHandler responseHandler) {
-        if (requiresFacets()) {
-            if (filter.isQueryOptionInsecureFacets()) {
-                return ElasticFacetProvider.getInsecureFacetProvider();
-            } else {
-                ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), connection,
-                        elasticIndexDefinition, this, responseHandler, filter::isAccessible);
-            }
-        }
-        return null;
+        return requiresFacets()
+                ? ElasticFacetProvider.getProvider(planResult.indexDefinition.getSecureFacetConfiguration(), connection,
+                        elasticIndexDefinition, this, responseHandler, filter::isAccessible)
+                : null;
     }
 
     private boolean requiresFacets() {

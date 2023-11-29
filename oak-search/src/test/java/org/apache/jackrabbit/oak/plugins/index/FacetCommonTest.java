@@ -17,10 +17,6 @@
 package org.apache.jackrabbit.oak.plugins.index;
 
 import org.apache.jackrabbit.JcrConstants;
-import org.apache.jackrabbit.api.JackrabbitWorkspace;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlList;
-import org.apache.jackrabbit.api.security.JackrabbitAccessControlManager;
-import org.apache.jackrabbit.api.security.authorization.PrivilegeManager;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
@@ -32,19 +28,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.jcr.NamespaceRegistry;
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
-import javax.jcr.Session;
 import javax.jcr.query.Query;
 import javax.jcr.query.QueryResult;
-import javax.jcr.security.AccessControlPolicy;
-import javax.jcr.security.AccessControlPolicyIterator;
 import javax.jcr.query.RowIterator;
 import javax.jcr.security.Privilege;
-import java.security.Principal;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -52,7 +41,6 @@ import java.util.Random;
 import java.util.stream.Collectors;
 
 import static org.apache.jackrabbit.commons.JcrUtils.getOrCreateByPath;
-import static org.apache.jackrabbit.oak.plugins.index.TestRepositoryBuilder.TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.FACETS;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_RANDOM_SEED;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.PROP_REFRESH_DEFN;
@@ -160,22 +148,6 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
     public void secureFacets() throws Exception {
         createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
         assertEventually(() -> assertEquals(actualAclLabelCount, getFacets()));
-    }
-
-    @Test
-    public void secureFacets_admin_optionInsecureFacets() throws Exception {
-        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        adminSession.save();
-        qm = adminSession.getWorkspace().getQueryManager();
-        assertEventually(() -> assertEquals(actualLabelCount, getFacets(null)));
-    }
-
-    @Test
-    public void secureFacets_anonymous_optionInsecureFacets() throws Exception {
-        createDataset(NUM_LEAF_NODES_FOR_LARGE_DATASET);
-        allowInsecureQueryOptions(adminSession); // saves admin session; refreshes anonymous session
-        assertEventually(() -> assertEquals(actualLabelCount, getFacets(null)));
-        denyInsecureQueryOptions(adminSession);
     }
 
     @Test
@@ -343,51 +315,6 @@ public abstract class FacetCommonTest extends AbstractJcrTest {
 
     private Map<String, Integer> getFacets() {
         return getFacets(null);
-    }
-
-    private void allowInsecureQueryOptions(Session session) throws RepositoryException {
-        JackrabbitWorkspace workspace = (JackrabbitWorkspace) session.getWorkspace();
-        NamespaceRegistry registry = workspace.getNamespaceRegistry();
-        if (Arrays.stream(registry.getPrefixes()).noneMatch("test"::equals)) {
-            registry.registerNamespace("test", "http://www.example.org/");
-        }
-        PrivilegeManager privilegeManager = workspace.getPrivilegeManager();
-        if (Arrays.stream(privilegeManager.getRegisteredPrivileges())
-                .noneMatch(priv -> TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE.equals(priv.getName()))) {
-            // "test:insecureQueryOptions" is pre-configured in the QueryEngineSettings in BaseRepositoryStub, but is not yet registered.
-            privilegeManager.registerPrivilege(TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE, false, null);
-        }
-        JackrabbitAccessControlManager acManager = (JackrabbitAccessControlManager) session.getAccessControlManager();
-        Principal principal = AccessControlUtils.getPrincipal(session, "anonymous");
-        Privilege[] privs = AccessControlUtils.privilegesFromNames(acManager, TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE);
-        if (!acManager.hasPrivileges(null, Collections.singleton(principal), privs)) {
-            for (AccessControlPolicyIterator policyIt = acManager.getApplicablePolicies((String) null); policyIt.hasNext();) {
-                AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
-                if (policy instanceof JackrabbitAccessControlList
-                        && ((JackrabbitAccessControlList) policy).addEntry(principal, privs, true)) {
-                    acManager.setPolicy(null, policy);
-                }
-            }
-        }
-        session.save();
-        anonymousSession.refresh(false);
-    }
-
-    private void denyInsecureQueryOptions(Session session) throws RepositoryException {
-        JackrabbitAccessControlManager acManager = (JackrabbitAccessControlManager) session.getAccessControlManager();
-        Principal principal = AccessControlUtils.getPrincipal(session, "anonymous");
-        Privilege[] privs = AccessControlUtils.privilegesFromNames(acManager, TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE);
-        if (acManager.hasPrivileges(null, Collections.singleton(principal), privs)) {
-            for (AccessControlPolicyIterator policyIt = acManager.getApplicablePolicies((String) null); policyIt.hasNext();) {
-                AccessControlPolicy policy = policyIt.nextAccessControlPolicy();
-                if (policy instanceof JackrabbitAccessControlList
-                        && ((JackrabbitAccessControlList) policy).addEntry(principal, privs, false)) {
-                    acManager.setPolicy(null, policy);
-                }
-            }
-        }
-        session.save();
-        anonymousSession.refresh(false);
     }
 
     private Node deny(Node node) throws RepositoryException {

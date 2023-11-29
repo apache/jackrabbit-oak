@@ -115,8 +115,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     private String autoOptionsMappingJson = "{}";
     private QueryOptions.AutomaticQueryOptionsMapping autoOptionsMapping = new QueryOptions.AutomaticQueryOptionsMapping(autoOptionsMappingJson);
 
-    private String insecureQueryOptionsPrivilegeName;
-
     public long getQueryLengthWarnLimit() {
         return queryLengthWarnLimit;
     }
@@ -262,16 +260,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
     }
 
     @Override
-    public void setInsecureQueryOptionsPrivilegeName(@NotNull String insecureQueryOptionsPrivilegeName) {
-        this.insecureQueryOptionsPrivilegeName = insecureQueryOptionsPrivilegeName;
-    }
-
-    @Override
-    public String getInsecureQueryOptionsPrivilegeName() {
-        return this.insecureQueryOptionsPrivilegeName;
-    }
-
-    @Override
     public String toString() {
         return "QueryEngineSettings{" +
                 "limitInMemory=" + limitInMemory +
@@ -281,7 +269,6 @@ public class QueryEngineSettings implements QueryEngineSettingsMBean, QueryLimit
                 ", sql2Optimisation=" + sql2Optimisation +
                 ", fastQuerySize=" + fastQuerySize +
                 ", prefetchCount=" + prefetchCount +
-                ", insecureQueryOptionsPrivilegeName=" + insecureQueryOptionsPrivilegeName +
                 ", classNamesIgnoredInCallTrace=" + Arrays.toString(classNamesIgnoredInCallTrace) +
                 '}';
     }

@@ -279,8 +279,6 @@ public abstract class QueryEngineImpl implements QueryEngine {
                 }
             }
             q.setTraversalEnabled(traversalEnabled);
-            // perform a throwing check if insecure options are enabled without permission
-            q.verifyInsecureOptions();
         }
 
         boolean mdc = false;

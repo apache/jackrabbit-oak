@@ -416,7 +416,6 @@ public class Oak {
         this.queryEngineSettings.setLimitInMemory(settings.getLimitInMemory());
         this.queryEngineSettings.setLimitReads(settings.getLimitReads());
         this.queryEngineSettings.setStrictPathRestriction(settings.getStrictPathRestriction());
-        this.queryEngineSettings.setInsecureQueryOptionsPrivilegeName(settings.getInsecureQueryOptionsPrivilegeName());
         return this;
     }
 
@@ -1017,16 +1016,6 @@ public class Oak {
 
         public @NotNull String[] getIgnoredClassNamesInCallTrace() {
             return settings.getIgnoredClassNamesInCallTrace();
-        }
-
-        @Override
-        public void setInsecureQueryOptionsPrivilegeName(@NotNull String privilegeName) {
-            settings.setInsecureQueryOptionsPrivilegeName(privilegeName);
-        }
-
-        @Override
-        public @NotNull String getInsecureQueryOptionsPrivilegeName() {
-            return settings.getInsecureQueryOptionsPrivilegeName();
         }
     }
 

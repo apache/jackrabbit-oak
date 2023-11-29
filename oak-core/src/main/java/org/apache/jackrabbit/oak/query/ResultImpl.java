@@ -85,8 +85,4 @@ public class ResultImpl implements Result {
         return query.getSize(precision, max);
     }
 
-    @Override
-    public boolean isQueryOptionInsecureResultSize() {
-        return query.isQueryOptionInsecureResultSize();
-    }
 }

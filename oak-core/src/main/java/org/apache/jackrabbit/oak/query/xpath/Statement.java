@@ -382,12 +382,6 @@ public class Statement {
                             SQL2Parser::escapeStringLiteral));
             optionValues.add("prefetch (" + list + ")");
         }
-        if (queryOptions.insecureResultSize) {
-            optionValues.add("insecure result size");
-        }
-        if (queryOptions.insecureFacets) {
-            optionValues.add("insecure facets");
-        }
         buff.append(String.join(", ", optionValues));
         buff.append(")");
     }

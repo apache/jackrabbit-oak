@@ -56,7 +56,6 @@ public class LuceneTestRepositoryBuilder extends TestRepositoryBuilder {
 
         resultCountingIndexProvider = new ResultCountingIndexProvider(indexProvider);
         queryEngineSettings = new QueryEngineSettings();
-        queryEngineSettings.setInsecureQueryOptionsPrivilegeName(TEST_INSECURE_QUERY_OPTIONS_PRIVILEGE);
         optionalEditorProvider = new TestUtil.OptionalEditorProvider();
         asyncIndexUpdate.setCorruptIndexHandler(trackingCorruptIndexHandler);
     }

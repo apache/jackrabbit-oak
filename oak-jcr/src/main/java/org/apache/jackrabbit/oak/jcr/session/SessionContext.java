@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.nodetype.ReadOnlyNodeTypeManager;
 import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.plugins.value.jcr.ValueFactoryImpl;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
+import org.apache.jackrabbit.oak.spi.query.QueryCountsSettings;
 import org.apache.jackrabbit.oak.spi.security.SecurityConfiguration;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.security.authorization.AuthorizationConfiguration;
@@ -114,7 +115,7 @@ public class SessionContext implements NamePathMapper {
     /** Paths of all session scoped locks held by this session. */
     private final Set<String> sessionScopedLocks = newHashSet();
     
-    private final boolean fastQueryResultSize;
+    private final QueryCountsSettings queryCountsSettings;
 
     public SessionContext(
              @NotNull Repository repository, @NotNull StatisticManager statisticManager,
@@ -123,7 +124,7 @@ public class SessionContext implements NamePathMapper {
              int observationQueueLength, CommitRateLimiter commitRateLimiter) {
         
         this(repository, statisticManager, securityProvider, whiteboard, attributes, delegate,
-            observationQueueLength, commitRateLimiter, null, null, false);
+            observationQueueLength, commitRateLimiter, null, null, null);
     }
 
     public SessionContext(
@@ -132,7 +133,7 @@ public class SessionContext implements NamePathMapper {
             @NotNull Map<String, Object> attributes, @NotNull final SessionDelegate delegate,
             int observationQueueLength, CommitRateLimiter commitRateLimiter,
             MountInfoProvider mountInfoProvider, @Nullable BlobAccessProvider blobAccessProvider,
-            boolean fastQueryResultSize) {
+            @Nullable QueryCountsSettings queryCountsSettings) {
         this.repository = checkNotNull(repository);
         this.statisticManager = statisticManager;
         this.securityProvider = checkNotNull(securityProvider);
@@ -150,7 +151,7 @@ public class SessionContext implements NamePathMapper {
                 delegate.getNamespaces(), delegate.getIdManager());
         this.valueFactory = new ValueFactoryImpl(
                 delegate.getRoot(), namePathMapper, this.blobAccessProvider);
-        this.fastQueryResultSize = fastQueryResultSize;
+        this.queryCountsSettings = queryCountsSettings;
     }
 
     public final Map<String, Object> getAttributes() {
@@ -324,10 +325,7 @@ public class SessionContext implements NamePathMapper {
     }
     
     public boolean getFastQueryResultSize() {
-        if (System.getProperty("oak.fastQuerySize") != null) {
-            return Boolean.getBoolean("oak.fastQuerySize");
-        }
-        return fastQueryResultSize;
+        return this.queryCountsSettings != null && this.queryCountsSettings.useDirectResultCount();
     }
 
     @Nullable

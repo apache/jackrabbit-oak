@@ -40,8 +40,6 @@ public class QueryOptions {
     public Optional<Long> offset = Optional.empty();
     public List<String> prefetch = Collections.emptyList();
     public Optional<Integer> prefetchCount = Optional.empty();
-    public boolean insecureResultSize;
-    public boolean insecureFacets;
     
     public enum Traversal {
         // traversing without index is OK for this query, and does not fail or log a warning
@@ -65,8 +63,6 @@ public class QueryOptions {
         offset = defaultValues.offset;
         prefetch = defaultValues.prefetch;
         prefetchCount = defaultValues.prefetchCount;
-        insecureResultSize = defaultValues.insecureResultSize;
-        insecureFacets = defaultValues.insecureFacets;
     }
 
     QueryOptions(JsonObject json) {
@@ -110,8 +106,6 @@ public class QueryOptions {
             t.read(']');
             prefetch = list;
         }
-        insecureResultSize = Boolean.parseBoolean(map.get("insecureResultSize"));
-        insecureFacets = Boolean.parseBoolean(map.get("insecureFacets"));
     }
 
     public static class AutomaticQueryOptionsMapping {

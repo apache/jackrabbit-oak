@@ -43,14 +43,4 @@ public interface QueryLimits {
     default @NotNull String[] getIgnoredClassNamesInCallTrace() {
         return new String[] {};
     }
-
-    /**
-     * Retrieve the configured name of a JCR privilege that grants a repository permission to use insecure query
-     * options.
-     * @return the insecure query options privilege name
-     * @since 1.60
-     */
-    default String getInsecureQueryOptionsPrivilegeName() {
-        return null;
-    }
 }

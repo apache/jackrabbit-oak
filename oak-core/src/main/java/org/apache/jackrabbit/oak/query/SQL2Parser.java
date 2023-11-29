@@ -206,18 +206,6 @@ public class SQL2Parser {
                     } while (readIf(","));
                     read(")");
                     options.prefetch = list;
-                } else if (readIf("INSECURE")) {
-                    if (readIf("RESULT")) {
-                        if (readIf("SIZE")) {
-                            options.insecureResultSize = true;
-                        } else {
-                            throw getSyntaxError();
-                        }
-                    } else if (readIf("FACETS")) {
-                        options.insecureFacets = true;
-                    } else {
-                        throw getSyntaxError();
-                    }
                 } else {
                     break;
                 }

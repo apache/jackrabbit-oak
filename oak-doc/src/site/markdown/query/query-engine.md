@@ -34,8 +34,6 @@ grep "^#.*$" src/site/markdown/query/query-engine.md | sed 's/#/    /g' | sed 's
     - [Query Option Offset / Limit](#query-option-offset--limit)
     - [Query Option Index Tag](#query-option-index-tag)
     - [Index Selection Policy](#index-selection-policy)
-    - [Query Option Insecure Result Size](#query-option-insecure-result-size)
-    - [Query Option Insecure Facets](#query-option-insecure-facets)
   - [Compatibility](#compatibility)
     - [Result Size](#result-size)
     - [Quoting](#quoting)
@@ -268,22 +266,6 @@ Limitations:
 * For indexes of type `lucene`, when adding or changing the property `selectionPolicy`,
   you need to also set the property `refresh` to `true` (Boolean),
   so that the change is applied. No indexing is required.
-
-#### Query Option Insecure Result Size
-
-`@since Oak 1.60.0 (OAK-10424)`
-
-NOTE: The QueryEngineSettings must be configured with an `insecureQueryOptionsPrivilegeName` and the principal executing the query must have been granted a repository privilege registered with that name.
-
-Enabling this option activates the same compatibility behavior for NodeIterator.getSize() as described in [Result Size](#result-size), but only for the query being executed.
-
-#### Query Option Insecure Facets
-
-`@since Oak 1.60.0 (OAK-10424)`
-
-NOTE: The QueryEngineSettings must be configured with an `insecureQueryOptionsPrivilegeName` and the principal executing the query must have been granted a repository privilege registered with that name.
-
-Enabling this option overrides the value of the selected index definition's `facets/@secure` property to use a value of `insecure` instead, as described in [Lucene Index / Facets](./lucene.md#facets), but only for the query being executed.
 
 ### Compatibility
 

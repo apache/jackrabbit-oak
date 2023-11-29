@@ -95,9 +95,6 @@ import org.apache.jackrabbit.oak.spi.query.QueryIndex.IndexPlan;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex.OrderEntry.Order;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryLimits;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.PermissionProvider;
-import org.apache.jackrabbit.oak.spi.security.authorization.permission.Permissions;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.stats.HistogramStats;
@@ -1074,7 +1071,6 @@ public class QueryImpl implements Query {
     }
 
     public SelectorExecutionPlan getBestSelectorExecutionPlan(FilterImpl filter) {
-        filter.setQueryOptionInsecureFacets(isQueryOptionInsecureFacets());
         return getBestSelectorExecutionPlan(context.getBaseState(), filter,
                 context.getIndexProvider(), traversalEnabled);
     }
@@ -1419,43 +1415,6 @@ public class QueryImpl implements Query {
             return size;
         }
         return Math.min(limit.orElse(Long.MAX_VALUE), source.getSize(context.getBaseState(), precision, max));
-    }
-
-    /**
-     * Check whether the execution context has been granted the privilege represented by
-     * {@link org.apache.jackrabbit.oak.api.jmx.QueryEngineSettingsMBean#getInsecureQueryOptionsPrivilegeName()} as a
-     * repository permission.
-     *
-     * @return true if the context has the insecure query options privilege granted as a repository permission
-     */
-    boolean isAllowedInsecureOptions() {
-        return Optional.ofNullable(context.getSettings().getInsecureQueryOptionsPrivilegeName())
-                .filter(name -> !name.isEmpty())
-                .flatMap(privilegeName -> Optional.ofNullable(context)
-                        .map(ExecutionContext::getPermissionProvider)
-                        .map(provider -> provider.hasPrivileges(null, privilegeName)))
-                .orElse(false);
-    }
-
-    private boolean hasInsecureQueryOptions() {
-        return this.queryOptions != null && (this.queryOptions.insecureResultSize || this.queryOptions.insecureFacets);
-    }
-
-    @Override
-    public void verifyInsecureOptions() {
-        if (hasInsecureQueryOptions() && !isAllowedInsecureOptions()) {
-            throw new IllegalArgumentException("Insecure query options are not allowed.");
-        }
-    }
-
-    @Override
-    public boolean isQueryOptionInsecureResultSize() {
-        return this.queryOptions != null && this.queryOptions.insecureResultSize && isAllowedInsecureOptions();
-    }
-
-    @Override
-    public boolean isQueryOptionInsecureFacets() {
-        return this.queryOptions != null && this.queryOptions.insecureFacets && isAllowedInsecureOptions();
     }
 
     @Override

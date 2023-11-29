@@ -94,22 +94,19 @@ public class FacetHelper {
                     DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
                             searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
                     FacetsCollector.search(searcher, query, null,1, Sort.INDEXORDER, facetsCollector);
-                    if (plan.getFilter().isQueryOptionInsecureFacets()) {
-                        facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
-                    } else {
-                        switch (secureFacetConfiguration.getMode()) {
-                            case INSECURE:
-                                facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
-                                break;
-                            case STATISTICAL:
-                                facets = new StatisticalSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter(),
-                                        secureFacetConfiguration);
-                                break;
-                            case SECURE:
-                            default:
-                                facets = new SecureSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter());
-                                break;
-                        }
+
+                    switch (secureFacetConfiguration.getMode()) {
+                        case INSECURE:
+                            facets = new SortedSetDocValuesFacetCounts(state, facetsCollector);
+                            break;
+                        case STATISTICAL:
+                            facets = new StatisticalSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter(),
+                                    secureFacetConfiguration);
+                            break;
+                        case SECURE:
+                        default:
+                            facets = new SecureSortedSetDocValuesFacetCounts(state, facetsCollector, plan.getFilter());
+                            break;
                     }
 
                     facetsMap.put(facetField, facets);

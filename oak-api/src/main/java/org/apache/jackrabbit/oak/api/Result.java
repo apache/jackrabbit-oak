@@ -74,15 +74,6 @@ public interface Result {
      *         count is higher than max, it returns Long.MAX_VALUE.
      */
     long getSize(SizePrecision precision, long max);
-
-    /**
-     * Indicates whether the query specified the INSECURE RESULT SIZE option.
-     *
-     * @return true if the INSECURE RESULT SIZE query option was set
-     */
-    default boolean isQueryOptionInsecureResultSize() {
-        return false;
-    }
     
     enum SizePrecision {
    

@@ -81,26 +81,6 @@ public interface Query {
      */
     long getSize(Result.SizePrecision precision, long max);
 
-    /**
-     * Indicates whether the query specified the INSECURE RESULT SIZE option.
-     *
-     * @return true if the INSECURE RESULT SIZE query option was set
-     * @since 1.60
-     */
-    default boolean isQueryOptionInsecureResultSize() {
-        return false;
-    }
-
-    /**
-     * Indicates whether the query specified the INSECURE FACETS option.
-     *
-     * @return true if the INSECURE FACETS query option was set
-     * @since 1.60
-     */
-    default boolean isQueryOptionInsecureFacets() {
-        return false;
-    }
-
     void setExplain(boolean explain);
 
     void setMeasure(boolean measure);
@@ -230,13 +210,6 @@ public interface Query {
      *             fail in this case
      */
     void verifyNotPotentiallySlow();
-
-    /**
-     * Checks the parsed query for insecure options and throws if the executing session lacks the necessary permission.
-     *
-     * @throws IllegalArgumentException if any insecure query options are enabled without the necessary permission
-     */
-    void verifyInsecureOptions();
     
     QueryExecutionStats getQueryExecutionStats();
 
