@@ -62,8 +62,8 @@ import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.query.QueryCountsSettings;
-import org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
+import org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -121,7 +121,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     private final Registration gcMonitorRegistration;
     private final MountInfoProvider mountInfoProvider;
     private final BlobAccessProvider blobAccessProvider;
-    private final QueryCountsSettingsProvider queryCountsSettingsProvider;
+    private final SessionQuerySettingsProvider sessionQuerySettingsProvider;
 
     /**
      * {@link ThreadLocal} counter that keeps track of the save operations
@@ -176,7 +176,7 @@ public class RepositoryImpl implements JackrabbitRepository {
         this.mountInfoProvider = WhiteboardUtils.getService(whiteboard, MountInfoProvider.class);
         this.blobAccessProvider = WhiteboardUtils.getService(whiteboard, BlobAccessProvider.class);
         this.frozenNodeLogger = new FrozenNodeLogger(clock, whiteboard);
-        this.queryCountsSettingsProvider = Optional.ofNullable(WhiteboardUtils.getService(whiteboard, QueryCountsSettingsProvider.class))
+        this.sessionQuerySettingsProvider = Optional.ofNullable(WhiteboardUtils.getService(whiteboard, SessionQuerySettingsProvider.class))
                 .orElseGet(() -> new FastQuerySizeSettingsProvider(fastQueryResultSize));
     }
 
@@ -378,7 +378,7 @@ public class RepositoryImpl implements JackrabbitRepository {
             CommitRateLimiter commitRateLimiter) {
         return new SessionContext(this, statisticManager, securityProvider, whiteboard, attributes,
                 delegate, observationQueueLength, commitRateLimiter, mountInfoProvider, blobAccessProvider,
-                queryCountsSettingsProvider.getQueryCountsSettings(delegate.getContentSession()));
+                sessionQuerySettingsProvider.getQuerySettings(delegate.getContentSession()));
     }
 
     /**
@@ -573,11 +573,11 @@ public class RepositoryImpl implements JackrabbitRepository {
     }
 
     /**
-     * This is a fallback implementation of {@link org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider} that
+     * This is a fallback implementation of {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider} that
      * unifies and replaces the previous handling of {@code fastQueryResultSize} and {@code oak.fastQuerySize} here
      * and in the {@link org.apache.jackrabbit.oak.jcr.session.SessionContext}.
      */
-    private static class FastQuerySizeSettingsProvider implements QueryCountsSettingsProvider {
+    private static class FastQuerySizeSettingsProvider implements SessionQuerySettingsProvider {
         private final boolean fastQueryResultSize;
 
         public FastQuerySizeSettingsProvider(boolean fastQueryResultSize) {
@@ -585,8 +585,8 @@ public class RepositoryImpl implements JackrabbitRepository {
         }
 
         @Override
-        public @NotNull QueryCountsSettings getQueryCountsSettings(@NotNull ContentSession session) {
-            return new QueryCountsSettings() {
+        public @NotNull SessionQuerySettings getQuerySettings(@NotNull ContentSession session) {
+            return new SessionQuerySettings() {
                 @Override
                 public boolean useDirectResultCount() {
                     if (System.getProperty("oak.fastQuerySize") != null) {

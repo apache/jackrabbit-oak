@@ -20,7 +20,7 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.spi.query.QueryCountsSettings;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -41,13 +41,13 @@ import java.util.Set;
 /**
  * Overrides oak.fastQuerySize system property when available.
  */
-@Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
-@Designate(ocd = QueryCountsSettingsProviderService.Configuration.class)
-public class QueryCountsSettingsProviderService implements QueryCountsSettingsProvider {
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, immediate = true)
+@Designate(ocd = SessionQuerySettingsProviderService.Configuration.class)
+public class SessionQuerySettingsProviderService implements SessionQuerySettingsProvider {
 
     @ObjectClassDefinition(
-            name = "Apache Jackrabbit Query Counts Settings Provider Service",
-            description = "Privileged query counts settings exposed by Oak QueryEngine to designated system principals."
+            name = "Apache Jackrabbit Session Query Settings Provider Service",
+            description = "Provides Session-specific query settings exposed by Oak QueryEngine."
     )
     @Retention(RetentionPolicy.RUNTIME)
     public @interface Configuration {
@@ -74,11 +74,11 @@ public class QueryCountsSettingsProviderService implements QueryCountsSettingsPr
     private Set<String> directCountsAllowedPrincipals = Collections.emptySet();
 
     @Override
-    public QueryCountsSettings getQueryCountsSettings(@NotNull ContentSession session) {
+    public SessionQuerySettings getQuerySettings(@NotNull ContentSession session) {
         final Set<String> principals = directCountsAllowedPrincipals;
         final boolean directCountsAllowed = session.getAuthInfo().getPrincipals().stream()
                 .anyMatch(principal -> principals.contains(principal.getName()));
-        return new QueryCountsSettings() {
+        return new SessionQuerySettings() {
             @Override
             public boolean useDirectResultCount() {
                 return directCountsAllowed;

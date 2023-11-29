@@ -3,11 +3,11 @@ package org.apache.jackrabbit.oak.spi.query;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Privileged settings which are passed by the query engine to index providers during query planning and iteration
+ * User-specific settings which may be passed by the query engine to index providers during query planning and iteration
  * of results.
  */
 @ProviderType
-public interface QueryCountsSettings {
+public interface SessionQuerySettings {
 
     /**
      * Return true to use the index provider's query result count.

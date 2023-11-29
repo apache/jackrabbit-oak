@@ -22,8 +22,8 @@ import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.LuceneOakRepositoryStub;
-import org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider;
-import org.apache.jackrabbit.oak.query.QueryCountsSettingsProviderService;
+import org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider;
+import org.apache.jackrabbit.oak.query.SessionQuerySettingsProviderService;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.test.RepositoryStub;
@@ -51,7 +51,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Performs the same queries as {@link ResultSizeTest#testResultSize()} and expects the same results, with the only
- * differences being the registration of a {@link org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider} service
+ * differences being the registration of a {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider} service
  * in the whiteboard, and the runtime reconfiguration of the service before each login, in place of the calls to
  * {@code System.setProperty("oak.fastQuerySize", true/false)}.
  */
@@ -61,7 +61,7 @@ public class WhiteboardResultSizeTest {
      * Non-static inner class extending RepositoryStub which is intended to be created directly by a test
      * and not by the TCK RepositoryHelper, purely so that it can mirror the behavior of
      * {@link org.apache.jackrabbit.oak.jcr.query.ResultSizeTest} with the only differences being the registration of
-     * a {@link org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider} service in the whiteboard, and the
+     * a {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider} service in the whiteboard, and the
      * runtime reconfiguration of the service before each login, in place of the calls to
      * {@code System.setProperty("oak.fastQuerySize", true/false)}.
      */
@@ -72,41 +72,41 @@ public class WhiteboardResultSizeTest {
 
         @Override
         protected void preCreateRepository(Jcr jcr, Whiteboard whiteboard) {
-            // register the QueryCountsSettingsProvider service before creation of the repository.
-            whiteboard.register(QueryCountsSettingsProvider.class,
-                    queryCountsSettingsProviderService,
+            // register the SessionQuerySettingsProvider service before creation of the repository.
+            whiteboard.register(SessionQuerySettingsProvider.class,
+                    settingsProviderService,
                     Collections.emptyMap());
             super.preCreateRepository(jcr, whiteboard);
         }
     }
 
-    @QueryCountsSettingsProviderService.Configuration(directCountsPrincipals = {"admin"})
+    @SessionQuerySettingsProviderService.Configuration(directCountsPrincipals = {"admin"})
     static class AdminAllowed {
         /* class which hosts a config annotation for reflection */
     }
 
-    @QueryCountsSettingsProviderService.Configuration
+    @SessionQuerySettingsProviderService.Configuration
     static class NoneAllowed {
         /* class which hosts a config annotation for reflection */
     }
 
-    private QueryCountsSettingsProviderService queryCountsSettingsProviderService =
-            new QueryCountsSettingsProviderService();
+    private SessionQuerySettingsProviderService settingsProviderService =
+            new SessionQuerySettingsProviderService();
     private RepositoryStub stub;
     private volatile Repository repository;
     private volatile Session adminSession;
 
     /**
-     * Reconfigures the singleton {@link QueryCountsSettingsProviderService} instance between queries.
+     * Reconfigures the singleton {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProviderService} instance between queries.
      *
      * @param config a config annotation
      * @throws Exception for reflection errors
      */
-    private void reconfigure(QueryCountsSettingsProviderService.Configuration config) throws Exception {
-        Method method = QueryCountsSettingsProviderService.class.getDeclaredMethod("configure",
-                QueryCountsSettingsProviderService.Configuration.class);
+    private void reconfigure(SessionQuerySettingsProviderService.Configuration config) throws Exception {
+        Method method = SessionQuerySettingsProviderService.class.getDeclaredMethod("configure",
+                SessionQuerySettingsProviderService.Configuration.class);
         method.setAccessible(true);
-        method.invoke(queryCountsSettingsProviderService, config);
+        method.invoke(settingsProviderService, config);
     }
 
     protected Session getAdminSession() throws Exception {
@@ -162,7 +162,7 @@ public class WhiteboardResultSizeTest {
 
         final CompletableFuture<String> fastSizeResult = new CompletableFuture<>();
 
-        reconfigure(AdminAllowed.class.getAnnotation(QueryCountsSettingsProviderService.Configuration.class));
+        reconfigure(AdminAllowed.class.getAnnotation(SessionQuerySettingsProviderService.Configuration.class));
         try {
             session = this.createAdminSession();
             assertEquals("nt:unstructured",
@@ -190,7 +190,7 @@ public class WhiteboardResultSizeTest {
             }
         }
 
-        reconfigure(NoneAllowed.class.getAnnotation(QueryCountsSettingsProviderService.Configuration.class));
+        reconfigure(NoneAllowed.class.getAnnotation(SessionQuerySettingsProviderService.Configuration.class));
         try {
             session = this.createAdminSession();
             qm = session.getWorkspace().getQueryManager();
