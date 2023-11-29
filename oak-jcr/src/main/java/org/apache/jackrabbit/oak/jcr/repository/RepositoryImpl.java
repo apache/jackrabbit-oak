@@ -572,6 +572,11 @@ public class RepositoryImpl implements JackrabbitRepository {
         }
     }
 
+    /**
+     * This is a fallback implementation of {@link org.apache.jackrabbit.oak.query.QueryCountsSettingsProvider} that
+     * unifies and replaces the previous handling of {@code fastQueryResultSize} and {@code oak.fastQuerySize} here
+     * and in the {@link org.apache.jackrabbit.oak.jcr.session.SessionContext}.
+     */
     private static class FastQuerySizeSettingsProvider implements QueryCountsSettingsProvider {
         private final boolean fastQueryResultSize;
 
