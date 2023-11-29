@@ -131,6 +131,7 @@ public class VersionGarbageCollector {
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
     private final boolean detailedGCEnabled;
+    private final boolean isDetailedGCDryRun;
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -140,11 +141,13 @@ public class VersionGarbageCollector {
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
-                            final boolean detailedGCEnabled) {
+                            final boolean detailedGCEnabled,
+                            final boolean isDetailedGCDryRun) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
         this.detailedGCEnabled = detailedGCEnabled;
+        this.isDetailedGCDryRun = isDetailedGCDryRun;
         this.options = new VersionGCOptions();
     }
 
@@ -1176,17 +1179,15 @@ public class VersionGarbageCollector {
         public void removeGarbage(final VersionGCStats stats) {
 
             if (updateOpList.isEmpty()) {
-                if (log.isDebugEnabled()) {
+                if (log.isDebugEnabled() || isDetailedGCDryRun) {
                     log.debug("Skipping removal of detailed garbage, cause no garbage detected");
                 }
                 return;
             }
 
-            int updatedDocs;
-
             monitor.info("Proceeding to update [{}] documents", updateOpList.size());
 
-            if (log.isDebugEnabled()) {
+            if (log.isDebugEnabled() || isDetailedGCDryRun) {
                 String collect = updateOpList.stream().map(UpdateOp::getId).collect(joining(","));
                 log.debug("Performing batch update of documents with following id's [{}]", collect);
             }
@@ -1198,24 +1199,27 @@ public class VersionGarbageCollector {
 
             timer.reset().start();
             try {
-                List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
-                int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();
-                updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
-                stats.updatedDetailedGCDocsCount += updatedDocs;
-                stats.deletedPropsCount += deletedProps;
-                stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
+                if (!isDetailedGCDryRun) {
+                    // only delete these in case it is not a dryRun
+                    List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
+                    int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();
+                    int updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
+                    stats.updatedDetailedGCDocsCount += updatedDocs;
+                    stats.deletedPropsCount += deletedProps;
+                    stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
 
-                if (log.isDebugEnabled()) {
-                    log.debug("Updated [{}] documents, deleted [{}] properties, deleted [{}] unmergedBranchCommits",
-                            updatedDocs, deletedProps, deletedUnmergedBCSet.size());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Updated [{}] documents, deleted [{}] properties, deleted [{}] unmergedBranchCommits",
+                                updatedDocs, deletedProps, deletedUnmergedBCSet.size());
+                    }
+
+                    // save stats
+                    detailedGCStats.propertiesDeleted(deletedProps);
+                    detailedGCStats.unmergedBranchCommitsDeleted(deletedUnmergedBCSet.size());
+                    detailedGCStats.documentsUpdated(updatedDocs);
+                    // fix for sonar : converted to long before operation
+                    detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
                 }
-
-                // save stats
-                detailedGCStats.propertiesDeleted(deletedProps);
-                detailedGCStats.unmergedBranchCommitsDeleted(deletedUnmergedBCSet.size());
-                detailedGCStats.documentsUpdated(updatedDocs);
-                // fix for sonar : converted to long before operation
-                detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
             } finally {
                 // now reset delete metadata
                 updateOpList.clear();

@@ -1010,7 +1010,7 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-        VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, true);
+        VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, true, false);
         stats = gc.gc(maxAge*2, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedPropsCount);
@@ -1076,7 +1076,7 @@ public class VersionGarbageCollectorIT {
             }
         };
 
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, true, false));
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
@@ -1686,7 +1686,7 @@ public class VersionGarbageCollectorIT {
                         });
             }
         };
-        final VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, false);
+        final VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, false, false);
         // start GC -> will try to remove /foo and /bar
         Future<VersionGCStats> f = execService.submit(new Callable<VersionGCStats>() {
             @Override
@@ -1842,7 +1842,7 @@ public class VersionGarbageCollectorIT {
                 return super.getPossiblyDeletedDocs(fromModified, toModified);
             }
         };
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, false));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, false, false));
         VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
         assertTrue(stats.canceled);
         assertEquals(0, stats.deletedDocGCCount);
@@ -1894,7 +1894,7 @@ public class VersionGarbageCollectorIT {
                 return super.getPossiblyDeletedDocs(prevLastModifiedTime, lastModifiedTime).iterator();
             }
         };
-        gcRef.set(new VersionGarbageCollector(store1, gcSupport, false));
+        gcRef.set(new VersionGarbageCollector(store1, gcSupport, false, false));
         VersionGCStats stats = gcRef.get().gc(30, TimeUnit.MINUTES);
         assertTrue(stats.canceled);
         assertEquals(0, stats.deletedDocGCCount);
@@ -1923,7 +1923,7 @@ public class VersionGarbageCollectorIT {
                         });
             }
         };
-        final VersionGarbageCollector gc = new VersionGarbageCollector(store1, nonReportingGcSupport, false);
+        final VersionGarbageCollector gc = new VersionGarbageCollector(store1, nonReportingGcSupport, false, false);
         final long maxAgeHours = 1;
         final long clockDelta = HOURS.toMillis(maxAgeHours) + MINUTES.toMillis(5);
 
