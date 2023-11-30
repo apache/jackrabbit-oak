@@ -50,7 +50,7 @@ public class VersionGCRecommendations {
 
     private static final Logger log = LoggerFactory.getLogger(VersionGCRecommendations.class);
 
-    private static final long IGNORED_GC_WARNING_INTERVAL_MS = 5 * 60 * 1000; // 5min
+    private static final long IGNORED_GC_WARNING_INTERVAL_MS = TimeUnit.MINUTES.toMillis(5); // 5min
     private static long lastIgnoreWarning = 0;
 
     private final VersionGCSupport vgc;
