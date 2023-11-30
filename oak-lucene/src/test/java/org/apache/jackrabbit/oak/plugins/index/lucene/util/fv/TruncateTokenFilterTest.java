@@ -35,7 +35,7 @@ public class TruncateTokenFilterTest {
 
     @Test
     public void testFiltering() throws Exception {
-        TokenStream stream = new WhitespaceTokenizer(Version.LUCENE_48, new StringReader("0.10 0.20 0.30 0.40"));
+        TokenStream stream = new WhitespaceTokenizer(Version.LATEST, new StringReader("0.10 0.20 0.30 0.40"));
         TruncateTokenFilter filter = new TruncateTokenFilter(stream, 3);
         filter.reset();
         List<String> expectedTokens = new LinkedList<>();

@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.text.ParseException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -229,7 +230,12 @@ final class NodeStateAnalyzerFactory {
 
     @SuppressWarnings("deprecation")
     private static Version parseLuceneVersionString(final String matchVersion) {
-        final Version version = Version.parseLeniently(matchVersion);
+        final Version version;
+        try {
+            version = Version.parseLeniently(matchVersion);
+        } catch (ParseException e) {
+            throw new IllegalStateException("Version is not valid: " + matchVersion, e);
+        }
         if (version == Version.LUCENE_CURRENT && !versionWarningAlreadyLogged.getAndSet(true)) {
             log.warn(
                     "You should not use LATEST as luceneMatchVersion property: "+

@@ -53,7 +53,7 @@ public class LSHAnalyzer extends Analyzer {
 
   @Override
   protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-    Tokenizer source = new FVTokenizer(Version.LUCENE_48, reader);
+    Tokenizer source = new FVTokenizer(Version.LATEST, reader);
     TokenFilter truncate = new TruncateTokenFilter(source, 3);
     TokenFilter featurePos = new FeaturePositionTokenFilter(truncate);
     ShingleFilter shingleFilter = new ShingleFilter(featurePos, min, max);

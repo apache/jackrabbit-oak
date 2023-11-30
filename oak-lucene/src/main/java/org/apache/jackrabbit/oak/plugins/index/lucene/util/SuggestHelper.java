@@ -52,7 +52,7 @@ public class SuggestHelper {
     private static final Analyzer analyzer = new Analyzer() {
         @Override
         protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-            return new TokenStreamComponents(new CRTokenizer(Version.LUCENE_48, reader));
+            return new TokenStreamComponents(new CRTokenizer(Version.LATEST, reader));
         }
     };
 
@@ -134,7 +134,7 @@ public class SuggestHelper {
     }
     public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory, Analyzer analyzer,
                                                     final File tempDir) throws IOException {
-        return new AnalyzingInfixSuggester(Version.LUCENE_48, suggestDirectory, analyzer, analyzer, 3) {
+        return new AnalyzingInfixSuggester(Version.LATEST, suggestDirectory, analyzer, analyzer, 3) {
             @Override
             protected Directory getDirectory(File path) throws IOException {
                 if (tempDir == null || tempDir.getAbsolutePath().equals(path.getAbsolutePath())) {

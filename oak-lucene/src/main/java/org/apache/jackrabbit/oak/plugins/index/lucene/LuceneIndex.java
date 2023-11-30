@@ -424,7 +424,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                         // ACL filter spellchecks
                         Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
-                        QueryParser qp = new QueryParser(Version.LUCENE_48, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(Version.LATEST, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(FieldNames.SUGGEST, suggestion.string);
                             TopDocs topDocs = searcher.search(query, 100);
@@ -447,7 +447,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                         // ACL filter suggestions
                         Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
-                        QueryParser qp = new QueryParser(Version.LUCENE_48, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(Version.LATEST, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
                         for (Lookup.LookupResult suggestion : lookupResults) {
                             Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.key.toString());
                             TopDocs topDocs = searcher.search(query, 100);

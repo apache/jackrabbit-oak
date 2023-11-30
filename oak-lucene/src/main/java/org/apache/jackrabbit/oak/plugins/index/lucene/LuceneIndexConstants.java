@@ -33,7 +33,7 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
 
     String TRASH_CHILD_NAME = ":trash";
 
-    Version VERSION = Version.LUCENE_4_9;
+    Version VERSION = Version.LATEST;
 
     Analyzer ANALYZER = new OakAnalyzer(VERSION);
 
