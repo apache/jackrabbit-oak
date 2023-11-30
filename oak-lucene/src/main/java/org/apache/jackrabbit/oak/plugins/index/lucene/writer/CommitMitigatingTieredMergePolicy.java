@@ -795,10 +795,6 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
         return spec;
     }
 
-    @Override
-    public void close() {
-    }
-
     private long floorSize(long bytes) {
         return Math.max(floorSegmentBytes, bytes);
     }
