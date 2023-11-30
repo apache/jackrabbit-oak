@@ -7,22 +7,26 @@ import java.util.concurrent.TimeUnit;
 
 public class AzureRequestOptions {
 
-    private static final String RETRY_ATTEMPTS_PROP = "segment.azure.retry.attempts";
-    private static final int DEFAULT_RETRY_ATTEMPTS = 5;
+    static final String RETRY_ATTEMPTS_PROP = "segment.azure.retry.attempts";
+    static final int DEFAULT_RETRY_ATTEMPTS = 5;
 
-    private static final String RETRY_BACKOFF_PROP = "segment.azure.retry.backoff";
-    private static final int DEFAULT_RETRY_BACKOFF_SECONDS = 5;
+    static final String RETRY_BACKOFF_PROP = "segment.azure.retry.backoff";
+    static final int DEFAULT_RETRY_BACKOFF_SECONDS = 5;
 
-    private static final String TIMEOUT_EXECUTION_PROP = "segment.timeout.execution";
-    private static final int DEFAULT_TIMEOUT_EXECUTION = 30;
+    static final String TIMEOUT_EXECUTION_PROP = "segment.timeout.execution";
+    static final int DEFAULT_TIMEOUT_EXECUTION = 30;
 
-    private static final String TIMEOUT_INTERVAL_PROP = "segment.timeout.interval";
-    private static final int DEFAULT_TIMEOUT_INTERVAL = 1;
+    static final String TIMEOUT_INTERVAL_PROP = "segment.timeout.interval";
+    static final int DEFAULT_TIMEOUT_INTERVAL = 1;
 
-    private static final String WRITE_TIMEOUT_EXECUTION_PROP = "segment.write.timeout.execution";
+    static final String WRITE_TIMEOUT_EXECUTION_PROP = "segment.write.timeout.execution";
 
-    private static final String WRITE_TIMEOUT_INTERVAL_PROP = "segment.write.timeout.interval";
+    static final String WRITE_TIMEOUT_INTERVAL_PROP = "segment.write.timeout.interval";
 
+    /**
+     * Apply default request options to the blobRequestOptions if they are not already set.
+     * @param blobRequestOptions
+     */
     public static void applyDefaultRequestOptions(BlobRequestOptions blobRequestOptions) {
         if (blobRequestOptions.getRetryPolicyFactory() == null) {
             int retryAttempts = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
@@ -45,17 +49,24 @@ public class AzureRequestOptions {
         }
     }
 
+    /**
+     * Optimise the blob request options for write operations. This method does not change the original blobRequestOptions.
+     * This method also applies the default request options if they are not already set, by calling {@link #applyDefaultRequestOptions(BlobRequestOptions)}
+     * @param blobRequestOptions
+     * @return write optimised blobRequestOptions
+     */
     public static BlobRequestOptions optimiseForWriteOperations(BlobRequestOptions blobRequestOptions) {
         BlobRequestOptions writeOptimisedBlobRequestOptions = new BlobRequestOptions(blobRequestOptions);
+        applyDefaultRequestOptions(writeOptimisedBlobRequestOptions);
 
         Integer writeTimeoutExecution = Integer.getInteger(WRITE_TIMEOUT_EXECUTION_PROP);
         if (writeTimeoutExecution != null) {
-            writeOptimisedBlobRequestOptions.setMaximumExecutionTimeInMs(writeTimeoutExecution);
+            writeOptimisedBlobRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(writeTimeoutExecution));
         }
 
         Integer writeTimeoutInterval = Integer.getInteger(WRITE_TIMEOUT_INTERVAL_PROP);
         if (writeTimeoutInterval != null) {
-            writeOptimisedBlobRequestOptions.setTimeoutIntervalInMs(writeTimeoutInterval);
+            writeOptimisedBlobRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(writeTimeoutInterval));
         }
 
         return writeOptimisedBlobRequestOptions;
