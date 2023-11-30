@@ -242,6 +242,13 @@ public class VersionGarbageCollector {
         ds.remove(SETTINGS, SETTINGS_COLLECTION_ID);
     }
 
+    public void resetDetailedGC() {
+        UpdateOp op = new UpdateOp(SETTINGS_COLLECTION_ID, false);
+        op.remove(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP);
+        op.remove(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP);
+        ds.findAndUpdate(SETTINGS, op);
+    }
+
     public VersionGCInfo getInfo(long maxRevisionAge, TimeUnit unit)
             throws IOException {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
@@ -255,7 +262,8 @@ public class VersionGarbageCollector {
         }
         return new VersionGCInfo(rec.lastOldestTimestamp, rec.scope.fromMs,
                 rec.deleteCandidateCount, rec.maxCollect,
-                rec.suggestedIntervalMs, rec.scope.toMs, estimatedIterations);
+                rec.suggestedIntervalMs, rec.scope.toMs, estimatedIterations,
+                rec.scopeDetailedGC.fromMs);
     }
 
     public static class VersionGCInfo {
@@ -266,6 +274,7 @@ public class VersionGarbageCollector {
         public final long recommendedCleanupInterval;
         public final long recommendedCleanupTimestamp;
         public final int estimatedIterations;
+        public final long oldestDetailedGCRevisionEstimate;
 
         VersionGCInfo(long lastSuccess,
                       long oldestRevisionEstimate,
@@ -273,7 +282,8 @@ public class VersionGarbageCollector {
                       long collectLimit,
                       long recommendedCleanupInterval,
                       long recommendedCleanupTimestamp,
-                      int estimatedIterations) {
+                      int estimatedIterations,
+                      long oldestDetailedGCRevisionEstimate) {
             this.lastSuccess = lastSuccess;
             this.oldestRevisionEstimate = oldestRevisionEstimate;
             this.revisionsCandidateCount = revisionsCandidateCount;
@@ -281,6 +291,7 @@ public class VersionGarbageCollector {
             this.recommendedCleanupInterval = recommendedCleanupInterval;
             this.recommendedCleanupTimestamp = recommendedCleanupTimestamp;
             this.estimatedIterations = estimatedIterations;
+            this.oldestDetailedGCRevisionEstimate = oldestDetailedGCRevisionEstimate;
         }
     }
 
@@ -625,7 +636,9 @@ public class VersionGarbageCollector {
                     }
                 }
 
-                if ((detailedGCEnabled && rec.ignoreDetailedGCDueToCheckPoint) || rec.ignoreDueToCheckPoint) {
+                if ((!detailedGCEnabled || rec.ignoreDetailedGCDueToCheckPoint) && rec.ignoreDueToCheckPoint) {
+                    // cancel if both are stopped by checkpoint
+                    // otherwise we need to continue
                     cancel.set(true);
                 }
 

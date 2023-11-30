@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -98,6 +99,34 @@ public class RevisionsCommandTest {
     }
 
     @Test
+    public void resetDetailedGC() throws Exception {
+        // need to set detailedGCEnabled to true, so let's bounce the default one
+        ns.dispose();
+        // and create it fresh with detailedGCEnabled==true
+        ns = createDocumentNodeStore(true);
+        ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
+
+        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        assertNotNull(doc);
+        assertNotNull(doc.get("detailedGCTimeStamp"));
+        assertNotNull(doc.get("detailedGCId"));
+
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("reset", "--detailedGCOnly"));
+        assertTrue(output.contains("resetting recommendations and statistics"));
+
+        MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
+        ns = builderProvider.newBuilder()
+                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+        doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        assertNotNull(doc);
+        assertNull(doc.get("detailedGCTimeStamp"));
+        assertNull(doc.get("detailedGCId"));
+    }
+
+    @Test
     public void collect() throws Exception {
         ns.dispose();
 
@@ -136,10 +165,14 @@ public class RevisionsCommandTest {
     }
 
     private DocumentNodeStore createDocumentNodeStore() {
+        return createDocumentNodeStore(false);
+    }
+
+    private DocumentNodeStore createDocumentNodeStore(boolean detailedGCEnabled) {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
-        return builderProvider.newBuilder()
+        return builderProvider.newBuilder().setDetailedGCEnabled(detailedGCEnabled)
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 
