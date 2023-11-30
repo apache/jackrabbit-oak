@@ -510,20 +510,9 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 return delegate.getFilePointer();
             }
 
-            @SuppressWarnings("deprecation")
-            @Override
-            public void seek(long pos) throws IOException {
-                delegate.seek(pos);
-            }
-
             @Override
             public long getChecksum() throws IOException {
                 return delegate.getChecksum();
-            }
-
-            @Override
-            public long length() throws IOException {
-                return delegate.length();
             }
 
             @Override
@@ -536,10 +525,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 delegate.writeBytes(b, offset, length);
             }
 
-            @Override
-            public void setLength(long length) throws IOException {
-                delegate.setLength(length);
-            }
         }
     }
 }

@@ -31,25 +31,15 @@ final class OakIndexOutput extends IndexOutput {
     private final CRC32 crc32;
 
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
-                          BlobFactory blobFactory, boolean streamingWriteEnabled) throws IOException {
+                          BlobFactory blobFactory, boolean streamingWriteEnabled) {
         this.dirDetails = dirDetails;
         this.file = getOakIndexFile(name, file, dirDetails, blobFactory, streamingWriteEnabled);
         this.crc32 = new CRC32();
     }
 
     @Override
-    public long length() {
-        return file.length();
-    }
-
-    @Override
     public long getFilePointer() {
         return file.position();
-    }
-
-    @Override
-    public void seek(long pos) throws IOException {
-        file.seek(pos);
     }
 
     @Override

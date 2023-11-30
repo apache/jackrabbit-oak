@@ -212,7 +212,7 @@ public class LuceneIndexDefinition extends IndexDefinition {
         MergePolicy mergePolicy = null;
         if (mergePolicyName != null) {
             if (mergePolicyName.equalsIgnoreCase("no")) {
-                mergePolicy = NoMergePolicy.COMPOUND_FILES;
+                mergePolicy = NoMergePolicy.INSTANCE;
             } else if (mergePolicyName.equalsIgnoreCase("mitigated")) {
                 mergePolicy = new CommitMitigatingTieredMergePolicy();
             } else if (mergePolicyName.equalsIgnoreCase("tiered") || mergePolicyName.equalsIgnoreCase("default")) {

@@ -30,10 +30,10 @@ public class CommitMitigatingTieredMergePolicyTest {
 
     @Test
     public void testMergeWithNoSegments() throws Exception {
-        CommitMitigatingTieredMergePolicy mergePolicy = new CommitMitigatingTieredMergePolicy();
-
-        SegmentInfos infos = new SegmentInfos();
-        MergePolicy.MergeSpecification merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, infos);
+        MergePolicy.MergeSpecification merges;
+        try (CommitMitigatingTieredMergePolicy mergePolicy = new CommitMitigatingTieredMergePolicy()) {
+            merges = mergePolicy.findMerges(MergeTrigger.SEGMENT_FLUSH, new SegmentInfos(), null);
+        }
         assertNull(merges);
     }
 
