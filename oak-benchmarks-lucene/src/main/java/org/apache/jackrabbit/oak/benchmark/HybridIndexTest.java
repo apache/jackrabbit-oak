@@ -134,7 +134,6 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
     private long queueTimeout = Long.getLong("queueTimeout", 100);
     private boolean hybridIndexEnabled = Boolean.getBoolean("hybridIndexEnabled");
     private boolean dumpStats = Boolean.getBoolean("dumpStats");
-    private boolean useOakCodec = Boolean.parseBoolean(System.getProperty("useOakCodec", "true"));
     private boolean syncIndexing = Boolean.parseBoolean(System.getProperty("syncIndexing", "false"));
     private String indexingMode = System.getProperty("indexingMode", "nrt");
 
@@ -286,10 +285,10 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             FileUtils.deleteDirectory(indexCopierDir);
         }
         System.out.printf("numOfIndexes: %d, refreshDeltaMillis: %d, asyncInterval: %d, queueSize: %d , " +
-                        "hybridIndexEnabled: %s, indexingMode: %s, useOakCodec: %s, cleanerIntervalInSecs: %d, " +
+                        "hybridIndexEnabled: %s, indexingMode: %s, cleanerIntervalInSecs: %d, " +
                         "syncIndexing: %s %n",
                 numOfIndexes, refreshDeltaMillis, asyncInterval, queueSize, hybridIndexEnabled,
-                indexingMode, useOakCodec, cleanerIntervalInSecs, syncIndexing);
+                indexingMode, cleanerIntervalInSecs, syncIndexing);
 
         if (dumpStats) {
             dumpStats();
@@ -317,9 +316,6 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
         if (hybridIndexEnabled){
             commentElements.add(indexingMode);
 
-            if (useOakCodec){
-                commentElements.add("oakCodec");
-            }
             if (syncIndexing) {
                 commentElements.add("sync");
             }
@@ -476,9 +472,6 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
             if (syncIndexing) {
                 pr.sync();
             }
-            if (useOakCodec) {
-                defnBuilder.codec("oakCodec");
-            }
 
             for (int i = 0; i < numOfIndexes - 1; i++) {
                 defnBuilder.indexRule("nt:base").property(indexedPropName + i).propertyIndex();
@@ -496,7 +489,6 @@ public class HybridIndexTest extends AbstractTest<HybridIndexTest.TestContext> {
 
             LuceneIndexDefinitionBuilder defnBuilder = new LuceneIndexDefinitionBuilder();
             defnBuilder.async("async", "async");
-            defnBuilder.codec("Lucene46");
             defnBuilder.indexRule("nt:base")
                     .property(FulltextIndexConstants.REGEX_ALL_PROPS, true)
                     .nodeScopeIndex();

@@ -23,7 +23,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.oak.plugins.index.lucene.util.CompressingCodec;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.lucene.writer.CommitMitigatingTieredMergePolicy;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
@@ -36,14 +35,12 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.miscellaneous.LimitTokenCountAnalyzer;
 import org.apache.lucene.analysis.miscellaneous.PerFieldAnalyzerWrapper;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
-import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
 import org.apache.lucene.index.TieredMergePolicy;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,8 +58,6 @@ public class LuceneIndexDefinition extends IndexDefinition {
     private final Map<String, Analyzer> analyzers;
     private final Analyzer analyzer;
 
-    private final Codec codec;
-
     private final int maxFieldLength;
 
     public LuceneIndexDefinition(NodeState root, NodeState defn, String indexPath) {
@@ -76,7 +71,6 @@ public class LuceneIndexDefinition extends IndexDefinition {
         this.maxFieldLength = getOptionalValue(defn, LuceneIndexConstants.MAX_FIELD_LENGTH, DEFAULT_MAX_FIELD_LENGTH);
         this.analyzers = collectAnalyzers(defn);
         this.analyzer = createAnalyzer();
-        this.codec = createCodec();
     }
 
     public static Builder newBuilder(NodeState root, NodeState defn, String indexPath){
@@ -118,11 +112,6 @@ public class LuceneIndexDefinition extends IndexDefinition {
 
     public boolean saveDirListing() {
         return saveDirListing;
-    }
-
-    @Nullable
-    public Codec getCodec() {
-        return codec;
     }
 
     @NotNull
@@ -178,29 +167,6 @@ public class LuceneIndexDefinition extends IndexDefinition {
 
 
     //~---------------------------------------------< utility >
-
-    private Codec createCodec() {
-        String mmp = System.getProperty("oak.lucene.compressing-codec");
-        if (mmp != null) {
-            return new CompressingCodec();
-        }
-
-        String codecName = getOptionalValue(definition, LuceneIndexConstants.CODEC_NAME, null);
-        Codec codec = null;
-        if (codecName != null) {
-            // prevent LUCENE-6482
-            // (also done in LuceneIndexProviderService, just to be save)
-            OakCodec ensureLucene46CodecLoaded = new OakCodec();
-            // to ensure the JVM doesn't optimize away object creation
-            // (probably not really needed; just to be save)
-            log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
-            codec = Codec.forName(codecName);
-            log.debug("Codec is loaded: {}", codecName);
-        } else if (fullTextEnabled) {
-            codec = new OakCodec();
-        }
-        return codec;
-    }
 
     private MergePolicy createMergePolicy() {
         String mmp = System.getProperty("oak.lucene.cmmp");

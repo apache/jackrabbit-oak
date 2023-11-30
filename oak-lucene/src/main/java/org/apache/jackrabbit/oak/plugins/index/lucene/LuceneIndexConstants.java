@@ -33,14 +33,9 @@ public interface LuceneIndexConstants extends FulltextIndexConstants {
 
     String TRASH_CHILD_NAME = ":trash";
 
-    Version VERSION = Version.LUCENE_48;
+    Version VERSION = Version.LUCENE_4_9;
 
     Analyzer ANALYZER = new OakAnalyzer(VERSION);
-
-    /**
-     * Name of the codec to be used for indexing
-     */
-    String CODEC_NAME = "codec";
 
     /**
      * Name of the merge policy to be used while indexing
