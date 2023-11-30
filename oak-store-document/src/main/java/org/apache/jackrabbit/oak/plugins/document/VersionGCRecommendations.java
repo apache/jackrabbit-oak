@@ -50,6 +50,9 @@ public class VersionGCRecommendations {
 
     private static final Logger log = LoggerFactory.getLogger(VersionGCRecommendations.class);
 
+    private static final long IGNORED_GC_WARNING_INTERVAL_MS = TimeUnit.MINUTES.toMillis(5); // 5min
+    private static long lastIgnoreWarning = 0;
+
     private final VersionGCSupport vgc;
     private final GCMonitor gcmon;
 
@@ -66,6 +69,7 @@ public class VersionGCRecommendations {
     private final long precisionMs;
     final long suggestedIntervalMs;
     private final boolean scopeIsComplete;
+    private final boolean detailedGCScopeIsComplete;
     private final boolean detailedGCEnabled;
 
     /**
@@ -176,11 +180,11 @@ public class VersionGCRecommendations {
         //Check for any registered checkpoint which prevent the GC from running
         Revision checkpoint = checkpoints.getOldestRevisionToKeep();
 
-        final GCResult gcResult = getResult(options, checkpoint, scope);
+        final GCResult gcResult = getResult(options, checkpoint, scope, clock);
         scope = gcResult.gcScope;
         ignoreDueToCheckPoint = gcResult.ignoreGC;
 
-        final GCResult detailGCResult = getResult(options, checkpoint, scopeDetailedGC);
+        final GCResult detailGCResult = getResult(options, checkpoint, scopeDetailedGC, clock);
         scopeDetailedGC = detailGCResult.gcScope;
         ignoreDetailedGCDueToCheckPoint = detailGCResult.ignoreGC;
 
@@ -198,6 +202,7 @@ public class VersionGCRecommendations {
         this.scopeDetailedGC = scopeDetailedGC;
         this.detailedGCId = oldestModifiedDocId;
         this.scopeIsComplete = scope.toMs >= keep.fromMs;
+        this.detailedGCScopeIsComplete = scopeDetailedGC.toMs >= keep.fromMs;
         this.maxCollect = collectLimit;
         this.suggestedIntervalMs = suggestedIntervalMs;
         this.deleteCandidateCount = deletedOnceCount;
@@ -255,6 +260,7 @@ public class VersionGCRecommendations {
             // success, we would not expect to encounter revisions older than this in the future
             setLongSetting(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
             setStringSetting(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+            stats.needRepeat |= !detailedGCScopeIsComplete;
         }
     }
 
@@ -297,12 +303,18 @@ public class VersionGCRecommendations {
     }
 
     @NotNull
-    private static GCResult getResult(final VersionGCOptions options, final Revision checkpoint, TimeInterval gcScope) {
+    private static GCResult getResult(final VersionGCOptions options,
+            final Revision checkpoint, TimeInterval gcScope, Clock clock) {
         boolean ignoreGC = false;
         if (checkpoint != null && gcScope.endsAfter(checkpoint.getTimestamp())) {
             TimeInterval minimalScope = gcScope.startAndDuration(options.precisionMs);
             if (minimalScope.endsAfter(checkpoint.getTimestamp())) {
-                log.warn("Ignoring GC run because a valid checkpoint [{}] exists inside minimal scope {}.", checkpoint.toReadableString(), minimalScope);
+                final long now = clock.getTime();
+                if (now - lastIgnoreWarning > IGNORED_GC_WARNING_INTERVAL_MS) {
+                    log.warn("Ignoring GC run because a valid checkpoint [{}] exists inside minimal scope {}.",
+                            checkpoint.toReadableString(), minimalScope);
+                    lastIgnoreWarning = now;
+                }
                 ignoreGC = true;
             } else {
                 gcScope = gcScope.notLaterThan(checkpoint.getTimestamp() - 1);

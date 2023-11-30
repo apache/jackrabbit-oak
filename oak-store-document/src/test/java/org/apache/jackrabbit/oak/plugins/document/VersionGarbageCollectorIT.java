@@ -371,7 +371,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(1, stats.deletedPropsCount);
         assertEquals(1, stats.updatedDetailedGCDocsCount);
         assertTrue(stats.ignoredGCDueToCheckPoint);
-        assertFalse(stats.ignoredDetailedGCDueToCheckPoint);
+        assertTrue(stats.ignoredDetailedGCDueToCheckPoint);
         assertTrue(stats.canceled);
     }
 
