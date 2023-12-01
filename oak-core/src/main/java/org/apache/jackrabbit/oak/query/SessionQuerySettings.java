@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.spi.query;
+package org.apache.jackrabbit.oak.query;
 
 import org.osgi.annotation.versioning.ProviderType;
 

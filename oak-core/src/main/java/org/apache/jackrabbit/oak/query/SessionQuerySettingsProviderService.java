@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.query;
 
 import org.apache.jackrabbit.oak.api.ContentSession;
-import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;

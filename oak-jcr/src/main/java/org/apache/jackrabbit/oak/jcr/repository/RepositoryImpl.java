@@ -62,7 +62,7 @@ import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
+import org.apache.jackrabbit.oak.query.SessionQuerySettings;
 import org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
