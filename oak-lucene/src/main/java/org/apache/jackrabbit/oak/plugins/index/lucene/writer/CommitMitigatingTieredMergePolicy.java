@@ -739,7 +739,7 @@ public class CommitMitigatingTieredMergePolicy extends MergePolicy {
             final int numToMerge = end - maxSegmentCount + 1;
             final OneMerge merge = new OneMerge(eligible.subList(end - numToMerge, end));
             if (verbose(writer)) {
-                message(writer, "add final merge=" + merge.segString(writer.getDirectory()));
+                message(writer, "add final merge=" + merge.segString());
             }
             spec = new MergeSpecification();
             spec.add(merge);

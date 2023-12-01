@@ -20,10 +20,9 @@ import java.io.StringReader;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.core.WhitespaceTokenizer;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
-import org.apache.lucene.util.Version;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -35,7 +34,8 @@ public class FeaturePositionTokenFilterTest {
 
     @Test
     public void testFiltering() throws Exception {
-        TokenStream stream = new WhitespaceTokenizer(Version.LATEST, new StringReader("0.10 0.20 0.30 0.40"));
+        Tokenizer stream = new WhitespaceTokenizer();
+        stream.setReader(new StringReader("0.10 0.20 0.30 0.40"));
         FeaturePositionTokenFilter filter = new FeaturePositionTokenFilter(stream);
         filter.reset();
         List<String> expectedTokens = new LinkedList<>();

@@ -36,7 +36,6 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexStatistics.SYNTHETICALLY_FALLIABLE_FIELD;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.junit.Assert.assertEquals;
 
 public class IndexStatisticsTest {
@@ -169,22 +168,16 @@ public class IndexStatisticsTest {
 
     private static Directory createSampleDirectory(Iterable<Document> docs) throws IOException {
         Directory dir = new RAMDirectory();
-        IndexWriter writer = null;
-        try {
-            writer = getWriter(dir);
+        try (IndexWriter writer = getWriter(dir)) {
             for (Document doc : docs) {
                 writer.addDocument(doc);
             }
             return dir;
-        } finally {
-            if (writer != null) {
-                writer.close();
-            }
         }
     }
 
     private static IndexWriter getWriter(Directory d) throws IOException {
-        IndexWriterConfig config = new IndexWriterConfig(VERSION, LuceneIndexConstants.ANALYZER);
+        IndexWriterConfig config = new IndexWriterConfig(LuceneIndexConstants.ANALYZER);
         return new IndexWriter(d, config);
     }
 

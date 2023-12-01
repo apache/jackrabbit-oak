@@ -122,7 +122,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         //If file does not exist then just delegate to remote and not
         //schedule a copy task
-        if (!remote.fileExists(name)){
+        if (!Arrays.asList(remote.listAll()).contains(name)){
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Looking for non existent file {}. Current known files {}",
                         indexPath, name, Arrays.toString(remote.listAll()));
@@ -192,7 +192,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         boolean copyAttempted = false;
         long fileSize = 0;
         try {
-            if (!local.fileExists(name)) {
+            if (!Arrays.asList(local.listAll()).contains(name)){
                 long perfStart = -1;
                 if (logDuration) {
                     perfStart = PERF_LOGGER.start();
@@ -203,7 +203,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 long start = indexCopier.startCopy(file);
                 copyAttempted = true;
 
-                remote.copy(local, name, name, IOContext.READ);
+                local.copyFrom(remote, name, name, IOContext.READ);
                 reference.markValid();
 
                 if (sync) {
@@ -251,7 +251,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         } finally {
             if (copyAttempted && !success){
                 try {
-                    if (local.fileExists(name)) {
+                    if (!Arrays.asList(local.listAll()).contains(name)){
                         local.deleteFile(name);
                     }
                 } catch (IOException e) {

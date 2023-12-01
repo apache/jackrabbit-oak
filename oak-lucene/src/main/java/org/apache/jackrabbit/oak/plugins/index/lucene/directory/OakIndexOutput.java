@@ -32,6 +32,7 @@ final class OakIndexOutput extends IndexOutput {
 
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
                           BlobFactory blobFactory, boolean streamingWriteEnabled) {
+        super("OakIndexOutput(" + name + ")");
         this.dirDetails = dirDetails;
         this.file = getOakIndexFile(name, file, dirDetails, blobFactory, streamingWriteEnabled);
         this.crc32 = new CRC32();
@@ -74,17 +75,7 @@ final class OakIndexOutput extends IndexOutput {
     }
 
     @Override
-    public void flush() throws IOException {
-        try {
-            file.flush();
-        } catch (IOException e) {
-            throw wrapWithDetails(e);
-        }
-    }
-
-    @Override
     public void close() throws IOException {
-        flush();
         file.close();
     }
 

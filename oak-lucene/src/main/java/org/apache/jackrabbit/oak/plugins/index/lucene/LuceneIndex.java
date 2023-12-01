@@ -94,7 +94,6 @@ import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
 import org.apache.lucene.search.highlight.TextFragment;
 import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
-import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +106,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.getAncestorPath;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getDepth;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getName;
 import static org.apache.jackrabbit.oak.commons.PathUtils.getParentPath;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newFulltextTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.index.search.util.IndexHelper.skipTokenization;
@@ -156,7 +154,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
     private static final Logger LOG = LoggerFactory
             .getLogger(LuceneIndex.class);
     public static final String NATIVE_QUERY_FUNCTION = "native*lucene";
-    private static double MIN_COST = 2.2;
+    private static final double MIN_COST = 2.2;
 
     /**
      * IndexPaln Attribute name which refers to the path of Lucene index to be used
@@ -424,7 +422,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                         // ACL filter spellchecks
                         Collection<String> suggestedWords = new ArrayList<String>(suggestWords.length);
-                        QueryParser qp = new QueryParser(Version.LATEST, FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(FieldNames.SUGGEST, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(FieldNames.SUGGEST, suggestion.string);
                             TopDocs topDocs = searcher.search(query, 100);
@@ -447,7 +445,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
 
                         // ACL filter suggestions
                         Collection<String> suggestedWords = new ArrayList<String>(lookupResults.size());
-                        QueryParser qp = new QueryParser(Version.LATEST, FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(FieldNames.FULLTEXT, indexNode.getDefinition().getAnalyzer());
                         for (Lookup.LookupResult suggestion : lookupResults) {
                             Query query = qp.createPhraseQuery(FieldNames.FULLTEXT, suggestion.key.toString());
                             TopDocs topDocs = searcher.search(query, 100);
@@ -634,7 +632,7 @@ public class LuceneIndex implements AdvanceFulltextQueryIndex {
         PropertyRestriction pr = filter.getPropertyRestriction(NATIVE_QUERY_FUNCTION);
         if (pr != null) {
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
-            QueryParser queryParser = new QueryParser(VERSION, "", indexDefinition.getAnalyzer());
+            QueryParser queryParser = new QueryParser("", indexDefinition.getAnalyzer());
             if (query.startsWith("mlt?")) {
                 String mltQueryString = query.replace("mlt?", "");
                 if (reader != null) {

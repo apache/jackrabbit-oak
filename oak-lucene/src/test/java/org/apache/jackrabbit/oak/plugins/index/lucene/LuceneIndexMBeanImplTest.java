@@ -42,7 +42,6 @@ import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -66,8 +65,8 @@ public class LuceneIndexMBeanImplTest {
 
     private IndexWriter addNodeIndex(String path) throws IOException {
         Directory directory = new RAMDirectory();
-        Analyzer analyzer = new SimpleAnalyzer(Version.LATEST);
-        IndexWriterConfig config = new IndexWriterConfig(Version.LATEST, analyzer);
+        Analyzer analyzer = new SimpleAnalyzer();
+        IndexWriterConfig config = new IndexWriterConfig(analyzer);
         IndexWriter writer = new IndexWriter(directory, config);
         LuceneIndexNode indexNode = mock(LuceneIndexNode.class);
         when(indexNode.getSearcher()).thenAnswer(inv -> new IndexSearcher(DirectoryReader.open(directory)));

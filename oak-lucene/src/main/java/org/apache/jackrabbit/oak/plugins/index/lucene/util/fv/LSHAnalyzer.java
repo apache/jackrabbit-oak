@@ -16,14 +16,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene.util.fv;
 
-import java.io.Reader;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenFilter;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.Tokenizer;
 import org.apache.lucene.analysis.shingle.ShingleFilter;
-import org.apache.lucene.util.Version;
 
 /**
  * {@link Analyzer} for LSH search
@@ -52,8 +49,8 @@ public class LSHAnalyzer extends Analyzer {
   }
 
   @Override
-  protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-    Tokenizer source = new FVTokenizer(Version.LATEST, reader);
+  protected TokenStreamComponents createComponents(String fieldName) {
+    Tokenizer source = new FVTokenizer();
     TokenFilter truncate = new TruncateTokenFilter(source, 3);
     TokenFilter featurePos = new FeaturePositionTokenFilter(truncate);
     ShingleFilter shingleFilter = new ShingleFilter(featurePos, min, max);

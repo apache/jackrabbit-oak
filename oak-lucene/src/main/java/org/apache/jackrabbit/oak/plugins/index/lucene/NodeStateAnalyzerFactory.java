@@ -252,7 +252,7 @@ final class NodeStateAnalyzerFactory {
         Blob blob = ConfigUtil.getBlob(file, name);
         Reader stopwords = new InputStreamReader(blob.getNewStream(), IOUtils.CHARSET_UTF_8);
         try {
-            return WordlistLoader.getWordSet(stopwords, matchVersion);
+            return WordlistLoader.getWordSet(stopwords);
         } finally {
             IOUtils.close(stopwords);
         }

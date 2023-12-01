@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Reader;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,7 +36,6 @@ import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +50,8 @@ public class SuggestHelper {
 
     private static final Analyzer analyzer = new Analyzer() {
         @Override
-        protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-            return new TokenStreamComponents(new CRTokenizer(Version.LATEST, reader));
+        protected TokenStreamComponents createComponents(String fieldName) {
+            return new TokenStreamComponents(new CRTokenizer());
         }
     };
 
@@ -134,10 +133,10 @@ public class SuggestHelper {
     }
     public static AnalyzingInfixSuggester getLookup(final Directory suggestDirectory, Analyzer analyzer,
                                                     final File tempDir) throws IOException {
-        return new AnalyzingInfixSuggester(Version.LATEST, suggestDirectory, analyzer, analyzer, 3) {
+        return new AnalyzingInfixSuggester(suggestDirectory, analyzer, analyzer, 3, false) {
             @Override
-            protected Directory getDirectory(File path) throws IOException {
-                if (tempDir == null || tempDir.getAbsolutePath().equals(path.getAbsolutePath())) {
+            protected Directory getDirectory(Path path) throws IOException {
+                if (tempDir == null || tempDir.getAbsolutePath().equals(path.toString())) {
                     return suggestDirectory; // use oak directory for writing suggest index
                 } else {
                     return FSDirectory.open(path); // use FS for temp index used at build time

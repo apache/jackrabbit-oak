@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.*;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.Nullable;
@@ -447,11 +448,10 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static class AugmentedField extends Field {
         private static final FieldType ft = new FieldType();
         static {
-            ft.setIndexed(true);
             ft.setStored(false);
             ft.setTokenized(false);
             ft.setOmitNorms(false);
-            ft.setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_ONLY);
+            ft.setIndexOptions(IndexOptions.DOCS);
             ft.freeze();
         }
 

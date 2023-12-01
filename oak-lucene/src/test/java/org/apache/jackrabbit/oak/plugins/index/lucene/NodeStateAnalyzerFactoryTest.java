@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
-import java.io.Reader;
 import java.lang.reflect.Field;
 import java.util.Map;
 
@@ -39,7 +38,6 @@ import org.apache.lucene.analysis.core.LowerCaseTokenizer;
 import org.apache.lucene.analysis.core.StopFilterFactory;
 import org.apache.lucene.analysis.core.WhitespaceTokenizerFactory;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
-import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.analysis.util.ClasspathResourceLoader;
 import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
 import org.apache.lucene.util.Version;
@@ -68,17 +66,17 @@ public class NodeStateAnalyzerFactoryTest {
     private NodeStateAnalyzerFactory factory = new NodeStateAnalyzerFactory(LuceneIndexConstants.VERSION);
 
     @Test
-    public void analyzerViaReflection() throws Exception{
+    public void analyzerViaReflection() {
         NodeBuilder nb = EMPTY_NODE.builder();
         nb.setProperty(ANL_CLASS, TestAnalyzer.class.getName());
 
         TestAnalyzer analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
         assertNotNull(analyzer);
-        assertEquals(LuceneIndexConstants.VERSION, analyzer.matchVersion);
+        assertEquals(LuceneIndexConstants.VERSION, analyzer.getVersion());
 
-        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
+        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_4_1.toString());
         analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
-        assertEquals("Version field not picked from config",Version.LUCENE_31, analyzer.matchVersion);
+        assertEquals("Version field not picked from config",Version.LUCENE_4_1, analyzer.getVersion());
 
         byte[] stopWords = newCharArraySet("foo", "bar");
         createFileNode(nb, FulltextIndexConstants.ANL_STOPWORDS, stopWords);
@@ -113,7 +111,7 @@ public class NodeStateAnalyzerFactoryTest {
         filters.child("LowerCase").setProperty(ANL_NAME, "LowerCase");
         filters.child("LowerCase").setProperty(JCR_PRIMARYTYPE, "nt:unstructured");
         //name is optional. Derived from nodeName
-        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_31.toString());
+        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_4_1.toString());
 
         TokenizerChain analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
         assertEquals(2, analyzer.getFilters().length);
@@ -207,21 +205,10 @@ public class NodeStateAnalyzerFactoryTest {
     }
 
     public static class TestAnalyzer extends StopwordAnalyzerBase{
-        final Version matchVersion;
-
-        public TestAnalyzer(Version matchVersion) {
-            super(matchVersion);
-            this.matchVersion = matchVersion;
-        }
-
-        public TestAnalyzer(Version version, CharArraySet stopwords) {
-            super(version, stopwords);
-            this.matchVersion = version;
-        }
 
         @Override
-        protected TokenStreamComponents createComponents(final String fieldName, final Reader reader) {
-            return new TokenStreamComponents(new LowerCaseTokenizer(matchVersion, reader));
+        protected TokenStreamComponents createComponents(final String fieldName) {
+            return new TokenStreamComponents(new LowerCaseTokenizer());
         }
     }
 

@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.tools;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -173,7 +172,7 @@ public class IndexComparator {
         builder.endObject();
         builder.key("luceneIndex").object();
         builder.key("jcrPath").value(dir.getJcrPath());
-        try (SimpleFSDirectory luceneDir = new SimpleFSDirectory(new File(directory, "data"))) {
+        try (SimpleFSDirectory luceneDir = new SimpleFSDirectory(new File(directory, "data").toPath())) {
             try (LuceneIndexReader luceneReader = new DefaultIndexReader(luceneDir, null, null)) {
                 IndexReader reader = luceneReader.getReader();
                 builder.key("numDocs").value(reader.numDocs());

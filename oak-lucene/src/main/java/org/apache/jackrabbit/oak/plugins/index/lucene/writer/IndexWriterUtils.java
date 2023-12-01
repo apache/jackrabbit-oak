@@ -70,7 +70,7 @@ public class IndexWriterUtils {
                 analyzers.put(FieldNames.SUGGEST, SuggestHelper.getAnalyzer());
             }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
-            IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
+            IndexWriterConfig config = new IndexWriterConfig(analyzer);
             if (remoteDir) {
                 config.setMergeScheduler(new SerialMergeScheduler());
             } else {

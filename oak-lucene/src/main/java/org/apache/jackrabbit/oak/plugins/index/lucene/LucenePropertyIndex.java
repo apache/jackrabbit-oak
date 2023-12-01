@@ -128,7 +128,6 @@ import org.apache.lucene.search.spell.SuggestWord;
 import org.apache.lucene.search.suggest.Lookup;
 import org.apache.lucene.search.suggest.analyzing.AnalyzingInfixSuggester;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -149,7 +148,6 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstant
 import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexLookupUtil.LUCENE_INDEX_DEFINITION_PREDICATE;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.DYNAMIC_BOOST_WEIGHT;
 import static org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition.NATIVE_SORT_ORDER;
-import static org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexConstants.VERSION;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newAncestorTerm;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPathTerm;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyValues.newName;
@@ -489,7 +487,7 @@ public class LucenePropertyIndex extends FulltextIndex {
                         SuggestWord[] suggestWords = SpellcheckHelper.getSpellcheck(spellcheckQuery);
 
                         // ACL filter spellchecks
-                        QueryParser qp = new QueryParser(Version.LATEST, aclCheckField, indexNode.getDefinition().getAnalyzer());
+                        QueryParser qp = new QueryParser(aclCheckField, indexNode.getDefinition().getAnalyzer());
                         for (SuggestWord suggestion : suggestWords) {
                             Query query = qp.createPhraseQuery(aclCheckField, QueryParserBase.escape(suggestion.string));
 
@@ -517,7 +515,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
                         List<Lookup.LookupResult> lookupResults = SuggestHelper.getSuggestions(indexNode.getLookup(), suggestQuery);
 
-                        QueryParser qp = new QueryParser(Version.LATEST, FieldNames.SUGGEST,
+                        QueryParser qp = new QueryParser(FieldNames.SUGGEST,
                                 indexNode.getDefinition().isSuggestAnalyzed() ? indexNode.getDefinition().getAnalyzer() :
                                 SuggestHelper.getAnalyzer());
 
@@ -896,7 +894,7 @@ public class LucenePropertyIndex extends FulltextIndex {
 
         if (pr != null) {
             String query = String.valueOf(pr.first.getValue(pr.first.getType()));
-            QueryParser queryParser = new QueryParser(VERSION, "", analyzer);
+            QueryParser queryParser = new QueryParser("", analyzer);
             if (query.startsWith("mlt?")) {
                 String mltQueryString = query.replace("mlt?", "");
                 if (reader != null) {

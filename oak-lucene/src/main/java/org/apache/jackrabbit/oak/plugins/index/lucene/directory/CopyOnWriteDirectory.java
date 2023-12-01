@@ -152,11 +152,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     }
 
     @Override
-    public boolean fileExists(String name) throws IOException {
-        return fileMap.containsKey(name);
-    }
-
-    @Override
     public void deleteFile(String name) throws IOException {
         log.trace("[COW][{}] Deleted file {}", indexPath, name);
         COWFileReference ref = fileMap.remove(name);
@@ -279,7 +274,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         long size = 0;
         for (String name : skippedFiles){
             try{
-                if (local.fileExists(name)){
+                if (Arrays.asList(local.listAll()).contains(name)){
                     size += local.fileLength(name);
                 }
             } catch (Exception ignore){
@@ -319,7 +314,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                 long perfStart = PERF_LOGGER.start();
                 long start = indexCopier.startCopy(file);
 
-                local.copy(remote, name, name, IOContext.DEFAULT);
+                remote.copyFrom(local, name, name, IOContext.DEFAULT);
 
                 indexCopier.doneCopy(file, start);
                 PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} -- size: {}",
@@ -430,7 +425,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         private boolean checkIfLocalValid() throws IOException {
-            boolean validLocalCopyPresent = local.fileExists(name);
+            boolean validLocalCopyPresent = Arrays.asList(local.listAll()).contains(name);
 
             if (validLocalCopyPresent) {
                 long localFileLength = local.fileLength(name);
@@ -490,12 +485,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             private final IndexOutput delegate;
 
             public CopyOnCloseIndexOutput(IndexOutput delegate) {
+                super("IndexOutput");
                 this.delegate = delegate;
-            }
-
-            @Override
-            public void flush() throws IOException {
-                delegate.flush();
             }
 
             @Override

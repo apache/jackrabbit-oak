@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import java.io.Reader;
-
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.core.LowerCaseFilter;
@@ -59,11 +57,10 @@ public class OakAnalyzer extends Analyzer {
     }
 
     @Override
-    protected TokenStreamComponents createComponents(final String fieldName,
-            final Reader reader) {
-        StandardTokenizer src = new StandardTokenizer(matchVersion, reader);
-        TokenStream tok = new LowerCaseFilter(matchVersion, src);
-        tok = new WordDelimiterFilter(matchVersion, tok,
+    protected TokenStreamComponents createComponents(final String fieldName) {
+        StandardTokenizer src = new StandardTokenizer();
+        TokenStream tok = new LowerCaseFilter(src);
+        tok = new WordDelimiterFilter(tok,
                 WordDelimiterFilter.GENERATE_WORD_PARTS
                         | WordDelimiterFilter.STEM_ENGLISH_POSSESSIVE
                         | preserveOriginal
