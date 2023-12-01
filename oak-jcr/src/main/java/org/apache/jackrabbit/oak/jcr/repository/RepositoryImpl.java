@@ -62,8 +62,8 @@ import org.apache.jackrabbit.oak.plugins.observation.CommitRateLimiter;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
-import org.apache.jackrabbit.oak.query.SessionQuerySettings;
-import org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettings;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider;
 import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.whiteboard.Registration;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -573,7 +573,7 @@ public class RepositoryImpl implements JackrabbitRepository {
     }
 
     /**
-     * This is a fallback implementation of {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider} that
+     * This is a fallback implementation of {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} that
      * unifies and replaces the previous handling of {@code fastQueryResultSize} and {@code oak.fastQuerySize} here
      * and in the {@link org.apache.jackrabbit.oak.jcr.session.SessionContext}.
      */

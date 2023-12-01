@@ -17,25 +17,21 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.query;
+package org.apache.jackrabbit.oak.spi.query;
 
-import org.apache.jackrabbit.oak.api.ContentSession;
-import org.jetbrains.annotations.NotNull;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
- * Provides {@link SessionQuerySettings} for principals with access to the content
- * repository.
+ * User-specific settings which may be passed by the query engine to index providers during query planning and iteration
+ * of results.
  */
 @ProviderType
-@FunctionalInterface
-public interface SessionQuerySettingsProvider {
+public interface SessionQuerySettings {
 
     /**
-     * Return the applicable {@link SessionQuerySettings} for the given session.
+     * Return true to use the index provider's query result count.
      *
-     * @param session the subject principal's content session
-     * @return the applicable query settings
+     * @return true to use the index provider's query result count
      */
-    SessionQuerySettings getQuerySettings(@NotNull ContentSession session);
+    boolean useDirectResultCount();
 }

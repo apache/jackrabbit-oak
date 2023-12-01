@@ -22,7 +22,7 @@ import org.apache.jackrabbit.api.JackrabbitRepository;
 import org.apache.jackrabbit.commons.jackrabbit.authorization.AccessControlUtils;
 import org.apache.jackrabbit.oak.jcr.Jcr;
 import org.apache.jackrabbit.oak.jcr.LuceneOakRepositoryStub;
-import org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider;
+import org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider;
 import org.apache.jackrabbit.oak.query.SessionQuerySettingsProviderService;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
@@ -51,7 +51,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * Performs the same queries as {@link ResultSizeTest#testResultSize()} and expects the same results, with the only
- * differences being the registration of a {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider} service
+ * differences being the registration of a {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} service
  * in the whiteboard, and the runtime reconfiguration of the service before each login, in place of the calls to
  * {@code System.setProperty("oak.fastQuerySize", true/false)}.
  */
@@ -61,7 +61,7 @@ public class WhiteboardResultSizeTest {
      * Non-static inner class extending RepositoryStub which is intended to be created directly by a test
      * and not by the TCK RepositoryHelper, purely so that it can mirror the behavior of
      * {@link org.apache.jackrabbit.oak.jcr.query.ResultSizeTest} with the only differences being the registration of
-     * a {@link org.apache.jackrabbit.oak.query.SessionQuerySettingsProvider} service in the whiteboard, and the
+     * a {@link org.apache.jackrabbit.oak.spi.query.SessionQuerySettingsProvider} service in the whiteboard, and the
      * runtime reconfiguration of the service before each login, in place of the calls to
      * {@code System.setProperty("oak.fastQuerySize", true/false)}.
      */
