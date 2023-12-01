@@ -820,9 +820,10 @@ public class ElasticRequestHandler {
             for(PropertyDefinition pd: pr.indexingRule.getNodeScopeAnalyzedProps()) {
                 qsqBuilder.fields(pd.name + "^" + pd.boost);
             }
-        }
-        if (dynamicBoosEnabled) {
-            qsqBuilder.fields(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT + "^" + DYNAMIC_BOOST_WEIGHT);
+            // dynamic boost is included only for fulltext field
+            if (dynamicBoosEnabled) {
+                qsqBuilder.fields(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT + "^" + DYNAMIC_BOOST_WEIGHT);
+            }
         }
         return qsqBuilder.fields(fieldName);
     }
