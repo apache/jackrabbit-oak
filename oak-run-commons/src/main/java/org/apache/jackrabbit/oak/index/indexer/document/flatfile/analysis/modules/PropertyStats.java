@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -37,6 +38,8 @@ public class PropertyStats implements StatsCollector {
     Storage storage;
     CountMinSketch propertyCountSketch = new CountMinSketch(63, 64);
     private final long seed = 42;
+    List<IndexedProperty> indexedProperties;
+    HashMap<String, ArrayList<IndexedProperty>> map;
 
     // we start collecting top k values once we have seen this many entries to save memory
     private final static long MIN_TOP_K = 5_000;
@@ -53,24 +56,43 @@ public class PropertyStats implements StatsCollector {
     public void setStorage(Storage storage) {
         this.storage = storage;
     }
+    
+    public void setIndexedProperties(HashMap<String, ArrayList<IndexedProperty>> map) {
+        this.map = map;
+    }
 
     @Override
     public void add(List<String> pathElements, List<Property> properties) {
+        // TODO also consider path (first n levels)
         for(Property p : properties) {
             String name = p.getName();
-            long count = storage.add(COUNT + name, 1L);
-            storage.add(VALUES + name, (long) p.getValues().length);
-            addValues(name, p);
-            removeRareEntries();
-            if (count >= MIN_TOP_K) {
-                TopKValues top = topEntries.get(name);
-                if (top == null) {
-                    top = new TopKValues(TOP_K);
-                    topEntries.put(name, top);
+            if (map != null) {
+                ArrayList<IndexedProperty> list = map.get(name);
+                if (list != null) {
+                    for(IndexedProperty ip : list) {
+                        if (ip.matches(name, pathElements)) {
+                            add(ip.toString(), p);
+                        }
+                    }
                 }
-                for (String v : p.getValues()) {
-                    top.add(v);
-                }
+            }
+            add(name, p);
+        }
+    }
+    
+    private void add(String name, Property p) {
+        long count = storage.add(COUNT + name, 1L);
+        storage.add(VALUES + name, (long) p.getValues().length);
+        addValues(name, p);
+        removeRareEntries();
+        if (count >= MIN_TOP_K) {
+            TopKValues top = topEntries.get(name);
+            if (top == null) {
+                top = new TopKValues(TOP_K);
+                topEntries.put(name, top);
+            }
+            for (String v : p.getValues()) {
+                top.add(v);
             }
         }
     }
@@ -140,7 +162,6 @@ public class PropertyStats implements StatsCollector {
         }
         buff.append(storage);
         return buff.toString();
-    }
-    
+    }    
 
 }

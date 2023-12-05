@@ -22,6 +22,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
 import java.nio.charset.StandardCharsets;
@@ -29,11 +30,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
+import javax.jcr.PropertyType;
+
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.IndexDefinitions;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.ListCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeCount;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PropertyStats;
 
@@ -41,16 +46,17 @@ import net.jpountz.lz4.LZ4FrameInputStream;
 
 public class Reader {
     public static void main(String... args) throws IOException {
-        String fileName = args[0];
-        long fileSize = new File(fileName).length();
-        LZ4FrameInputStream in = new LZ4FrameInputStream(new BufferedInputStream(new FileInputStream(fileName)));
-        LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-        long start = System.nanoTime();
-        
-        ArrayList<StatsCollector> collectors = new ArrayList<>();
-        
+        IndexDefinitions indexDefs = new IndexDefinitions();
+        if (args.length > 1) {
+            collect(args[1], indexDefs);
+        }  
+//        if(true) return;
+        ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000));
-        collectors.add(new PropertyStats());
+        PropertyStats ps = new PropertyStats();
+        ps.setIndexedProperties(indexDefs.getPropertyMap());
+        collectors.add(ps);
+//        collectors.add(new IndexDefinitions());
 //        collectors.add(new BinarySize(1));
 //        collectors.add(new BinarySize(100_000_000));
 //        collectors.add(new BinarySizeEmbedded(1));
@@ -64,10 +70,19 @@ public class Reader {
 //        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
 //        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
         
-        for(StatsCollector collector : collectors) {
-            collector.setStorage(new Storage());
+        collect(args[0], collectors);
+        collectors.print();
+
+    }
+    
+    private static void collect(String fileName, StatsCollector collector) throws IOException {
+        long fileSize = new File(fileName).length();
+        InputStream in = new BufferedInputStream(new FileInputStream(fileName));
+        if (fileName.endsWith(".lz4")) {
+            in = new LZ4FrameInputStream(in);
         }
-        
+        LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+        long start = System.nanoTime();
         int count = 0;
         while (true) {
             String line = reader.readLine();
@@ -90,25 +105,13 @@ public class Reader {
             PathUtils.elements(path).forEach(pathElements::add);
             String nodeData = line.substring(pipeIndex + 1);
             List<Property> properties = parse(nodeData);
-            
-            for(StatsCollector collector : collectors) {
-                collector.add(pathElements, properties);
-            }
-            
+            collector.add(pathElements, properties);
             count++;
             if (count > 1000000) {
                 break;
             }
         }
-        
-        for(StatsCollector collector : collectors) {
-            collector.end();
-        }
-
-        for(StatsCollector collector : collectors) {
-            System.out.println(collector.toString());
-        }
-
+        collector.end();
         System.out.println(count + " lines total");
         long time = System.nanoTime() - start;
         System.out.println((time / 1_000_000_000) + " seconds");
@@ -122,21 +125,57 @@ public class Reader {
         ArrayList<Property> properties = new ArrayList<>();
         JsonObject json = JsonObject.fromJson(nodeData, true);
         for(Entry<String, String> e : json.getProperties().entrySet()) {
+            String k = e.getKey();
             String v = e.getValue();
             Property p;
             if (v.startsWith("[")) {
-                p = fromJsonArray(e.getKey(), v);
+                p = fromJsonArray(k, v);
             } else if (v.startsWith("\"")) {
                 String v2 = JsopTokenizer.decodeQuoted(v);
-                p = new Property(e.getKey(), ValueType.STRING, v2);
+                if (v2.length() > 3) {
+                    if (v2.startsWith(":blobId:")) {
+                        p = new Property(k, ValueType.BINARY, v2);
+                    } else if (v2.charAt(3) == ':') {
+                        String v3 = v2.substring(4);
+                        if (v2.startsWith("str:")) {
+                            p = new Property(k, ValueType.STRING, v3);
+                        } else if (v2.startsWith("nam:")) {
+                            p = new Property(k, ValueType.NAME, v3);
+                        } else if (v2.startsWith("ref:")) {
+                            p = new Property(k, ValueType.REFERENCE, v3);
+                        } else if (v2.startsWith("dat:")) {
+                            p = new Property(k, ValueType.DATE, v3);
+                        } else if (v2.startsWith("dec:")) {
+                            p = new Property(k, ValueType.DECIMAL, v3);
+                        } else if (v2.startsWith("dou:")) {
+                            p = new Property(k, ValueType.DOUBLE, v3);
+                        } else if (v2.startsWith("wea:")) {
+                            p = new Property(k, ValueType.WEAKREFERENCE, v3);
+                        } else if (v2.startsWith("uri:")) {
+                            p = new Property(k, ValueType.URI, v3);
+                        } else if (v2.startsWith("pat:")) {
+                            p = new Property(k, ValueType.PATH, v3);
+                        } else if (v2.startsWith("[0]:")) {
+                            int type = PropertyType.valueFromName(v3);
+                            ValueType t = ValueType.byOrdinal(type);
+                            p = new Property(k, t, new String[0], true);
+                        } else {
+                            throw new IllegalArgumentException(v2);
+                        }
+                    } else {
+                        p = new Property(e.getKey(), ValueType.STRING, v2);
+                    }
+                } else {
+                    p = new Property(e.getKey(), ValueType.STRING, v2);
+                }
             } else if ("null".equals(v)) {
-                p = new Property(e.getKey(), ValueType.NULL, "");
+                p = new Property(k, ValueType.NULL, "");
             } else if ("true".equals(v)) {
-                p = new Property(e.getKey(), ValueType.BOOLEAN, v);
+                p = new Property(k, ValueType.BOOLEAN, v);
             } else if ("false".equals(v)) {
-                p = new Property(e.getKey(), ValueType.BOOLEAN, v);
+                p = new Property(k, ValueType.BOOLEAN, v);
             } else {
-                p = new Property(e.getKey(), ValueType.NUMBER, v);
+                p = new Property(k, ValueType.LONG, v);
             }
             properties.add(p);
         }
@@ -163,10 +202,10 @@ public class Reader {
                     result.add(v);
                     break;
                 case JsopTokenizer.NUMBER:
-                    if (type != null && type != ValueType.NUMBER) {
+                    if (type != null && type != ValueType.LONG) {
                         throw new IllegalArgumentException("Unsupported mixed type: " + json);
                     }
-                    type = ValueType.NUMBER;
+                    type = ValueType.LONG;
                     result.add(tokenizer.getToken());
                     break;
                 case JsopTokenizer.FALSE:

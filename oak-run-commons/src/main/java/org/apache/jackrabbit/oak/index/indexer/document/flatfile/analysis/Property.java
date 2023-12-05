@@ -39,10 +39,31 @@ public class Property {
     }
 
     public static enum ValueType {
-        STRING,
-        NUMBER,
-        BOOLEAN,
-        NULL
+        NULL(0),
+        STRING(1),
+        BINARY(2),
+        LONG(3),
+        DOUBLE(4),
+        DATE(5),
+        BOOLEAN(6),
+        NAME(7),
+        PATH(8),
+        REFERENCE(9),
+        WEAKREFERENCE(10),
+        URI(11),
+        DECIMAL(12);
+        
+        private static ValueType[] LIST = ValueType.values();
+        private final int ordinal;
+        private ValueType(int ordinal) {
+            this.ordinal = ordinal;
+        }
+        public int getOrdinal() {
+            return ordinal;
+        }
+        public static ValueType byOrdinal(int ordinal) {
+            return LIST[ordinal];
+        }
     }
 
     public ValueType getType() {

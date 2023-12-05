@@ -45,7 +45,7 @@ public class BinarySizeEmbedded implements StatsCollector {
     public void add(List<String> pathElements, List<Property> properties) {
         long size = 0;
         for(Property p : properties) {
-            if (p.getType() == ValueType.STRING) {
+            if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
                         continue;

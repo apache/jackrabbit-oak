@@ -49,7 +49,7 @@ public class TopLargestBinaries implements StatsCollector {
     public void add(List<String> pathElements, List<Property> properties) {
         ArrayList<Long> references = new ArrayList<>();
         for(Property p : properties) {
-            if (p.getType() == ValueType.STRING) {
+            if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
                         continue;

@@ -55,7 +55,7 @@ public class BinarySizeHistogram implements StatsCollector {
         ArrayList<Long> embedded = new ArrayList<>();
         ArrayList<Long> references = new ArrayList<>();
         for(Property p : properties) {
-            if (p.getType() == ValueType.STRING) {
+            if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
                         continue;
