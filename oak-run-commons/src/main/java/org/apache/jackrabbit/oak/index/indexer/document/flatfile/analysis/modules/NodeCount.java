@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
@@ -43,7 +43,8 @@ public class NodeCount implements StatsCollector {
         this.bitMask = (Integer.highestOneBit(resolution) * 2) - 1;
     }
 
-    public void add(List<String> pathElements, List<Property> properties) {
+    public void add(NodeData node) {
+        List<String> pathElements = node.pathElements;
         SipHash hash = new SipHash(seed);
         ArrayList<String> parents = new ArrayList<>();
         for(String pe : pathElements) {

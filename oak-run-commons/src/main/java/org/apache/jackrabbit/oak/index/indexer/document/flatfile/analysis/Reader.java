@@ -33,14 +33,22 @@ import java.util.Map.Entry;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.PropertyValue;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySize;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeEmbedded;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.IndexDefinitions;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.ListCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeCount;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypes;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PathFilter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PropertyStats;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.TopLargestBinaries;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 
@@ -50,27 +58,39 @@ public class Reader {
         if (args.length > 1) {
             collect(args[1], indexDefs);
         }  
-//        if(true) return;
+        NodeTypes nodeTypes = new NodeTypes();
+        if (args.length > 2) {
+            collect(args[2], nodeTypes);
+        }  
+        System.out.println(nodeTypes);
+        
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000));
         PropertyStats ps = new PropertyStats();
         ps.setIndexedProperties(indexDefs.getPropertyMap());
         collectors.add(ps);
-//        collectors.add(new IndexDefinitions());
-//        collectors.add(new BinarySize(1));
-//        collectors.add(new BinarySize(100_000_000));
-//        collectors.add(new BinarySizeEmbedded(1));
-//        collectors.add(new BinarySizeEmbedded(100_000));
-//        collectors.add(new BinarySizeHistogram(1));
-//        collectors.add(new TopLargestBinaries(10));
+        collectors.add(new IndexDefinitions());
+        collectors.add(new BinarySize(1));
+        collectors.add(new BinarySize(100_000_000));
+        collectors.add(new BinarySizeEmbedded(1));
+        collectors.add(new BinarySizeEmbedded(100_000));
+        collectors.add(new BinarySizeHistogram(1));
+        collectors.add(new TopLargestBinaries(10));
 //        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(1)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
+        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
 //        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(1)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
+        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
+        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
+        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
+        
+        Profiler prof = new Profiler().startCollecting();
         
         collect(args[0], collectors);
+        
+        System.out.println(prof.getTop(10));
+        
+        
+        
         collectors.print();
 
     }
@@ -84,6 +104,7 @@ public class Reader {
         LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
         long start = System.nanoTime();
         int count = 0;
+        NodeData last = null;
         while (true) {
             String line = reader.readLine();
             if (line == null) {
@@ -103,13 +124,33 @@ public class Reader {
             String path = line.substring(0, pipeIndex);
             List<String> pathElements = new ArrayList<>();
             PathUtils.elements(path).forEach(pathElements::add);
-            String nodeData = line.substring(pipeIndex + 1);
-            List<Property> properties = parse(nodeData);
-            collector.add(pathElements, properties);
-            count++;
-            if (count > 1000000) {
-                break;
+            String nodeJson = line.substring(pipeIndex + 1);
+            NodeData node = new NodeData();
+            node.pathElements = pathElements;
+            node.properties = parse(nodeJson);
+            if (last != null) {
+                while (last != null && last.pathElements.size() >= pathElements.size()) {
+                    // go up the chain of parent to find a possible common parent
+                    last = last.parent;
+                }
+                if (last != null && last.pathElements.size() == pathElements.size() - 1) {
+                    // now it's possible the parent - we assume that's the case
+                    node.parent = last;
+                    for (int i = 0; i < last.pathElements.size(); i++) {
+                        if (!last.pathElements.get(i).equals(pathElements.get(i))) {
+                            // nope
+                            node.parent = null;
+                            break;
+                        }
+                    }
+                }
             }
+            collector.add(node);
+            count++;
+//            if (count > 1000000) {
+//                break;
+//            }
+            last = node;
         }
         collector.end();
         System.out.println(count + " lines total");
@@ -130,52 +171,22 @@ public class Reader {
             Property p;
             if (v.startsWith("[")) {
                 p = fromJsonArray(k, v);
-            } else if (v.startsWith("\"")) {
-                String v2 = JsopTokenizer.decodeQuoted(v);
-                if (v2.length() > 3) {
-                    if (v2.startsWith(":blobId:")) {
-                        p = new Property(k, ValueType.BINARY, v2);
-                    } else if (v2.charAt(3) == ':') {
+            } else {
+                PropertyValue value = getValue(v);
+                if (value == null && v.startsWith("\"")) {
+                    // special case empty array
+                    String v2 = JsopTokenizer.decodeQuoted(v);
+                    if (v2.startsWith("[0]:")) {
                         String v3 = v2.substring(4);
-                        if (v2.startsWith("str:")) {
-                            p = new Property(k, ValueType.STRING, v3);
-                        } else if (v2.startsWith("nam:")) {
-                            p = new Property(k, ValueType.NAME, v3);
-                        } else if (v2.startsWith("ref:")) {
-                            p = new Property(k, ValueType.REFERENCE, v3);
-                        } else if (v2.startsWith("dat:")) {
-                            p = new Property(k, ValueType.DATE, v3);
-                        } else if (v2.startsWith("dec:")) {
-                            p = new Property(k, ValueType.DECIMAL, v3);
-                        } else if (v2.startsWith("dou:")) {
-                            p = new Property(k, ValueType.DOUBLE, v3);
-                        } else if (v2.startsWith("wea:")) {
-                            p = new Property(k, ValueType.WEAKREFERENCE, v3);
-                        } else if (v2.startsWith("uri:")) {
-                            p = new Property(k, ValueType.URI, v3);
-                        } else if (v2.startsWith("pat:")) {
-                            p = new Property(k, ValueType.PATH, v3);
-                        } else if (v2.startsWith("[0]:")) {
-                            int type = PropertyType.valueFromName(v3);
-                            ValueType t = ValueType.byOrdinal(type);
-                            p = new Property(k, t, new String[0], true);
-                        } else {
-                            throw new IllegalArgumentException(v2);
-                        }
+                        int type = PropertyType.valueFromName(v3);
+                        ValueType t = ValueType.byOrdinal(type);
+                        p = new Property(k, t, new String[0], true);
                     } else {
-                        p = new Property(e.getKey(), ValueType.STRING, v2);
+                        throw new IllegalArgumentException(v);
                     }
                 } else {
-                    p = new Property(e.getKey(), ValueType.STRING, v2);
+                    p = new Property(k, value.type, value.value);
                 }
-            } else if ("null".equals(v)) {
-                p = new Property(k, ValueType.NULL, "");
-            } else if ("true".equals(v)) {
-                p = new Property(k, ValueType.BOOLEAN, v);
-            } else if ("false".equals(v)) {
-                p = new Property(k, ValueType.BOOLEAN, v);
-            } else {
-                p = new Property(k, ValueType.LONG, v);
             }
             properties.add(p);
         }
@@ -185,6 +196,59 @@ public class Reader {
         return properties;
     }
     
+    /**
+     * Convert to a value if possible
+     * 
+     * @param v the string
+     * @return the property value, or null if the type is unknown (e.g. starts with "[0]:")
+     */
+    private static PropertyValue getValue(String v) {
+        if (v.startsWith("\"")) {
+            String v2 = JsopTokenizer.decodeQuoted(v);
+            if (v2.length() > 3) {
+                if (v2.startsWith(":blobId:")) {
+                    return new PropertyValue(ValueType.BINARY, v2);
+                } else if (v2.charAt(3) == ':') {
+                    String v3 = v2.substring(4);
+                    if (v2.startsWith("str:")) {
+                        return new PropertyValue(ValueType.STRING, v3);
+                    } else if (v2.startsWith("nam:")) {
+                        return new PropertyValue(ValueType.NAME, v3);
+                    } else if (v2.startsWith("ref:")) {
+                        return new PropertyValue(ValueType.REFERENCE, v3);
+                    } else if (v2.startsWith("dat:")) {
+                        return new PropertyValue(ValueType.DATE, v3);
+                    } else if (v2.startsWith("dec:")) {
+                        return new PropertyValue(ValueType.DECIMAL, v3);
+                    } else if (v2.startsWith("dou:")) {
+                        return new PropertyValue(ValueType.DOUBLE, v3);
+                    } else if (v2.startsWith("wea:")) {
+                        return new PropertyValue(ValueType.WEAKREFERENCE, v3);
+                    } else if (v2.startsWith("uri:")) {
+                        return new PropertyValue(ValueType.URI, v3);
+                    } else if (v2.startsWith("pat:")) {
+                        return new PropertyValue(ValueType.PATH, v3);
+                    } else {
+                        // could be "[0]:"
+                        return null;
+                    }
+                } else {
+                    return new PropertyValue(ValueType.STRING, v2);
+                }
+            } else {
+                return new PropertyValue(ValueType.STRING, v2);
+            }
+        } else if ("null".equals(v)) {
+            return new PropertyValue(ValueType.NULL, "");
+        } else if ("true".equals(v)) {
+            return new PropertyValue(ValueType.BOOLEAN, v);
+        } else if ("false".equals(v)) {
+            return new PropertyValue(ValueType.BOOLEAN, v);
+        } else {
+            return new PropertyValue(ValueType.LONG, v);
+        }
+    }
+    
     public static Property fromJsonArray(String key, String json) {
         ArrayList<String> result = new ArrayList<>();
         ValueType type = null;
@@ -192,33 +256,13 @@ public class Reader {
         tokenizer.read('[');
         if (!tokenizer.matches(']')) {
             do {
-                switch (tokenizer.read()) {
-                case JsopTokenizer.STRING:
-                    if (type != null && type != ValueType.STRING) {
-                        throw new IllegalArgumentException("Unsupported mixed type: " + json);
-                    }
-                    type = ValueType.STRING;
-                    String v = tokenizer.getToken();
-                    result.add(v);
-                    break;
-                case JsopTokenizer.NUMBER:
-                    if (type != null && type != ValueType.LONG) {
-                        throw new IllegalArgumentException("Unsupported mixed type: " + json);
-                    }
-                    type = ValueType.LONG;
-                    result.add(tokenizer.getToken());
-                    break;
-                case JsopTokenizer.FALSE:
-                case JsopTokenizer.TRUE:
-                    if (type != null && type != ValueType.BOOLEAN) {
-                        throw new IllegalArgumentException("Unsupported mixed type: " + json);
-                    }
-                    type = ValueType.BOOLEAN;
-                    result.add(tokenizer.getToken());
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported type: " + json);
-                }                    
+                String r = tokenizer.readRawValue();
+                PropertyValue v = getValue(r);
+                if (type != null && v.type != type) {
+                    throw new IllegalArgumentException("Unsupported mixed type: " + json);
+                }
+                result.add(v.value);
+                type = v.type;
             } while (tokenizer.matches(','));
             tokenizer.read(']');
         }

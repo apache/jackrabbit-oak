@@ -25,32 +25,37 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
 public class PropertyStats implements StatsCollector {
     
-    private static final String COUNT = "count ";
-    private static final String VALUES = "values ";
-    private static final String DISTINCT = "distinct ";
-    
     Storage storage;
-    CountMinSketch propertyCountSketch = new CountMinSketch(63, 64);
     private final long seed = 42;
     List<IndexedProperty> indexedProperties;
     HashMap<String, ArrayList<IndexedProperty>> map;
+    
+    private final static int SKIP = 5;
 
-    // we start collecting top k values once we have seen this many entries to save memory
-    private final static long MIN_TOP_K = 5_000;
+    // we start collecting distinct values data once we have seen this many entries
+    // (to speed up processing)
+    private final static long MIN_PROPERTY_COUNT = 1000;
 
-    private final static int TOP_K = 10;
+    // we start collecting top k values once we have seen this many entries
+    // (to save memory and speed up processing)
+    private final static long MIN_TOP_K = 10_000;
+
+    private final static int TOP_K = 8;
 
     // we only consider the most common properties
     // to protect against millions of unique properties
     private final static long MAX_SIZE = 100_000;
     
-    private final TreeMap<String, TopKValues> topEntries = new TreeMap<>();
+    private final TreeMap<String, Stats> statsMap = new TreeMap<>();
+    
+    private int skip;
 
     @Override
     public void setStorage(Storage storage) {
@@ -62,15 +67,21 @@ public class PropertyStats implements StatsCollector {
     }
 
     @Override
-    public void add(List<String> pathElements, List<Property> properties) {
-        // TODO also consider path (first n levels)
+    public void add(NodeData node) {
+        if (skip > 0) {
+            skip--;
+            return;
+        }
+        skip = SKIP;
+        List<Property> properties = node.properties;
+        // TODO maybe also consider path (first n levels)
         for(Property p : properties) {
             String name = p.getName();
             if (map != null) {
                 ArrayList<IndexedProperty> list = map.get(name);
                 if (list != null) {
                     for(IndexedProperty ip : list) {
-                        if (ip.matches(name, pathElements)) {
+                        if (ip.matches(name, node)) {
                             add(ip.toString(), p);
                         }
                     }
@@ -81,55 +92,45 @@ public class PropertyStats implements StatsCollector {
     }
     
     private void add(String name, Property p) {
-        long count = storage.add(COUNT + name, 1L);
-        storage.add(VALUES + name, (long) p.getValues().length);
-        addValues(name, p);
-        removeRareEntries();
-        if (count >= MIN_TOP_K) {
-            TopKValues top = topEntries.get(name);
+        Stats stats = statsMap.computeIfAbsent(name, e -> new Stats(name));
+        stats.count++;
+        stats.values += p.getValues().length;
+        if (stats.count > MIN_PROPERTY_COUNT) {
+            for (String v : p.getValues()) {
+                long hash = Hash.hash64(v.hashCode(), seed);
+                stats.hll = HyperLogLog3Linear64.add(stats.hll, hash);
+            }
+        }
+        if (stats.count >= MIN_TOP_K) {
+            TopKValues top = stats.topValues;
             if (top == null) {
                 top = new TopKValues(TOP_K);
-                topEntries.put(name, top);
+                stats.topValues = top;
             }
             for (String v : p.getValues()) {
                 top.add(v);
             }
         }
-    }
-
-    private void addValues(String name, Property p) {
-        Long old = storage.get(DISTINCT + name);
-        long hll = old == null ? 0 : old;
-        for (String v : p.getValues()) {
-            long hash = Hash.hash64(v.hashCode(), seed);
-            hll = HyperLogLog3Linear64.add(hll, hash);
-        }
-        storage.put(DISTINCT + name, hll);
+        removeRareEntries();
     }
 
     /**
      * Remove entries with a low count if there are too many entries.
      */
     private void removeRareEntries() {
-        if (storage.size() < MAX_SIZE * 2) {
+        if (statsMap.size() < MAX_SIZE * 2) {
             return;
         }
-        ArrayList<Entry<String, Long>> list = new ArrayList<>(storage.entrySet());
+        ArrayList<Entry<String, Stats>> list = new ArrayList<>(statsMap.entrySet());
         ArrayList<Long> counts = new ArrayList<>(list.size());
-        for (int i = 0; i < list.size(); i++) {
-            String n = list.get(i).getKey();
-            if (n.startsWith(COUNT)) {
-                counts.add(list.get(i).getValue());
-            }
+        for (Entry<String, Stats> e : list) {
+            counts.add(e.getValue().count);
         }
         Collections.sort(counts);
         long mean = counts.get((int) MAX_SIZE);
-        for (int i = 0; i < list.size(); i++) {
-            Entry<String, Long> e = list.get(i);
-            if (e.getValue() <= mean) {
-                storage.remove(COUNT + e.getKey());
-                storage.remove(VALUES + e.getKey());
-                storage.remove(DISTINCT + e.getKey());
+        for (Entry<String, Stats> e : list) {
+            if (e.getValue().count <= mean) {
+                statsMap.remove(e.getKey());
             }
         }
     }
@@ -140,28 +141,35 @@ public class PropertyStats implements StatsCollector {
     
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        buff.append("PropertyCount\n");
-        for(Entry<String, Long> e : storage.entrySet()) {
-            String key = e.getKey();
-            if (key.startsWith(COUNT) && e.getValue() > 100) {
-                String propertyName = key.substring(COUNT.length());
-                long count = e.getValue();
-                long values = storage.get(VALUES + propertyName);
-                long hll = storage.get(DISTINCT + propertyName);
-                buff.append(propertyName).append(": {count:").append(count);
-                if (values != count) {
-                    buff.append(", values:").append(values);
-                }
-                buff.append(", distinct:").append(HyperLogLog3Linear64.estimate(hll));
-                TopKValues top = topEntries.get(propertyName);
-                if (top != null) {
-                    buff.append(", top:").append(top.toString());
-                }
-                buff.append("}\n");
+        buff.append("PropertyStats\n");
+        for(Stats stats : statsMap.values()) {
+            if (stats.count < MIN_PROPERTY_COUNT) {
+                continue;
             }
+            buff.append(stats.name).append(": {count:").append(stats.count);
+            if (stats.count != stats.values) {
+                buff.append(", values:").append(stats.values);
+            }
+            buff.append(", distinct:").append(HyperLogLog3Linear64.estimate(stats.hll));
+            TopKValues top = stats.topValues;
+            if (top != null) {
+                buff.append(", top:").append(top.toString());
+            }
+            buff.append("}\n");
         }
         buff.append(storage);
         return buff.toString();
-    }    
+    }
+    
+    static class Stats {
+        public Stats(String name) {
+            this.name = name;
+        }
+        String name;
+        long count;
+        long values;
+        long hll;
+        TopKValues topValues;
+    }
 
 }

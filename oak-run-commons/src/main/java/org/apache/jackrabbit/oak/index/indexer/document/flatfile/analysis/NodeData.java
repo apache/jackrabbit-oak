@@ -18,12 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
 
-public interface StatsCollector {
-    
-    void setStorage(Storage storage);
+import java.util.List;
 
-    void add(NodeData node);
+public class NodeData {
+    public List<String> pathElements;
+    public List<Property> properties;
+    public NodeData parent;
     
-    void end();
-    
+    public String toString() {
+        return "/" + String.join("/", pathElements);
+    }
 }

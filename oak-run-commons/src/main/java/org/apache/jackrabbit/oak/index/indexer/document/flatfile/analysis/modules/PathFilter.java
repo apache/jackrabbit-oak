@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 
 import java.util.List;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
@@ -40,10 +40,11 @@ public class PathFilter implements StatsCollector {
     }
 
     @Override
-    public void add(List<String> pathElements, List<Property> properties) {
+    public void add(NodeData node) {
+        List<String> pathElements = node.pathElements;
         for(String pe : pathElements) {
             if (pe.equals(path)) {
-                base.add(pathElements, properties);
+                base.add(node);
                 break;
             }
         }

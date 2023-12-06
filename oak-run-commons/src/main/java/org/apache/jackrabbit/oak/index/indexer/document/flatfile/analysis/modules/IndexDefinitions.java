@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
@@ -37,7 +38,9 @@ public class IndexDefinitions implements StatsCollector {
     }
 
     @Override
-    public void add(List<String> pathElements, List<Property> properties) {
+    public void add(NodeData node) {
+        List<Property> properties = node.properties;
+        List<String> pathElements = node.pathElements;
         if (pathElements.size() < 6 || !pathElements.get(0).equals("oak:index")) {
             return;
         }
@@ -45,9 +48,9 @@ public class IndexDefinitions implements StatsCollector {
             return;
         }
         String nodeType = pathElements.get(3);
-        Property property = getProperty(properties, "name");
-        Property function = getProperty(properties, "function");
-        Property isRegexp = getProperty(properties, "isRegexp");
+        Property property = Property.getProperty(properties, "name");
+        Property function = Property.getProperty(properties, "function");
+        Property isRegexp = Property.getProperty(properties, "isRegexp");
         if (isRegexp != null && isRegexp.getValues()[0].toString().equals("true")) {
             // ignore regex properties
             return;
@@ -74,15 +77,6 @@ public class IndexDefinitions implements StatsCollector {
         }
     }
     
-    Property getProperty(List<Property> list, String name) {
-        for(Property p : list) {
-            if (p.getName().equals(name)) {
-                return p;
-            }
-        }
-        return null;
-    }
-
     @Override
     public void end() {
     }

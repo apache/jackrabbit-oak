@@ -18,44 +18,39 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
-import java.util.ArrayList;
-
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
-public class ListCollector implements StatsCollector {
+public class TimeMeasureCollector implements StatsCollector {
 
-    private final ArrayList<StatsCollector> collectors = new ArrayList<>();
+    StatsCollector base;
+    long nanos;
     
-    public void add(StatsCollector collector) {
-        collector.setStorage(new Storage());
-        collectors.add(new TimeMeasureCollector(collector));
+    public TimeMeasureCollector(StatsCollector base) {
+        this.base = base;
     }
-    
+
     @Override
     public void setStorage(Storage storage) {
-        // ignore
+        base.setStorage(storage);
     }
 
     @Override
     public void add(NodeData node) {
-        for(StatsCollector collector : collectors) {
-            collector.add(node);
-        }        
+        long start = System.nanoTime();
+        base.add(node);
+        nanos += System.nanoTime() - start;
     }
 
     @Override
     public void end() {
-        for(StatsCollector collector : collectors) {
-            collector.end();
-        }
+        base.end();
     }
     
-    public void print() {
-        for(StatsCollector collector : collectors) {
-            System.out.println(collector.toString());
-        }        
+    public String toString() {
+        return base.toString() + "time: " + nanos / 1_000_000_000 + " seconds\n";
     }
+    
 
 }

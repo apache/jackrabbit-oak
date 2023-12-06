@@ -23,28 +23,57 @@ import java.util.HashMap;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
-/**
- * Contains and implements the logic to maintain the top-K values of a property.
- * Internally, it uses a priority queue that is updated each time a value is
- * added or modified. In fact, whenever an existing value is updated, we check
- * if it should be added to the priority queue.
- */
 public class TopKValues {
+    
+    // we shorten values longer than this size
+    // to save memory
+    private final int MAX_VALUE_LENGTH = 100;
+    
+    // after counting an entry, we skip this many,
+    // to speed up processing
+    private final int SKIP = 10;
 
     private final int k;
-    private final CountMinSketch sketch = new CountMinSketch(31, 32);
+    private final CountMinSketch sketch = new CountMinSketch(5, 16);
     private final ArrayList<TopEntry> list = new ArrayList<>();
     private final HashMap<String, TopEntry> map = new HashMap<>();
+    private long min;
+    private long notSkewedCount;
+    private long skipRemaining;
+    private long skippedCount;
+    private long countedCount;
 
     TopKValues(int k) {
         this.k = k;
     }
+    
+    boolean isNotSkewed() {
+        if (list.size() < k) {
+            return false;
+        }
+        TopEntry first = list.get(0);
+        TopEntry last = list.get(list.size() - 1);
+        return last.count * 2 > first.count;
+    }
 
     void add(String value) {
+        if (skipRemaining > 0) {
+            skippedCount++;
+            skipRemaining--;
+            return;
+        }
+        countedCount++;
+        if (countedCount > 1000) {
+            skipRemaining = SKIP;
+        }
         long hash = Hash.hash64(value.hashCode());
-        value = shortenIfNeeded(value);
-        sketch.add(hash);
-        long est = sketch.estimate(hash);
+        long est = sketch.addAndEstimate(hash);
+        if (est < min) {
+            return;
+        }
+        if (value.length() > MAX_VALUE_LENGTH) {
+            value = value.substring(0, MAX_VALUE_LENGTH) + "..." + value.hashCode();
+        }
         TopEntry existing = map.get(value);
         if (existing != null) {
             existing.count = est;
@@ -63,6 +92,11 @@ public class TopKValues {
             TopEntry smallest = list.remove(list.size() - 1);
             map.remove(smallest.value);
         }
+        min = list.get(list.size() - 1).count;
+        if (isNotSkewed()) {
+            notSkewedCount++;
+            skipRemaining = SKIP + Math.min(10000, notSkewedCount * notSkewedCount);
+        }
     }
     
     void bumpIfNeeded(int index) {
@@ -80,16 +114,14 @@ public class TopKValues {
         }
     }
 
-    static String shortenIfNeeded(String value) {
-        if (value.length() > 100) {
-            value = value.substring(0, 100) + "...";
-        }
-        return value;
-    }
-
     public String toString() {
         JsopBuilder builder = new JsopBuilder();
         builder.object();
+        if (notSkewedCount > 0) {
+            builder.key("notSkewed").value(notSkewedCount);
+        }
+        builder.key("skipped").value(skippedCount);
+        builder.key("counted").value(countedCount);
         for (int i = 0; i < list.size(); i++) {
             TopEntry x = list.get(i);
             builder.key(x.value).value(x.count);

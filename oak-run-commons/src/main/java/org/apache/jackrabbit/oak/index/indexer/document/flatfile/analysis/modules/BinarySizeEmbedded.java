@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
@@ -42,7 +43,9 @@ public class BinarySizeEmbedded implements StatsCollector {
         this.storage = storage;
     }
 
-    public void add(List<String> pathElements, List<Property> properties) {
+    public void add(NodeData node) {
+        List<Property> properties = node.properties;
+        List<String> pathElements = node.pathElements;
         long size = 0;
         for(Property p : properties) {
             if (p.getType() == ValueType.BINARY) {

@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
 
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
@@ -46,7 +47,9 @@ public class TopLargestBinaries implements StatsCollector {
     }
 
     @Override
-    public void add(List<String> pathElements, List<Property> properties) {
+    public void add(NodeData node) {
+        List<Property> properties = node.properties;
+        List<String> pathElements = node.pathElements;
         ArrayList<Long> references = new ArrayList<>();
         for(Property p : properties) {
             if (p.getType() == ValueType.BINARY) {

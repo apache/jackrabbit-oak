@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
+
 public class IndexedProperty {
     private final String name;
     private final ArrayList<String> parents;
@@ -45,10 +47,11 @@ public class IndexedProperty {
         return nodeType + ":" + String.join("/", parents) + " " + name;
     }
 
-    public boolean matches(String name, List<String> pathElements) {
+    public boolean matches(String name, NodeData node) {
         if (!name.equals(this.name)) {
             return false;
         }
+        List<String> pathElements = node.pathElements;
         if (pathElements.size() < parents.size()) {
             return false;
         }

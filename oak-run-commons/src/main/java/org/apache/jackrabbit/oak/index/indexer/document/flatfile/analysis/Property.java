@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
 
 import java.util.Arrays;
+import java.util.List;
 
 public class Property {
 
@@ -81,5 +82,24 @@ public class Property {
     public String getName() {
         return name;
     }
-
+    
+    public static Property getProperty(List<Property> list, String name) {
+        for(Property p : list) {
+            if (p.getName().equals(name)) {
+                return p;
+            }
+        }
+        return null;
+    }
+    
+    public static class PropertyValue {
+        final ValueType type;
+        final String value;
+        
+        PropertyValue(ValueType type, String value) {
+            this.type = type;
+            this.value = value;
+        }
+    }
+    
 }
