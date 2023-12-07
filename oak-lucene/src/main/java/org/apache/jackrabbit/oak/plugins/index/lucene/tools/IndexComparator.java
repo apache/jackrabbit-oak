@@ -185,7 +185,7 @@ public class IndexComparator {
                         builder.key(f).object();
                         builder.key("docCount").value(reader.getDocCount(f));
                         Terms terms = MultiFields.getTerms(reader, f);
-                        TermsEnum iterator = terms.iterator(null);
+                        TermsEnum iterator = terms.iterator();
                         BytesRef byteRef;
                         Function<BytesRef, String> handler = BytesRef::utf8ToString;
                         int termCount = 0;

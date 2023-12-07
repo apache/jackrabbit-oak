@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
+import java.util.List;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -414,16 +415,16 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
         assertQuery(
                 "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar')",
-                of("/test/a", "/test/d"));
+                List.of("/test/a", "/test/d"));
         assertQuery(
                 "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar')",
-                of("/test/b", "/test/c"));
+                List.of("/test/b", "/test/c"));
         assertQuery(
                 "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar cat')",
-                of("/test/d"));
+                List.of("/test/d"));
         assertQuery(
                 "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar cat')",
-                of("/test/c"));
+                List.of("/test/c"));
 
         setTraversalEnabled(true);
     }

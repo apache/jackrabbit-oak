@@ -120,6 +120,8 @@ public class LuceneIndexNodeManager {
             if (refreshLock.tryAcquire()) {
                 try {
                     refreshReaders();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
                 } finally {
                     refreshLock.release();
                 }
@@ -216,7 +218,7 @@ public class LuceneIndexNodeManager {
         refreshPolicy.refreshOnWriteIfRequired(refreshCallback);
     }
 
-    private void refreshReaders(){
+    private void refreshReaders() throws IOException {
         long start = PERF_LOGGER.start();
         List<LuceneIndexReader> newNRTReaders = getNRTReaders();
         //The list reference would differ if index got updated
@@ -234,7 +236,7 @@ public class LuceneIndexNodeManager {
         return readers.get(0);
     }
 
-    private IndexReader createReader(List<LuceneIndexReader> nrtReaders) {
+    private IndexReader createReader(List<LuceneIndexReader> nrtReaders) throws IOException {
         //Increment count by 1. MultiReader does it for all readers
         //So no need for an explicit increment for MultiReader
 
@@ -261,7 +263,7 @@ public class LuceneIndexNodeManager {
         return nrtIndex != null ? nrtIndex.getReaders() : Collections.<LuceneIndexReader>emptyList();
     }
 
-    private SearcherHolder createHolder(List<LuceneIndexReader> newNRTReaders) {
+    private SearcherHolder createHolder(List<LuceneIndexReader> newNRTReaders) throws IOException {
         return new SearcherHolder(new IndexSearcher(createReader(newNRTReaders)), newNRTReaders);
     }
 

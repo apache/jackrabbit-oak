@@ -55,6 +55,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,7 +217,8 @@ public class IndexConsistencyChecker {
      *                    then the files would be removed otherwise whatever files have been copied
      *                    would be left as is
      */
-    public IndexConsistencyChecker(NodeState rootState, String indexPath, File workDirRoot) {
+    public IndexConsistencyChecker(@NotNull NodeState rootState, @NotNull String indexPath,
+        @NotNull File workDirRoot) {
         this.rootState = checkNotNull(rootState);
         this.indexPath = checkNotNull(indexPath);
         this.workDirRoot = checkNotNull(workDirRoot);

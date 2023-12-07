@@ -29,6 +29,7 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RAMDirectory;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.fileExists;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -103,9 +104,5 @@ public class IndexSanityCheckerTest {
         byte[] data = new byte[size];
         rnd.nextBytes(data);
         return data;
-    }
-
-    private boolean fileExists(Directory dir, String name) throws IOException {
-        return Arrays.asList(dir.listAll()).contains(name);
     }
 }

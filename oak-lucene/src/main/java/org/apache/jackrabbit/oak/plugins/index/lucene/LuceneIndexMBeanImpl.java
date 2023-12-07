@@ -497,7 +497,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         if (terms == null) {
             return result;
         }
-        TermsEnum iterator = terms.iterator(null);
+        TermsEnum iterator = terms.iterator();
         BytesRef byteRef = null;
         class Entry implements Comparable<Entry> {
             String term;

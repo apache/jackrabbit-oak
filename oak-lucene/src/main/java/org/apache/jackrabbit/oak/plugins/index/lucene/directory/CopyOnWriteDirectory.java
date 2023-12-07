@@ -19,8 +19,8 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.fileExists;
 
 public class CopyOnWriteDirectory extends FilterDirectory {
     private static final Logger log = LoggerFactory.getLogger(CopyOnWriteDirectory.class);
@@ -61,12 +62,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     /**
      * Signal for the background thread to stop processing changes.
      */
-    private final Callable<Void> STOP = new Callable<Void>() {
-        @Override
-        public Void call() throws Exception {
-            return null;
-        }
-    };
+    private final Callable<Void> STOP = () -> null;
     private final Directory remote;
     private final Directory local;
     private final Executor executor;
@@ -74,8 +70,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     private final Set<String> deletedFilesLocal = Sets.newConcurrentHashSet();
     private final Set<String> skippedFiles = Sets.newConcurrentHashSet();
 
-    private final BlockingQueue<Callable<Void>> queue = new LinkedBlockingQueue<Callable<Void>>();
-    private final AtomicReference<Throwable> errorInCopy = new AtomicReference<Throwable>();
+    private final BlockingQueue<Callable<Void>> queue = new LinkedBlockingQueue<>();
+    private final AtomicReference<Throwable> errorInCopy = new AtomicReference<>();
     private final CountDownLatch copyDone = new CountDownLatch(1);
     private final boolean reindexMode;
     private final String indexPath;
@@ -91,7 +87,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
      * on the background thread.
      */
     private final Runnable completionHandler = new Runnable() {
-        Callable<Void> task = new Callable<Void>() {
+        Callable<Void> task = new Callable<>() {
             @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
             @Override
             public Void call() throws Exception {
@@ -99,8 +95,9 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                     Callable<Void> task = queue.poll();
                     if (task != null && task != STOP) {
                         if (errorInCopy.get() != null) {
-                            log.trace("[COW][{}] Skipping task {} as some exception occurred in previous run",
-                                    indexPath, task);
+                            log.trace(
+                                "[COW][{}] Skipping task {} as some exception occurred in previous run",
+                                indexPath, task);
                         } else {
                             task.call();
                         }
@@ -108,12 +105,13 @@ public class CopyOnWriteDirectory extends FilterDirectory {
                     }
 
                     //Signal that all tasks completed
-                    if (task == STOP){
+                    if (task == STOP) {
                         copyDone.countDown();
                     }
                 } catch (Throwable t) {
                     errorInCopy.set(t);
-                    log.debug("[COW][{}] Error occurred while copying files. Further processing would " +
+                    log.debug(
+                        "[COW][{}] Error occurred while copying files. Further processing would " +
                             "be skipped", indexPath, t);
                     currentTask.onComplete(completionHandler);
                 }
@@ -134,8 +132,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     };
 
     public CopyOnWriteDirectory(IndexCopier indexCopier, Directory remote, Directory local, boolean reindexMode,
-                                String indexPath, Executor executor) throws
-            IOException {
+                                String indexPath, Executor executor) throws IOException {
         super(local);
         this.indexCopier = indexCopier;
         this.remote = remote;
@@ -161,10 +158,20 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     }
 
     @Override
+    public void renameFile(String source, String dest) throws IOException {
+        COWFileReference ref = fileMap.remove(source);
+        COWFileReference renamed = ref.renameFile(dest);
+        fileMap.put(dest, renamed);
+        if (isLocalOnly(source)) {
+            addCopyTask(dest);
+        }
+    }
+
+    @Override
     public long fileLength(String name) throws IOException {
         COWFileReference ref = fileMap.get(name);
         if (ref == null) {
-            throw new FileNotFoundException(name);
+            throw new NoSuchFileException(name);
         }
         return ref.fileLength();
     }
@@ -194,7 +201,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     public IndexInput openInput(String name, IOContext context) throws IOException {
         COWFileReference ref = fileMap.get(name);
         if (ref == null) {
-            throw new FileNotFoundException(name);
+            throw new NoSuchFileException(name);
         }
         return ref.openInput(context);
     }
@@ -261,7 +268,6 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         local.close();
         remote.close();
-
         closed = true;
     }
 
@@ -274,7 +280,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         long size = 0;
         for (String name : skippedFiles){
             try{
-                if (Arrays.asList(local.listAll()).contains(name)){
+                if (fileExists(local, name)){
                     size += local.fileLength(name);
                 }
             } catch (Exception ignore){
@@ -299,12 +305,16 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     }
 
     private void addCopyTask(final String name){
+        if (isLocalOnly(name)) {
+            return;
+        }
+
         indexCopier.scheduledForCopy();
-        addTask(new Callable<Void>() {
+        addTask(new Callable<>() {
             @Override
             public Void call() throws Exception {
                 indexCopier.copyDone();
-                if (deletedFilesLocal.contains(name)){
+                if (deletedFilesLocal.contains(name)) {
                     skippedFiles.add(name);
                     log.trace("[COW][{}] Skip copying of deleted file {}", indexPath, name);
                     return null;
@@ -318,7 +328,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
                 indexCopier.doneCopy(file, start);
                 PERF_LOGGER.end(perfStart, 0, "[COW][{}] Copied to remote {} -- size: {}",
-                        indexPath, name, IOUtils.humanReadableByteCount(fileSize));
+                    indexPath, name, IOUtils.humanReadableByteCount(fileSize));
                 return null;
             }
 
@@ -330,7 +340,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
     }
 
     private void addDeleteTask(final String name){
-        addTask(new Callable<Void>() {
+        addTask(new Callable<>() {
             @Override
             public Void call() throws Exception {
                 if (!skippedFiles.contains(name)) {
@@ -366,6 +376,10 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
     }
 
+    private boolean isLocalOnly(String name) {
+        return name.startsWith("pending_segments");
+    }
+
     private abstract class COWFileReference {
         protected final String name;
 
@@ -381,6 +395,8 @@ public class CopyOnWriteDirectory extends FilterDirectory {
 
         public abstract void delete() throws IOException;
 
+        public abstract COWFileReference renameFile(String destination) throws IOException;
+
         public void sync() throws IOException {
 
         }
@@ -395,7 +411,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         @Override
-        public long fileLength() throws IOException {
+        public long fileLength() {
             return length;
         }
 
@@ -410,12 +426,12 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         @Override
-        public IndexOutput createOutput(IOContext context) throws IOException {
+        public IndexOutput createOutput(IOContext context) {
             throw new UnsupportedOperationException("Cannot create output for existing remote file " + name);
         }
 
         @Override
-        public void delete() throws IOException {
+        public void delete() {
             //Remote file should not be deleted locally as it might be
             //in use by existing opened IndexSearcher. It would anyway
             //get deleted by CopyOnRead later
@@ -424,8 +440,14 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             addDeleteTask(name);
         }
 
+        @Override
+        public COWFileReference renameFile(String destination) throws IOException {
+            remote.renameFile(this.name, destination);
+            return new COWRemoteFileReference(destination);
+        }
+
         private boolean checkIfLocalValid() throws IOException {
-            boolean validLocalCopyPresent = Arrays.asList(local.listAll()).contains(name);
+            boolean validLocalCopyPresent = fileExists(local, name);
 
             if (validLocalCopyPresent) {
                 long localFileLength = local.fileLength(name);
@@ -472,6 +494,12 @@ public class CopyOnWriteDirectory extends FilterDirectory {
         }
 
         @Override
+        public COWFileReference renameFile(String destination) throws IOException {
+            local.renameFile(this.name, destination);
+            return new COWLocalFileReference(destination);
+        }
+
+        @Override
         public void sync() throws IOException {
             local.sync(Collections.singleton(name));
         }
@@ -485,7 +513,7 @@ public class CopyOnWriteDirectory extends FilterDirectory {
             private final IndexOutput delegate;
 
             public CopyOnCloseIndexOutput(IndexOutput delegate) {
-                super("IndexOutput");
+                super(delegate.toString());
                 this.delegate = delegate;
             }
 

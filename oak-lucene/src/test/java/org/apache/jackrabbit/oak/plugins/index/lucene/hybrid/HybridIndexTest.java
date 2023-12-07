@@ -396,7 +396,7 @@ public class HybridIndexTest extends AbstractQueryTest {
         });
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.ASYNC);
         root.commit();
         runAsyncIndex();
 

@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 import java.io.IOException;
 import java.util.zip.CRC32;
 
+import java.util.zip.Checksum;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.IndexOutput;
@@ -28,14 +29,14 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakIndexF
 final class OakIndexOutput extends IndexOutput {
     private final String dirDetails;
     final OakIndexFile file;
-    private final CRC32 crc32;
+    private final Checksum digest;
 
     public OakIndexOutput(String name, NodeBuilder file, String dirDetails,
                           BlobFactory blobFactory, boolean streamingWriteEnabled) {
         super("OakIndexOutput(" + name + ")");
         this.dirDetails = dirDetails;
         this.file = getOakIndexFile(name, file, dirDetails, blobFactory, streamingWriteEnabled);
-        this.crc32 = new CRC32();
+        this.digest = new CRC32();
     }
 
     @Override
@@ -45,15 +46,15 @@ final class OakIndexOutput extends IndexOutput {
 
     @Override
     public long getChecksum() {
-        return crc32.getValue();
+        return digest.getValue();
     }
 
     @Override
     public void writeBytes(byte[] b, int offset, int length)
             throws IOException {
         try {
+            digest.update(b, offset, length);
             file.writeBytes(b, offset, length);
-            crc32.update(b, offset, length);
         } catch (IOException e) {
             throw wrapWithDetails(e);
         }
@@ -76,7 +77,11 @@ final class OakIndexOutput extends IndexOutput {
 
     @Override
     public void close() throws IOException {
-        file.close();
+        try {
+            file.close();
+        } catch (IOException e) {
+            throw wrapWithDetails(e);
+        }
     }
 
     private IOException wrapWithDetails(IOException e) {

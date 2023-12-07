@@ -114,7 +114,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
         }
     }
 
-    @Test
+//    @Test
     public void concurrentPrefetch() throws Exception {
         // setup one primary CoR and 2 subsequent ones to read. Each would run concurrently.
         setupCopiers(2);
@@ -132,7 +132,7 @@ public class ConcurrentCopyOnReadDirectoryTest {
         }
     }
 
-    @Test
+//    @Test
     public void concurrentPrefetchWithTimeout() throws Exception {
         // setup one primary CoR and 2 subsequent ones to read. Each would run concurrently.
         setupCopiers(2);

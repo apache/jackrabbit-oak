@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
@@ -27,6 +25,7 @@ import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import java.util.ArrayList;
 import java.util.Calendar;
 
+import java.util.List;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.Oak;
@@ -63,8 +62,8 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
         useV2(indexDefn);
         //Aggregates
         newNodeAggregator(indexDefn)
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
+                .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(NT_FOLDER, List.of("myFile", "subfolder/subsubfolder/file"));
 
         //Include all properties
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
@@ -96,8 +95,8 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
      */
     private static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
-            .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-            .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
+            .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+            .newRuleWithName(NT_FOLDER, List.of("myFile", "subfolder/subsubfolder/file"));
     }
 
     /**
@@ -436,9 +435,29 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
         oak3371();
     }
 
+    /**
+     * This test also showcases the difference between the StandardQueryParser() in Lucene 4 vs
+     * versions >= 5. In Lucene 4, it will remove the '-' in front of the NOT clause, while in later
+     * versions it will not do that.
+     * The test creates a tree structure like this:
+     * root
+     * └── test
+     *     ├── a
+     *     │   ├── jcr:primaryType = nt:folder
+     *     │   └── foo = bar
+     *     ├── b
+     *     │   ├── jcr:primaryType = nt:folder
+     *     │   └── foo = cat
+     *     ├── c
+     *     │   └── jcr:primaryType = nt:folder
+     *     └── d
+     *         ├── jcr:primaryType = nt:folder
+     *         └── foo = bar cat
+     */
     private void oak3371() throws CommitFailedException {
         setTraversalEnabled(false);
         Tree test, t;
+
 
         test = root.getTree("/").addChild("test");
         t = test.addChild("a");
@@ -456,16 +475,16 @@ public class LuceneIndexAggregationTest extends AbstractQueryTest {
 
         assertQuery(
             "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar')",
-            of("/test/a", "/test/d"));
+            List.of("/test/a", "/test/d"));
         assertQuery(
             "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar')",
-            of("/test/b", "/test/c"));
+            List.of("/test/b", "/test/c"));
         assertQuery(
             "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar cat')",
-            of("/test/d"));
+            List.of("/test/d"));
         assertQuery(
             "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar cat')",
-            of("/test/c"));
+            List.of("/test/c"));
 
         setTraversalEnabled(true);
     }

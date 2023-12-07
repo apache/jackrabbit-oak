@@ -92,8 +92,8 @@ public class FacetHelper {
                 FacetsCollector facetsCollector = new FacetsCollector();
                 try {
                     DefaultSortedSetDocValuesReaderState state = new DefaultSortedSetDocValuesReaderState(
-                            searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
-                    FacetsCollector.search(searcher, query, null,1, Sort.INDEXORDER, facetsCollector);
+                        searcher.getIndexReader(), FieldNames.createFacetFieldName(facetField));
+                    FacetsCollector.search(searcher, query, 1, Sort.INDEXORDER, facetsCollector);
 
                     switch (secureFacetConfiguration.getMode()) {
                         case INSECURE:

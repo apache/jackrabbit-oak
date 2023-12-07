@@ -23,12 +23,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.api.Blob;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.OakAnalyzer;
@@ -40,9 +42,11 @@ import org.apache.jackrabbit.oak.plugins.memory.ArrayBasedBlob;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
@@ -143,13 +147,16 @@ public class IndexConsistencyCheckerTest {
 
     @Test
     public void missingFile() throws Exception{
+        // Sets up valid lucene indexes with the files from lucene version >= 5.5.0.
+        // Previously this contained segments.gen files, which are no longer used in lucene.
         LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
 
         NodeBuilder builder = rootState.builder();
 
-        idx.getChildNode(":data").getChildNode("segments.gen").remove();
+        boolean removed = idx.getChildNode(":data").getChildNode("segments_1").remove();
+        assertTrue(removed);
 
         builder.setChildNode("fooIndex", idx.getNodeState());
         NodeState indexState = builder.getNodeState();
@@ -168,7 +175,6 @@ public class IndexConsistencyCheckerTest {
         LuceneIndexDefinition defn = LuceneIndexDefinition.newBuilder(rootState, idx.getNodeState(), "/fooIndex").build();
         Directory dir = new OakDirectory(idx, ":data", defn, false);
         createIndex(dir, 10);
-
         NodeBuilder builder = rootState.builder();
 
         NodeBuilder file = idx.getChildNode(":data").getChildNode("_0.cfe");

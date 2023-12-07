@@ -21,6 +21,9 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.reader;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 
@@ -100,8 +103,11 @@ public class DefaultIndexReaderFactory implements LuceneIndexReaderFactory {
         } else if (FulltextIndexConstants.PERSISTENCE_FILE.equalsIgnoreCase(
                 defnNodeState.getString(FulltextIndexConstants.PERSISTENCE_NAME))) {
             String path = defnNodeState.getString(FulltextIndexConstants.PERSISTENCE_PATH);
-            if (path != null && new File(path).exists()) {
-                directory = FSDirectory.open(new File(path).toPath());
+            if (path != null) {
+                Path f = Paths.get(path);
+                if (Files.exists(f)) {
+                    directory = FSDirectory.open(f);
+                }
             }
         }
 

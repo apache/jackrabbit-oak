@@ -82,8 +82,9 @@ public class ChunkedOakDirectoryTest extends OakDirectoryTestBase {
 
         blobStore.startFailing();
         try {
-            fail();
-        } catch (Exception e) {
+            o3.close();
+            fail("the close was supposed to fail");
+        } catch (IOException e) {
             assertThat(e.getMessage(), containsString(indexPath));
             assertThat(e.getMessage(), containsString("test1.txt"));
         }

@@ -146,15 +146,23 @@ class DefaultIndexWriter implements LuceneIndexWriter {
                 PERF_LOGGER.end(start, -1, "Completed suggester for directory {}", definition);
             }
 
-            writer.close();
+            try {
+                writer.close();
+            } catch (IOException e) {
+                log.warn("Error closing writer for index [{}]", definition.getIndexPath(), e);
+            }
+
             PERF_LOGGER.end(start, -1, "Closed writer for directory {}", definition);
 
             if (!indexUpdated){
                 long genAtEnd = getLatestGeneration(directory);
                 indexUpdated = genAtEnd != genAtStart;
             }
-
-            directory.close();
+            try {
+                directory.close();
+            } catch (IOException e) {
+                log.warn("Error closing directory for index [{}]", definition.getIndexPath(), e);
+            }
             PERF_LOGGER.end(start, -1, "Closed directory for directory {}", definition);
         }
         return indexUpdated;

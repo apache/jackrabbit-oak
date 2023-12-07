@@ -185,11 +185,8 @@ public class OakDirectory extends Directory {
             String msg = String.format("[%s] %s", indexName, name);
             throw new FileNotFoundException(msg);
         }
-        OakIndexInput input = new OakIndexInput(name, file, indexName, blobFactory);
-        try {
+        try (OakIndexInput input = new OakIndexInput(name, file, indexName, blobFactory)) {
             return input.length();
-        } finally {
-            input.close();
         }
     }
 
@@ -235,8 +232,8 @@ public class OakDirectory extends Directory {
     }
 
     @Override
-    public Lock makeLock(String name) {
-        return lockFactory.makeLock(this, name);
+    public Lock obtainLock(String s) {
+        return NoLockFactory.INSTANCE.obtainLock(this, s);
     }
 
     @Override

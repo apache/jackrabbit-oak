@@ -41,6 +41,7 @@ public class FVTokenizerTest {
       expectedTokens.add("0.30");
       expectedTokens.add("0.40");
       int i = 0;
+      stream.reset();
       while (stream.incrementToken()) {
           CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
           String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
@@ -60,6 +61,7 @@ public class FVTokenizerTest {
       expectedTokens.add("0.30");
       expectedTokens.add("0.40");
       int i = 0;
+      stream.reset();
       while (stream.incrementToken()) {
           CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
           String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
@@ -79,6 +81,7 @@ public class FVTokenizerTest {
       expectedTokens.add("0.30");
       expectedTokens.add("0.40");
       int i = 0;
+      stream.reset();
       while (stream.incrementToken()) {
           CharTermAttribute charTermAttribute = stream.getAttribute(CharTermAttribute.class);
           String token = new String(charTermAttribute.buffer(), 0, charTermAttribute.length());
@@ -87,5 +90,4 @@ public class FVTokenizerTest {
       }
       stream.close();
   }
-
 }

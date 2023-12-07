@@ -22,6 +22,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -167,7 +168,7 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
         File indexWriterDir = getIndexDir(definition, indexPath, dirName);
 
         if (reindexMode) {
-            cowDirectoryTracker.registerReindexingLocalDirectory(indexWriterDir);
+            cowDirectoryTracker.registerReindexingLocalDirectory(indexWriterDir.toPath());
         }
 
         //By design indexing in Oak is single threaded so Lucene locking
@@ -717,14 +718,14 @@ public class IndexCopier implements CopyOnReadStatsMBean, Closeable {
 
     public interface COWDirectoryTracker {
         void registerOpenedDirectory(@NotNull CopyOnWriteDirectory directory);
-        void registerReindexingLocalDirectory(@NotNull File dir);
+        void registerReindexingLocalDirectory(@NotNull Path dir);
 
         COWDirectoryTracker NOOP = new COWDirectoryTracker() {
             @Override
             public void registerOpenedDirectory(CopyOnWriteDirectory directory) {}
 
             @Override
-            public void registerReindexingLocalDirectory(File dir) {}
+            public void registerReindexingLocalDirectory(Path dir) {}
         };
     }
 }

@@ -1481,13 +1481,14 @@ public class LucenePropertyIndex extends FulltextIndex {
                 if (boost != null) {
                     q.setBoost(Float.parseFloat(boost));
                 }
-                if (not) {
-                    BooleanQuery bq = new BooleanQuery();
-                    bq.add(q, MUST_NOT);
-                    result.set(bq);
-                } else {
-                    result.set(q);
-                }
+                /*
+                 * In Lucene 4, the '-' in front of a NOT query was removed by StandardQueryParser(),
+                 * which is used in tokenToQuery(), but this behavior changed in Lucene 5 and onwards.
+                 * Since we are dealing with the same problem in ElasticSearchPlanner we should
+                 * consider rewriting the parser logic.
+                 * TODO: rewrite parser logic
+                 * */
+                result.set(q);
                 return true;
             }
         });

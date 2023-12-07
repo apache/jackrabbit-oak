@@ -59,7 +59,6 @@ public class LuceneIndexDefinition extends IndexDefinition {
     private final Analyzer analyzer;
 
     private final int maxFieldLength;
-
     public LuceneIndexDefinition(NodeState root, NodeState defn, String indexPath) {
         this(root, getIndexDefinitionState(defn), determineIndexFormatVersion(defn), determineUniqueId(defn), indexPath);
     }

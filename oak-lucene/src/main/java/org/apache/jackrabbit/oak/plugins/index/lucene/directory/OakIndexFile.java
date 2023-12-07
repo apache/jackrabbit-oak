@@ -65,7 +65,7 @@ public interface OakIndexFile {
 
     boolean isClosed();
 
-    void close();
+    void close() throws IOException;
 
     /**
      * @return current location of access

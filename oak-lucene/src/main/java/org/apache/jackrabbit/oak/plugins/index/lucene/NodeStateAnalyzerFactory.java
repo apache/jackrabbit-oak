@@ -41,7 +41,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.lucene.util.TokenizerChain;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.ConfigUtil;
-import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.plugins.tree.impl.TreeProviderService;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.lucene.analysis.Analyzer;
@@ -109,8 +109,7 @@ final class NodeStateAnalyzerFactory {
 
     private TokenFilterFactory[] loadTokenFilterFactories(NodeState tokenFiltersState) {
         List<TokenFilterFactory> result = newArrayList();
-
-        Tree tree = TreeFactory.createReadOnlyTree(tokenFiltersState);
+        Tree tree = new TreeProviderService().createReadOnlyTree(tokenFiltersState);
         for (Tree t : tree.getChildren()){
             NodeState state = tokenFiltersState.getChildNode(t.getName());
 
@@ -128,7 +127,7 @@ final class NodeStateAnalyzerFactory {
         List<CharFilterFactory> result = newArrayList();
 
         //Need to read children in order
-        Tree tree = TreeFactory.createReadOnlyTree(charFiltersState);
+        Tree tree = new TreeProviderService().createReadOnlyTree(charFiltersState);
         for (Tree t : tree.getChildren()){
             NodeState state = charFiltersState.getChildNode(t.getName());
 
@@ -165,23 +164,18 @@ final class NodeStateAnalyzerFactory {
                 throw new RuntimeException("Error occurred while loading stopwords", e);
             }
         }
-        Constructor<? extends Analyzer> c = null;
+        Constructor<? extends Analyzer> c;
 
         try {
             if (stopwords != null) {
-                c = analyzerClazz.getConstructor(Version.class, CharArraySet.class);
-                return c.newInstance(matchVersion, stopwords);
+                c = analyzerClazz.getConstructor(CharArraySet.class);
+                return c.newInstance(stopwords);
             } else {
-                c = analyzerClazz.getConstructor(Version.class);
-                return c.newInstance(matchVersion);
+                c = analyzerClazz.getConstructor();
+                return c.newInstance();
             }
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (InstantiationException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
-        } catch (InvocationTargetException e) {
+        } catch (NoSuchMethodException | InstantiationException | IllegalAccessException |
+                 InvocationTargetException e) {
             throw new RuntimeException("Error occurred while instantiating Analyzer for " + analyzerClazz, e);
         }
     }

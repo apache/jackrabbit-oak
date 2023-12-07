@@ -804,7 +804,7 @@ If any of the out of the box analyzer is to be used then it can configured direc
     + analyzers
       + default
         - class = "org.apache.lucene.analysis.standard.StandardAnalyzer"
-        - luceneMatchVersion = "LUCENE_48" (optional)
+        - luceneMatchVersion = "LUCENE_55" (optional)
 ```
 
 To confirm to specific version specify it via `luceneMatchVersion` otherwise Oak
@@ -817,7 +817,7 @@ the analyzer node
     + analyzers
       + default
         - class = "org.apache.lucene.analysis.standard.StandardAnalyzer"
-        - luceneMatchVersion = "LUCENE_48" (optional)
+        - luceneMatchVersion = "LUCENE_55" (optional)
         + stopwords (nt:file)
 ```
 

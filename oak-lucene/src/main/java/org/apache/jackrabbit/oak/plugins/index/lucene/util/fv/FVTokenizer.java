@@ -22,7 +22,6 @@ import org.apache.lucene.analysis.util.CharTokenizer;
  * {@link CharTokenizer} which splits at whitespaces and commas
  */
 class FVTokenizer extends CharTokenizer {
-
     @Override
     protected boolean isTokenChar(int c) {
       char c1 = Character.toChars(c)[0];

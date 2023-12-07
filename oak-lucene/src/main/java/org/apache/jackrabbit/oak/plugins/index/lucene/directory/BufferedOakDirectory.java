@@ -22,7 +22,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.lucene.directory.ActiveDeletedBlobCollectorFactory.BlobDeletionCallback;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -32,6 +33,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
+import org.apache.lucene.store.NoLockFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -39,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static java.util.Arrays.asList;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.fileExists;
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.ModifiedNodeState.squeeze;
 
@@ -91,7 +94,7 @@ public final class BufferedOakDirectory extends Directory {
 
     private final OakDirectory base;
 
-    private final Set<String> bufferedForDelete = Sets.newConcurrentHashSet();
+    private final Set<String> bufferedForDelete = ConcurrentHashMap.newKeySet();
 
     private NodeBuilder bufferedBuilder = EMPTY_NODE.builder();
 
@@ -126,7 +129,7 @@ public final class BufferedOakDirectory extends Directory {
     @Override
     public String[] listAll() throws IOException {
         LOG.debug("[{}]listAll()", definition.getIndexPath());
-        Set<String> all = Sets.newTreeSet();
+        Set<String> all = new TreeSet<>();
         all.addAll(asList(base.listAll()));
         all.addAll(asList(buffered.listAll()));
         all.removeAll(bufferedForDelete);
@@ -199,8 +202,8 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     @Override
-    public Lock makeLock(String name) {
-        return base.makeLock(name);
+    public Lock obtainLock(String name) {
+        return NoLockFactory.INSTANCE.obtainLock(this, name);
     }
 
     @Override
@@ -231,14 +234,10 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     private void reopenBuffered() {
-        // squeeze out child nodes marked as non existing
+        // squeeze out child nodes marked as non-existing
         // those are files that were created and later deleted again
         bufferedBuilder = squeeze(bufferedBuilder.getNodeState()).builder();
         buffered = new OakDirectory(bufferedBuilder, dataNodeName,
                 definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
-    }
-
-    private boolean fileExists(Directory d, String fileName) throws IOException {
-        return Arrays.asList(d.listAll()).contains(fileName);
     }
 }

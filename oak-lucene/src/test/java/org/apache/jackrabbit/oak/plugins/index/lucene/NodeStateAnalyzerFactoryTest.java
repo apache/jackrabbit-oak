@@ -38,6 +38,7 @@ import org.apache.lucene.analysis.core.LowerCaseTokenizer;
 import org.apache.lucene.analysis.core.StopFilterFactory;
 import org.apache.lucene.analysis.core.WhitespaceTokenizerFactory;
 import org.apache.lucene.analysis.path.PathHierarchyTokenizerFactory;
+import org.apache.lucene.analysis.util.CharArraySet;
 import org.apache.lucene.analysis.util.ClasspathResourceLoader;
 import org.apache.lucene.analysis.util.StopwordAnalyzerBase;
 import org.apache.lucene.util.Version;
@@ -74,9 +75,9 @@ public class NodeStateAnalyzerFactoryTest {
         assertNotNull(analyzer);
         assertEquals(LuceneIndexConstants.VERSION, analyzer.getVersion());
 
-        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LUCENE_4_1.toString());
+        nb.setProperty(LuceneIndexConstants.ANL_LUCENE_MATCH_VERSION, Version.LATEST.toString());
         analyzer = (TestAnalyzer) factory.createInstance(nb.getNodeState());
-        assertEquals("Version field not picked from config",Version.LUCENE_4_1, analyzer.getVersion());
+        assertEquals("Version field not picked from config", Version.LATEST, analyzer.getVersion());
 
         byte[] stopWords = newCharArraySet("foo", "bar");
         createFileNode(nb, FulltextIndexConstants.ANL_STOPWORDS, stopWords);
@@ -111,7 +112,7 @@ public class NodeStateAnalyzerFactoryTest {
         filters.child("LowerCase").setProperty(ANL_NAME, "LowerCase");
         filters.child("LowerCase").setProperty(JCR_PRIMARYTYPE, "nt:unstructured");
         //name is optional. Derived from nodeName
-        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_4_1.toString());
+        filters.child("stop").setProperty(ANL_LUCENE_MATCH_VERSION, Version.LUCENE_5_5_0.toString());
 
         TokenizerChain analyzer = (TokenizerChain) factory.createInstance(nb.getNodeState());
         assertEquals(2, analyzer.getFilters().length);
@@ -204,7 +205,24 @@ public class NodeStateAnalyzerFactoryTest {
         return baos.toByteArray();
     }
 
+    /**
+     * The constructors in this class are only used for testing the reflection test.
+     * It's quite brittle and will break if the constructor signature changes (which happens quite often in Lucene).
+     * This has been confirmed to work on Lucene 5.5.0. Perhaps this will change.
+     */
     public static class TestAnalyzer extends StopwordAnalyzerBase{
+        /**
+         * This is only used for the reflection test.
+         *
+         * @param stopWords stop words
+         */
+        public TestAnalyzer(CharArraySet stopWords) {
+            super(stopWords);
+        }
+
+        public TestAnalyzer() {
+            super();
+        }
 
         @Override
         protected TokenStreamComponents createComponents(final String fieldName) {

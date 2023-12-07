@@ -180,14 +180,14 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 getFacetsConfig().setMultiValued(pname, true);
                 Iterable<String> values = property.getValue(Type.STRINGS);
                 for (String value : values) {
-                    if (value != null && value.length() > 0) {
+                    if (value != null && !value.isEmpty()) {
                         doc.add(new SortedSetDocValuesFacetField(pname, value));
                     }
                 }
                 fieldAdded = true;
             } else if (tag == Type.STRING.tag()) {
                 String value = property.getValue(Type.STRING);
-                if (value.length() > 0) {
+                if (!value.isEmpty()) {
                     doc.add(new SortedSetDocValuesFacetField(pname, value));
                     fieldAdded = true;
                 }
@@ -418,7 +418,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
         boolean added = false;
         for (String token : tokens) {
-            if (token.length() > 0) {
+            if (!token.isEmpty()) {
                 AugmentedField f = new AugmentedField(parent + "/" + token.toLowerCase(), confidence);
                 if (doc.getField(f.name()) == null) {
                     doc.add(f);

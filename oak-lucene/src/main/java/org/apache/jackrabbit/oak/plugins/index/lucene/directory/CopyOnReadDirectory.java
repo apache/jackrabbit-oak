@@ -47,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.guava.common.collect.Maps.newConcurrentMap;
 import static java.util.Arrays.stream;
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.fileExists;
 
 /**
  * Directory implementation which lazily copies the index files from a
@@ -122,7 +123,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         //If file does not exist then just delegate to remote and not
         //schedule a copy task
-        if (!Arrays.asList(remote.listAll()).contains(name)){
+        if (!fileExists(remote, name)){
             if (log.isDebugEnabled()) {
                 log.debug("[{}] Looking for non existent file {}. Current known files {}",
                         indexPath, name, Arrays.toString(remote.listAll()));
@@ -192,7 +193,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         boolean copyAttempted = false;
         long fileSize = 0;
         try {
-            if (!Arrays.asList(local.listAll()).contains(name)){
+            if (!fileExists(local, name)){
                 long perfStart = -1;
                 if (logDuration) {
                     perfStart = PERF_LOGGER.start();
@@ -202,7 +203,6 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 LocalIndexFile file = new LocalIndexFile(local, name, fileSize, true);
                 long start = indexCopier.startCopy(file);
                 copyAttempted = true;
-
                 local.copyFrom(remote, name, name, IOContext.READ);
                 reference.markValid();
 
@@ -251,7 +251,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
         } finally {
             if (copyAttempted && !success){
                 try {
-                    if (!Arrays.asList(local.listAll()).contains(name)){
+                    if (!fileExists(local, name)){
                         local.deleteFile(name);
                     }
                 } catch (IOException e) {
@@ -321,7 +321,6 @@ public class CopyOnReadDirectory extends FilterDirectory {
         Set<String> remoteFiles = stream(remote.listAll())
                 .filter(name -> !IndexCopier.REMOTE_ONLY.contains(name))
                 .collect(Collectors.toSet());
-
         long maxTS = IndexCopier.getNewestLocalFSTimestampFor(remoteFiles, local);
         if (maxTS == -1) {
             log.warn("Couldn't compute safe timestamp to delete files from {}", local);
@@ -330,7 +329,6 @@ public class CopyOnReadDirectory extends FilterDirectory {
 
         // subtract DELETE_MARGIN_MILLIS from maxTS for safety (you can never be too careful with time)
         final long deleteBeforeTS = maxTS - DELETE_MARGIN_MILLIS;
-
         Set<String> filesToBeDeleted =
                 // Files present locally
                 ImmutableSet.copyOf(local.listAll()).stream()
@@ -339,11 +337,9 @@ public class CopyOnReadDirectory extends FilterDirectory {
                 // and also older than a safe timestamp (deleteBeforeTS)
                 .filter(name -> IndexCopier.isFileModifiedBefore(name, local, deleteBeforeTS))
                 // can be deleted
-                .collect(Collectors.toSet())
-        ;
+                .collect(Collectors.toSet());
 
         Set<String> failedToDelete = Sets.newHashSet();
-
         for (String fileName : filesToBeDeleted) {
             boolean deleted = indexCopier.deleteFile(local, fileName, true);
             if (!deleted){
@@ -351,7 +347,7 @@ public class CopyOnReadDirectory extends FilterDirectory {
             }
         }
 
-        filesToBeDeleted = new HashSet<String>(filesToBeDeleted);
+        filesToBeDeleted = new HashSet<>(filesToBeDeleted);
         filesToBeDeleted.removeAll(failedToDelete);
         if(!filesToBeDeleted.isEmpty()) {
             log.debug(

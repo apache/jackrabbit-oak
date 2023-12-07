@@ -62,7 +62,10 @@ class OakIndexInput extends IndexInput {
 
     @Override
     public IndexInput slice(String sliceDescription, long offset, long length) {
-        checkNotClosed();
+        if (offset < 0 || length < 0 || offset + length > this.length()) {
+            throw new IllegalArgumentException("slice() " + sliceDescription + " out of bounds: "  + this);
+        }
+
         return BufferedIndexInput.wrap(sliceDescription, this, offset, length);
     }
 
@@ -99,9 +102,8 @@ class OakIndexInput extends IndexInput {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         file.close();
-
         if (clones != null) {
             for (Iterator<OakIndexInput> it = clones.keyIterator(); it.hasNext();) {
                 final OakIndexInput clone = it.next();

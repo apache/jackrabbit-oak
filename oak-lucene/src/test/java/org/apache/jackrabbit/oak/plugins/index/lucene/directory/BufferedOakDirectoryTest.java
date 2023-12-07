@@ -18,7 +18,6 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Random;
 import java.util.Set;
 
@@ -41,6 +40,7 @@ import org.junit.Test;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.DELETE_THRESHOLD_UNTIL_REOPEN;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.BufferedOakDirectory.reReadCommandLineParam;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.fileExists;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -63,7 +63,7 @@ public class BufferedOakDirectoryTest {
 
         // must not be visible yet in base
         Directory base = createDir(builder, false);
-        assertFalse(Arrays.asList(base.listAll()).contains("file"));
+        assertFalse(fileExists(base, "file"));
         base.close();
 
         buffered.close();
@@ -173,6 +173,7 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.close();
         }
 
         PropertyState jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
@@ -183,6 +184,7 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.close();
         }
 
         jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
@@ -192,6 +194,7 @@ public class BufferedOakDirectoryTest {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.close();
         }
 
         jcrData = builder.getChildNode(":data").getChildNode("foo").getProperty("jcr:data");
@@ -227,12 +230,12 @@ public class BufferedOakDirectoryTest {
     @Test
     public void readStreamingWithSingleBlob() throws Exception {
         boolean oldVal = BufferedOakDirectory.isEnableWritingSingleBlobIndexFile();
-
         BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(true);
         try (Directory multiBlobDir = createDir(builder, true)) {
             IndexOutput multiBlobIndexOutput = multiBlobDir.createOutput("foo", IOContext.DEFAULT);
 
             multiBlobIndexOutput.writeBytes(randomBytes(100), 0, 100);
+            multiBlobIndexOutput.close();
         }
 
         // Enable feature... reader shouldn't care about the flag.
@@ -240,7 +243,6 @@ public class BufferedOakDirectoryTest {
         BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(false);
         try (Directory multiBlobDir = createDir(builder, true)) {
             OakIndexInput multiBlobIndexInput = (OakIndexInput)multiBlobDir.openInput("foo", IOContext.DEFAULT);
-
             assertTrue("OakStreamingIndexFile must be used",
                     multiBlobIndexInput.file instanceof OakStreamingIndexFile);
         }
@@ -391,7 +393,7 @@ public class BufferedOakDirectoryTest {
 
     private void assertFile(Directory dir, String file, byte[] expected)
             throws IOException {
-        assertTrue(Arrays.asList(dir.listAll()).contains(file));
+        assertTrue(fileExists(dir, file));
         assertEquals(expected.length, dir.fileLength(file));
         IndexInput in = dir.openInput(file, IOContext.DEFAULT);
         byte[] data = new byte[expected.length];
