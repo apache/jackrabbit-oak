@@ -18,15 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
-import java.util.List;
-import java.util.Random;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
 
 public class BinarySizeEmbedded implements StatsCollector {
     
@@ -44,10 +43,8 @@ public class BinarySizeEmbedded implements StatsCollector {
     }
 
     public void add(NodeData node) {
-        List<Property> properties = node.properties;
-        List<String> pathElements = node.pathElements;
         long size = 0;
-        for(Property p : properties) {
+        for(Property p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -68,8 +65,8 @@ public class BinarySizeEmbedded implements StatsCollector {
         }
         storage.add("/", size);
         StringBuilder buff = new StringBuilder();
-        for (int i = 0; i < pathElements.size(); i++) {
-            String pe = pathElements.get(i);
+        for (int i = 0; i < node.getPathElements().size(); i++) {
+            String pe = node.getPathElements().get(i);
             buff.append('/').append(pe);
             String key = buff.toString();
             if (pe.equals("jcr:content")) {

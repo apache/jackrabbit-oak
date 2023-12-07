@@ -48,8 +48,8 @@ public class TopLargestBinaries implements StatsCollector {
 
     @Override
     public void add(NodeData node) {
-        List<Property> properties = node.properties;
-        List<String> pathElements = node.pathElements;
+        List<Property> properties = node.getProperties();
+        List<String> pathElements = node.getPathElements();
         ArrayList<Long> references = new ArrayList<>();
         for(Property p : properties) {
             if (p.getType() == ValueType.BINARY) {

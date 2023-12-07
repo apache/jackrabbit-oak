@@ -19,14 +19,13 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map.Entry;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
 
 public class BinarySizeHistogram implements StatsCollector {
 
@@ -53,11 +52,9 @@ public class BinarySizeHistogram implements StatsCollector {
     }
     
     public void add(NodeData node) {
-        List<Property> properties = node.properties;
-        List<String> pathElements = node.pathElements;
         ArrayList<Long> embedded = new ArrayList<>();
         ArrayList<Long> references = new ArrayList<>();
-        for(Property p : properties) {
+        for(Property p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -83,8 +80,8 @@ public class BinarySizeHistogram implements StatsCollector {
         }
         add("/", embedded, references);
         StringBuilder buff = new StringBuilder();
-        for (int i = 0; i < pathLevels && i < pathElements.size(); i++) {
-            String pe = pathElements.get(i);
+        for (int i = 0; i < pathLevels && i < node.getPathElements().size(); i++) {
+            String pe = node.getPathElements().get(i);
             buff.append('/').append(pe);
             String key = buff.toString();
             add(key, embedded, references);

@@ -33,135 +33,62 @@ import java.util.Map.Entry;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.PropertyValue;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySize;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeEmbedded;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.IndexDefinitions;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.ListCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeCount;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypes;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PathFilter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PropertyStats;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.TopLargestBinaries;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 
-public class Reader {
-    public static void main(String... args) throws IOException {
-        IndexDefinitions indexDefs = new IndexDefinitions();
-        if (args.length > 1) {
-            collect(args[1], indexDefs);
-        }  
-        NodeTypes nodeTypes = new NodeTypes();
-        if (args.length > 2) {
-            collect(args[2], nodeTypes);
-        }  
-        System.out.println(nodeTypes);
-        
-        ListCollector collectors = new ListCollector();
-        collectors.add(new NodeCount(1000));
-        PropertyStats ps = new PropertyStats();
-        ps.setIndexedProperties(indexDefs.getPropertyMap());
-        collectors.add(ps);
-        collectors.add(new IndexDefinitions());
-        collectors.add(new BinarySize(1));
-        collectors.add(new BinarySize(100_000_000));
-        collectors.add(new BinarySizeEmbedded(1));
-        collectors.add(new BinarySizeEmbedded(100_000));
-        collectors.add(new BinarySizeHistogram(1));
-        collectors.add(new TopLargestBinaries(10));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(1)));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(1)));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
-        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
-        
-        Profiler prof = new Profiler().startCollecting();
-        
-        collect(args[0], collectors);
-        
-        System.out.println(prof.getTop(10));
-        
-        
-        
-        collectors.print();
-
+public class NodeLineReader {
+    
+    long start = System.nanoTime();
+    LineNumberReader reader;
+    long count;
+    long fileSize;
+    
+    NodeLineReader(LineNumberReader reader, long fileSize) {
+        this.reader = reader;
+        this.fileSize = fileSize;
+        start = System.nanoTime();
     }
     
-    private static void collect(String fileName, StatsCollector collector) throws IOException {
+    static NodeLineReader open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
         InputStream in = new BufferedInputStream(new FileInputStream(fileName));
         if (fileName.endsWith(".lz4")) {
             in = new LZ4FrameInputStream(in);
         }
         LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-        long start = System.nanoTime();
-        int count = 0;
-        NodeData last = null;
-        while (true) {
-            String line = reader.readLine();
-            if (line == null) {
-                break;
-            }
-            if (count < 10) {
-            //    System.out.println(line);
-            }
-            if (count % 1000000 == 0) {
-                System.out.println(count + " lines");
-            }
-            int pipeIndex = line.indexOf('|');
-            if (pipeIndex < 0) {
-                System.out.println("Error: no pipe: " + line);
-                continue;
-            }
-            String path = line.substring(0, pipeIndex);
-            List<String> pathElements = new ArrayList<>();
-            PathUtils.elements(path).forEach(pathElements::add);
-            String nodeJson = line.substring(pipeIndex + 1);
-            NodeData node = new NodeData();
-            node.pathElements = pathElements;
-            node.properties = parse(nodeJson);
-            if (last != null) {
-                while (last != null && last.pathElements.size() >= pathElements.size()) {
-                    // go up the chain of parent to find a possible common parent
-                    last = last.parent;
-                }
-                if (last != null && last.pathElements.size() == pathElements.size() - 1) {
-                    // now it's possible the parent - we assume that's the case
-                    node.parent = last;
-                    for (int i = 0; i < last.pathElements.size(); i++) {
-                        if (!last.pathElements.get(i).equals(pathElements.get(i))) {
-                            // nope
-                            node.parent = null;
-                            break;
-                        }
-                    }
-                }
-            }
-            collector.add(node);
-            count++;
-//            if (count > 1000000) {
-//                break;
-//            }
-            last = node;
-        }
-        collector.end();
-        System.out.println(count + " lines total");
-        long time = System.nanoTime() - start;
-        System.out.println((time / 1_000_000_000) + " seconds");
-        System.out.println((time / count) + " ns/entry");
-        System.out.println(fileSize + " bytes");
-        System.out.println((fileSize / count) + " bytes/entry");
-        in.close();
+        return new NodeLineReader(reader, fileSize);
     }
 
+    public NodeData readNode() throws IOException {
+        String line = reader.readLine();
+        if (line == null) {
+            reader.close();
+            return null;
+        }
+        if (count < 10) {
+        //    System.out.println(line);
+        }
+        if (count % 1000000 == 0) {
+            System.out.println(count + " lines");
+        }
+        int pipeIndex = line.indexOf('|');
+        if (pipeIndex < 0) {
+            throw new IllegalArgumentException("Error: no pipe: " + line);
+        }
+        String path = line.substring(0, pipeIndex);
+        List<String> pathElements = new ArrayList<>();
+        PathUtils.elements(path).forEach(pathElements::add);
+        String nodeJson = line.substring(pipeIndex + 1);
+        NodeData node = new NodeData(pathElements, parse(nodeJson));
+        count++;
+        return node;
+    }
+    
     private static List<Property> parse(String nodeData) {
         ArrayList<Property> properties = new ArrayList<>();
         JsonObject json = JsonObject.fromJson(nodeData, true);
@@ -267,6 +194,10 @@ public class Reader {
             tokenizer.read(']');
         }
         tokenizer.read(JsopReader.END);
+        if (type == null) {
+            type = ValueType.STRING;
+        }
         return new Property(key, type, result.toArray(new String[result.size()]), true);
-    }    
+    }       
+    
 }

@@ -44,7 +44,7 @@ public class NodeCount implements StatsCollector {
     }
 
     public void add(NodeData node) {
-        List<String> pathElements = node.pathElements;
+        List<String> pathElements = node.getPathElements();
         SipHash hash = new SipHash(seed);
         ArrayList<String> parents = new ArrayList<>();
         for(String pe : pathElements) {

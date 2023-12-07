@@ -73,7 +73,7 @@ public class PropertyStats implements StatsCollector {
             return;
         }
         skip = SKIP;
-        List<Property> properties = node.properties;
+        List<Property> properties = node.getProperties();
         // TODO maybe also consider path (first n levels)
         for(Property p : properties) {
             String name = p.getName();

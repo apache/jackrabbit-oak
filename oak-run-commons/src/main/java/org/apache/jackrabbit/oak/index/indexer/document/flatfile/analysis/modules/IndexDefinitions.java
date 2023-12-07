@@ -39,8 +39,8 @@ public class IndexDefinitions implements StatsCollector {
 
     @Override
     public void add(NodeData node) {
-        List<Property> properties = node.properties;
-        List<String> pathElements = node.pathElements;
+        List<Property> properties = node.getProperties();
+        List<String> pathElements = node.getPathElements();
         if (pathElements.size() < 6 || !pathElements.get(0).equals("oak:index")) {
             return;
         }

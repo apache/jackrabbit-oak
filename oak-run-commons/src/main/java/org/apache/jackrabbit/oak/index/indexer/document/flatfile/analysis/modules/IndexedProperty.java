@@ -51,7 +51,7 @@ public class IndexedProperty {
         if (!name.equals(this.name)) {
             return false;
         }
-        List<String> pathElements = node.pathElements;
+        List<String> pathElements = node.getPathElements();
         if (pathElements.size() < parents.size()) {
             return false;
         }

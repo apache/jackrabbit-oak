@@ -42,8 +42,8 @@ public class NodeTypes implements StatsCollector {
 
     @Override
     public void add(NodeData node) {
-        List<Property> properties = node.properties;
-        List<String> pathElements = node.pathElements;
+        List<Property> properties = node.getProperties();
+        List<String> pathElements = node.getPathElements();
         if (pathElements.size() != 3 || !pathElements.get(0).equals("jcr:system")) {
             return;
         }

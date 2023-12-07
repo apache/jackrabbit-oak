@@ -21,11 +21,32 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
 import java.util.List;
 
 public class NodeData {
-    public List<String> pathElements;
-    public List<Property> properties;
-    public NodeData parent;
+    private final List<String> pathElements;
+    private final List<Property> properties;
+    private NodeData parent;
+    
+    NodeData(List<String> pathElements, List<Property> properties) {
+        this.pathElements = pathElements;
+        this.properties = properties;
+    }
+    
+    public List<String> getPathElements() {
+        return pathElements;
+    }
+    
+    public List<Property> getProperties() {
+        return properties;
+    }
     
     public String toString() {
         return "/" + String.join("/", pathElements);
+    }
+
+    public NodeData getParent() {
+        return parent;
+    }
+
+    public void setParent(NodeData parent) {
+        this.parent = parent;
     }
 }

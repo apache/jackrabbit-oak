@@ -41,7 +41,7 @@ public class PathFilter implements StatsCollector {
 
     @Override
     public void add(NodeData node) {
-        List<String> pathElements = node.pathElements;
+        List<String> pathElements = node.getPathElements();
         for(String pe : pathElements) {
             if (pe.equals(path)) {
                 base.add(node);

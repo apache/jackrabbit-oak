@@ -23,13 +23,13 @@ import java.util.List;
 
 public class Property {
 
-    String name;
-    boolean multiple;
-    ValueType type;
-    String[] values;
+    private final String name;
+    private final boolean multiple;
+    private final ValueType type;
+    private final String[] values;
     
     public Property(String key, ValueType type, String value) {
-        this(key, ValueType.STRING, new String[] {value}, false);
+        this(key, type, new String[] {value}, false);
     }
 
     public Property(String key, ValueType type, String[] values, boolean multiple) {
@@ -100,6 +100,10 @@ public class Property {
             this.type = type;
             this.value = value;
         }
+    }
+
+    public boolean isMultiple() {
+        return multiple;
     }
     
 }
