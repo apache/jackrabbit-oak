@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
 
 public class IndexedProperty {
     private final String name;
@@ -44,7 +45,7 @@ public class IndexedProperty {
     }
 
     public String toString() {
-        return nodeType + ":" + String.join("/", parents) + " " + name;
+        return nodeType + ":" + String.join("/", parents);
     }
 
     public boolean matches(String name, NodeData node) {
@@ -62,7 +63,32 @@ public class IndexedProperty {
                 return false;
             }
         }
-        return true;
+        NodeData nodeTypeCheck = node;
+        for (int i = 0; i < parents.size(); i++) {
+            NodeData p = nodeTypeCheck.getParent();
+            if (p == null) {
+                throw new IllegalStateException("parent not found");
+            }
+            nodeTypeCheck = p;
+        }
+        if (nodeType.equals("nt:base")) {
+            return true;
+        }
+        Property pt = nodeTypeCheck.getProperty("jcr:primaryType");
+        if (pt == null) {
+            throw new IllegalStateException("no primary type"); 
+        }
+        if (name.equals("jcr:primaryType")) {
+            // we index the property "jcr:primaryType"
+            // here we simply ignore the hierarchy
+            return pt.getValues()[0].equals(nodeType);
+        }
+        if (pt != null && pt.getValues()[0].equals(nodeType)) {
+            // exact match
+            return true;
+        }
+        // Property mt = nodeTypeCheck.getProperty("jcr:mixinTypes");
+        return false;
     }
 
     public String getPropertyName() {

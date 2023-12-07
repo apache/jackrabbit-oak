@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySize;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeEmbedded;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.HashTree;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.IndexDefinitions;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.ListCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeCount;
@@ -34,16 +35,16 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.module
 
 public class StatsBuilder {
     
-    private static final boolean ONLY_READ = true;
+    private static final boolean ONLY_READ = false;
 
     public static void main(String... args) throws IOException {
         IndexDefinitions indexDefs = new IndexDefinitions();
         if (args.length > 1) {
-            collect(args[1], indexDefs);
+            collect(NodeLineReader.open(args[1]), indexDefs);
         }  
         NodeTypes nodeTypes = new NodeTypes();
         if (args.length > 2) {
-            collect(args[2], nodeTypes);
+            collect(NodeLineReader.open(args[2]), nodeTypes);
         }  
         System.out.println(nodeTypes);
         
@@ -52,19 +53,22 @@ public class StatsBuilder {
         PropertyStats ps = new PropertyStats();
         ps.setIndexedProperties(indexDefs.getPropertyMap());
         collectors.add(ps);
-        collectors.add(new IndexDefinitions());
-        collectors.add(new BinarySize(100_000_000));
-        collectors.add(new BinarySizeEmbedded(100_000));
-        collectors.add(new BinarySizeHistogram(1));
-        collectors.add(new TopLargestBinaries(10));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
-        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
+//        collectors.add(new HashTree());
+//        collectors.add(new IndexDefinitions());
+//        collectors.add(new BinarySize(100_000_000));
+//        collectors.add(new BinarySizeEmbedded(100_000));
+//        collectors.add(new BinarySizeHistogram(1));
+//        collectors.add(new TopLargestBinaries(10));
+//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
+//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
+//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
+//        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
         
         Profiler prof = new Profiler().startCollecting();
         
-        collect(args[0], collectors);
+        // NodeLineReader reader = NodeLineReader.open(fileName);
+        NodeStreamReaderCompressed reader = NodeStreamReaderCompressed.open(args[0]);
+        collect(reader, collectors);
         
         System.out.println(prof.getTop(10));
         
@@ -72,11 +76,14 @@ public class StatsBuilder {
 
     }
     
-    private static void collect(String fileName, StatsCollector collector) throws IOException {
-        NodeLineReader reader = NodeLineReader.open(fileName);
-        // NodeStreamReader2 reader = NodeStreamReader2.open(fileName);
+    private static void collect(NodeDataReader reader, StatsCollector collector) throws IOException {
+        long start = System.nanoTime();
         NodeData last = null;
+        long lineCount = 0;
+        
         while (true) {
+            lineCount++;
+            // if(lineCount > 1000000) break;
             NodeData node = reader.readNode();
             if (node == null) {
                 break;
@@ -105,12 +112,12 @@ public class StatsBuilder {
             last = node;
         }
         collector.end();
-        System.out.println(reader.count + " lines total");
-        long time = System.nanoTime() - reader.start;
+        System.out.println(lineCount + " lines total");
+        long time = System.nanoTime() - start;
         System.out.println((time / 1_000_000_000) + " seconds");
-        System.out.println((time / reader.count) + " ns/entry");
-        System.out.println(reader.fileSize + " bytes");
-        System.out.println((reader.fileSize / reader.count) + " bytes/entry");
+        System.out.println((time / lineCount) + " ns/node");
+        System.out.println(reader.getFileSize() + " bytes");
+        System.out.println((reader.getFileSize() / lineCount) + " bytes/node");
     }
   
 }

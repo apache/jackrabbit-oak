@@ -30,9 +30,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Proper
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 
-public class NodeStreamReaderCompressed {
+public class NodeStreamReaderCompressed implements NodeDataReader {
     
-    long start = System.nanoTime();
     InputStream in;
     long count;
     long fileSize;
@@ -161,5 +160,10 @@ public class NodeStreamReaderCompressed {
         }
         return s;
     }
+    
+    @Override
+    public long getFileSize() {
+        return fileSize;
+    }       
 
 }

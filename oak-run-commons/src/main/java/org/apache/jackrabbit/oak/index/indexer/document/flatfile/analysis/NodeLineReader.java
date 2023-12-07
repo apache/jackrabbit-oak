@@ -41,9 +41,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Proper
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 
-public class NodeLineReader {
+public class NodeLineReader implements NodeDataReader {
     
-    long start = System.nanoTime();
     LineNumberReader reader;
     long count;
     long fileSize;
@@ -51,7 +50,6 @@ public class NodeLineReader {
     NodeLineReader(LineNumberReader reader, long fileSize) {
         this.reader = reader;
         this.fileSize = fileSize;
-        start = System.nanoTime();
     }
     
     static NodeLineReader open(String fileName) throws IOException {
@@ -198,6 +196,11 @@ public class NodeLineReader {
             type = ValueType.STRING;
         }
         return new Property(key, type, result.toArray(new String[result.size()]), true);
+    }
+
+    @Override
+    public long getFileSize() {
+        return fileSize;
     }       
     
 }

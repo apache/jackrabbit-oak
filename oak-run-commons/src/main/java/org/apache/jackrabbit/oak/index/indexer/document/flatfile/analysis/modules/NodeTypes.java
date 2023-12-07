@@ -51,11 +51,11 @@ public class NodeTypes implements StatsCollector {
             return;
         }
         String nodeType = pathElements.get(2);
-        Property nodeTypeName = Property.getProperty(properties, "jcr:nodeTypeName");
-        Property superTypes = Property.getProperty(properties, "rep:supertypes");
-        Property primarySubTypes = Property.getProperty(properties, "rep:primarySubtypes");
-        Property mixinSubTypes = Property.getProperty(properties, "rep:mixinSubtypes");
-        Property isMixin = Property.getProperty(properties, "jcr:isMixin");
+        Property nodeTypeName = node.getProperty("jcr:nodeTypeName");
+        Property superTypes = node.getProperty("rep:supertypes");
+        Property primarySubTypes = node.getProperty("rep:primarySubtypes");
+        Property mixinSubTypes = node.getProperty("rep:mixinSubtypes");
+        Property isMixin = node.getProperty("jcr:isMixin");
         NodeType nt = new NodeType();
         nt.name = nodeTypeName.getValues()[0];
         if (!nodeType.equals(nt.name)) {

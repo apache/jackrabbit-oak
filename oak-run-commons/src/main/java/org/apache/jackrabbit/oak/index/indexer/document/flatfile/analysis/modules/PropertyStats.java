@@ -35,7 +35,7 @@ public class PropertyStats implements StatsCollector {
     Storage storage;
     private final long seed = 42;
     List<IndexedProperty> indexedProperties;
-    HashMap<String, ArrayList<IndexedProperty>> map;
+    HashMap<String, ArrayList<IndexedProperty>> indexexPropertyMap;
     
     private final static int SKIP = 5;
 
@@ -63,7 +63,7 @@ public class PropertyStats implements StatsCollector {
     }
     
     public void setIndexedProperties(HashMap<String, ArrayList<IndexedProperty>> map) {
-        this.map = map;
+        this.indexexPropertyMap = map;
     }
 
     @Override
@@ -77,17 +77,17 @@ public class PropertyStats implements StatsCollector {
         // TODO maybe also consider path (first n levels)
         for(Property p : properties) {
             String name = p.getName();
-            if (map != null) {
-                ArrayList<IndexedProperty> list = map.get(name);
+            if (indexexPropertyMap != null) {
+                ArrayList<IndexedProperty> list = indexexPropertyMap.get(name);
                 if (list != null) {
                     for(IndexedProperty ip : list) {
                         if (ip.matches(name, node)) {
-                            add(ip.toString(), p);
+                            add(name + " " + ip.toString(), p);
                         }
                     }
                 }
             }
-            add(name, p);
+            add(name + " nt:base*", p);
         }
     }
     
@@ -146,16 +146,16 @@ public class PropertyStats implements StatsCollector {
             if (stats.count < MIN_PROPERTY_COUNT) {
                 continue;
             }
-            buff.append(stats.name).append(": {count:").append(stats.count);
+            buff.append(stats.name).append(" count ").append(stats.count);
+            buff.append(" distinct ").append(HyperLogLog3Linear64.estimate(stats.hll));
             if (stats.count != stats.values) {
-                buff.append(", values:").append(stats.values);
+                buff.append(" values ").append(stats.values);
             }
-            buff.append(", distinct:").append(HyperLogLog3Linear64.estimate(stats.hll));
             TopKValues top = stats.topValues;
             if (top != null) {
-                buff.append(", top:").append(top.toString());
+                buff.append(" top ").append(top.toString());
             }
-            buff.append("}\n");
+            buff.append("\n");
         }
         buff.append(storage);
         return buff.toString();

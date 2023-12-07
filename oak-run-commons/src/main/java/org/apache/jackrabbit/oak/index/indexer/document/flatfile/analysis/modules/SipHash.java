@@ -66,5 +66,9 @@ public class SipHash {
         long x = v0 ^ v1 ^ v2 ^ v3;
         return (int) (x ^ (x >>> 16));
     }
+    
+    public long longHashCode() {
+        return v0 ^ v1 ^ v2 ^ v3;
+    }    
 
 }

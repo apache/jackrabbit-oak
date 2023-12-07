@@ -39,7 +39,6 @@ public class IndexDefinitions implements StatsCollector {
 
     @Override
     public void add(NodeData node) {
-        List<Property> properties = node.getProperties();
         List<String> pathElements = node.getPathElements();
         if (pathElements.size() < 6 || !pathElements.get(0).equals("oak:index")) {
             return;
@@ -48,9 +47,9 @@ public class IndexDefinitions implements StatsCollector {
             return;
         }
         String nodeType = pathElements.get(3);
-        Property property = Property.getProperty(properties, "name");
-        Property function = Property.getProperty(properties, "function");
-        Property isRegexp = Property.getProperty(properties, "isRegexp");
+        Property property = node.getProperty("name");
+        Property function = node.getProperty("function");
+        Property isRegexp = node.getProperty("isRegexp");
         if (isRegexp != null && isRegexp.getValues()[0].toString().equals("true")) {
             // ignore regex properties
             return;

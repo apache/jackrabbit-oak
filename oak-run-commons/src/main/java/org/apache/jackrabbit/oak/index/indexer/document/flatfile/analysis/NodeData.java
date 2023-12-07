@@ -49,4 +49,13 @@ public class NodeData {
     public void setParent(NodeData parent) {
         this.parent = parent;
     }
+    
+    public Property getProperty(String name) {
+        for(Property p : properties) {
+            if (p.getName().equals(name)) {
+                return p;
+            }
+        }
+        return null;
+    }
 }
