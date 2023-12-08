@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -36,6 +37,10 @@ public class PropertyStats implements StatsCollector {
     private final long seed = 42;
     List<IndexedProperty> indexedProperties;
     HashMap<String, ArrayList<IndexedProperty>> indexexPropertyMap;
+    
+    HashSet<String> indexProperties = new HashSet<String>();
+    
+    private final static boolean INDEXED_PROPERTIES_ONLY_WITHOUT_CHECKS = true;
     
     private final static int SKIP = 5;
 
@@ -64,6 +69,7 @@ public class PropertyStats implements StatsCollector {
     
     public void setIndexedProperties(HashMap<String, ArrayList<IndexedProperty>> map) {
         this.indexexPropertyMap = map;
+        indexProperties.addAll(map.keySet());
     }
 
     @Override
@@ -77,17 +83,24 @@ public class PropertyStats implements StatsCollector {
         // TODO maybe also consider path (first n levels)
         for(Property p : properties) {
             String name = p.getName();
-            if (indexexPropertyMap != null) {
-                ArrayList<IndexedProperty> list = indexexPropertyMap.get(name);
-                if (list != null) {
-                    for(IndexedProperty ip : list) {
-                        if (ip.matches(name, node)) {
-                            add(name + " " + ip.toString(), p);
+            if (INDEXED_PROPERTIES_ONLY_WITHOUT_CHECKS) {
+                if (indexProperties != null && !indexProperties.contains(name)) {
+                    continue;
+                }
+                add(name, p);
+            } else {
+                if (indexexPropertyMap != null) {
+                    ArrayList<IndexedProperty> list = indexexPropertyMap.get(name);
+                    if (list != null) {
+                        for(IndexedProperty ip : list) {
+                            if (ip.matches(name, node)) {
+                                add(name + " " + ip.toString(), p);
+                            }
                         }
                     }
                 }
+                add(name + " nt:base*", p);
             }
-            add(name + " nt:base*", p);
         }
     }
     
@@ -99,6 +112,8 @@ public class PropertyStats implements StatsCollector {
             for (String v : p.getValues()) {
                 long hash = Hash.hash64(v.hashCode(), seed);
                 stats.hll = HyperLogLog3Linear64.add(stats.hll, hash);
+                stats.size += v.length();
+                stats.maxSize = Math.max(stats.maxSize, v.length());
             }
         }
         if (stats.count >= MIN_TOP_K) {
@@ -146,12 +161,38 @@ public class PropertyStats implements StatsCollector {
             if (stats.count < MIN_PROPERTY_COUNT) {
                 continue;
             }
-            buff.append(stats.name).append(" count ").append(stats.count);
-            buff.append(" distinct ").append(HyperLogLog3Linear64.estimate(stats.hll));
+            long weight = 5;
+            long count = stats.count;
+            long distinct = HyperLogLog3Linear64.estimate(stats.hll);
+            
+            TopKValues top = stats.topValues;
+            weight = distinct;
+            if (top != null) {
+                if (!top.isNotSkewed()) {
+                    // we can not trust the number of distinct entries
+                    long topTotalCount = top.getCount();
+                    long avgOf2 = (top.getTopCount() + top.getSecondCount()) / 2;
+                    weight = Math.min(distinct, topTotalCount / Math.max(1, avgOf2));
+                }
+            }
+            if (weight >= 10000) {
+                weight = 10000;
+            } else if (weight >= 500) {
+                weight = weight / 100 * 100;
+            } else if (weight >= 40) {
+                weight = weight / 10 * 10;
+            } else if (weight == 0) {
+                weight = 1;
+            }
+            buff.append(stats.name);
+            buff.append(" weight ").append(weight);
+            buff.append(" count ").append(count);
+            buff.append(" distinct ").append(distinct);
+            buff.append(" avgSize ").append(stats.size / Math.max(1, stats.values));
+            buff.append(" maxSize ").append(stats.maxSize);
             if (stats.count != stats.values) {
                 buff.append(" values ").append(stats.values);
             }
-            TopKValues top = stats.topValues;
             if (top != null) {
                 buff.append(" top ").append(top.toString());
             }
@@ -169,6 +210,8 @@ public class PropertyStats implements StatsCollector {
         long count;
         long values;
         long hll;
+        long size;
+        long maxSize;
         TopKValues topValues;
     }
 

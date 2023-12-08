@@ -24,10 +24,12 @@ import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySize;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeEmbedded;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.DistinctBinarySizeHistogram;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.HashTree;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.IndexDefinitions;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.ListCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeCount;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypeCount;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypes;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PathFilter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PropertyStats;
@@ -50,19 +52,20 @@ public class StatsBuilder {
         
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000));
+        collectors.add(new BinarySize(100_000_000));
+        collectors.add(new BinarySizeEmbedded(100_000));
         PropertyStats ps = new PropertyStats();
         ps.setIndexedProperties(indexDefs.getPropertyMap());
         collectors.add(ps);
-//        collectors.add(new HashTree());
-//        collectors.add(new IndexDefinitions());
-//        collectors.add(new BinarySize(100_000_000));
-//        collectors.add(new BinarySizeEmbedded(100_000));
-//        collectors.add(new BinarySizeHistogram(1));
-//        collectors.add(new TopLargestBinaries(10));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
-//        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
+        collectors.add(new HashTree());
+        collectors.add(new NodeTypeCount());
+        collectors.add(new BinarySizeHistogram(1));
+        collectors.add(new DistinctBinarySizeHistogram(1));
+        collectors.add(new TopLargestBinaries(10));
+        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
+        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
+        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
+        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
         
         Profiler prof = new Profiler().startCollecting();
         

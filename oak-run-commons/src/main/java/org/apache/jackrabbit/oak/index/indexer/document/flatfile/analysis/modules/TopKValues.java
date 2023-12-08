@@ -55,6 +55,24 @@ public class TopKValues {
         TopEntry last = list.get(list.size() - 1);
         return last.count * 2 > first.count;
     }
+    
+    long getCount() {
+        return countedCount;
+    }
+    
+    long getTopCount() {
+        if (list.isEmpty()) {
+            return 0;
+        }
+        return list.get(0).count;
+    }
+    
+    public long getSecondCount() {
+        if (list.size() < 2) {
+            return getTopCount();
+        }
+        return list.get(1).count;
+    }
 
     void add(String value) {
         if (skipRemaining > 0) {

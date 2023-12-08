@@ -51,7 +51,7 @@ public class HashTree implements StatsCollector {
             try {
                 // SHA-256: 54 seconds
                 // SHA3-256: 56 seconds
-                MessageDigest md = MessageDigest.getInstance("SHA3-256");
+                MessageDigest md = MessageDigest.getInstance("SHA-256");
                 for(Property p : node.getProperties()) {
                     md.update(p.getName().getBytes(StandardCharsets.UTF_8));
                     md.update((byte) p.getType().getOrdinal());
