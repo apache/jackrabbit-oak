@@ -25,7 +25,7 @@ public class NodeData {
     private final List<Property> properties;
     private NodeData parent;
     
-    NodeData(List<String> pathElements, List<Property> properties) {
+    public NodeData(List<String> pathElements, List<Property> properties) {
         this.pathElements = pathElements;
         this.properties = properties;
     }
