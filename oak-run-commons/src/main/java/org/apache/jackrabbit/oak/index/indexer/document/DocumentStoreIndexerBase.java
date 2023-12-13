@@ -27,17 +27,13 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
-import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -160,15 +156,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
-        DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
-        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L, 10);
         FlatFileNodeStoreBuilder builder = null;
         int backOffTimeInMillis = 5000;
-        MemoryManager memoryManager = new DefaultMemoryManager();
         while (storeList.isEmpty() && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
             try {
-                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir(), memoryManager)
-                        .withLastModifiedBreakPoints(lastModifiedBreakPoints)
+                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
                         .withBlobStore(indexHelper.getGCBlobStore())
                         .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())

@@ -20,7 +20,6 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
 import com.mongodb.client.MongoDatabase;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.oak.commons.Compression;
@@ -68,14 +67,7 @@ public class FlatFileNodeStoreBuilder {
     private static final String FLAT_FILE_STORE_DIR_NAME_PREFIX = "flat-fs-";
 
     /**
-     * System property name for sort strategy. If this is true, we use {@link MultithreadedTraverseWithSortStrategy}, else
-     * {@link StoreAndSortStrategy} strategy is used.
-     * NOTE - System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} takes precedence over this one.
-     */
-    public static final String OAK_INDEXER_TRAVERSE_WITH_SORT = "oak.indexer.traverseWithSortStrategy";
-    /**
-     * System property name for sort strategy. This takes precedence over {@link #OAK_INDEXER_TRAVERSE_WITH_SORT}.
-     * Allowed values are the values from enum {@link SortStrategyType}
+     * System property name for sort strategy. Allowed values are the values from enum {@link SortStrategyType}
      */
     public static final String OAK_INDEXER_SORT_STRATEGY_TYPE = "oak.indexer.sortStrategyType";
     /**
@@ -84,41 +76,11 @@ public class FlatFileNodeStoreBuilder {
     public static final String OAK_INDEXER_SORTED_FILE_PATH = "oak.indexer.sortedFilePath";
 
     /**
-     * Default value for {@link #PROP_THREAD_POOL_SIZE}
-     */
-    static final int DEFAULT_NUMBER_OF_DATA_DUMP_THREADS = 8;
-    /**
-     * System property for specifying number of threads for parallel download when using {@link MultithreadedTraverseWithSortStrategy}
-     */
-    static final String PROP_THREAD_POOL_SIZE = "oak.indexer.dataDumpThreadPoolSize";
-
-    /**
-     * Default value for {@link #PROP_MERGE_THREAD_POOL_SIZE}
-     */
-    static final int DEFAULT_NUMBER_OF_MERGE_TASK_THREADS = 1;
-    /**
-     * System property for specifying number of threads for parallel merge when using {@link MultithreadedTraverseWithSortStrategy}
-     */
-    static final String PROP_MERGE_THREAD_POOL_SIZE = "oak.indexer.mergeTaskThreadPoolSize";
-
-    /**
-     * Default value for {@link #PROP_MERGE_TASK_BATCH_SIZE}
-     */
-    static final int DEFAULT_NUMBER_OF_FILES_PER_MERGE_TASK = 64;
-    /**
-     * System property for specifying number of files for batch merge task when using {@link MultithreadedTraverseWithSortStrategy}
-     */
-    static final String PROP_MERGE_TASK_BATCH_SIZE = "oak.indexer.mergeTaskBatchSize";
-
-    /**
      * Value of this system property indicates max memory that should be used if jmx based memory monitoring is not available.
      */
     public static final String OAK_INDEXER_MAX_SORT_MEMORY_IN_GB = "oak.indexer.maxSortMemoryInGB";
     public static final int OAK_INDEXER_MAX_SORT_MEMORY_IN_GB_DEFAULT = 2;
-    static final String OAK_INDEXER_DUMP_THRESHOLD_IN_MB = "oak.indexer.dumpThresholdInMB";
-    static final int OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT = 16;
     private final Logger log = LoggerFactory.getLogger(getClass());
-    private List<Long> lastModifiedBreakPoints;
     private final File workDir;
     private final List<File> existingDataDumpDirs = new ArrayList<>();
     private Set<String> preferredPathElements = Collections.emptySet();
@@ -127,15 +89,12 @@ public class FlatFileNodeStoreBuilder {
     private NodeStateEntryTraverserFactory nodeStateEntryTraverserFactory;
     private long entryCount = 0;
     private File flatFileStoreDir;
-    private final MemoryManager memoryManager;
-    private long dumpThreshold = Integer.getInteger(OAK_INDEXER_DUMP_THRESHOLD_IN_MB, OAK_INDEXER_DUMP_THRESHOLD_IN_MB_DEFAULT) * FileUtils.ONE_MB;
     private Predicate<String> pathPredicate = path -> true;
 
     private final Compression algorithm = IndexStoreUtils.compressionAlgorithm();
-    private final boolean useTraverseWithSort = Boolean.parseBoolean(System.getProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false"));
     private final String sortStrategyTypeString = System.getProperty(OAK_INDEXER_SORT_STRATEGY_TYPE);
-    private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ? SortStrategyType.valueOf(sortStrategyTypeString) :
-            (useTraverseWithSort ? SortStrategyType.TRAVERSE_WITH_SORT : SortStrategyType.PIPELINED);
+    private final SortStrategyType sortStrategyType = sortStrategyTypeString != null ?
+            SortStrategyType.valueOf(sortStrategyTypeString) : SortStrategyType.PIPELINED;
     private RevisionVector rootRevision = null;
     private DocumentNodeStore nodeStore = null;
     private MongoDocumentStore mongoDocumentStore = null;
@@ -154,38 +113,17 @@ public class FlatFileNodeStoreBuilder {
          */
         TRAVERSE_WITH_SORT,
         /**
-         * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link MultithreadedTraverseWithSortStrategy} being used.
-         */
-        MULTITHREADED_TRAVERSE_WITH_SORT,
-
-        /**
          * System property {@link #OAK_INDEXER_SORT_STRATEGY_TYPE} if set to this value would result in {@link PipelinedStrategy} being used.
          */
         PIPELINED
     }
 
-    public FlatFileNodeStoreBuilder(File workDir, MemoryManager memoryManager) {
-        this.workDir = workDir;
-        this.memoryManager = memoryManager;
-    }
-
     public FlatFileNodeStoreBuilder(File workDir) {
         this.workDir = workDir;
-        this.memoryManager = new DefaultMemoryManager();
-    }
-
-    public FlatFileNodeStoreBuilder withLastModifiedBreakPoints(List<Long> lastModifiedBreakPoints) {
-        this.lastModifiedBreakPoints = lastModifiedBreakPoints;
-        return this;
     }
 
     public FlatFileNodeStoreBuilder withBlobStore(BlobStore blobStore) {
         this.blobStore = blobStore;
-        return this;
-    }
-
-    public FlatFileNodeStoreBuilder withDumpThreshold(long dumpThreshold) {
-        this.dumpThreshold = dumpThreshold;
         return this;
     }
 
@@ -360,7 +298,7 @@ public class FlatFileNodeStoreBuilder {
         return null;
     }
 
-    IndexStoreSortStrategy createSortStrategy(File dir) throws IOException {
+    IndexStoreSortStrategy createSortStrategy(File dir) {
         switch (sortStrategyType) {
             case STORE_AND_SORT:
                 log.info("Using StoreAndSortStrategy.");
@@ -372,11 +310,6 @@ public class FlatFileNodeStoreBuilder {
                 log.warn("TraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
                 return new TraverseWithSortStrategy(nodeStateEntryTraverserFactory, preferredPathElements, entryWriter, dir,
                         algorithm, pathPredicate, checkpoint);
-            case MULTITHREADED_TRAVERSE_WITH_SORT:
-                log.info("Using MultithreadedTraverseWithSortStrategy");
-                log.warn("MultithreadedTraverseWithSortStrategy is deprecated and will be removed in the near future. Use PipelinedStrategy instead.");
-                return new MultithreadedTraverseWithSortStrategy(nodeStateEntryTraverserFactory, lastModifiedBreakPoints, preferredPathElements,
-                        blobStore, dir, existingDataDumpDirs, algorithm, memoryManager, dumpThreshold, pathPredicate, checkpoint);
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
@@ -391,7 +324,7 @@ public class FlatFileNodeStoreBuilder {
         log.info("Preferred path elements are {}", Iterables.toString(preferredPathElements));
         log.info("Compression enabled while sorting : {} ({})", IndexStoreUtils.compressionEnabled(), OAK_INDEXER_USE_ZIP);
         log.info("LZ4 enabled for compression algorithm : {} ({})", IndexStoreUtils.useLZ4(), OAK_INDEXER_USE_LZ4);
-        log.info("Sort strategy : {} ({})", sortStrategyType, OAK_INDEXER_TRAVERSE_WITH_SORT);
+        log.info("Sort strategy : {} ({})", sortStrategyType, OAK_INDEXER_SORT_STRATEGY_TYPE);
     }
 
     File createStoreDir() throws IOException {
