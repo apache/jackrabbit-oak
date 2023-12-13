@@ -238,18 +238,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // If regex filtering is enabled, start by downloading the ancestors of the path used for filtering.
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
-        Set<String> regexBasePath = getPathForRegexFiltering();
+        Set<String> regexBasePaths = getPathsForRegexFiltering();
         Bson childrenFilter;
-        if (regexBasePath.isEmpty()) {
+        if (regexBasePaths.isEmpty()) {
             childrenFilter = null;
         } else {
             // Regex path filtering is enabled
             // Download the ancestors in a separate query. No retrials done on this query, as it will take only a few
             // seconds and is done at the start of the job, so if it fails, the job can be retried without losing much work
-            downloadAncestors(regexBasePath);
+            downloadAncestors(regexBasePaths);
 
             // Filter to apply to the main query
-            childrenFilter = descendantsFilter(regexBasePath);
+            childrenFilter = descendantsFilter(regexBasePaths);
         }
 
         Instant failuresStartTimestamp = null; // When the last series of failures started
@@ -332,7 +332,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private void downloadWithNaturalOrdering() throws InterruptedException, TimeoutException {
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
-        Set<String> regexBasePath = getPathForRegexFiltering();
+        Set<String> regexBasePath = getPathsForRegexFiltering();
         if (regexBasePath.isEmpty()) {
             LOG.info("Downloading full repository using natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
@@ -354,7 +354,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private Set<String> getPathForRegexFiltering() {
+    private Set<String> getPathsForRegexFiltering() {
         if (!regexPathFiltering) {
             LOG.info("Regex path filtering disabled.");
             return Set.of();
@@ -362,9 +362,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         return extractIncludedPaths(pathFilters);
     }
 
-    /*
+    /**
+     * Aggregates the included paths from the path filters. The final list will not contain duplicates or overlapping
+     * paths (i.e., /a and /a/b).
+     *
      * @param pathFilters Empty set if path filtering should be disabled, otherwise the paths that should be included
-     *                    in the filters
+     *                    in the Mongo query filters
      */
     // Package private for testing
     static Set<String> extractIncludedPaths(List<PathFilter> pathFilters) {
