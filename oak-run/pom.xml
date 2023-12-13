@@ -116,7 +116,7 @@
               </descriptors>
               <!-- use the new assembly as main artifact (i.e replace the original jar -->
               <appendAssemblyId>false</appendAssemblyId>
-              <workDirectory>target</workDirectory>
+              <workDirectory>${project.build.directory}</workDirectory>
             </configuration>
           </execution>
         </executions>
