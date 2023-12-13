@@ -19,9 +19,17 @@
 
 package org.apache.jackrabbit.oak.plugins.document.mongo;
 
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.exists;
+import static com.mongodb.client.model.Filters.gt;
+import static com.mongodb.client.model.Filters.or;
+import static java.util.Optional.empty;
+import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.lt;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
@@ -33,14 +41,17 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SD_TYPE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoUtils.hasIndex;
+import static org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable.wrap;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.mongodb.client.MongoCursor;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -120,6 +131,40 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 input -> store.convertFromDBObject(NODES, input)));
     }
 
+    /**
+     * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
+     * within the given range and are greater than given @{@link NodeDocument#ID}.
+     * <p>
+     * The two passed modified timestamps are in milliseconds
+     * since the epoch and the implementation will convert them to seconds at
+     * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
+     * then perform the comparison.
+     * <p/>
+     *
+     * @param fromModified the lower bound modified timestamp in millis (inclusive)
+     * @param toModified   the upper bound modified timestamp in millis (exclusive)
+     * @param limit        the limit of documents to return
+     * @param fromId       the lower bound {@link NodeDocument#ID}
+     * @return matching documents.
+     */
+    @Override
+    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
+                                                  @NotNull final String fromId) {
+        // (_modified = fromModified && _id > fromId || _modified > fromModified && _modified < toModified)
+        final Bson query = or(
+                and(eq(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), gt(ID, fromId)),
+                and(gt(MODIFIED_IN_SECS, getModifiedInSecs(fromModified)), lt(MODIFIED_IN_SECS, getModifiedInSecs(toModified))));
+
+        // first sort by _modified and then by _id
+        final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
+
+        final FindIterable<BasicDBObject> cursor = getNodeCollection()
+                .find(query)
+                .sort(sort)
+                .limit(limit);
+        return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
+    }
+
     @Override
     public long getDeletedOnceCount() {
         Bson query = Filters.eq(DELETED_ONCE, Boolean.TRUE);
@@ -191,6 +236,30 @@ public class MongoVersionGCSupport extends VersionGCSupport {
             result.add(clock.getTime());
         }
         return result.get(0);
+    }
+
+    /**
+     * Retrieve the time of the oldest modified document.
+     *
+     * @param clock System Clock to measure time in accuracy of millis
+     * @return the timestamp of the oldest modified document.
+     */
+    @Override
+    public Optional<NodeDocument> getOldestModifiedDoc(final Clock clock) {
+        final Bson sort = and(eq(MODIFIED_IN_SECS, 1), eq(ID, 1));
+
+        // we need to add query condition to ignore `previous` documents which doesn't have this field
+        final Bson query = exists(MODIFIED_IN_SECS);
+
+        FindIterable<BasicDBObject> limit = getNodeCollection().find(query).sort(sort).limit(1);
+
+        try(MongoCursor<BasicDBObject> cur = limit.iterator()) {
+            return cur.hasNext() ? ofNullable(store.convertFromDBObject(NODES, cur.next())) : empty();
+        } catch (Exception ex) {
+            LOG.error("getOldestModifiedDoc() <- error while fetching data from Mongo", ex);
+        }
+        LOG.info("No Modified Doc has been found, retuning empty");
+        return empty();
     }
 
     private List<Bson> createQueries(Set<SplitDocType> gcTypes,

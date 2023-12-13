@@ -125,6 +125,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean isReadOnlyMode = false;
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
+    private Feature docStoreDetailedGCFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -163,6 +164,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
+    private boolean detailedGCEnabled;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -286,6 +288,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.throttlingEnabled;
     }
 
+    public T setDetailedGCEnabled(boolean b) {
+        this.detailedGCEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isDetailedGCEnabled() {
+        return this.detailedGCEnabled;
+    }
+
+
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
         return thisBuilder();
@@ -313,6 +325,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     @Nullable
     public Feature getDocStoreThrottlingFeature() {
         return docStoreThrottlingFeature;
+    }
+
+    public T setDocStoreDetailedGCFeature(@Nullable Feature docStoreDetailedGC) {
+        this.docStoreDetailedGCFeature = docStoreDetailedGC;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getDocStoreDetailedGCFeature() {
+        return docStoreDetailedGCFeature;
     }
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {

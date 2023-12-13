@@ -60,6 +60,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isDetailedGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
@@ -99,6 +100,8 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Long> olderThan;
         final OptionSpec<Double> delay;
         final OptionSpec<?> continuous;
+        final OptionSpec<?> detailedGC;
+        final OptionSpec<?> detailedGCOnly;
         final OptionSpec<?> verbose;
 
         RevisionsOptions(String usage) {
@@ -118,6 +121,10 @@ public class RevisionsCommand implements Command {
                     .ofType(Long.class).defaultsTo(-1L);
             continuous = parser
                     .accepts("continuous", "run continuously (collect only)");
+            detailedGC = parser
+                    .accepts("detailedGC", "enable detailedGC (collect only)");
+            detailedGCOnly = parser
+                    .accepts("detailedGCOnly", "apply only to detailedGC (reset only)");
             verbose = parser
                     .accepts("verbose", "print INFO messages to the console");
         }
@@ -157,6 +164,14 @@ public class RevisionsCommand implements Command {
 
         boolean isContinuous() {
             return options.has(continuous);
+        }
+
+        boolean isDetailedGCEnabled() {
+            return options.has(detailedGC);
+        }
+
+        boolean isResetDetailedGCOnly() {
+            return options.has(detailedGCOnly);
         }
 
         boolean isVerbose() {
@@ -219,6 +234,9 @@ public class RevisionsCommand implements Command {
                     version);
             System.exit(1);
         }
+        if (options.isDetailedGCEnabled()) {
+            builder.setDetailedGCEnabled(true);
+        }
         // set it read-only before the DocumentNodeStore is created
         // this prevents the DocumentNodeStore from writing a new
         // clusterId to the clusterNodes and nodes collections
@@ -226,7 +244,7 @@ public class RevisionsCommand implements Command {
         useMemoryBlobStore(builder);
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport);
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isDetailedGCEnabled(builder));
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -244,6 +262,11 @@ public class RevisionsCommand implements Command {
             throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("retrieving gc info");
+        printInfo(gc, options);
+    }
+
+    private void printInfo(VersionGarbageCollector gc, RevisionsOptions options)
+            throws IOException {
         VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
 
         System.out.printf(Locale.US, "%21s  %s%n", "Last Successful Run:",
@@ -260,6 +283,8 @@ public class RevisionsCommand implements Command {
                 fmtTimestamp(info.recommendedCleanupTimestamp));
         System.out.printf(Locale.US, "%21s  %d%n", "Iterations Estimate:",
                 info.estimatedIterations);
+        System.out.printf(Locale.US, "%21s  %s%n", "Oldest DetailedGC:",
+                fmtTimestamp(info.oldestDetailedGCRevisionEstimate));
     }
 
     private void collect(final RevisionsOptions options, Closer closer)
@@ -268,19 +293,20 @@ public class RevisionsCommand implements Command {
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
+            // collect until shutdown hook is called
+            final AtomicBoolean running = new AtomicBoolean(true);
+            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    System.out.println("Detected QUIT signal.");
+                    System.out.println("Stopping Revision GC...");
+                    running.set(false);
+                    gc.cancel();
+                    finished.acquireUninterruptibly();
+                    System.out.println("Stopped Revision GC.");
+                }
+            }));
             if (options.isContinuous()) {
-                // collect until shutdown hook is called
-                final AtomicBoolean running = new AtomicBoolean(true);
-                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        System.out.println("Detected QUIT signal.");
-                        System.out.println("Stopping Revision GC...");
-                        running.set(false);
-                        finished.acquireUninterruptibly();
-                        System.out.println("Stopped Revision GC.");
-                    }
-                }));
                 while (running.get()) {
                     long lastRun = System.currentTimeMillis();
                     collectOnce(gc, options, executor);
@@ -289,6 +315,8 @@ public class RevisionsCommand implements Command {
             } else {
                 collectOnce(gc, options, executor);
             }
+            System.out.println("retrieving gc info");
+            printInfo(gc, options);
         } finally {
             finished.release();
             executor.shutdownNow();
@@ -351,7 +379,11 @@ public class RevisionsCommand implements Command {
             throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer);
         System.out.println("resetting recommendations and statistics");
-        gc.reset();
+        if (options.isResetDetailedGCOnly()) {
+            gc.resetDetailedGC();
+        } else {
+            gc.reset();
+        }
     }
 
     private void sweep(RevisionsOptions options, Closer closer)

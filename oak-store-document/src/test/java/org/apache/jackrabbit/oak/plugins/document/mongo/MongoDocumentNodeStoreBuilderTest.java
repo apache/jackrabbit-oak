@@ -49,6 +49,18 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void detailedGCDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.isDetailedGCEnabled());
+    }
+
+    @Test
+    public void detailedGCFeatureToggleDisabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getDocStoreDetailedGCFeature());
+    }
+
+    @Test
     public void collectionCompressionDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getCollectionCompressionType());

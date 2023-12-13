@@ -546,7 +546,7 @@ public interface DocumentStore {
     /**
      * Performs a conditional update (e.g. using
      * {@link UpdateOp.Condition.Type#EXISTS} and only update the
-     * document if the condition is <code>true</code>. The returned documents are
+     * document(s) if the respective condition is <code>true</code>. The returned documents are
      * immutable.
      * <p>
      * In case of a {@code DocumentStoreException} (e.g. when a communication

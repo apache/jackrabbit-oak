@@ -32,6 +32,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_DETAILED_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 
 @ObjectClassDefinition(
@@ -289,4 +290,12 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "a change that is not yet visible. Default: " + DEFAULT_SUSPEND_TIMEOUT +
                     " (milliseconds).")
     long suspendTimeoutMillis() default DEFAULT_SUSPEND_TIMEOUT;
+
+    @AttributeDefinition(
+            name = "Document Node Store Detailed GC",
+            description = "Boolean value indicating whether Detailed GC should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_DETAILED_GC_ENABLED +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.detailedGCEnabled'")
+    boolean detailedGCEnabled() default DEFAULT_DETAILED_GC_ENABLED;
 }

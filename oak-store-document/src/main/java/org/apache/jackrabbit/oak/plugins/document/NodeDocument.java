@@ -58,6 +58,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jackrabbit.guava.common.base.Objects.equal;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
@@ -1657,6 +1658,24 @@ public final class NodeDocument extends Document {
             map = ValueMap.EMPTY;
         }
         return map;
+    }
+
+    /**
+     * Returns name of all the properties on this document
+     * <p>
+     * Note: property names returned are escaped
+     *
+     * @return Set of all property names (escaped)
+     * @see Utils#unescapePropertyName(String)
+     * @see Utils#escapePropertyName(String)
+     */
+    @NotNull
+    Set<String> getPropertyNames() {
+        return data
+                .keySet()
+                .stream()
+                .filter(Utils::isPropertyName)
+                .collect(toSet());
     }
 
     /**

@@ -50,7 +50,13 @@ import org.junit.Test;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGC;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -94,6 +100,7 @@ public class VersionGCTest {
 
     @After
     public void tearDown() throws Exception {
+        DetailGCHelper.disableDetailGC(gc);
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
     }
@@ -185,6 +192,85 @@ public class VersionGCTest {
         }
     }
 
+    // OAK-10199
+    @Test
+    public void cancelMustNotUpdateLastOldestModifiedTimeStamp() throws Exception {
+        // get previous entry from SETTINGS
+        String versionGCId = SETTINGS_COLLECTION_ID;
+        String detailedGCTimestamp = SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+        enableDetailGC(gc);
+        gc.gc(30, SECONDS);
+        Document statusBefore = store.find(SETTINGS, versionGCId);
+        // block gc call
+        store.semaphore.acquireUninterruptibly();
+        Future<VersionGCStats> stats = gc();
+        boolean gcBlocked = false;
+        for (int i = 0; i < 10; i ++) {
+            if (store.semaphore.hasQueuedThreads()) {
+                gcBlocked = true;
+                break;
+            }
+            Thread.sleep(100);
+        }
+        assertTrue(gcBlocked);
+        // now cancel the GC
+        gc.cancel();
+        store.semaphore.release();
+        assertTrue(stats.get().canceled);
+
+        // ensure a canceled GC doesn't update that versionGC SETTINGS entry
+        Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        if (statusBefore == null) {
+            assertNull(statusAfter);
+        } else {
+            assertNotNull(statusAfter);
+            assertEquals(
+                    "canceled GC shouldn't change the " + detailedGCTimestamp + " property on " + versionGCId
+                            + " settings entry",
+                    statusBefore.get(detailedGCTimestamp), statusAfter.get(detailedGCTimestamp));
+        }
+    }
+
+    @Test
+    public void cancelMustNotUpdateLastOldestModifiedDocId() throws Exception {
+        // get previous entry from SETTINGS
+        String versionGCId = SETTINGS_COLLECTION_ID;
+        String oldestModifiedDocId = SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+        enableDetailGC(gc);
+        gc.gc(30, SECONDS);
+        Document statusBefore = store.find(SETTINGS, versionGCId);
+        // block gc call
+        store.semaphore.acquireUninterruptibly();
+        Future<VersionGCStats> stats = gc();
+        boolean gcBlocked = false;
+        for (int i = 0; i < 10; i ++) {
+            if (store.semaphore.hasQueuedThreads()) {
+                gcBlocked = true;
+                break;
+            }
+            Thread.sleep(100);
+        }
+        assertTrue(gcBlocked);
+        // now cancel the GC
+        gc.cancel();
+        store.semaphore.release();
+        assertTrue(stats.get().canceled);
+
+        // ensure a canceled GC doesn't update that versionGC SETTINGS entry
+        Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        if (statusBefore == null) {
+            assertNull(statusAfter);
+        } else {
+            assertNotNull(statusAfter);
+            assertEquals(
+                    "canceled GC shouldn't change the " + oldestModifiedDocId + " property on " + versionGCId
+                            + " settings entry",
+                    statusBefore.get(oldestModifiedDocId), statusAfter.get(oldestModifiedDocId));
+        }
+    }
+
+    // END - OAK-10199
+
     @Test
     public void getInfo() throws Exception {
         gc.gc(1, TimeUnit.HOURS);
@@ -238,7 +324,7 @@ public class VersionGCTest {
         VersionGCSupport localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oneYearAgo, twelveTimesTheLimit);
 
         VersionGCRecommendations rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport,
-                options, new TestGCMonitor());
+                options, new TestGCMonitor(), false);
 
         // should select a duration of roughly one month
         long duration= rec.scope.getDurationMs();
@@ -252,7 +338,7 @@ public class VersionGCTest {
         assertTrue(stats.needRepeat);
 
         rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                new TestGCMonitor());
+                new TestGCMonitor(), false);
 
         // new duration should be half
         long nduration = rec.scope.getDurationMs();
@@ -281,7 +367,7 @@ public class VersionGCTest {
         // loop until the recommended interval is at 60s (precisionMS)
         do {
             rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor);
+                    testmonitor, false);
             stats = new VersionGCStats();
             stats.limitExceeded = true;
             rec.evaluate(stats);
@@ -298,7 +384,7 @@ public class VersionGCTest {
             deletedCount -= deleted;
             localgcsupport = fakeVersionGCSupport(ns.getDocumentStore(), oldestDeleted, deletedCount);
             rec = new VersionGCRecommendations(secondsPerDay, ns.getCheckpoints(), ns.getClock(), localgcsupport, options,
-                    testmonitor);
+                    testmonitor, false);
             stats = new VersionGCStats();
             stats.limitExceeded = false;
             stats.deletedDocGCCount = deleted;
@@ -322,7 +408,7 @@ public class VersionGCTest {
                 deletedOnceCountCalls.incrementAndGet();
                 return Iterables.size(Utils.getSelectedDocuments(store, NodeDocument.DELETED_ONCE, 1));
             }
-        });
+        }, false);
 
         // run first RGC
         gc.gc(1, TimeUnit.HOURS);
@@ -337,6 +423,25 @@ public class VersionGCTest {
             assertEquals(0, deletedOnceCountCalls.get());
         }
     }
+
+    // OAK-10199
+    @Test
+    public void testDetailGcDocumentRead_disabled() throws Exception {
+        DetailGCHelper.disableDetailGC(gc);
+        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        assertNotNull(stats);
+        assertEquals(0, stats.detailedGCDocsElapsed);
+    }
+
+    @Test
+    public void testDetailGcDocumentRead_enabled() throws Exception {
+        enableDetailGC(gc);
+        VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
+        assertNotNull(stats);
+        assertNotEquals(0, stats.detailedGCDocsElapsed);
+    }
+
+    // OAK-10199
 
     private Future<VersionGCStats> gc() {
         // run gc in a separate thread
@@ -396,7 +501,7 @@ public class VersionGCTest {
         @Override
         public <T extends Document> T find(Collection<T> collection,
                                            String key) {
-            if (collection == Collection.SETTINGS
+            if (collection == SETTINGS
                     && key.equals("versionGC")) {
                 findVersionGC.incrementAndGet();
             }
