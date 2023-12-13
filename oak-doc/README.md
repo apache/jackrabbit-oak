@@ -33,14 +33,18 @@ to clean any existing site,
 
 to build the site **without** Javadoc, and optionally
 
-    mvn site -Pjavadoc
+    mvn site -Pjavadoc -pl '!oak-shaded-guava,!oak-upgrade,!oak-benchmarks,!oak-search-elastic,!oak-benchmarks-lucene,!oak-benchmarks-solr,!oak-benchmarks-elastic,!oak-run-elastic'
 
 to add Javadoc. 
 
-    mvn site -Pdoc,javadoc
+    mvn site -Pdoc,javadoc -pl '!oak-shaded-guava,!oak-upgrade,!oak-benchmarks,!oak-search-elastic,!oak-benchmarks-lucene,!oak-benchmarks-solr,!oak-benchmarks-elastic,!oak-run-elastic'
 
 to generate **both** site and javadocs. Review the site at
 `oak-doc/target/site`.
+
+(Note that the module exclusions for the javadoc build are needed because
+we have conflicting versions of dependencies, but are trying to build
+"aggregate" API docs; see OAK-10500 for more details.)
 
 Then deploy the site to `http://jackrabbit.apache.org/oak/docs/` using
 

@@ -22,32 +22,20 @@ import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.junit.After;
-import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.contrib.java.lang.system.ProvideSystemProperty;
-import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.testcontainers.containers.ToxiproxyContainer;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
-
-    // set cache expiration and refresh to low values to avoid cached results in tests
-    @Rule
-    public final ProvideSystemProperty updateSystemProperties
-            = new ProvideSystemProperty("oak.elastic.statsExpireSeconds", "5")
-            .and("oak.elastic.statsRefreshSeconds", "1");
-
-    @Rule
-    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
 
@@ -86,9 +74,9 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
     }
 
     @Test
-    @Ignore("OAK-10558")
     public void connectionCutOnQuery() throws Exception {
-        setIndex("test1", createIndex("propa", "propb"));
+        String indexName = UUID.randomUUID().toString();
+        setIndex(indexName, createIndex("propa", "propb"));
 
         Tree test = root.getTree("/").addChild("test");
         test.addChild("a").setProperty("propa", "a");
@@ -103,7 +91,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
                 .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.UPSTREAM, 0L);
 
         // elastic is down, query should not use it
-        assertEventually(() -> assertThat(explain(query), not(containsString("elasticsearch:test1"))));
+        assertThat(explain(query), not(containsString("elasticsearch:" + indexName)));
 
         // result set should be correct anyway since traversal is enabled
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
@@ -112,7 +100,7 @@ public class ElasticReliabilityTest extends ElasticAbstractQueryTest {
         cutConnectionUpstream.remove();
 
         // result set should be the same as before but this time elastic should be used
-        assertEventually(() -> assertThat(explain(query), containsString("elasticsearch:test1")));
+        assertThat(explain(query), containsString("elasticsearch:" + indexName));
         assertQuery(query, Arrays.asList("/test/a", "/test/b"));
     }
 }

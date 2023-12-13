@@ -36,24 +36,24 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.util.Collections;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_DISABLED;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_API_KEY_ID;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_API_KEY_SECRET;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_HOST;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_PORT;
+import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_ELASTIC_SCHEME;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_INDEX_PREFIX;
 import static org.apache.jackrabbit.oak.plugins.index.elastic.ElasticIndexProviderService.PROP_LOCAL_TEXT_EXTRACTION_DIR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assume.assumeTrue;
 import static org.mockito.Mockito.mock;
 
 public class ElasticIndexProviderServiceTest {
-
-    private static final String elasticConnectionString = System.getProperty("elasticConnectionString");
 
     @Rule
     public final TemporaryFolder folder = new TemporaryFolder(new File("target"));
@@ -62,7 +62,7 @@ public class ElasticIndexProviderServiceTest {
     public final OsgiContext context = new OsgiContext();
 
     @ClassRule
-    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(elasticConnectionString);
+    public static ElasticConnectionRule elasticRule = new ElasticConnectionRule(ElasticTestUtils.ELASTIC_CONNECTION_STRING);
 
     private final ElasticIndexProviderService service = new ElasticIndexProviderService();
 
@@ -95,13 +95,8 @@ public class ElasticIndexProviderServiceTest {
     }
 
     @Test
-    public void withElasticSetup() throws Exception {
-        Map<String, Object> props = new HashMap<>();
-        props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
-        props.put(PROP_INDEX_PREFIX, "elastic");
-        props.put(PROP_ELASTIC_HOST, "localhost");
-        props.put(PROP_ELASTIC_PORT, elasticRule.getElasticConnectionModel().getElasticPort());
-        MockOsgi.activate(service, context.bundleContext(), props);
+    public void withElasticSetup() {
+        MockOsgi.activate(service, context.bundleContext(), getElasticConfig());
 
         assertNotNull(context.getService(QueryIndexProvider.class));
         assertNotNull(context.getService(IndexEditorProvider.class));
@@ -112,12 +107,8 @@ public class ElasticIndexProviderServiceTest {
     }
 
     @Test
-    public void withIndexCleanerSetup() throws Exception {
-        Map<String, Object> props = new HashMap<>();
-        props.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
-        props.put(PROP_INDEX_PREFIX, "elastic");
-        props.put(PROP_ELASTIC_HOST, "localhost");
-        props.put(PROP_ELASTIC_PORT, elasticRule.getElasticConnectionModel().getElasticPort());
+    public void withIndexCleanerSetup() {
+        Map<String, Object> props = new HashMap<>(getElasticConfig());
         props.put("remoteIndexCleanupFrequency", 600);
         MockOsgi.activate(service, context.bundleContext(), props);
 
@@ -131,7 +122,7 @@ public class ElasticIndexProviderServiceTest {
 
     @Test
     public void disabled() {
-        MockOsgi.activate(service, context.bundleContext(), Collections.singletonMap(PROP_DISABLED, true));
+        MockOsgi.activate(service, context.bundleContext(), Map.of(PROP_DISABLED, true));
 
         assertNull(context.getService(QueryIndexProvider.class));
         assertNull(context.getService(IndexEditorProvider.class));
@@ -139,6 +130,22 @@ public class ElasticIndexProviderServiceTest {
         assertEquals(0, WhiteboardUtils.getServices(wb, Runnable.class).size());
 
         MockOsgi.deactivate(service, context.bundleContext());
+    }
+
+    private HashMap<String, Object> getElasticConfig() {
+        HashMap<String, Object> config = new HashMap<>();
+        config.put(PROP_INDEX_PREFIX, "elastic");
+        config.put(PROP_ELASTIC_SCHEME, elasticRule.getElasticConnectionModel().getScheme());
+        config.put(PROP_ELASTIC_HOST, elasticRule.getElasticConnectionModel().getElasticHost());
+        config.put(PROP_ELASTIC_PORT, elasticRule.getElasticConnectionModel().getElasticPort());
+        config.put(PROP_ELASTIC_API_KEY_ID, elasticRule.getElasticConnectionModel().getElasticApiKey());
+        config.put(PROP_ELASTIC_API_KEY_SECRET, elasticRule.getElasticConnectionModel().getElasticApiSecret());
+        try {
+            config.put(PROP_LOCAL_TEXT_EXTRACTION_DIR, folder.newFolder("localTextExtractionDir").getAbsolutePath());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return config;
     }
 
 }
