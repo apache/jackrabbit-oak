@@ -151,7 +151,7 @@ class Checkpoints {
                 LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
             } catch (UnsupportedOperationException uoe) {
                 LOG.info("getOldestRevisionToKeep : could not clean up expired checkpoints"
-                        + " due to excepttion : " + uoe, uoe);
+                        + " due to exception : " + uoe, uoe);
             }
         }
 
