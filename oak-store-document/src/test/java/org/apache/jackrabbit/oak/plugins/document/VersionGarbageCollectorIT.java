@@ -302,6 +302,33 @@ public class VersionGarbageCollectorIT {
         gcSplitDocsInternal(repeat("sub", 120));
     }
 
+    @Test
+    public void testDetailedGCNeedRepeat() throws Exception {
+        long expiryTime = 5001, maxAge = 20, batchSize = /*PROGRESS_BATCH_SIZE+1*/ 10001;
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+
+        // create a bunch of garbage
+        NodeBuilder b1 = store1.getRoot().builder();
+        for( int i = 0; i < batchSize; i++ ) {
+	        b1.child("c" + i).setProperty("test", "t", STRING);
+        }
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        for( int i = 0; i < batchSize; i++ ) {
+	        b1.child("c" + i).removeProperty("test");
+        }
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        //Fast forward time to future such that checkpoint get expired
+        clock.waitUntil(clock.getTime() + expiryTime);
+        VersionGCStats stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
+        assertFalse("Detailed GC should be performed", stats.ignoredDetailedGCDueToCheckPoint);
+        assertFalse(stats.canceled);
+        assertEquals(batchSize, stats.updatedDetailedGCDocsCount);
+        assertFalse(stats.needRepeat);
+    }
+
     // OAK-10199
     @Test
     public void detailedGCIgnoredForCheckpoint() throws Exception {
