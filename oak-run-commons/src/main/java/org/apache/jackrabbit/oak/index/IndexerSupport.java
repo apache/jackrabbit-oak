@@ -32,8 +32,6 @@ import org.apache.felix.inventory.Format;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateHolder;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncLaneSwitcher;
 import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
