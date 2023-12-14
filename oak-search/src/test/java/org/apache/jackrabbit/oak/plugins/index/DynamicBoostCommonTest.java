@@ -161,6 +161,20 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void dynamicBoostShouldNotMatchOnSingleFields() throws Exception {
+        boolean lite = areAnalyzeFeaturesSupportedInLiteModeOnly();
+        createAssetsIndexAndProperties(lite, lite);
+        prepareTestAssets();
+
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(*, 'long')",
+                    List.of("/test/asset1", "/test/asset2", "/test/asset3"));
+            assertOrderedQuery("select [jcr:path] from [dam:Asset] where contains(title, 'long')",
+                    List.of("/test/asset1", "/test/asset2"));
+        });
+    }
+
     protected abstract String getTestQueryDynamicBoostBasicExplained();
 
     protected boolean areAnalyzeFeaturesSupportedInLiteModeOnly() {
@@ -188,6 +202,7 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         predicted3.setProperty("jcr:uuid", UUID.randomUUID().toString());
         createPredictedTag(predicted3, "plant", 0.5);
         createPredictedTag(predicted3, "blue", 0.5);
+        createPredictedTag(predicted3, "long", 0.1);
         root.commit();
     }
 
