@@ -653,7 +653,9 @@ public class VersionGarbageCollector {
             monitor.info("Revision garbage collection finished in {}. {}",
                     TimeDurationFormatter.forLogging().format(phases.elapsed.elapsed(MICROSECONDS), MICROSECONDS), stats);
             if (detailedGCEnabled) {
-                stats.detailedGCActive.stop();
+                if (stats.detailedGCActive.isRunning()) {
+                    stats.detailedGCActive.stop();
+                } // probably limitExceeded == true case
             }
             stats.active.stop();
             return stats;
