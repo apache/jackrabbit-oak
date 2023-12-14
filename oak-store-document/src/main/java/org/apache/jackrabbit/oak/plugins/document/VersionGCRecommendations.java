@@ -260,7 +260,15 @@ public class VersionGCRecommendations {
             // success, we would not expect to encounter revisions older than this in the future
             setLongSetting(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
             setStringSetting(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
-            stats.needRepeat |= !detailedGCScopeIsComplete;
+
+            long scopeEnd = scopeDetailedGC.toMs;
+            long actualEnd = stats.oldestModifiedDocTimeStamp;
+
+            if (actualEnd < scopeEnd) {
+                stats.needRepeat = true;
+            } else {
+                stats.needRepeat |= !detailedGCScopeIsComplete;
+            }
         }
     }
 
