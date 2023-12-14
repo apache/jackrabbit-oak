@@ -381,7 +381,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             includedPaths.addAll(pathFilter.getIncludedPaths());
             excludedPaths.addAll(pathFilter.getExcludedPaths());
         }
-        // Sort by length to make it easier to compute the common ancestors of include paths
+        // Sort by natural order, so that parent paths appear before any children. This makes it easier to compute the
+        // common ancestors of included paths
         List<String> sortedIncludedPaths = includedPaths.stream()
                 .sorted()
                 .collect(Collectors.toList());
