@@ -165,6 +165,27 @@ public class PipelinedIT {
     }
 
     @Test
+    public void createFFS_mongoFiltering_multipleIndexes() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+
+        Predicate<String> pathPredicate = s -> true;
+        PathFilter pathFilter = new PathFilter(List.of("/content/dam/1000", "/content/dam/2023", "/content/dam/2023/01"), List.of());
+        List<PathFilter> pathFilters = List.of(pathFilter);
+
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/1000|{}",
+                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+                "/content/dam/2023|{\"p2\":\"v2023\"}",
+                "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+                "/content/dam/2023/02|{}",
+                "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
+        ));
+    }
+
+    @Test
     public void createFFS_noRetryOnMongoFailures_noMongoFiltering() throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false");

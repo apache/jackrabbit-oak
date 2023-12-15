@@ -57,7 +57,6 @@ import org.mockito.Mockito;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORTED_FILE_PATH;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_SORT_STRATEGY_TYPE;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder.OAK_INDEXER_TRAVERSE_WITH_SORT;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 import static org.junit.Assert.assertEquals;
@@ -82,7 +81,6 @@ public class FlatFileNodeStoreBuilderTest {
         MongoDocumentStore mongoDocumentStore = mock(MongoDocumentStore.class);
         when(mongoDocumentStore.isReadOnly()).thenReturn(true);
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withLastModifiedBreakPoints(List.of())
                 .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory)
                 .withIndexDefinitions(Set.of())
                 .withMongoDocumentStore(mongoDocumentStore);
@@ -92,25 +90,6 @@ public class FlatFileNodeStoreBuilderTest {
 
     @Test
     public void sortStrategyBasedOnSystemProperty() throws Exception {
-        System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
-        SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
-    }
-
-    @Test
-    public void enableTraverseAndSortStrategyUsingSystemProperty() throws Exception {
-        System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "true");
-        FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
-                .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
-        SortStrategy sortStrategy = builder.createSortStrategy(builder.createStoreDir());
-        assertTrue(sortStrategy instanceof TraverseWithSortStrategy);
-    }
-
-    @Test
-    public void sortStrategySystemPropertyPrecedence() throws Exception {
-        System.setProperty(OAK_INDEXER_TRAVERSE_WITH_SORT, "false");
         System.setProperty(OAK_INDEXER_SORT_STRATEGY_TYPE, FlatFileNodeStoreBuilder.SortStrategyType.TRAVERSE_WITH_SORT.toString());
         FlatFileNodeStoreBuilder builder = new FlatFileNodeStoreBuilder(folder.getRoot())
                 .withNodeStateEntryTraverserFactory(nodeStateEntryTraverserFactory);
