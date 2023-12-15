@@ -28,9 +28,11 @@ public final class PipelinedMetrics {
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL = METRIC_NAME_PREFIX + "documents_rejected_split_total";
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL = METRIC_NAME_PREFIX + "documents_accepted_total";
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_TOTAL = METRIC_NAME_PREFIX + "documents_rejected_total";
+    public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_PERCENTAGE = METRIC_NAME_PREFIX + "documents_accepted_percentage";
     public static final String OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE_TOTAL = METRIC_NAME_PREFIX + "documents_rejected_empty_node_state_total";
     public static final String OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED_TOTAL = METRIC_NAME_PREFIX + "entries_traversed_total";
     public static final String OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL = METRIC_NAME_PREFIX + "entries_accepted_total";
+    public static final String OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_PERCENTAGE = METRIC_NAME_PREFIX + "entries_accepted_percentage";
     public static final String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_TOTAL = METRIC_NAME_PREFIX + "entries_rejected_total";
     public static final String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS_TOTAL = METRIC_NAME_PREFIX + "entries_rejected_hidden_paths_total";
     public static final String OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED_TOTAL = METRIC_NAME_PREFIX + "entries_rejected_path_filtered_total";

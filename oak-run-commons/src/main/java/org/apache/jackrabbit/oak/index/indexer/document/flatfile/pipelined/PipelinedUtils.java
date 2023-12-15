@@ -55,4 +55,11 @@ public class PipelinedUtils {
         }
     }
 
+    public static int toPercentageAsInt(long numerator, long denominator) {
+        if (denominator == 0) {
+            return -1;
+        } else {
+            return (int) Math.round((100.0 * numerator) / denominator);
+        }
+    }
 }
