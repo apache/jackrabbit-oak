@@ -33,7 +33,6 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -62,7 +61,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 
 import static org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCountBin;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED;
 
 /**
  * Downloads the contents of the MongoDB repository dividing the tasks in a pipeline with the following stages:
@@ -435,7 +433,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     this.getAlgorithm(),
                     emptyBatchesQueue,
                     nonEmptyBatchesQueue,
-                    sortedFilesQueue
+                    sortedFilesQueue,
+                    statisticsProvider
             ));
 
             PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(
@@ -463,7 +462,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                                 mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
                             }
                             mergeSortTask.stopEagerMerging();
-                            MetricsUtils.setCounterOnce(statisticsProvider, OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED, downloadResult.getDocumentsDownloaded());
 
                         } else if (result instanceof PipelinedTransformTask.Result) {
                             PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
@@ -527,7 +525,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
                         .add("nodeStateEntriesExtracted", nodeStateEntriesExtracted)
                         .build());
-                printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } finally {

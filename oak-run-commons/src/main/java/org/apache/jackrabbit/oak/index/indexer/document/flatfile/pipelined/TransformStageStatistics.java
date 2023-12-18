@@ -145,18 +145,22 @@ public class TransformStageStatistics {
         long entriesAcceptedTotalSizeSum = entriesAcceptedTotalSize.sum();
         long entriesRejectedSum = entriesRejected.sum();
         long entriesTraversed = entriesAcceptedSum + entriesRejectedSum;
+        int documentsAcceptedPercentage = PipelinedUtils.toPercentageAsInt(documentsAcceptedTotal, mongoDocumentsTraversedSum);
+        int entriesAcceptedPercentage = PipelinedUtils.toPercentageAsInt(entriesAcceptedSum, entriesAcceptedSum + entriesRejectedSum);
 
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED, mongoDocumentsTraversedSum);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT, documentsRejectedSplitSum);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE, documentsRejectedEmptyNodeStateSum);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED, documentsAcceptedTotal);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED, documentsRejectedTotal);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED, entriesTraversed);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED, entriesAcceptedSum);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED, entriesRejectedSum);
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS, entriesRejectedHiddenPaths.sum());
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED, entriesRejectedPathFiltered.sum());
-        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_SIZE, entriesAcceptedTotalSizeSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL, mongoDocumentsTraversedSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL, documentsRejectedSplitSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE_TOTAL, documentsRejectedEmptyNodeStateSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL, documentsAcceptedTotal);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_TOTAL, documentsRejectedTotal);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_PERCENTAGE, documentsAcceptedPercentage);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED_TOTAL, entriesTraversed);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL, entriesAcceptedSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_PERCENTAGE, entriesAcceptedPercentage);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_TOTAL, entriesRejectedSum);
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS_TOTAL, entriesRejectedHiddenPaths.sum());
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED_TOTAL, entriesRejectedPathFiltered.sum());
+        MetricsUtils.setCounterOnce(statisticsProvider, PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_BYTES, entriesAcceptedTotalSizeSum);
     }
 
     public String formatStats() {
