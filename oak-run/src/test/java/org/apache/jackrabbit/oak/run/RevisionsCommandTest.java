@@ -128,6 +128,34 @@ public class RevisionsCommandTest {
     }
 
     @Test
+    public void resetDryRunFields() throws Exception {
+        // need to set detailedGCEnabled to true, so let's bounce the default one
+        ns.dispose();
+        // and create it fresh with detailedGCEnabled==true
+        ns = createDocumentNodeStore(true);
+        ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
+
+        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        assertNotNull(doc);
+        assertNull(doc.get("detailedGCDryRunTimeStamp"));
+        assertNull(doc.get("detailedGCDryRunId"));
+
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+
+        MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
+        ns = builderProvider.newBuilder()
+                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+        doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        assertNotNull(doc);
+        assertNull(doc.get("detailedGCDryRunTimeStamp"));
+        assertNull(doc.get("detailedGCDryRunId"));
+    }
+
+    @Test
     public void collect() throws Exception {
         ns.dispose();
 
@@ -140,6 +168,24 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithoutDryRun() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "false"));
+        assertTrue(output.contains("DryRun is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithDryRun() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "true"));
         assertTrue(output.contains("DryRun is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
