@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
@@ -32,59 +33,71 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsC
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
 public class PropertyStats implements StatsCollector {
-    
-    Storage storage;
-    private final long seed = 42;
-    List<IndexedProperty> indexedProperties;
-    HashMap<String, ArrayList<IndexedProperty>> indexexPropertyMap;
-    
-    HashSet<String> indexProperties = new HashSet<String>();
-    
-    private final static boolean INDEXED_PROPERTIES_ONLY_WITHOUT_CHECKS = true;
-    
-    private final static int SKIP = 5;
 
     // we start collecting distinct values data once we have seen this many entries
     // (to speed up processing)
-    private final static long MIN_PROPERTY_COUNT = 1000;
+    private final static long MIN_PROPERTY_COUNT = 500;
 
     // we start collecting top k values once we have seen this many entries
     // (to save memory and speed up processing)
     private final static long MIN_TOP_K = 10_000;
 
+    // the number of top entries to collect
     private final static int TOP_K = 8;
 
     // we only consider the most common properties
     // to protect against millions of unique properties
     private final static long MAX_SIZE = 100_000;
     
-    private final TreeMap<String, Stats> statsMap = new TreeMap<>();
+    // only collect statistics for indexed properties
+    private final boolean indexedPropertiesOnly;
+    private HashMap<String, ArrayList<IndexedProperty>> indexexPropertyMap;
+    private HashSet<String> indexedProperties = new HashSet<String>();
     
-    private int skip;
+    private final long seed = 42;
+    private final TreeMap<String, Stats> statsMap = new TreeMap<>();
+
+    // skip this many entries (for sampling)
+    private int skip = 1;
+
+    private Storage storage;
+    
+    private int skipRemaining;
+    
+    public PropertyStats(boolean indexedPropertiesOnly) {
+        this.indexedPropertiesOnly = indexedPropertiesOnly;
+    }
 
     @Override
     public void setStorage(Storage storage) {
         this.storage = storage;
     }
     
+    public void setSkip(int skip) {
+        this.skip = skip;
+    }
+
+    public void setIndexedPropertiesSet(HashSet<String> set) {
+        indexedProperties.addAll(set);
+    }
+
     public void setIndexedProperties(HashMap<String, ArrayList<IndexedProperty>> map) {
         this.indexexPropertyMap = map;
-        indexProperties.addAll(map.keySet());
+        indexedProperties.addAll(map.keySet());
     }
 
     @Override
     public void add(NodeData node) {
-        if (skip > 0) {
-            skip--;
+        if (skipRemaining > 0) {
+            skipRemaining--;
             return;
         }
-        skip = SKIP;
+        skipRemaining = skip;
         List<Property> properties = node.getProperties();
-        // TODO maybe also consider path (first n levels)
         for(Property p : properties) {
             String name = p.getName();
-            if (INDEXED_PROPERTIES_ONLY_WITHOUT_CHECKS) {
-                if (indexProperties != null && !indexProperties.contains(name)) {
+            if (indexedPropertiesOnly) {
+                if (indexedProperties != null && !indexedProperties.contains(name)) {
                     continue;
                 }
                 add(name, p);
@@ -99,7 +112,7 @@ public class PropertyStats implements StatsCollector {
                         }
                     }
                 }
-                add(name + " nt:base*", p);
+                add(name, p);
             }
         }
     }
@@ -154,10 +167,10 @@ public class PropertyStats implements StatsCollector {
     public void end() {
     }
     
-    public String toString() {
-        StringBuilder buff = new StringBuilder();
-        buff.append("PropertyStats\n");
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
         for(Stats stats : statsMap.values()) {
+            StringBuilder buff = new StringBuilder();
             if (stats.count < MIN_PROPERTY_COUNT) {
                 continue;
             }
@@ -196,8 +209,15 @@ public class PropertyStats implements StatsCollector {
             if (top != null) {
                 buff.append(" top ").append(top.toString());
             }
-            buff.append("\n");
+            result.add(buff.toString());
         }
+        return result;
+    }
+    
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("PropertyStats\n");
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }

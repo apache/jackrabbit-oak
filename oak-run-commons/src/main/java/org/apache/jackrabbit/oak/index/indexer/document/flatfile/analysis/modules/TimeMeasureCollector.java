@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
+import java.util.List;
+
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
@@ -46,6 +48,10 @@ public class TimeMeasureCollector implements StatsCollector {
     @Override
     public void end() {
         base.end();
+    }
+    
+    public List<String> getRecords() {
+        return base.getRecords();
     }
     
     public String toString() {

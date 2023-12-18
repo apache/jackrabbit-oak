@@ -20,7 +20,9 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
@@ -90,12 +92,12 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
     }
     
     void add(String key, ArrayList<Long> hashSizePairs) {
-        for(int i=0; i<hashSizePairs.size(); i+=2) {
+        for (int i = 0; i < hashSizePairs.size(); i += 2) {
             long hash = hashSizePairs.get(i);
             long size = hashSizePairs.get(i + 1);
             int bits = 65 - Long.numberOfLeadingZeros(size);
             String k = key + " " + SIZES[bits];
-            HyperLogLog hll = distinctMap.computeIfAbsent(k, n -> new HyperLogLog(128));
+            HyperLogLog hll = distinctMap.computeIfAbsent(k, n -> new HyperLogLog(128, 1024));
             hll.add(hash);
             long est = hll.estimate();
             storage.add(k, 1L);
@@ -105,14 +107,20 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
         }
     }
     
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
+        for(Entry<String, Long> e : storage.entrySet()) {
+            if (e.getValue() > 0) {
+                result.add(e.getKey() + ": " + e.getValue());
+            }
+        }
+        return result;
+    }     
+    
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("DistinctBinarySizeHistogram\n");
-        for(Entry<String, Long> e : storage.entrySet()) {
-            if (e.getValue() > 0) {
-                buff.append(e.getKey() + ": " + e.getValue()).append('\n');
-            }
-        }
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }

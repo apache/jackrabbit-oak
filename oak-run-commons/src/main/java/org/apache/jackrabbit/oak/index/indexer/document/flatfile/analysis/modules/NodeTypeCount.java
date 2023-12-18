@@ -18,7 +18,10 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
@@ -47,13 +50,19 @@ public class NodeTypeCount implements StatsCollector {
         }
     }
     
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
+        for(Entry<String, Long> e : storage.entrySet()) {
+            long v = e.getValue();
+            result.add(e.getKey() + ": " + v);
+        }
+        return result;
+    }
+    
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("NodeTypeCount\n");
-        for(Entry<String, Long> e : storage.entrySet()) {
-            long v = e.getValue();
-            buff.append(e.getKey() + ": " + v).append('\n');
-        }
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }

@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
@@ -28,10 +29,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storag
 
 public class NodeCount implements StatsCollector {
     
-    final long seed = 42;
-    final int resolution;
-    final long bitMask;
-    Storage storage;
+    private final long seed = 42;
+    private final long bitMask;
+    private Storage storage;
     
     @Override
     public void setStorage(Storage storage) {
@@ -39,7 +39,6 @@ public class NodeCount implements StatsCollector {
     }
     
     public NodeCount(int resolution) {
-        this.resolution = resolution;
         this.bitMask = (Integer.highestOneBit(resolution) * 2) - 1;
     }
 
@@ -65,14 +64,20 @@ public class NodeCount implements StatsCollector {
         }
     }
     
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
+        for(Entry<String, Long> e : storage.entrySet()) {
+            if (e.getValue() > 1_000_000) {
+                result.add(e.getKey() + ": " + (e.getValue() / 1_000_000));
+            }
+        }
+        return result;
+    }
+    
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("NodeCount (millions)\n");
-        for(Entry<String, Long> e : storage.entrySet()) {
-            if (e.getValue() > 1_000_000) {
-                buff.append(e.getKey() + ": " + (e.getValue() / 1_000_000)).append('\n');
-            }
-        }
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }

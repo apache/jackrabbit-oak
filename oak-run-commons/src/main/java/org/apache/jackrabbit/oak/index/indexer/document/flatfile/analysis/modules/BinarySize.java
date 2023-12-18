@@ -1,14 +1,3 @@
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
-
-import java.util.Map.Entry;
-import java.util.Random;
-
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -27,11 +16,25 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storag
  * specific language governing permissions and limitations
  * under the License.
  */
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
+
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+
 public class BinarySize implements StatsCollector {
     
-    Storage storage;
-    int resolution;
-    Random random = new Random(1);
+    private Storage storage;
+    private final int resolution;
+    private final Random random = new Random(1);
     
     public BinarySize(int resolution) {
         this.resolution = resolution;
@@ -74,7 +77,7 @@ public class BinarySize implements StatsCollector {
             if (pe.equals("jcr:content")) {
                 break;
             }
-            if (i < 3) {
+            if (i < 2) {
                 storage.add(key, size);
             } else {
                 long s2 = size / resolution * resolution;
@@ -89,15 +92,21 @@ public class BinarySize implements StatsCollector {
         }
     }
     
-    public String toString() {
-        StringBuilder buff = new StringBuilder();
-        buff.append("BinarySize GB (resolution: " + resolution + ")\n");
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
             long v = e.getValue();
             if (v > 1_000_000_000) {
-                buff.append(e.getKey() + ": " + (v / 1_000_000_000)).append('\n');
+                result.add(e.getKey() + ": " + (v / 1_000_000_000));
             }
         }
+        return result;
+    }
+    
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("BinarySize GB (resolution: " + resolution + ")\n");
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }

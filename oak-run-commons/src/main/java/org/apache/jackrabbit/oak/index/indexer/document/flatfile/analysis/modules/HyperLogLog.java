@@ -22,14 +22,19 @@ import java.util.HashSet;
 
 public class HyperLogLog {
     
-    private static final int MAX_SMALL_SET = 1024;
-
     private final int m;
     private byte[] counters;
     private final double am;
-    private HashSet<Long> smallDistinctSet = new HashSet<>();
+    private HashSet<Long> smallSet;
+    private final int maxSmallSetSize;
 
-    public HyperLogLog(int m) {
+    public HyperLogLog(int m, int maxSmallSetSize) {
+        this.maxSmallSetSize = maxSmallSetSize;
+        if (maxSmallSetSize > 0) {
+            smallSet = new HashSet<>();
+        } else {
+            smallSet = null;
+        }
         if (m < 16) {
             throw new IllegalArgumentException("Must be >= 16, is " + m);
         }
@@ -51,10 +56,10 @@ public class HyperLogLog {
     }
 
     public void add(long hash) {
-        if (smallDistinctSet != null) {
-            smallDistinctSet.add(hash);
-            if (smallDistinctSet.size() > MAX_SMALL_SET) {
-                smallDistinctSet = null;
+        if (smallSet != null) {
+            smallSet.add(hash);
+            if (smallSet.size() > maxSmallSetSize) {
+                smallSet = null;
             }
         }
         int i = (int) (hash & (m - 1));
@@ -62,8 +67,8 @@ public class HyperLogLog {
     }
 
     public long estimate() {
-        if (smallDistinctSet != null) {
-            return smallDistinctSet.size();
+        if (smallSet != null) {
+            return smallSet.size();
         }
         double sum = 0;
         int countZero = 0;

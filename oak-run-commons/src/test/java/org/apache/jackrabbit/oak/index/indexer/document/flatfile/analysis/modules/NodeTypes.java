@@ -23,12 +23,17 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
+/**
+ * A collector of node types.
+ * This is for demonstration purposes only.
+ */
 public class NodeTypes implements StatsCollector {
 
     Storage storage;
@@ -75,12 +80,18 @@ public class NodeTypes implements StatsCollector {
     public void end() {
     }
     
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
+        for(Entry<String, NodeType> e : map.entrySet()) {
+            result.add(e.getKey() + ": " + e.getValue());
+        }
+        return result;
+    }
+    
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("NodeTypes\n");
-        for(Entry<String, NodeType> e : map.entrySet()) {
-            buff.append(e.getKey() + ": " + e.getValue()).append('\n');
-        }
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }    

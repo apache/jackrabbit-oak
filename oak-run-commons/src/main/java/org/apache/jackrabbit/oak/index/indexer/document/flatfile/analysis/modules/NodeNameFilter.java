@@ -18,32 +18,49 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
-import java.util.Arrays;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.junit.Test;
 
-public class PropertyCountTest {
+public class NodeNameFilter implements StatsCollector {
+
+    private final StatsCollector base;
+    private final String nodeName;
     
-    @Test
-    public void manyUniqueProperties() {
-        PropertyStats pc = new PropertyStats();
-        pc.setStorage(new Storage());
-        for (int i = 0; i < 1_000_000; i++) {
-            Property p = new Property("unique" + i, ValueType.STRING, "");
-            NodeData n = new NodeData(Arrays.asList(""), Arrays.asList(p));
-            pc.add(n);
-        }
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 200; j++) {
-                Property p = new Property("common" + i, ValueType.STRING, "");
-                NodeData n = new NodeData(Arrays.asList(""), Arrays.asList(p));
-                pc.add(n);
+    public NodeNameFilter(String nodeName, StatsCollector base) {
+        this.nodeName = nodeName;
+        this.base = base;
+    }
+    
+    @Override
+    public void setStorage(Storage storage) {
+        base.setStorage(storage);
+    }
+
+    @Override
+    public void add(NodeData node) {
+        List<String> pathElements = node.getPathElements();
+        for(String pe : pathElements) {
+            if (pe.equals(nodeName)) {
+                base.add(node);
+                break;
             }
         }
-        System.out.println(pc);
     }
+
+    @Override
+    public void end() {
+        base.end();
+    }
+    
+    public List<String> getRecords() {
+        return base.getRecords();
+    }
+    
+    public String toString() {
+        return "NodeNameFilter " + nodeName + " of " + base.toString();
+    }
+
 }

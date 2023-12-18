@@ -21,14 +21,20 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
+/**
+ * This is a demo-implementation of a content hash collector
+ */
 public class HashTree implements StatsCollector {
     
     private static final int MIN_LEVELS = 2;
@@ -88,12 +94,18 @@ public class HashTree implements StatsCollector {
         }
     }
     
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
+        for(Entry<String, Long> e : storage.entrySet()) {
+            result.add(e.getKey() + ": " + e.getValue());
+        }
+        return result;
+    }     
+    
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("MerkleTree\n");
-        for(Entry<String, Long> e : storage.entrySet()) {
-            buff.append(e.getKey() + ": " + e.getValue()).append('\n');
-        }
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }   

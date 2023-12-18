@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
@@ -52,10 +53,20 @@ public class ListCollector implements StatsCollector {
         }
     }
     
-    public void print() {
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
         for(StatsCollector collector : collectors) {
-            System.out.println(collector.toString());
-        }        
+            result.addAll(collector.getRecords());
+        }
+        return result;
+    }
+    
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        for (StatsCollector collector : collectors) {
+            buff.append(collector.toString());
+        }
+        return buff.toString();
     }
 
 }

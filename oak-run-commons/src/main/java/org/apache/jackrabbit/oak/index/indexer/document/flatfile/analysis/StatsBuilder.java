@@ -25,13 +25,10 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.module
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeEmbedded;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.DistinctBinarySizeHistogram;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.HashTree;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.IndexDefinitions;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.ListCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeCount;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypeCount;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypes;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PathFilter;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeNameFilter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PropertyStats;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.TopLargestBinaries;
 
@@ -39,44 +36,39 @@ public class StatsBuilder {
     
     private static final boolean ONLY_READ = false;
 
-    public static void main(String... args) throws IOException {
-        IndexDefinitions indexDefs = new IndexDefinitions();
+    public static void main(String... args) throws Exception {
+        
+        String fileName = args[0];
+        String filter = null;
         if (args.length > 1) {
-            collect(NodeLineReader.open(args[1]), indexDefs);
-        }  
-        NodeTypes nodeTypes = new NodeTypes();
-        if (args.length > 2) {
-            collect(NodeLineReader.open(args[2]), nodeTypes);
-        }  
-        System.out.println(nodeTypes);
+            filter = args[1];
+        }
         
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000));
         collectors.add(new BinarySize(100_000_000));
         collectors.add(new BinarySizeEmbedded(100_000));
-        PropertyStats ps = new PropertyStats();
-        ps.setIndexedProperties(indexDefs.getPropertyMap());
+        PropertyStats ps = new PropertyStats(true);
         collectors.add(ps);
-        collectors.add(new HashTree());
         collectors.add(new NodeTypeCount());
         collectors.add(new BinarySizeHistogram(1));
         collectors.add(new DistinctBinarySizeHistogram(1));
         collectors.add(new TopLargestBinaries(10));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySize(100_000_000)));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeEmbedded(100_000)));
-        collectors.add(new PathFilter("cqdam.text.txt", new BinarySizeHistogram(1)));
-        collectors.add(new PathFilter("cqdam.text.txt", new TopLargestBinaries(10)));
+        if (filter != null) {
+            collectors.add(new NodeNameFilter(filter, new BinarySize(100_000_000)));
+            collectors.add(new NodeNameFilter(filter, new BinarySizeEmbedded(100_000)));
+            collectors.add(new NodeNameFilter(filter, new BinarySizeHistogram(1)));
+            collectors.add(new NodeNameFilter(filter, new TopLargestBinaries(10)));
+        }
         
         Profiler prof = new Profiler().startCollecting();
         
-        // NodeLineReader reader = NodeLineReader.open(fileName);
-        NodeStreamReaderCompressed reader = NodeStreamReaderCompressed.open(args[0]);
+        NodeLineReader reader = NodeLineReader.open(fileName);
+        // NodeStreamReaderCompressed reader = NodeStreamReaderCompressed.open(fileName);
         collect(reader, collectors);
         
         System.out.println(prof.getTop(10));
-        
-        collectors.print();
-
+        System.out.println(collectors);
     }
     
     private static void collect(NodeDataReader reader, StatsCollector collector) throws IOException {

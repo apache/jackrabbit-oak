@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
 
+import java.util.List;
+
 public interface StatsCollector {
     
     void setStorage(Storage storage);
@@ -25,5 +27,7 @@ public interface StatsCollector {
     void add(NodeData node);
     
     void end();
+    
+    List<String> getRecords();
     
 }

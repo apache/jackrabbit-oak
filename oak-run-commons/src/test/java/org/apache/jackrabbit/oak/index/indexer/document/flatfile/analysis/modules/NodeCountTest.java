@@ -18,45 +18,40 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
-import java.util.List;
+import static org.junit.Assert.assertEquals;
+
+import java.util.Arrays;
+import java.util.Collections;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.junit.Test;
 
-public class PathFilter implements StatsCollector {
+public class NodeCountTest {
 
-    private final StatsCollector base;
-    private final String path;
-    
-    public PathFilter(String path, StatsCollector base) {
-        this.path = path;
-        this.base = base;
-    }
-    
-    @Override
-    public void setStorage(Storage storage) {
-        base.setStorage(storage);
-    }
-
-    @Override
-    public void add(NodeData node) {
-        List<String> pathElements = node.getPathElements();
-        for(String pe : pathElements) {
-            if (pe.equals(path)) {
-                base.add(node);
-                break;
-            }
+    @Test
+    public void nodeCount() {
+        NodeCount nc = new NodeCount(1024);
+        nc.setStorage(new Storage());
+        
+        for (int i = 0; i < 10_000_000; i++) {
+            NodeData n = new NodeData(Arrays.asList("content", "dam", "folder" + (i % 10), "n" + i), Collections.emptyList());
+            nc.add(n);
         }
-    }
-
-    @Override
-    public void end() {
-        base.end();
-    }
-    
-    public String toString() {
-        return "PathFilter " + path + " of " + base.toString();
+        assertEquals(
+                "NodeCount (millions)\n"
+                + "/: 10\n"
+                + "/content: 10\n"
+                + "/content/dam: 10\n"
+                + "/content/dam/folder1: 1\n"
+                + "/content/dam/folder2: 1\n"
+                + "/content/dam/folder3: 1\n"
+                + "/content/dam/folder4: 1\n"
+                + "/content/dam/folder6: 1\n"
+                + "/content/dam/folder7: 1\n"
+                + "/content/dam/folder8: 1\n"
+                + "storage size: 0 MB; 4900 entries\n"
+                + "", nc.toString());
     }
 
 }

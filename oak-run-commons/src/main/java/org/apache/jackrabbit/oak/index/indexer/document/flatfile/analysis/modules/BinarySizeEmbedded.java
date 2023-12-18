@@ -19,6 +19,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
@@ -29,9 +32,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storag
 
 public class BinarySizeEmbedded implements StatsCollector {
     
-    Storage storage;
-    int resolution;
-    Random random = new Random(1);
+    private Storage storage;
+    private final int resolution;
+    private final Random random = new Random(1);
     
     public BinarySizeEmbedded(int resolution) {
         this.resolution = resolution;
@@ -72,7 +75,7 @@ public class BinarySizeEmbedded implements StatsCollector {
             if (pe.equals("jcr:content")) {
                 break;
             }
-            if (i < 3) {
+            if (i < 2) {
                 storage.add(key, size);
             } else {
                 long s2 = size / resolution * resolution;
@@ -87,14 +90,20 @@ public class BinarySizeEmbedded implements StatsCollector {
         }
     }
     
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
+        for(Entry<String, Long> e : storage.entrySet()) {
+            if (e.getValue() > 1_000_000) {
+                result.add(e.getKey() + ": " + (e.getValue() / 1_000_000));
+            }
+        }
+        return result;
+    }
+    
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("BinarySizeEmbedded (MB)\n");
-        for(Entry<String, Long> e : storage.entrySet()) {
-            if (e.getValue() > 1_000_000) {
-                buff.append(e.getKey() + ": " + (e.getValue() / 1_000_000)).append('\n');
-            }
-        }
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
     }

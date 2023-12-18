@@ -148,7 +148,7 @@ public class TopKValues {
         return builder.toString();
     }
 
-    static class TopEntry implements Comparable<TopEntry> {
+    static class TopEntry {
         long count;
         final String value;
         int index;
@@ -158,14 +158,6 @@ public class TopKValues {
             this.count = count;
         }
 
-        @Override
-        public int compareTo(TopEntry o) {
-            return Long.compare(count, o.count);
-        }
-        
-        public String toString() {
-            return "[" + index + "]: " + count + " " + value;
-        }
     }
 
 }

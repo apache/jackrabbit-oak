@@ -51,13 +51,6 @@ public class Storage {
         }
     }
 
-    public void remove(String key) {
-        Long old = data.remove(key);
-        if (old != null) {
-            storageSize -= key.length() + 8;
-        }
-    }    
-
     public Set<Entry<String, Long>> entrySet() {
         return data.entrySet();
     }

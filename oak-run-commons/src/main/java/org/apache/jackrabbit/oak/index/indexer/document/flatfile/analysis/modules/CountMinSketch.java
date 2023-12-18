@@ -16,7 +16,6 @@ public class CountMinSketch {
     private final int shift;
 
     private final long[][] data;
-    private long count;
 
     /**
      * Create a new instance.
@@ -48,28 +47,6 @@ public class CountMinSketch {
             hash >>>= shift;
         }
         return min;
-    }
-
-    public void add(long hash) {
-        for (int i = 0; i < k; i++) {
-            data[i][(int) (hash & (m - 1))]++;
-            hash >>>= shift;
-        }
-        count++;
-    }
-
-    public long estimate(long hash) {
-        long min = Long.MAX_VALUE;
-        for (int i = 0; i < k; i++) {
-            long x = data[i][(int) (hash & (m - 1))];
-            min = Math.min(min, x);
-            hash >>>= shift;
-        }
-        return min;
-    }
-
-    public long getCount() {
-        return count;
     }
 
 }

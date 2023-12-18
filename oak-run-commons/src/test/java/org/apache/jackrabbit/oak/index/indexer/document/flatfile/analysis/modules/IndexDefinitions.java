@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -27,6 +28,10 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Proper
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
 
+/**
+ * A collector for index definitions.
+ * This is for demonstration purposes only.
+ */
 public class IndexDefinitions implements StatsCollector {
 
     Storage storage;
@@ -78,6 +83,10 @@ public class IndexDefinitions implements StatsCollector {
     
     @Override
     public void end() {
+    }
+    
+    public List<String> getRecords() {
+        return Collections.emptyList();
     }
     
     public HashMap<String, ArrayList<IndexedProperty>> getPropertyMap() {

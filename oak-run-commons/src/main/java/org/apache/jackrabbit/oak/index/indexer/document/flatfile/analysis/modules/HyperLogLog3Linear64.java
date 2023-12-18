@@ -36,7 +36,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
  */
 public class HyperLogLog3Linear64 {
 
-    static long add(long data, long hash) {
+    public static long add(long data, long hash) {
         int base = (int) (data & 0xf);
         if (base == 0) {
             int index = (int) (((hash & 0xffffffffL) * 20) >>> 32);
@@ -76,7 +76,7 @@ public class HyperLogLog3Linear64 {
         return data;
     }
     
-    static long estimate(long data) {
+    public static long estimate(long data) {
         long base = data & 0xf;
         if (base == 0) {
             int x = Long.bitCount(data);
