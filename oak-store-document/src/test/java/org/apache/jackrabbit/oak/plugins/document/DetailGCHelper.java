@@ -45,6 +45,17 @@ public class DetailGCHelper {
             writeField(vgc, "detailedGCEnabled", false, true);
         }
     }
+    public static void enableDetailGCDryRun(final VersionGarbageCollector vgc) throws IllegalAccessException {
+        if (vgc != null) {
+            writeField(vgc, "isDetailedGCDryRun", true, true);
+        }
+    }
+
+    public static void disableDetailGCDryRun(final VersionGarbageCollector vgc) throws IllegalAccessException {
+        if (vgc != null) {
+            writeField(vgc, "isDetailedGCDryRun", false, true);
+        }
+    }
 
     public static RevisionVector mergedBranchCommit(final NodeStore store, final Consumer<NodeBuilder> buildFunction) throws Exception {
         return build(store, true, true, buildFunction);
@@ -67,6 +78,20 @@ public class DetailGCHelper {
                 nd.deepCopy(target);
             }
             assertFalse("document not fully cleaned up: " + nd.asString(), nd.asString().contains(r1.toString()));
+        }
+    }
+
+    public static void assertBranchRevisionNotRemovedFromAllDocuments(final DocumentNodeStore store, final RevisionVector br) {
+        assertTrue(br.isBranch());
+        Revision br1 = br.getRevision(1);
+        assert br1 != null;
+        Revision r1 = br1.asTrunkRevision();
+        for (NodeDocument nd : Utils.getAllDocuments(store.getDocumentStore())) {
+            if (Objects.equals(nd.getId(), "0:/")) {
+                NodeDocument target = new NodeDocument(store.getDocumentStore());
+                nd.deepCopy(target);
+                assertTrue("document not cleaned up: " + nd.asString(), nd.asString().contains(r1.toString()));
+            }
         }
     }
 

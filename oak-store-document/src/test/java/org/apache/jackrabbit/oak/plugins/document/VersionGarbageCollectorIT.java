@@ -51,7 +51,10 @@ import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGC;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGCDryRun;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.mergedBranchCommit;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.unmergedBranchCommit;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
@@ -63,6 +66,8 @@ import static org.apache.jackrabbit.oak.plugins.document.Revision.getCurrentTime
 import static org.apache.jackrabbit.oak.plugins.document.Revision.newRevision;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_PATTERN;
@@ -227,6 +232,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc.gc(maxAge, TimeUnit.MILLISECONDS);
         assertTrue(stats.ignoredGCDueToCheckPoint);
         assertFalse(stats.ignoredDetailedGCDueToCheckPoint);
+        assertFalse(stats.detailedGCDryRunMode);
         assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
@@ -1165,6 +1171,120 @@ public class VersionGarbageCollectorIT {
         assertBranchRevisionRemovedFromAllDocuments(store1, br4);
     }
     // OAK-8646 END
+
+    // OAK-10370
+    @Test
+    public void testGCDeletedPropsWithDryRunMode() throws Exception {
+        //1. Create nodes with properties
+        NodeBuilder b1 = store1.getRoot().builder();
+        b1.child("x").setProperty("test", "t", STRING);
+        b1.child("z").setProperty("prop", "foo", STRING);
+        store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        // enable the detailed gc flag
+        enableDetailGC(gc);
+        long maxAge = 1; //hours
+        long delta = MINUTES.toMillis(10);
+
+        //2. Remove property
+        NodeBuilder b2 = store1.getRoot().builder();
+        b2.getChildNode("z").removeProperty("prop");
+        store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        store1.runBackgroundOperations();
+
+        //3. Check that deleted property does get collected post maxAge
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+
+        VersionGCStats stats = gc.gc(maxAge*2, HOURS);
+        assertEquals(1, stats.deletedPropsCount);
+        assertEquals(1, stats.updatedDetailedGCDocsCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+
+        // 4. Save values of detailedGC settings collection fields
+        final String oldestModifiedDocId = stats.oldestModifiedDocId;
+        final long oldestModifiedDocTimeStamp = stats.oldestModifiedDocTimeStamp;
+
+        final Document documentBefore = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assert documentBefore != null;
+        assertEquals(documentBefore.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+        assertEquals(documentBefore.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+
+        //5. Verify that in dryRun mode property does not get gc and detailedGC fields remain the same
+        NodeBuilder b3 = store1.getRoot().builder();
+        b3.child("x").removeProperty("test");
+        store1.merge(b3, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
+        // enabled dryRun mode
+        enableDetailGCDryRun(gc);
+        stats = gc.gc(maxAge*2, HOURS);
+
+        final String oldestModifiedDryRunDocId = stats.oldestModifiedDocId;
+        final long oldestModifiedDocDryRunTimeStamp = stats.oldestModifiedDocTimeStamp;
+
+        assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
+        assertTrue(stats.detailedGCDryRunMode);
+
+        final Document documentAfter = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assert documentAfter != null;
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP), oldestModifiedDocDryRunTimeStamp);
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP), oldestModifiedDryRunDocId);
+    }
+
+    @Test
+    public void testDeletedPropsAndUnmergedBCWithCollisionWithDryRunMode() throws Exception {
+        // create a node with property.
+        NodeBuilder nb = store1.getRoot().builder();
+        nb.child("bar").setProperty("prop", "value");
+        nb.child("bar").setProperty("x", "y");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // remove the property
+        nb = store1.getRoot().builder();
+        nb.child("bar").removeProperty("prop");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // create branch commits
+        mergedBranchCommit(store1, b -> b.child("foo").setProperty("p", "prop"));
+        RevisionVector br1 = unmergedBranchCommit(store1, b -> b.child("foo").setProperty("a", "b"));
+        RevisionVector br2 = unmergedBranchCommit(store1, b -> b.child("foo").setProperty("a", "c"));
+        RevisionVector br3 = unmergedBranchCommit(store1, b -> b.child("foo").setProperty("a", "d"));
+        RevisionVector br4 = unmergedBranchCommit(store1, b -> b.child("bar").setProperty("x", "z"));
+        mergedBranchCommit(store1, b -> b.child("foo").removeProperty("p"));
+        store1.runBackgroundOperations();
+
+        // enable the detailed gc flag
+        enableDetailGC(gc);
+        enableDetailGCDryRun(gc);
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc.gc(1, HOURS);
+
+        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        // deleted properties are : 1:/foo -> prop, a, _collisions & p && 1:/bar -> _bc
+        assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertTrue(stats.detailedGCDryRunMode);
+
+        assertBranchRevisionNotRemovedFromAllDocuments(store1, br1);
+        assertBranchRevisionNotRemovedFromAllDocuments(store1, br2);
+        assertBranchRevisionNotRemovedFromAllDocuments(store1, br3);
+        assertBranchRevisionNotRemovedFromAllDocuments(store1, br4);
+    }
+
+    // OAK-10370 END
+
     
     private void gcSplitDocsInternal(String subNodeName) throws Exception {
         long maxAge = 1; //hrs

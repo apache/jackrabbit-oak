@@ -124,7 +124,7 @@ public class RevisionsCommand implements Command {
             timeLimit = parser
                     .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
                     .ofType(Long.class).defaultsTo(-1L);
-            dryRun = parser.accepts("dryRun", "dryRun of detailedGC i.e. only print what needed to be deleted")
+            dryRun = parser.accepts("dryRun", "dryRun of detailedGC i.e. only print what would be deleted")
                     .withRequiredArg().ofType(Boolean.class).defaultsTo(TRUE);
             continuous = parser
                     .accepts("continuous", "run continuously (collect only)");
@@ -337,6 +337,9 @@ public class RevisionsCommand implements Command {
             printInfo(gc, options);
         } finally {
             finished.release();
+            if (options.isDryRun()) {
+                gc.resetDryRun();
+            }
             executor.shutdownNow();
         }
     }
