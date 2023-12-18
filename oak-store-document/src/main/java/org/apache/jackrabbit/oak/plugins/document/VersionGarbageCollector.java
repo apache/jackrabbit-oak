@@ -106,7 +106,7 @@ public class VersionGarbageCollector {
     /**
      * Document id stored in settings collection that keeps info about version gc
      */
-    static final String SETTINGS_COLLECTION_ID = "versionGC";
+    public static final String SETTINGS_COLLECTION_ID = "versionGC";
 
     /**
      * Property name to timestamp when last gc run happened
@@ -121,22 +121,22 @@ public class VersionGarbageCollector {
     /**
      * Property name to timestamp till when last detailed-GC run happened
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP = "detailedGCTimeStamp";
+    public static final String SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP = "detailedGCTimeStamp";
 
     /**
      * Property name to _id till when last detailed-GC run happened
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP = "detailedGCId";
+    public static final String SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP = "detailedGCId";
 
     /**
      * Property name to timestamp till when last detailed-GC run happened in dryRun mode only
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP = "detailedGCDryRunTimeStamp";
+    public static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP = "detailedGCDryRunTimeStamp";
 
     /**
      * Property name to _id till when last detailed-GC run happened in dryRun mode only
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
+    public static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
 
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
