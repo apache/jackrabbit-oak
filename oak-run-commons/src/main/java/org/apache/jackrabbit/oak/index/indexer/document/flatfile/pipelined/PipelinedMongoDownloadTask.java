@@ -206,7 +206,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .add("enqueueingDelayMillis", totalEnqueueWaitTimeMillis)
                     .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
                     .build();
-
+            MetricsUtils.setCounterOnce(statisticsProvider,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS,
+                    durationMillis / 1000
+            );
+            MetricsUtils.setCounterOnce(statisticsProvider,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL,
+                    documentsRead
+            );
             MetricsUtils.setCounterOnce(statisticsProvider,
                     PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                     PipelinedUtils.toPercentage(totalEnqueueWaitTimeMillis, durationMillis)
