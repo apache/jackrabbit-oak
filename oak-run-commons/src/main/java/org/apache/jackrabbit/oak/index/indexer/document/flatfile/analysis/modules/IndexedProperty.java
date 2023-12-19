@@ -30,10 +30,10 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  */
 public class IndexedProperty {
     private final String name;
-    private final ArrayList<String> parents;
+    private final List<String> parents;
     private final String nodeType;
 
-    IndexedProperty(String name, ArrayList<String> parents, String nodeType) {
+    private IndexedProperty(String name, List<String> parents, String nodeType) {
         this.name = name;
         this.parents = parents;
         this.nodeType = nodeType;
@@ -48,7 +48,7 @@ public class IndexedProperty {
     }
 
     public String toString() {
-        return nodeType + ":" + String.join("/", parents);
+        return "(" + nodeType + ") " + String.join("/", parents) + "/" + name;
     }
 
     /**
@@ -77,7 +77,7 @@ public class IndexedProperty {
         for (int i = 0; i < parents.size(); i++) {
             NodeData p = nodeTypeCheck.getParent();
             if (p == null) {
-                throw new IllegalStateException("parent not found");
+                return false;
             }
             nodeTypeCheck = p;
         }

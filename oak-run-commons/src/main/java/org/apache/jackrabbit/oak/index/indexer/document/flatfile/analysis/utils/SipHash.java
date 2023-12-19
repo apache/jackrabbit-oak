@@ -71,4 +71,16 @@ public class SipHash {
         return v0 ^ v1 ^ v2 ^ v3;
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        SipHash other = (SipHash) obj;
+        return v0 == other.v0 && v1 == other.v1 && v2 == other.v2 && v3 == other.v3;
+    }
+
 }

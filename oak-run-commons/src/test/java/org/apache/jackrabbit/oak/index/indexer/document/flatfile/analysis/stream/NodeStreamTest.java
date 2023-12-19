@@ -50,7 +50,21 @@ public class NodeStreamTest {
                 String value = Integer.toHexString(j).repeat(1 << j);
                 buff.append("\"x" + j + "\":\"" + value + "\"");
             }
-            w.write("/n" + i + "|{" + buff.toString() + ",\"n\":null,\"x\":[\"1\"]}\n");
+            buff.append(",\"a\":true");
+            buff.append(",\"b\":false");
+            buff.append(",\"c\":\":blobId:0x12\"");
+            buff.append(",\"d\":\"str:1\"");
+            buff.append(",\"e\":\"nam:2\"");
+            buff.append(",\"f\":\"ref:3\"");
+            buff.append(",\"g\":\"dat:4\"");
+            buff.append(",\"h\":\"dec:5\"");
+            buff.append(",\"i\":\"dou:6\"");
+            buff.append(",\"j\":\"wea:7\"");
+            buff.append(",\"k\":\"uri:8\"");
+            buff.append(",\"l\":\"pat:9\"");
+            buff.append(",\"m\":\"[0]:Name\"");
+            w.write("/n" + i + "|{" + buff.toString() +
+                    ",\"n\":null,\"x\":[\"1\"]}\n");
         }
         w.close();
 

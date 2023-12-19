@@ -77,18 +77,20 @@ public class BinarySizeTest {
         BinarySizeEmbedded binaryEmbedded = new BinarySizeEmbedded(10_000);
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         DistinctBinarySizeHistogram distinctHistogram = new DistinctBinarySizeHistogram(1);
+        TopLargestBinaries top = new TopLargestBinaries(3);
 
         ListCollector list = new ListCollector();
         list.add(binary);
         list.add(binaryEmbedded);
         list.add(histogram);
         list.add(distinctHistogram);
+        list.add(top);
 
         // add 1000 nodes, where each node has one property:
         // - embedded: 5 KB => 5 MB
         // - external: 5 MB => 5 GB
         // an embedded binary of size 5 KB
-        String embeddedBinary5k = new String(new char[10000]).replace('\0', '0');
+        String embeddedBinary5k = "0".repeat(10000);
         for (int i = 0; i < 1_000; i++) {
             // 1 distinct embedded blobs, each 5 KB
             NodeProperty p1 = new NodeProperty("data1", ValueType.BINARY, ":blobId:0x" + embeddedBinary5k);
@@ -97,6 +99,7 @@ public class BinarySizeTest {
             NodeData n = new NodeData(Arrays.asList("content", "dam", "abc"), Arrays.asList(p1, p2));
             list.add(n);
         }
+        list.end();
 
         assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 4]]", Arrays.asList(binary.getRecords()).toString());
         assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 4]]", Arrays.asList(binaryEmbedded.getRecords()).toString());
@@ -134,6 +137,14 @@ public class BinarySizeTest {
                 + "total count: 2000\n"
                 + "total size: 10000000000\n"
                 + "storage size: 0 MB; 6 entries\n"
+                + "time: 0 seconds\n"
+                + "TopLargestBinaries\n"
+                + "#  1: /content/dam/abc: 5000000\n"
+                + "#  2: /content/dam/abc: 5000000\n"
+                + "#  3: /content/dam/abc: 5000000\n"
+                + "total count: 1000\n"
+                + "total size: 5000000000\n"
+                + "storage size: 0 MB; 5 entries\n"
                 + "time: 0 seconds\n"
                 + "", list.toString());
     }
