@@ -71,10 +71,7 @@ public class NodeLineReader implements NodeDataReader {
             reader.close();
             return null;
         }
-        if (count < 10) {
-        //    System.out.println(line);
-        }
-        if (count % 1000000 == 0) {
+        if (++count % 1000000 == 0) {
             System.out.println(count + " lines");
         }
         int pipeIndex = line.indexOf('|');
@@ -85,9 +82,7 @@ public class NodeLineReader implements NodeDataReader {
         List<String> pathElements = new ArrayList<>();
         PathUtils.elements(path).forEach(pathElements::add);
         String nodeJson = line.substring(pipeIndex + 1);
-        NodeData node = new NodeData(pathElements, parse(nodeJson));
-        count++;
-        return node;
+        return new NodeData(pathElements, parse(nodeJson));
     }
     
     private static List<NodeProperty> parse(String nodeData) {
@@ -167,7 +162,7 @@ public class NodeLineReader implements NodeDataReader {
                 return new PropertyValue(ValueType.STRING, v2);
             }
         } else if ("null".equals(v)) {
-            return new PropertyValue(ValueType.NULL, "");
+            return new PropertyValue(ValueType.NULL, null);
         } else if ("true".equals(v)) {
             return new PropertyValue(ValueType.BOOLEAN, v);
         } else if ("false".equals(v)) {

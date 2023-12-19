@@ -33,7 +33,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.SipHash;
 
 /**
- * This is a demo-implementation of a content hash collector
+ * This is a demo implementation of a content hash collector.
+ * It is incomplete and not ready to be used.
  */
 public class HashTree implements StatsCollector {
     

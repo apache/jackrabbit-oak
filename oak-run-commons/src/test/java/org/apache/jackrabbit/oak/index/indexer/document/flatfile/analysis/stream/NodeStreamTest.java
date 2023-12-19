@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.strea
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -40,8 +41,16 @@ public class NodeStreamTest {
         File f = temporaryFolder.getRoot();
         File flatFile = new File(f, "flatFile.txt");
         BufferedWriter w = new BufferedWriter(new FileWriter(flatFile));
-        for(int i=0; i<100; i++) {
-            w.write("/n" + i + "|{\"x\":"+i+"}\n");
+        for (int i = 0; i < 10; i++) {
+            StringBuilder buff = new StringBuilder();
+            for (int j = 0; j < 16; j++) {
+                if (j > 0) {
+                    buff.append(",");
+                }
+                String value = Integer.toHexString(j).repeat(1 << j);
+                buff.append("\"x" + j + "\":\"" + value + "\"");
+            }
+            w.write("/n" + i + "|{" + buff.toString() + ",\"n\":null,\"x\":[\"1\"]}\n");
         }
         w.close();
         
@@ -51,9 +60,14 @@ public class NodeStreamTest {
         NodeStreamConverter.convert(flatFile.getAbsolutePath(), streamFile.getAbsolutePath());
         NodeStreamConverterCompressed.convert(flatFile.getAbsolutePath(), compressedStreamFile.getAbsolutePath());
         
-        NodeDataReader nodeStream = NodeStreamReader.open(streamFile.getAbsolutePath());
-        NodeDataReader compressedStream = NodeStreamReaderCompressed.open(compressedStreamFile.getAbsolutePath());
         NodeDataReader flatReader = NodeLineReader.open(flatFile.getAbsolutePath());
+        long fileSize1 = flatReader.getFileSize();
+        NodeDataReader nodeStream = NodeStreamReader.open(streamFile.getAbsolutePath());
+        long fileSize2 = nodeStream.getFileSize();
+        NodeDataReader compressedStream = NodeStreamReaderCompressed.open(compressedStreamFile.getAbsolutePath());
+        long fileSize3 = compressedStream.getFileSize();
+        assertTrue(fileSize3 < fileSize2);
+        assertTrue(fileSize2 < fileSize1);
         while (true) {
             NodeData n1 = flatReader.readNode();
             NodeData n2 = nodeStream.readNode();

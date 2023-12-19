@@ -90,7 +90,7 @@ public class NodeStreamConverter {
      * @param x the value
      * @throws IOException if some data could not be written
      */
-    private static void writeVarInt(OutputStream out, int x) throws IOException {
+    public static void writeVarInt(OutputStream out, int x) throws IOException {
         while ((x & ~0x7f) != 0) {
             out.write((byte) (x | 0x80));
             x >>>= 7;

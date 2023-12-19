@@ -101,7 +101,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
             in.close();
             return null;
         }
-        if (count % 1000000 == 0) {
+        if (++count % 1000000 == 0) {
             System.out.println(count + " lines");
         }
         ArrayList<String> pathElements = new ArrayList<>(size);
@@ -127,9 +127,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
             }
             properties.add(p);
         }
-        NodeData node = new NodeData(pathElements, properties);
-        count++;
-        return node;
+        return new NodeData(pathElements, properties);
     }
 
     private String readString(InputStream in) throws IOException {
