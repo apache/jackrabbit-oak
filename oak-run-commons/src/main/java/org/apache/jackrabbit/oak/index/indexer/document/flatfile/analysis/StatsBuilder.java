@@ -58,8 +58,8 @@ public class StatsBuilder {
 
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000));
-        collectors.add(new BinarySize(100_000_000));
-        collectors.add(new BinarySizeEmbedded(100_000));
+        collectors.add(new BinarySize(100_000_000, 1));
+        collectors.add(new BinarySizeEmbedded(100_000, 1));
         PropertyStats ps = new PropertyStats(true);
         collectors.add(ps);
         collectors.add(new NodeTypeCount());
@@ -67,8 +67,8 @@ public class StatsBuilder {
         collectors.add(new DistinctBinarySizeHistogram(1));
         collectors.add(new TopLargestBinaries(10));
         if (filter != null) {
-            collectors.add(new NodeNameFilter(filter, new BinarySize(100_000_000)));
-            collectors.add(new NodeNameFilter(filter, new BinarySizeEmbedded(100_000)));
+            collectors.add(new NodeNameFilter(filter, new BinarySize(100_000_000, 1)));
+            collectors.add(new NodeNameFilter(filter, new BinarySizeEmbedded(100_000, 1)));
             collectors.add(new NodeNameFilter(filter, new BinarySizeHistogram(1)));
             collectors.add(new NodeNameFilter(filter, new TopLargestBinaries(10)));
         }

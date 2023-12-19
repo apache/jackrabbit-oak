@@ -36,7 +36,7 @@ public class NodeCount implements StatsCollector {
     private final Storage storage = new Storage();
 
     public NodeCount(int resolution) {
-        this.bitMask = (Integer.highestOneBit(resolution) * 2) - 1;
+        this.bitMask = (Long.highestOneBit(resolution) * 2) - 1;
     }
 
     public void add(NodeData node) {

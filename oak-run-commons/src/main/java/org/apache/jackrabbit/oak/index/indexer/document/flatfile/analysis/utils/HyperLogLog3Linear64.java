@@ -80,8 +80,8 @@ public class HyperLogLog3Linear64 {
         long base = data & 0xf;
         if (base == 0) {
             int x = Long.bitCount(data);
-            int b = 53, m = 1;
-            long est = (long) (-(b / m) * Math.log(1. - (double) x / b));
+            int b = 53;
+            long est = (long) (-b * Math.log(1. - (double) x / b));
             return est;
         }
         double sum = 0;

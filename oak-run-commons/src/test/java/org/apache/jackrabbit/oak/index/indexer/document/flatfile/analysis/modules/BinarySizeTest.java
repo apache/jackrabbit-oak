@@ -72,9 +72,9 @@ public class BinarySizeTest {
     @Test
     public void manyNodes() {
         // resolution of 10 MB
-        BinarySize binary = new BinarySize(10_000_000);
+        BinarySize binary = new BinarySize(10_000_000, 1);
         // resolution of 10 KB
-        BinarySizeEmbedded binaryEmbedded = new BinarySizeEmbedded(10_000);
+        BinarySizeEmbedded binaryEmbedded = new BinarySizeEmbedded(10_000, 1);
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         DistinctBinarySizeHistogram distinctHistogram = new DistinctBinarySizeHistogram(1);
         TopLargestBinaries top = new TopLargestBinaries(3);

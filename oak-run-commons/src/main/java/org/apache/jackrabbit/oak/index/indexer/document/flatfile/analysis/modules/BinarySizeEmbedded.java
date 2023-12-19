@@ -35,10 +35,11 @@ public class BinarySizeEmbedded implements StatsCollector {
 
     private final Storage storage = new Storage();
     private final int resolution;
-    private final Random random = new Random(1);
+    private final Random random;
 
-    public BinarySizeEmbedded(int resolution) {
+    public BinarySizeEmbedded(int resolution, long seed) {
         this.resolution = resolution;
+        this.random = new Random(seed);
     }
 
     public void add(NodeData node) {
