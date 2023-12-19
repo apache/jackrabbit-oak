@@ -23,20 +23,17 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.SipHash;
 
+/**
+ * A collector for approximate node counts.
+ */
 public class NodeCount implements StatsCollector {
     
     private final long seed = 42;
     private final long bitMask;
-    private Storage storage;
-    
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
+    private final Storage storage = new Storage();
     
     public NodeCount(int resolution) {
         this.bitMask = (Integer.highestOneBit(resolution) * 2) - 1;

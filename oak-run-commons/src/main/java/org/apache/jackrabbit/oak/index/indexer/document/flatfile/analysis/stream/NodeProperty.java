@@ -16,22 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
 import java.util.Arrays;
 
-public class Property {
+/**
+ * Represents a property of a node.
+ */
+public class NodeProperty {
 
     private final String name;
     private final boolean multiple;
     private final ValueType type;
     private final String[] values;
     
-    public Property(String key, ValueType type, String value) {
+    public NodeProperty(String key, ValueType type, String value) {
         this(key, type, new String[] {value}, false);
     }
 
-    public Property(String key, ValueType type, String[] values, boolean multiple) {
+    public NodeProperty(String key, ValueType type, String[] values, boolean multiple) {
         this.name = key;
         this.type = type;
         this.values = values;

@@ -24,35 +24,32 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
+/**
+ * Collect the top largest binaries.
+ */
 public class TopLargestBinaries implements StatsCollector {
     
-    Storage storage;
-    final int k;
-    final ArrayList<TopEntry> top = new ArrayList<>();
-    long totalCount;
-    long totalSize;
+    private final Storage storage = new Storage();
+    private final int k;
+    private final ArrayList<TopEntry> top = new ArrayList<>();
+    
+    private long totalCount;
+    private long totalSize;
     
     public TopLargestBinaries(int k) {
         this.k = k;
     }
 
     @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
-
-    @Override
     public void add(NodeData node) {
-        List<Property> properties = node.getProperties();
+        List<NodeProperty> properties = node.getProperties();
         List<String> pathElements = node.getPathElements();
         ArrayList<Long> references = new ArrayList<>();
-        for(Property p : properties) {
+        for(NodeProperty p : properties) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {
@@ -130,6 +127,5 @@ public class TopLargestBinaries implements StatsCollector {
         buff.append(storage);
         return buff.toString();
     }    
-    
 
 }

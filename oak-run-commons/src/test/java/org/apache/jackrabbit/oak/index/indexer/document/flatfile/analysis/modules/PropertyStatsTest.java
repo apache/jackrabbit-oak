@@ -23,10 +23,9 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 import org.junit.Test;
 
 public class PropertyStatsTest {
@@ -35,15 +34,14 @@ public class PropertyStatsTest {
     public void manyUniqueProperties() {
         PropertyStats pc = new PropertyStats(false);
         pc.setSkip(0);
-        pc.setStorage(new Storage());
         for (int i = 0; i < 1_000_000; i++) {
-            Property p = new Property("unique" + i, ValueType.STRING, "");
+            NodeProperty p = new NodeProperty("unique" + i, ValueType.STRING, "");
             NodeData n = new NodeData(Arrays.asList(""), Arrays.asList(p));
             pc.add(n);
         }
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 1000; j++) {
-                Property p = new Property("common" + i, ValueType.STRING, "x" + (j % 5));
+                NodeProperty p = new NodeProperty("common" + i, ValueType.STRING, "x" + (j % 5));
                 NodeData n = new NodeData(Arrays.asList(""), Arrays.asList(p));
                 pc.add(n);
             }
@@ -52,7 +50,6 @@ public class PropertyStatsTest {
                 + "common0 weight 5 count 1000 distinct 5 avgSize 1 maxSize 2\n"
                 + "common1 weight 5 count 1000 distinct 5 avgSize 1 maxSize 2\n"
                 + "common2 weight 5 count 1000 distinct 5 avgSize 1 maxSize 2\n"
-                + "storage size: 0 MB; 0 entries\n"
                 + "", pc.toString());
     }
     
@@ -60,19 +57,17 @@ public class PropertyStatsTest {
     public void skewed() {
         PropertyStats pc = new PropertyStats(false);
         pc.setSkip(0);
-        pc.setStorage(new Storage());
         Random r = new Random(1);
         for (int i = 0; i < 1_000_000; i++) {
             // in 50% of the cases, the value is either true or false
             // and in the remaining cases, it is unique
             String value = r.nextInt(100) < 50 ? "" + r.nextBoolean() : "" + r.nextInt();
-            Property p = new Property("skewed", ValueType.STRING, value);
+            NodeProperty p = new NodeProperty("skewed", ValueType.STRING, value);
             NodeData n = new NodeData(Arrays.asList(""), Arrays.asList(p));
             pc.add(n);
         }
         assertEquals("PropertyStats\n"
-                + "skewed weight 3 count 1000000 distinct 394382 avgSize 7 maxSize 11 top {\"skipped\":899091,\"counted\":90910,\"false\":25582,\"true\":25517,\"-411461567\":0,\"1483286044\":0,\"1310925467\":0,\"-1752252714\":0,\"-1433290908\":0,\"-1209544007\":0}\n"
-                + "storage size: 0 MB; 0 entries\n"
+                + "skewed weight 3 count 1000000 distinct 394382 avgSize 7 maxSize 11 top {\"skipped\":899091,\"counted\":90910,\"false\":25583,\"true\":25518,\"-411461567\":1,\"1483286044\":1,\"1310925467\":1,\"-1752252714\":1,\"-1433290908\":1,\"-1209544007\":1}\n"
                 + "", pc.toString());
     }
     

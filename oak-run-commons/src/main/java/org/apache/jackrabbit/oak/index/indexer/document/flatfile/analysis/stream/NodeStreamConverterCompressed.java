@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -25,6 +25,9 @@ import java.nio.charset.StandardCharsets;
 
 import net.jpountz.lz4.LZ4FrameOutputStream;
 
+/**
+ * Allows to to convert a flat file store to a compressed stream of nodes.
+ */
 public class NodeStreamConverterCompressed {
     
     private static final int WINDOW_SIZE = 1024;
@@ -36,13 +39,17 @@ public class NodeStreamConverterCompressed {
     private final String[] cache = new String[CACHE_SIZE];
     private long currentId;
     
-    NodeStreamConverterCompressed(OutputStream out) {
-        this.out = out;
-    }
-
     public static void main(String... args) throws IOException {
         String sourceFileName = args[0];
         String targetFileName = args[1];
+        convert(sourceFileName, targetFileName);
+    }
+    
+    private NodeStreamConverterCompressed(OutputStream out) {
+        this.out = out;
+    }
+
+    public static void convert(String sourceFileName, String targetFileName) throws IOException {
         NodeLineReader in = NodeLineReader.open(sourceFileName);
         OutputStream out = new LZ4FrameOutputStream(
                 new FileOutputStream(targetFileName));
@@ -67,7 +74,7 @@ public class NodeStreamConverterCompressed {
             writeString(s);
         }
         writeVarInt(out, node.getProperties().size());
-        for (Property p : node.getProperties()) {
+        for (NodeProperty p : node.getProperties()) {
             writeString(p.getName());
             out.write(p.getType().getOrdinal());
             if (p.isMultiple()) {

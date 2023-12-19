@@ -27,11 +27,15 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog3Linear64;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.TopKValues;
 
+/**
+ * Property statistics.
+ */
 public class PropertyStats implements StatsCollector {
 
     // we start collecting distinct values data once we have seen this many entries
@@ -60,19 +64,12 @@ public class PropertyStats implements StatsCollector {
     // skip this many entries (for sampling)
     private int skip = 1;
 
-    private Storage storage;
-    
     private int skipRemaining;
     
     public PropertyStats(boolean indexedPropertiesOnly) {
         this.indexedPropertiesOnly = indexedPropertiesOnly;
     }
 
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
-    
     public void setSkip(int skip) {
         this.skip = skip;
     }
@@ -93,8 +90,8 @@ public class PropertyStats implements StatsCollector {
             return;
         }
         skipRemaining = skip;
-        List<Property> properties = node.getProperties();
-        for(Property p : properties) {
+        List<NodeProperty> properties = node.getProperties();
+        for(NodeProperty p : properties) {
             String name = p.getName();
             if (indexedPropertiesOnly) {
                 if (indexedProperties != null && !indexedProperties.contains(name)) {
@@ -117,7 +114,7 @@ public class PropertyStats implements StatsCollector {
         }
     }
     
-    private void add(String name, Property p) {
+    private void add(String name, NodeProperty p) {
         Stats stats = statsMap.computeIfAbsent(name, e -> new Stats(name));
         stats.count++;
         stats.values += p.getValues().length;
@@ -218,7 +215,6 @@ public class PropertyStats implements StatsCollector {
         StringBuilder buff = new StringBuilder();
         buff.append("PropertyStats\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
-        buff.append(storage);
         return buff.toString();
     }
     

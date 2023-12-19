@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
 /**
  * Cardinality estimation with the HyperLogLog algorithm, using the tail cut
@@ -32,7 +32,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
  * 
  * It is a little bit "order-dependent", that is, adding the same entry multiple
  * times can change the internal state. However, unlike in HyperBitBit, here the
- * effect is smaller.
+ * effect is very small.
  */
 public class HyperLogLog3Linear64 {
 

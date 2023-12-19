@@ -24,20 +24,21 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
+/**
+ * A histogram of distinct binaries. For each size range, we calculate the
+ * number of entries and number of distinct entries. The number of distinct
+ * entries is calculated using a set if the number of entries is smaller than
+ * 1024, or HyperLogLog otherwise.
+ */
 public class DistinctBinarySizeHistogram implements StatsCollector {
 
-    int pathLevels;
-    Storage storage;
-
-    private static HashMap<String, HyperLogLog> distinctMap = new HashMap<>();
     private static final String[] SIZES = new String[64];
-    
     static {
         SIZES[0] = "0";
         for (long x = 1; x > 0; x += x) {
@@ -46,18 +47,17 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
         }
     }
     
+    private final int pathLevels;
+    private final Storage storage = new Storage();
+    private final HashMap<String, HyperLogLog> distinctMap = new HashMap<>();
+    
     public DistinctBinarySizeHistogram(int pathLevels) {
         this.pathLevels = pathLevels;
     }
     
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
-    
     public void add(NodeData node) {
         ArrayList<Long> hashSizePairs = new ArrayList<>();
-        for(Property p : node.getProperties()) {
+        for(NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {

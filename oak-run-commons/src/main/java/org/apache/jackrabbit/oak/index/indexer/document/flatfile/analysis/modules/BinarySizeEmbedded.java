@@ -24,15 +24,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
+/**
+ * Collects the total binary size (embedded binaries) per path.
+ */
 public class BinarySizeEmbedded implements StatsCollector {
     
-    private Storage storage;
+    private final Storage storage = new Storage();
     private final int resolution;
     private final Random random = new Random(1);
     
@@ -40,14 +41,9 @@ public class BinarySizeEmbedded implements StatsCollector {
         this.resolution = resolution;
     }
     
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
-
     public void add(NodeData node) {
         long size = 0;
-        for(Property p : node.getProperties()) {
+        for(NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {

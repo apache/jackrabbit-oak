@@ -30,12 +30,24 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.module
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypeCount;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeNameFilter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PropertyStats;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.TopLargestBinaries;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeDataReader;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeLineReader;
 
+/**
+ * Builder for commonly used statistics for flat file stores.
+ */
 public class StatsBuilder {
     
     private static final boolean ONLY_READ = false;
 
+    /**
+     * Read a flat file store and build statistics.
+     * 
+     * @param args the file name
+     */
     public static void main(String... args) throws Exception {
         
         String fileName = args[0];

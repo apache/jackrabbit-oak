@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
 import java.io.EOFException;
 import java.io.File;
@@ -26,18 +26,27 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 
-public class NodeStreamReader implements NodeDataReader {
+/**
+ * A node stream reader with compression for repeated strings.
+ */
+public class NodeStreamReaderCompressed implements NodeDataReader {
+
+    private static final int MAX_LENGTH = 1024;
+    private static final int WINDOW_SIZE = 1024;
+
+    private final InputStream in;
+    private final long fileSize;
+    private final String[] lastStrings = new String[WINDOW_SIZE];
     
-    InputStream in;
-    long count;
-    long fileSize;
-    byte[] buffer = new byte[1024 * 1024];
-    
-    public NodeStreamReader(long fileSize, InputStream in) {
+    private long currentId;
+    private long count;
+    private byte[] buffer = new byte[1024 * 1024];
+
+    private NodeStreamReaderCompressed(long fileSize, InputStream in) {
         this.fileSize = fileSize;
         this.in = in;
     }
@@ -77,13 +86,13 @@ public class NodeStreamReader implements NodeDataReader {
         return x;
     }
 
-    static NodeStreamReader open(String fileName) throws IOException {
+    public static NodeStreamReaderCompressed open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
         InputStream in = new FileInputStream(fileName);
         if (fileName.endsWith(".lz4")) {
             in = new LZ4FrameInputStream(in);
         }
-        return new NodeStreamReader(fileSize, in);
+        return new NodeStreamReaderCompressed(fileSize, in);
     }
     
     public NodeData readNode() throws IOException {
@@ -100,9 +109,9 @@ public class NodeStreamReader implements NodeDataReader {
             pathElements.add(readString(in));
         }
         int propertyCount = readVarInt(in);
-        ArrayList<Property> properties = new ArrayList<>(propertyCount);
+        ArrayList<NodeProperty> properties = new ArrayList<>(propertyCount);
         for (int i = 0; i < propertyCount; i++) {
-            Property p;
+            NodeProperty p;
             String name = readString(in);
             ValueType type = ValueType.byOrdinal(in.read());
             if (in.read() == 1) {
@@ -111,10 +120,10 @@ public class NodeStreamReader implements NodeDataReader {
                 for (int j = 0; j < count; j++) {
                     values[j] = readString(in);
                 }
-                p = new Property(name, type, values, true);
+                p = new NodeProperty(name, type, values, true);
             } else {
                 String value = readString(in);
-                p = new Property(name, type, value);
+                p = new NodeProperty(name, type, value);
             }
             properties.add(p);
         }
@@ -125,9 +134,21 @@ public class NodeStreamReader implements NodeDataReader {
 
     private String readString(InputStream in) throws IOException {
         int len = readVarInt(in);
-        if (len == -1) {
-            return null;
+        if (len < 2) {
+            if (len == 0) {
+                return null;
+            } else if (len == 1) {
+                return "";
+            }
         }
+        if ((len & 1) == 1) {
+            int offset = len >>> 1;
+            String s = lastStrings[(int) (currentId - offset) & (WINDOW_SIZE - 1)];
+            lastStrings[(int) currentId & (WINDOW_SIZE - 1)] = s;
+            currentId++;
+            return s;
+        }
+        len = len >>> 1;
         byte[] buff = buffer;
         if (len > buff.length) {
             buff = buffer = new byte[len];
@@ -136,7 +157,12 @@ public class NodeStreamReader implements NodeDataReader {
         if (read != len) {
             throw new EOFException();
         }
-        return new String(buff, 0, len, StandardCharsets.UTF_8);
+        String s = new String(buff, 0, len, StandardCharsets.UTF_8);
+        if (s.length() < MAX_LENGTH) {
+            lastStrings[(int) currentId & (WINDOW_SIZE - 1)] = s;
+            currentId++;
+        }
+        return s;
     }
     
     @Override

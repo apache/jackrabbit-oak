@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
@@ -26,11 +26,18 @@ import java.nio.charset.StandardCharsets;
 
 import net.jpountz.lz4.LZ4FrameOutputStream;
 
+/**
+ * Allows to convert a flat-file store to a node stream.
+ */
 public class NodeStreamConverter {
 
     public static void main(String... args) throws IOException {
         String sourceFileName = args[0];
         String targetFileName = args[1];
+        convert(sourceFileName, targetFileName);
+    }
+    
+    public static void convert(String sourceFileName, String targetFileName) throws IOException {
         NodeLineReader in = NodeLineReader.open(sourceFileName);
         OutputStream out = new BufferedOutputStream(new FileOutputStream(targetFileName));
         out = new LZ4FrameOutputStream(out);
@@ -50,7 +57,7 @@ public class NodeStreamConverter {
             writeString(out, s);
         }
         writeVarInt(out, node.getProperties().size());
-        for (Property p : node.getProperties()) {
+        for (NodeProperty p : node.getProperties()) {
             writeString(out, p.getName());
             out.write(p.getType().getOrdinal());
             if (p.isMultiple()) {

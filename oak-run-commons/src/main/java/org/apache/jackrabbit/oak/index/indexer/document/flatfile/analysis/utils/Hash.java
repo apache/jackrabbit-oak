@@ -16,10 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
+/**
+ * A hash function utility class.
+ */
 public class Hash {
 
+    /**
+     * Calculate a 64-bit hash value from a value, using a seed.
+     * 
+     * The current algorithm used the finalizer of the MurmurHash3 hash function,
+     * but callers shouldn't rely on that.
+     * 
+     * @param x    the value
+     * @param seed the seed
+     * @return the hash value
+     */
     public static long hash64(long x, long seed) {
         x += seed;
         x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
@@ -28,6 +41,12 @@ public class Hash {
         return x;
     }
 
+    /**
+     * Calculate a 64-bit hash value from a value.
+     * 
+     * @param x the value
+     * @return the hash value
+     */
     public static long hash64(long x) {
         return hash64(x, 100);
     }

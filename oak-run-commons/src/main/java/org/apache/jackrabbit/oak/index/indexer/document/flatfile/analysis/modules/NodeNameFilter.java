@@ -20,10 +20,12 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 
 import java.util.List;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 
+/**
+ * A wrapper for a collector that allows to filter for certain node names, or
+ * children of those.
+ */
 public class NodeNameFilter implements StatsCollector {
 
     private final StatsCollector base;
@@ -34,11 +36,6 @@ public class NodeNameFilter implements StatsCollector {
         this.base = base;
     }
     
-    @Override
-    public void setStorage(Storage storage) {
-        base.setStorage(storage);
-    }
-
     @Override
     public void add(NodeData node) {
         List<String> pathElements = node.getPathElements();

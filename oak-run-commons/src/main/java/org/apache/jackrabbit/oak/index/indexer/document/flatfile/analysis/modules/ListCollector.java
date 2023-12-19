@@ -21,24 +21,19 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 
+/**
+ * A collector for a list of collectors.
+ */
 public class ListCollector implements StatsCollector {
 
     private final ArrayList<StatsCollector> collectors = new ArrayList<>();
     
     public void add(StatsCollector collector) {
-        collector.setStorage(new Storage());
         collectors.add(new TimeMeasureCollector(collector));
     }
     
-    @Override
-    public void setStorage(Storage storage) {
-        // ignore
-    }
-
     @Override
     public void add(NodeData node) {
         for(StatsCollector collector : collectors) {

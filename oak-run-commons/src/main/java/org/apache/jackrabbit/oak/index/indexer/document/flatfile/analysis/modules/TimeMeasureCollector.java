@@ -20,10 +20,11 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modul
 
 import java.util.List;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 
+/**
+ * A collector that also measures the elapsed time.
+ */
 public class TimeMeasureCollector implements StatsCollector {
 
     StatsCollector base;
@@ -31,11 +32,6 @@ public class TimeMeasureCollector implements StatsCollector {
     
     public TimeMeasureCollector(StatsCollector base) {
         this.base = base;
-    }
-
-    @Override
-    public void setStorage(Storage storage) {
-        base.setStorage(storage);
     }
 
     @Override

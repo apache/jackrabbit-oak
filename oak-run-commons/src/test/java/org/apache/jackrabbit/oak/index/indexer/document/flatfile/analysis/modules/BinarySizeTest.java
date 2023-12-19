@@ -22,10 +22,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 import org.junit.Test;
 
 public class BinarySizeTest {
@@ -41,11 +40,11 @@ public class BinarySizeTest {
         
         for (int i = 0; i < 1_000; i++) {
             // 1 MB each
-            Property p1 = new Property("p1", ValueType.BINARY, ":blobId:" + (i % 20) + "#1000000");
+            NodeProperty p1 = new NodeProperty("p1", ValueType.BINARY, ":blobId:" + (i % 20) + "#1000000");
             NodeData n = new NodeData(Arrays.asList("content", "dam", "common", "n" + i), Arrays.asList(p1));
             list.add(n);
             // 1 KB each
-            Property p2 = new Property("p2", ValueType.BINARY, ":blobId:" + (i % 20) + "#1000");
+            NodeProperty p2 = new NodeProperty("p2", ValueType.BINARY, ":blobId:" + (i % 20) + "#1000");
             n = new NodeData(Arrays.asList("content", "dam", "filtered", "n" + i), Arrays.asList(p2));
             list.add(n);
         }
@@ -79,7 +78,6 @@ public class BinarySizeTest {
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         DistinctBinarySizeHistogram distinctHistogram = new DistinctBinarySizeHistogram(1);
         
-        binary.setStorage(new Storage());
         ListCollector list = new ListCollector();
         list.add(binary);
         list.add(binaryEmbedded);
@@ -93,9 +91,9 @@ public class BinarySizeTest {
         String embeddedBinary5k = new String(new char[10000]).replace('\0', '0');
         for (int i = 0; i < 1_000; i++) {
             // 1 distinct embedded blobs, each 5 KB
-            Property p1 = new Property("data1", ValueType.BINARY, ":blobId:0x" + embeddedBinary5k);
+            NodeProperty p1 = new NodeProperty("data1", ValueType.BINARY, ":blobId:0x" + embeddedBinary5k);
             // 20 distinct blobs ids, each 500 KB
-            Property p2 = new Property("data2", ValueType.BINARY, ":blobId:" + (i % 20) + "#5000000");
+            NodeProperty p2 = new NodeProperty("data2", ValueType.BINARY, ":blobId:" + (i % 20) + "#5000000");
             NodeData n = new NodeData(Arrays.asList("content", "dam", "abc"), Arrays.asList(p1, p2));
             list.add(n);
         }

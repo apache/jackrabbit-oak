@@ -23,8 +23,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.junit.Test;
 
 public class NodeCountTest {
@@ -32,7 +31,6 @@ public class NodeCountTest {
     @Test
     public void nodeCount() {
         NodeCount nc = new NodeCount(1024);
-        nc.setStorage(new Storage());
         
         for (int i = 0; i < 10_000_000; i++) {
             NodeData n = new NodeData(Arrays.asList("content", "dam", "folder" + (i % 10), "n" + i), Collections.emptyList());

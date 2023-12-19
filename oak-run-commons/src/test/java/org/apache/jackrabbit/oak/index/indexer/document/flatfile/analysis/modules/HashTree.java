@@ -27,10 +27,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.SipHash;
 
 /**
  * This is a demo-implementation of a content hash collector
@@ -40,12 +40,7 @@ public class HashTree implements StatsCollector {
     private static final int MIN_LEVELS = 2;
     private static final int MAX_LEVELS = 3;
     private static final boolean CRYPTOGRAPHICALLY_SAFE = true;
-    Storage storage;
-
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
+    private final Storage storage = new Storage();
 
     @Override
     public void add(NodeData node) {
@@ -58,7 +53,7 @@ public class HashTree implements StatsCollector {
                 // SHA-256: 54 seconds
                 // SHA3-256: 56 seconds
                 MessageDigest md = MessageDigest.getInstance("SHA-256");
-                for(Property p : node.getProperties()) {
+                for(NodeProperty p : node.getProperties()) {
                     md.update(p.getName().getBytes(StandardCharsets.UTF_8));
                     md.update((byte) p.getType().getOrdinal());
                     for(String s : p.getValues()) {
@@ -71,7 +66,7 @@ public class HashTree implements StatsCollector {
                 throw new IllegalStateException();
             }
         } else {
-            for(Property p : node.getProperties()) {
+            for(NodeProperty p : node.getProperties()) {
                 nodeHash = Hash.hash64(p.getName().hashCode(), nodeHash);
                 nodeHash = Hash.hash64(p.getType().getOrdinal(), nodeHash);
                 for(String s : p.getValues()) {

@@ -1,7 +1,7 @@
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
 /**
- * The count-min sketch.
+ * A count-min sketch implementation.
  */
 public class CountMinSketch {
 
@@ -39,10 +39,33 @@ public class CountMinSketch {
         data = new long[k][m];
     }
     
+    /**
+     * Add an entry.
+     * 
+     * @param hash the hash
+     * @return the new estimation
+     */
     public long addAndEstimate(long hash) {
         long min = Long.MAX_VALUE;
         for (int i = 0; i < k; i++) {
-            long x = data[i][(int) (hash & (m - 1))]++;
+            long x = ++data[i][(int) (hash & (m - 1))];
+            min = Math.min(min, x);
+            hash >>>= shift;
+        }
+        return min;
+    }
+    
+    public void add(long hash) {
+        for (int i = 0; i < k; i++) {
+            data[i][(int) (hash & (m - 1))]++;
+            hash >>>= shift;
+        }
+    }
+
+    public long estimate(long hash) {
+        long min = Long.MAX_VALUE;
+        for (int i = 0; i < k; i++) {
+            long x = data[i][(int) (hash & (m - 1))];
             min = Math.min(min, x);
             hash >>>= shift;
         }

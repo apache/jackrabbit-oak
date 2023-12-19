@@ -16,16 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
 import java.util.List;
 
+/**
+ * Represents a node in a stream.
+ */
 public class NodeData {
     private final List<String> pathElements;
-    private final List<Property> properties;
+    private final List<NodeProperty> properties;
     private NodeData parent;
     
-    public NodeData(List<String> pathElements, List<Property> properties) {
+    public NodeData(List<String> pathElements, List<NodeProperty> properties) {
         this.pathElements = pathElements;
         this.properties = properties;
     }
@@ -34,7 +37,7 @@ public class NodeData {
         return pathElements;
     }
     
-    public List<Property> getProperties() {
+    public List<NodeProperty> getProperties() {
         return properties;
     }
     
@@ -50,8 +53,8 @@ public class NodeData {
         this.parent = parent;
     }
     
-    public Property getProperty(String name) {
-        for(Property p : properties) {
+    public NodeProperty getProperty(String name) {
+        for(NodeProperty p : properties) {
             if (p.getName().equals(name)) {
                 return p;
             }

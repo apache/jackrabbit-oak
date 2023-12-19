@@ -16,13 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
 
-import java.io.IOException;
+import java.util.List;
 
-public interface NodeDataReader {
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 
-    NodeData readNode() throws IOException;
+/**
+ * A collector for statistics about a repository.
+ */
+public interface StatsCollector {
+    
+    /**
+     * Collect data for this node.
+     * 
+     * @param node the node
+     */
+    void add(NodeData node);
 
-    long getFileSize();
+    /**
+     * End collection.
+     */
+    void end();
+
+    /**
+     * Get the statistics in the form of a list of records.
+     * 
+     * @return the results
+     */
+    List<String> getRecords();
+    
 }

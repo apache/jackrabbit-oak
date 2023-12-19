@@ -23,16 +23,19 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
+/**
+ * Collects the histogram of binary sizes (embedded binaries and references to
+ * the datastore). Collection is done for a certain number of path levels, in
+ * addition to the root.
+ */
 public class BinarySizeHistogram implements StatsCollector {
 
     private final int pathLevels;
-    private Storage storage;
+    private final Storage storage = new Storage();
     
     private static final String[] SIZES = new String[64];
     
@@ -48,15 +51,10 @@ public class BinarySizeHistogram implements StatsCollector {
         this.pathLevels = pathLevels;
     }
     
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
-    
     public void add(NodeData node) {
         ArrayList<Long> embedded = new ArrayList<>();
         ArrayList<Long> references = new ArrayList<>();
-        for(Property p : node.getProperties()) {
+        for(NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
                     if (!v.startsWith(":blobId:")) {

@@ -22,10 +22,9 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 import org.junit.Test;
 
 public class NodeTypeCountTest {
@@ -33,15 +32,14 @@ public class NodeTypeCountTest {
     @Test
     public void nodeCount() {
         NodeTypeCount nc = new NodeTypeCount();
-        nc.setStorage(new Storage());
         for (int i = 0; i < 10_000; i++) {
-            Property p1, p2;
+            NodeProperty p1, p2;
             if (i % 10 == 0) {
-                p1 = new Property("jcr:primaryType", ValueType.NAME, "nt:unstructured");
-                p2 = new Property("jcr:mixinTypes", ValueType.NAME, new String[] {"mix:a", "mix:b"}, true);
+                p1 = new NodeProperty("jcr:primaryType", ValueType.NAME, "nt:unstructured");
+                p2 = new NodeProperty("jcr:mixinTypes", ValueType.NAME, new String[] {"mix:a", "mix:b"}, true);
             } else {
-                p1 = new Property("jcr:primaryType", ValueType.NAME, "oak:unstructured");
-                p2 = new Property("jcr:mixinTypes", ValueType.NAME, new String[] {"mix:a", "mix:c"}, true);
+                p1 = new NodeProperty("jcr:primaryType", ValueType.NAME, "oak:unstructured");
+                p2 = new NodeProperty("jcr:mixinTypes", ValueType.NAME, new String[] {"mix:a", "mix:c"}, true);
             }
             NodeData n = new NodeData(Arrays.asList("content", "dam", "folder" + (i % 10), "n" + i), Arrays.asList(p1, p2));
             nc.add(n);

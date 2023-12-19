@@ -23,26 +23,22 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
+/**
+ * A collector for node types.
+ */
 public class NodeTypeCount implements StatsCollector {
     
-    Storage storage;
+    private final Storage storage = new Storage();
     
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
-
     public void add(NodeData node) {
-        Property pt = node.getProperty("jcr:primaryType");
+        NodeProperty pt = node.getProperty("jcr:primaryType");
         if (pt != null) {
             storage.add("primaryType/" + pt.getValues()[0], 1);
         }
-        Property mt = node.getProperty("jcr:mixinTypes");
+        NodeProperty mt = node.getProperty("jcr:mixinTypes");
         if (mt != null) {
             for(String v : mt.getValues()) {
                 storage.add("mixin/" + v, 1);

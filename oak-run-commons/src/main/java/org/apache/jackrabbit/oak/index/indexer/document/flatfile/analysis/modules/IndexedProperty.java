@@ -22,9 +22,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
+/**
+ * An indexed property. It can have a list of parent nodes, and a node type.
+ */
 public class IndexedProperty {
     private final String name;
     private final ArrayList<String> parents;
@@ -48,6 +51,13 @@ public class IndexedProperty {
         return nodeType + ":" + String.join("/", parents);
     }
 
+    /**
+     * Check if a certain property matches the index definition.
+     * 
+     * @param name the name of the property
+     * @param node the node (which may have parent nodes)
+     * @return whether the property matches the index definition
+     */
     public boolean matches(String name, NodeData node) {
         if (!name.equals(this.name)) {
             return false;
@@ -74,9 +84,9 @@ public class IndexedProperty {
         if (nodeType.equals("nt:base")) {
             return true;
         }
-        Property pt = nodeTypeCheck.getProperty("jcr:primaryType");
+        NodeProperty pt = nodeTypeCheck.getProperty("jcr:primaryType");
         if (pt == null) {
-            throw new IllegalStateException("no primary type"); 
+            throw new IllegalStateException("no primary type");
         }
         if (name.equals("jcr:primaryType")) {
             // we index the property "jcr:primaryType"

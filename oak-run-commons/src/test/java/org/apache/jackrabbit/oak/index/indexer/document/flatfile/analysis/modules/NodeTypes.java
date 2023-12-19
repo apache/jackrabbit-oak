@@ -25,10 +25,8 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
 /**
  * A collector of node types.
@@ -36,14 +34,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storag
  */
 public class NodeTypes implements StatsCollector {
 
-    Storage storage;
-    TreeMap<String, NodeType> map = new TreeMap<>();
-    TreeMap<String, ArrayList<String>> flatMap = new TreeMap<>();
-
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
+    private final Storage storage = new Storage();
+    private final TreeMap<String, NodeType> map = new TreeMap<>();
 
     @Override
     public void add(NodeData node) {
@@ -55,11 +47,11 @@ public class NodeTypes implements StatsCollector {
             return;
         }
         String nodeType = pathElements.get(2);
-        Property nodeTypeName = node.getProperty("jcr:nodeTypeName");
-        Property superTypes = node.getProperty("rep:supertypes");
-        Property primarySubTypes = node.getProperty("rep:primarySubtypes");
-        Property mixinSubTypes = node.getProperty("rep:mixinSubtypes");
-        Property isMixin = node.getProperty("jcr:isMixin");
+        NodeProperty nodeTypeName = node.getProperty("jcr:nodeTypeName");
+        NodeProperty superTypes = node.getProperty("rep:supertypes");
+        NodeProperty primarySubTypes = node.getProperty("rep:primarySubtypes");
+        NodeProperty mixinSubTypes = node.getProperty("rep:mixinSubtypes");
+        NodeProperty isMixin = node.getProperty("jcr:isMixin");
         NodeType nt = new NodeType();
         nt.name = nodeTypeName.getValues()[0];
         if (!nodeType.equals(nt.name)) {

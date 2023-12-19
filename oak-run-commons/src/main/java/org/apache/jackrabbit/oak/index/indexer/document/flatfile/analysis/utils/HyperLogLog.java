@@ -16,17 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
 import java.util.HashSet;
 
+/**
+ * A HyperLogLog implementation.
+ */
 public class HyperLogLog {
     
     private final int m;
-    private byte[] counters;
+    private final byte[] counters;
     private final double am;
-    private HashSet<Long> smallSet;
     private final int maxSmallSetSize;
+    private HashSet<Long> smallSet;
 
     public HyperLogLog(int m, int maxSmallSetSize) {
         this.maxSmallSetSize = maxSmallSetSize;

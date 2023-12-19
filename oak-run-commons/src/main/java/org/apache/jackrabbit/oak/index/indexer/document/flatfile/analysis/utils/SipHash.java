@@ -14,13 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
 /**
  * An implementation of the SipHash-2-2 function, to prevent hash flooding.
  */
 public class SipHash {
-    
+
     private final long v0, v1, v2, v3;
 
     public SipHash(long seed) {
@@ -54,21 +54,21 @@ public class SipHash {
             v3 ^= v0;
             v2 = Long.rotateLeft(v2, 32);
         }
-        v0 ^= m;      
+        v0 ^= m;
         this.v0 = v0;
         this.v1 = v1;
         this.v2 = v2;
-        this.v3= v3;
+        this.v3 = v3;
     }
-    
+
     @Override
     public int hashCode() {
         long x = v0 ^ v1 ^ v2 ^ v3;
         return (int) (x ^ (x >>> 16));
     }
-    
+
     public long longHashCode() {
         return v0 ^ v1 ^ v2 ^ v3;
-    }    
+    }
 
 }

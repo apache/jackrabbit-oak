@@ -23,10 +23,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.StatsCollector;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storage;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 
 /**
  * A collector for index definitions.
@@ -34,14 +32,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Storag
  */
 public class IndexDefinitions implements StatsCollector {
 
-    Storage storage;
-    HashMap<String, ArrayList<IndexedProperty>> map = new HashMap<>();
-
-    @Override
-    public void setStorage(Storage storage) {
-        this.storage = storage;
-    }
-
+    private HashMap<String, ArrayList<IndexedProperty>> map = new HashMap<>();
+    
     @Override
     public void add(NodeData node) {
         List<String> pathElements = node.getPathElements();
@@ -52,9 +44,9 @@ public class IndexDefinitions implements StatsCollector {
             return;
         }
         String nodeType = pathElements.get(3);
-        Property property = node.getProperty("name");
-        Property function = node.getProperty("function");
-        Property isRegexp = node.getProperty("isRegexp");
+        NodeProperty property = node.getProperty("name");
+        NodeProperty function = node.getProperty("function");
+        NodeProperty isRegexp = node.getProperty("isRegexp");
         if (isRegexp != null && isRegexp.getValues()[0].toString().equals("true")) {
             // ignore regex properties
             return;

@@ -16,19 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
 
+/**
+ * A class that remembers the top k entries.
+ * 
+ * Internally, the top entries are kept in a list, as well as in a hash map.
+ * Also, a count-min sketch data structure is used for an approximate count per
+ * entry.
+ */
 public class TopKValues {
-    
+
     // we shorten values longer than this size
     // to save memory
     private final int MAX_VALUE_LENGTH = 100;
-    
+
     // after counting an entry, we skip this many,
     // to speed up processing
     private final int SKIP = 10;
@@ -43,11 +50,11 @@ public class TopKValues {
     private long skippedCount;
     private long countedCount;
 
-    TopKValues(int k) {
+    public TopKValues(int k) {
         this.k = k;
     }
-    
-    boolean isNotSkewed() {
+
+    public boolean isNotSkewed() {
         if (list.size() < k) {
             return false;
         }
@@ -55,18 +62,18 @@ public class TopKValues {
         TopEntry last = list.get(list.size() - 1);
         return last.count * 2 > first.count;
     }
-    
-    long getCount() {
+
+    public long getCount() {
         return countedCount;
     }
-    
-    long getTopCount() {
+
+    public long getTopCount() {
         if (list.isEmpty()) {
             return 0;
         }
         return list.get(0).count;
     }
-    
+
     public long getSecondCount() {
         if (list.size() < 2) {
             return getTopCount();
@@ -74,7 +81,7 @@ public class TopKValues {
         return list.get(1).count;
     }
 
-    void add(String value) {
+    public void add(String value) {
         if (skipRemaining > 0) {
             skippedCount++;
             skipRemaining--;
@@ -116,8 +123,8 @@ public class TopKValues {
             skipRemaining = SKIP + Math.min(10000, notSkewedCount * notSkewedCount);
         }
     }
-    
-    void bumpIfNeeded(int index) {
+
+    private void bumpIfNeeded(int index) {
         while (index > 0) {
             TopEntry existing = list.get(index);
             TopEntry next = list.get(index - 1);

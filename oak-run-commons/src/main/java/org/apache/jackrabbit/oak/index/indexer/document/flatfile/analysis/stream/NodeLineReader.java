@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis;
+package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -36,23 +36,26 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.PropertyValue;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.Property.ValueType;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.PropertyValue;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
 
+/**
+ * A reader for flat file stores.
+ */
 public class NodeLineReader implements NodeDataReader {
     
-    LineNumberReader reader;
-    long count;
-    long fileSize;
+    private final LineNumberReader reader;
+    private final long fileSize;
+    private long count;
     
-    NodeLineReader(LineNumberReader reader, long fileSize) {
+    private NodeLineReader(LineNumberReader reader, long fileSize) {
         this.reader = reader;
         this.fileSize = fileSize;
     }
     
-    static NodeLineReader open(String fileName) throws IOException {
+    public static NodeLineReader open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
         InputStream in = new BufferedInputStream(new FileInputStream(fileName));
         if (fileName.endsWith(".lz4")) {
@@ -87,13 +90,13 @@ public class NodeLineReader implements NodeDataReader {
         return node;
     }
     
-    private static List<Property> parse(String nodeData) {
-        ArrayList<Property> properties = new ArrayList<>();
+    private static List<NodeProperty> parse(String nodeData) {
+        ArrayList<NodeProperty> properties = new ArrayList<>();
         JsonObject json = JsonObject.fromJson(nodeData, true);
         for(Entry<String, String> e : json.getProperties().entrySet()) {
             String k = e.getKey();
             String v = e.getValue();
-            Property p;
+            NodeProperty p;
             if (v.startsWith("[")) {
                 p = fromJsonArray(k, v);
             } else {
@@ -105,12 +108,12 @@ public class NodeLineReader implements NodeDataReader {
                         String v3 = v2.substring(4);
                         int type = PropertyType.valueFromName(v3);
                         ValueType t = ValueType.byOrdinal(type);
-                        p = new Property(k, t, new String[0], true);
+                        p = new NodeProperty(k, t, new String[0], true);
                     } else {
                         throw new IllegalArgumentException(v);
                     }
                 } else {
-                    p = new Property(k, value.type, value.value);
+                    p = new NodeProperty(k, value.type, value.value);
                 }
             }
             properties.add(p);
@@ -174,7 +177,7 @@ public class NodeLineReader implements NodeDataReader {
         }
     }
     
-    public static Property fromJsonArray(String key, String json) {
+    public static NodeProperty fromJsonArray(String key, String json) {
         ArrayList<String> result = new ArrayList<>();
         ValueType type = null;
         JsopTokenizer tokenizer = new JsopTokenizer(json);
@@ -195,7 +198,7 @@ public class NodeLineReader implements NodeDataReader {
         if (type == null) {
             type = ValueType.STRING;
         }
-        return new Property(key, type, result.toArray(new String[result.size()]), true);
+        return new NodeProperty(key, type, result.toArray(new String[result.size()]), true);
     }
 
     @Override
