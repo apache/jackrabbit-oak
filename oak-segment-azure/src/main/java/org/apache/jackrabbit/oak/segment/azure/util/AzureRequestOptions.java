@@ -42,6 +42,9 @@ public class AzureRequestOptions {
 
     static final String WRITE_TIMEOUT_INTERVAL_PROP = "segment.write.timeout.interval";
 
+    private AzureRequestOptions() {
+    }
+
     /**
      * Apply default request options to the blobRequestOptions if they are not already set.
      * @param blobRequestOptions

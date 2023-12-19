@@ -25,11 +25,9 @@ import java.util.concurrent.TimeUnit;
 
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RequestCompletedEvent;
-import com.microsoft.azure.storage.RetryLinearRetry;
 import com.microsoft.azure.storage.StorageEvent;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
@@ -49,19 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
-
-    private static final String RETRY_ATTEMPTS_PROP = "segment.azure.retry.attempts";
-    private static final int DEFAULT_RETRY_ATTEMPTS = 5;
-
-    private static final String RETRY_BACKOFF_PROP = "segment.azure.retry.backoff";
-    private static final int DEFAULT_RETRY_BACKOFF_SECONDS = 5;
-
-    private static final String TIMEOUT_EXECUTION_PROP = "segment.timeout.execution";
-    private static final int DEFAULT_TIMEOUT_EXECUTION = 30;
-
-    private static final String TIMEOUT_INTERVAL_PROP = "segment.timeout.interval";
-    private static final int DEFAULT_TIMEOUT_INTERVAL = 1;
-
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
     protected final CloudBlobDirectory segmentstoreDirectory;
