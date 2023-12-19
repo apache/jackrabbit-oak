@@ -56,6 +56,8 @@ import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Boolean.FALSE;
+import static java.lang.Boolean.TRUE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
@@ -77,9 +79,10 @@ public class RevisionsCommand implements Command {
             "where sub-command is one of",
             "  info     give information about the revisions state without performing",
             "           any modifications",
-            "  collect  perform garbage collection",
-            "  reset    clear all persisted metadata",
-            "  sweep    clean up uncommitted changes"
+            "  collect      perform garbage collection",
+            "  reset        clear all persisted metadata",
+            "  sweep        clean up uncommitted changes",
+            "  detailedGC   perform detailed garbage collection i.e. remove unmerged branch commits, old revisions, deleted properties etc"
     );
 
     private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
@@ -93,6 +96,7 @@ public class RevisionsCommand implements Command {
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
         static final String CMD_SWEEP = "sweep";
+        static final String CMD_DETAILED_GC = "detailedGC";
 
         final OptionSpec<?> once;
         final OptionSpec<Integer> limit;
@@ -103,6 +107,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> detailedGC;
         final OptionSpec<?> detailedGCOnly;
         final OptionSpec<?> verbose;
+        final OptionSpec<Boolean> dryRun;
 
         RevisionsOptions(String usage) {
             super(usage);
@@ -119,6 +124,8 @@ public class RevisionsCommand implements Command {
             timeLimit = parser
                     .accepts("timeLimit", "cancel garbage collection after n seconds").withRequiredArg()
                     .ofType(Long.class).defaultsTo(-1L);
+            dryRun = parser.accepts("dryRun", "dryRun of detailedGC i.e. only print what would be deleted")
+                    .withRequiredArg().ofType(Boolean.class).defaultsTo(TRUE);
             continuous = parser
                     .accepts("continuous", "run continuously (collect only)");
             detailedGC = parser
@@ -148,6 +155,10 @@ public class RevisionsCommand implements Command {
 
         int getLimit() {
             return limit.value(options);
+        }
+
+        boolean isDryRun() {
+            return dryRun.value(options);
         }
 
         long getOlderThan() {
@@ -190,11 +201,13 @@ public class RevisionsCommand implements Command {
             if (RevisionsOptions.CMD_INFO.equals(subCmd)) {
                 info(options, closer);
             } else if (RevisionsOptions.CMD_COLLECT.equals(subCmd)) {
-                collect(options, closer);
+                collect(options, closer, false);
             } else if (RevisionsOptions.CMD_RESET.equals(subCmd)) {
                 reset(options, closer);
             } else if (RevisionsOptions.CMD_SWEEP.equals(subCmd)) {
                 sweep(options, closer);
+            } else if (RevisionsOptions.CMD_DETAILED_GC.equals(subCmd)) {
+                collect(options, closer, true);
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
             }
@@ -217,13 +230,16 @@ public class RevisionsCommand implements Command {
     }
 
     private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
-                                                 Closer closer)
+                                                 Closer closer, boolean detailedGCEnabled)
             throws IOException {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
             System.exit(1);
         }
+        // set detailedGC
+        builder.setDetailedGCEnabled(detailedGCEnabled);
+
         // create a VersionGCSupport while builder is read-write
         VersionGCSupport gcSupport = builder.createVersionGCSupport();
         // check for matching format version
@@ -244,7 +260,9 @@ public class RevisionsCommand implements Command {
         useMemoryBlobStore(builder);
         // create a version GC that operates on a read-only DocumentNodeStore
         // and a GC support with a writable DocumentStore
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isDetailedGCEnabled(builder));
+        System.out.println("DryRun is enabled : " + options.isDryRun());
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isDetailedGCEnabled(builder),
+                options.isDryRun());
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -260,7 +278,7 @@ public class RevisionsCommand implements Command {
 
     private void info(RevisionsOptions options, Closer closer)
             throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer);
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
         System.out.println("retrieving gc info");
         printInfo(gc, options);
     }
@@ -287,9 +305,9 @@ public class RevisionsCommand implements Command {
                 fmtTimestamp(info.oldestDetailedGCRevisionEstimate));
     }
 
-    private void collect(final RevisionsOptions options, Closer closer)
+    private void collect(final RevisionsOptions options, Closer closer, boolean detailedGCEnabled)
             throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer);
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, detailedGCEnabled);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
@@ -319,6 +337,9 @@ public class RevisionsCommand implements Command {
             printInfo(gc, options);
         } finally {
             finished.release();
+            if (options.isDryRun()) {
+                gc.resetDryRun();
+            }
             executor.shutdownNow();
         }
     }
@@ -377,7 +398,7 @@ public class RevisionsCommand implements Command {
 
     private void reset(RevisionsOptions options, Closer closer)
             throws IOException {
-        VersionGarbageCollector gc = bootstrapVGC(options, closer);
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
         System.out.println("resetting recommendations and statistics");
         if (options.isResetDetailedGCOnly()) {
             gc.resetDetailedGC();

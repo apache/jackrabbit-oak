@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.run;
+package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -24,23 +24,18 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.run.RevisionsCommand;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
@@ -82,7 +77,7 @@ public class RevisionsCommandTest {
     public void reset() throws Exception {
         ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
 
-        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
 
         ns.dispose();
@@ -94,7 +89,7 @@ public class RevisionsCommandTest {
         assertNotNull(c);
         ns = builderProvider.newBuilder()
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
-        doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNull(doc);
     }
 
@@ -106,10 +101,10 @@ public class RevisionsCommandTest {
         ns = createDocumentNodeStore(true);
         ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
 
-        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNotNull(doc.get("detailedGCTimeStamp"));
-        assertNotNull(doc.get("detailedGCId"));
+        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
 
         ns.dispose();
 
@@ -120,10 +115,38 @@ public class RevisionsCommandTest {
         assertNotNull(c);
         ns = builderProvider.newBuilder()
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
-        doc = ns.getDocumentStore().find(Collection.SETTINGS, "versionGC");
+        doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNull(doc.get("detailedGCTimeStamp"));
-        assertNull(doc.get("detailedGCId"));
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+    }
+
+    @Test
+    public void resetDryRunFields() throws Exception {
+        // need to set detailedGCEnabled to true, so let's bounce the default one
+        ns.dispose();
+        // and create it fresh with detailedGCEnabled==true
+        ns = createDocumentNodeStore(true);
+        ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
+
+        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(doc);
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
+
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+
+        MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
+        ns = builderProvider.newBuilder()
+                .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+        doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(doc);
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
     }
 
     @Test
@@ -131,6 +154,33 @@ public class RevisionsCommandTest {
         ns.dispose();
 
         String output = captureSystemOut(new RevisionsCmd("collect"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGC() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithoutDryRun() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "false"));
+        assertTrue(output.contains("DryRun is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithDryRun() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "true"));
+        assertTrue(output.contains("DryRun is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 

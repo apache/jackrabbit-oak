@@ -28,8 +28,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGC;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGCDryRun;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
@@ -99,5 +102,57 @@ public class VersionGCInitTest {
         assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
         assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
         assertEquals(MIN_ID_VALUE, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+    }
+
+    @Test
+    public void lazyInitializeWithDetailedGCDryRun() throws Exception {
+        DocumentStore store = ns.getDocumentStore();
+        Document vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNull(vgc);
+
+        enableDetailGC(ns.getVersionGarbageCollector());
+        enableDetailGCDryRun(ns.getVersionGarbageCollector());
+
+        long offset = SECONDS.toMillis(42);
+        String id = getIdFromPath("/node");
+        Revision r = new Revision(offset, 0, 1);
+        UpdateOp op = new UpdateOp(id, true);
+        NodeDocument.setModified(op, r);
+        store.createOrUpdate(NODES, op);
+        VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
+
+        vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(vgc);
+        // detailedGC values shouldn't have been updated in dryRun mode
+        System.out.println(stats.oldestModifiedDocId);
+        System.out.println(stats.oldestModifiedDocTimeStamp);
+        System.out.println(vgc);
+        assertNull(vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+
+        // dryRun mode values should have been updated
+        assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
+    }
+
+    @Test
+    public void lazyInitializeWithDetailedGCDryRunWithNoData() throws Exception {
+        DocumentStore store = ns.getDocumentStore();
+        Document vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNull(vgc);
+
+        enableDetailGC(ns.getVersionGarbageCollector());
+        enableDetailGCDryRun(ns.getVersionGarbageCollector());
+        VersionGCStats stats = ns.getVersionGarbageCollector().gc(1, DAYS);
+
+        vgc = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(vgc);
+        // detailedGC values shouldn't have been updated in dryRun mode
+        assertNull(vgc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertNull(vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+
+        // dryRun mode values should have been updated
+        assertEquals(stats.oldestModifiedDocTimeStamp, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertEquals(stats.oldestModifiedDocId, vgc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
     }
 }
