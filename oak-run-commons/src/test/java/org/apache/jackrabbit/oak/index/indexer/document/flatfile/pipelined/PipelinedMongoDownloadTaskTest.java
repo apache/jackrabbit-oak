@@ -136,6 +136,10 @@ public class PipelinedMongoDownloadTaskTest {
         return Arrays.stream(paths).map(path -> new PathFilter(List.of(path), List.of())).collect(Collectors.toList());
     }
 
+    private List<PathFilter> createPathFilters(Set<String> included, Set<String> excluded) {
+        return List.of(new PathFilter(included, excluded));
+    }
+
     @Test
     public void ancestorsFilters() {
         assertEquals(Set.of(), PipelinedMongoDownloadTask.getAncestors(Set.of()));
@@ -175,5 +179,12 @@ public class PipelinedMongoDownloadTaskTest {
                 new PathFilter(List.of("/"), List.of("/var"))
         );
         assertEquals(Set.of(), PipelinedMongoDownloadTask.extractIncludedPaths(withExcludeFilter));
+    }
+
+    @Test
+    public void pathFilters_onlyExcludedPaths() {
+        List<PathFilter> pathFilters = createPathFilters(Set.of(), Set.of("/exclude/1", "/exclude/2"));
+
+        assertEquals(Set.of(), PipelinedMongoDownloadTask.extractIncludedPaths(pathFilters));
     }
 }
