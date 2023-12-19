@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.run;
+package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -24,17 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 
-import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.MongoConnectionFactory;
-import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.run.RevisionsCommand;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
