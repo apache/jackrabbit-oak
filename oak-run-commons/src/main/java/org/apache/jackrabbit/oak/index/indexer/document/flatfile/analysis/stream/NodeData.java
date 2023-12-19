@@ -27,20 +27,20 @@ public class NodeData {
     private final List<String> pathElements;
     private final List<NodeProperty> properties;
     private NodeData parent;
-    
+
     public NodeData(List<String> pathElements, List<NodeProperty> properties) {
         this.pathElements = pathElements;
         this.properties = properties;
     }
-    
+
     public List<String> getPathElements() {
         return pathElements;
     }
-    
+
     public List<NodeProperty> getProperties() {
         return properties;
     }
-    
+
     public String toString() {
         return "/" + String.join("/", pathElements);
     }
@@ -52,7 +52,7 @@ public class NodeData {
     public void setParent(NodeData parent) {
         this.parent = parent;
     }
-    
+
     public NodeProperty getProperty(String name) {
         for(NodeProperty p : properties) {
             if (p.getName().equals(name)) {

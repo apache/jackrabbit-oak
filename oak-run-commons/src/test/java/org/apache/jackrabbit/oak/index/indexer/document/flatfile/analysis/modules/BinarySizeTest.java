@@ -28,16 +28,16 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
 import org.junit.Test;
 
 public class BinarySizeTest {
-    
+
     @Test
     public void nodeNameFilter() {
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         NodeNameFilter filtered = new NodeNameFilter("filtered", new BinarySizeHistogram(1));
-        
+
         ListCollector list = new ListCollector();
         list.add(histogram);
         list.add(filtered);
-        
+
         for (int i = 0; i < 1_000; i++) {
             // 1 MB each
             NodeProperty p1 = new NodeProperty("p1", ValueType.BINARY, ":blobId:" + (i % 20) + "#1000000");
@@ -48,7 +48,7 @@ public class BinarySizeTest {
             n = new NodeData(Arrays.asList("content", "dam", "filtered", "n" + i), Arrays.asList(p2));
             list.add(n);
         }
-        // we have an unfiltered, and filtered histogram now 
+        // we have an unfiltered, and filtered histogram now
         assertEquals(
                 "BinarySizeHistogram\n"
                 + "refs / 11 (513..1024): 1000\n"
@@ -68,7 +68,7 @@ public class BinarySizeTest {
                 + "time: 0 seconds\n"
                 + "", list.toString());
     }
-    
+
     @Test
     public void manyNodes() {
         // resolution of 10 MB
@@ -77,13 +77,13 @@ public class BinarySizeTest {
         BinarySizeEmbedded binaryEmbedded = new BinarySizeEmbedded(10_000);
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         DistinctBinarySizeHistogram distinctHistogram = new DistinctBinarySizeHistogram(1);
-        
+
         ListCollector list = new ListCollector();
         list.add(binary);
         list.add(binaryEmbedded);
         list.add(histogram);
         list.add(distinctHistogram);
-        
+
         // add 1000 nodes, where each node has one property:
         // - embedded: 5 KB => 5 MB
         // - external: 5 MB => 5 GB
@@ -97,7 +97,7 @@ public class BinarySizeTest {
             NodeData n = new NodeData(Arrays.asList("content", "dam", "abc"), Arrays.asList(p1, p2));
             list.add(n);
         }
-        
+
         assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 4]]", Arrays.asList(binary.getRecords()).toString());
         assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 4]]", Arrays.asList(binaryEmbedded.getRecords()).toString());
         assertEquals(

@@ -40,22 +40,22 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * Builder for commonly used statistics for flat file stores.
  */
 public class StatsBuilder {
-    
+
     private static final boolean ONLY_READ = false;
 
     /**
      * Read a flat file store and build statistics.
-     * 
+     *
      * @param args the file name
      */
     public static void main(String... args) throws Exception {
-        
+
         String fileName = args[0];
         String filter = null;
         if (args.length > 1) {
             filter = args[1];
         }
-        
+
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000));
         collectors.add(new BinarySize(100_000_000));
@@ -72,22 +72,22 @@ public class StatsBuilder {
             collectors.add(new NodeNameFilter(filter, new BinarySizeHistogram(1)));
             collectors.add(new NodeNameFilter(filter, new TopLargestBinaries(10)));
         }
-        
+
         Profiler prof = new Profiler().startCollecting();
-        
+
         NodeLineReader reader = NodeLineReader.open(fileName);
         // NodeStreamReaderCompressed reader = NodeStreamReaderCompressed.open(fileName);
         collect(reader, collectors);
-        
+
         System.out.println(prof.getTop(10));
         System.out.println(collectors);
     }
-    
+
     private static void collect(NodeDataReader reader, StatsCollector collector) throws IOException {
         long start = System.nanoTime();
         NodeData last = null;
         long lineCount = 0;
-        
+
         while (true) {
             lineCount++;
             // if(lineCount > 1000000) break;
@@ -126,5 +126,5 @@ public class StatsBuilder {
         System.out.println(reader.getFileSize() + " bytes");
         System.out.println((reader.getFileSize() / lineCount) + " bytes/node");
     }
-  
+
 }

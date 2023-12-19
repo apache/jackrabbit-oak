@@ -27,7 +27,7 @@ public interface NodeDataReader {
 
     /**
      * Read the next node.
-     * 
+     *
      * @return the node, or null for EOF
      * @throws IOException
      */
@@ -35,7 +35,7 @@ public interface NodeDataReader {
 
     /**
      * Get the file size.
-     * 
+     *
      * @return the file size
      */
     long getFileSize();

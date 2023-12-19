@@ -36,7 +36,7 @@ public class NodeStreamConverter {
         String targetFileName = args[1];
         convert(sourceFileName, targetFileName);
     }
-    
+
     public static void convert(String sourceFileName, String targetFileName) throws IOException {
         NodeLineReader in = NodeLineReader.open(sourceFileName);
         OutputStream out = new BufferedOutputStream(new FileOutputStream(targetFileName));

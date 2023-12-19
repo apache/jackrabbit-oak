@@ -33,7 +33,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
 public class IndexDefinitions implements StatsCollector {
 
     private HashMap<String, ArrayList<IndexedProperty>> map = new HashMap<>();
-    
+
     @Override
     public void add(NodeData node) {
         List<String> pathElements = node.getPathElements();
@@ -72,15 +72,15 @@ public class IndexDefinitions implements StatsCollector {
             // ignore for now
         }
     }
-    
+
     @Override
     public void end() {
     }
-    
+
     public List<String> getRecords() {
         return Collections.emptyList();
     }
-    
+
     public HashMap<String, ArrayList<IndexedProperty>> getPropertyMap() {
         return map;
     }

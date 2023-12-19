@@ -32,7 +32,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 public class NodeStreamTest {
-    
+
     @ClassRule
     public static TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
 
@@ -53,13 +53,13 @@ public class NodeStreamTest {
             w.write("/n" + i + "|{" + buff.toString() + ",\"n\":null,\"x\":[\"1\"]}\n");
         }
         w.close();
-        
+
         File streamFile = new File(f, "streamFile.lz4");
         File compressedStreamFile = new File(f, "compressedStreamFile.lz4");
-        
+
         NodeStreamConverter.convert(flatFile.getAbsolutePath(), streamFile.getAbsolutePath());
         NodeStreamConverterCompressed.convert(flatFile.getAbsolutePath(), compressedStreamFile.getAbsolutePath());
-        
+
         NodeDataReader flatReader = NodeLineReader.open(flatFile.getAbsolutePath());
         long fileSize1 = flatReader.getFileSize();
         NodeDataReader nodeStream = NodeStreamReader.open(streamFile.getAbsolutePath());

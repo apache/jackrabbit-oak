@@ -29,7 +29,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
 import org.junit.Test;
 
 public class PropertyStatsTest {
-    
+
     @Test
     public void manyUniqueProperties() {
         PropertyStats pc = new PropertyStats(false);
@@ -52,7 +52,7 @@ public class PropertyStatsTest {
                 + "common2 weight 5 count 1000 distinct 5 avgSize 1 maxSize 2\n"
                 + "", pc.toString());
     }
-    
+
     @Test
     public void skewed() {
         PropertyStats pc = new PropertyStats(false);
@@ -70,5 +70,5 @@ public class PropertyStatsTest {
                 + "skewed weight 3 count 1000000 distinct 394382 avgSize 7 maxSize 11 top {\"skipped\":899091,\"counted\":90910,\"false\":25583,\"true\":25518,\"-411461567\":1,\"1483286044\":1,\"1310925467\":1,\"-1752252714\":1,\"-1433290908\":1,\"-1209544007\":1}\n"
                 + "", pc.toString());
     }
-    
+
 }

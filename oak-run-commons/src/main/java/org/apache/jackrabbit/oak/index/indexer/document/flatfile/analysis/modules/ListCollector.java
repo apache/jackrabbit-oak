@@ -29,16 +29,16 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
 public class ListCollector implements StatsCollector {
 
     private final ArrayList<StatsCollector> collectors = new ArrayList<>();
-    
+
     public void add(StatsCollector collector) {
         collectors.add(new TimeMeasureCollector(collector));
     }
-    
+
     @Override
     public void add(NodeData node) {
         for(StatsCollector collector : collectors) {
             collector.add(node);
-        }        
+        }
     }
 
     @Override
@@ -47,7 +47,7 @@ public class ListCollector implements StatsCollector {
             collector.end();
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(StatsCollector collector : collectors) {
@@ -55,7 +55,7 @@ public class ListCollector implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         for (StatsCollector collector : collectors) {

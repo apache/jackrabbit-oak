@@ -26,10 +26,10 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * A collector for statistics about a repository.
  */
 public interface StatsCollector {
-    
+
     /**
      * Collect data for this node.
-     * 
+     *
      * @param node the node
      */
     void add(NodeData node);
@@ -41,9 +41,9 @@ public interface StatsCollector {
 
     /**
      * Get the statistics in the form of a list of records.
-     * 
+     *
      * @return the results
      */
     List<String> getRecords();
-    
+
 }

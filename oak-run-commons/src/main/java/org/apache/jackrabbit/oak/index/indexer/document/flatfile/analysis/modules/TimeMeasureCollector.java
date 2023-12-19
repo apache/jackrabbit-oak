@@ -29,7 +29,7 @@ public class TimeMeasureCollector implements StatsCollector {
 
     StatsCollector base;
     long nanos;
-    
+
     public TimeMeasureCollector(StatsCollector base) {
         this.base = base;
     }
@@ -45,14 +45,14 @@ public class TimeMeasureCollector implements StatsCollector {
     public void end() {
         base.end();
     }
-    
+
     public List<String> getRecords() {
         return base.getRecords();
     }
-    
+
     public String toString() {
         return base.toString() + "time: " + nanos / 1_000_000_000 + " seconds\n";
     }
-    
+
 
 }

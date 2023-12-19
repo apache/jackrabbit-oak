@@ -30,11 +30,11 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.
  * A collector for approximate node counts.
  */
 public class NodeCount implements StatsCollector {
-    
+
     private final long seed = 42;
     private final long bitMask;
     private final Storage storage = new Storage();
-    
+
     public NodeCount(int resolution) {
         this.bitMask = (Integer.highestOneBit(resolution) * 2) - 1;
     }
@@ -60,7 +60,7 @@ public class NodeCount implements StatsCollector {
             }
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
@@ -70,7 +70,7 @@ public class NodeCount implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("NodeCount (millions)\n");

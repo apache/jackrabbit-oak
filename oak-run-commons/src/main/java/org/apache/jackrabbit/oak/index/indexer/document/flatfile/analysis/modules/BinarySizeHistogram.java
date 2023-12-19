@@ -36,9 +36,9 @@ public class BinarySizeHistogram implements StatsCollector {
 
     private final int pathLevels;
     private final Storage storage = new Storage();
-    
+
     private static final String[] SIZES = new String[64];
-    
+
     static {
         SIZES[0] = "0";
         for (long x = 1; x > 0; x += x) {
@@ -46,11 +46,11 @@ public class BinarySizeHistogram implements StatsCollector {
             SIZES[n] = String.format("%2d", n) + " (" + (x / 2 + 1) + ".." + x + ")";
         }
     }
-    
+
     public BinarySizeHistogram(int pathLevels) {
         this.pathLevels = pathLevels;
     }
-    
+
     public void add(NodeData node) {
         ArrayList<Long> embedded = new ArrayList<>();
         ArrayList<Long> references = new ArrayList<>();
@@ -87,7 +87,7 @@ public class BinarySizeHistogram implements StatsCollector {
             add(key, embedded, references);
         }
     }
-    
+
     void add(String key, ArrayList<Long> embedded, ArrayList<Long> references) {
         for(long x : embedded) {
             int bits = 65 - Long.numberOfLeadingZeros(x);
@@ -102,7 +102,7 @@ public class BinarySizeHistogram implements StatsCollector {
             storage.add("refs total size", x);
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
@@ -111,8 +111,8 @@ public class BinarySizeHistogram implements StatsCollector {
             }
         }
         return result;
-    }    
-    
+    }
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("BinarySizeHistogram\n");
@@ -123,6 +123,6 @@ public class BinarySizeHistogram implements StatsCollector {
 
     @Override
     public void end() {
-    }    
-    
+    }
+
 }

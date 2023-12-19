@@ -46,15 +46,15 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
             SIZES[n] = String.format("%2d", n) + " (" + (x / 2 + 1) + ".." + x + ")";
         }
     }
-    
+
     private final int pathLevels;
     private final Storage storage = new Storage();
     private final HashMap<String, HyperLogLog> distinctMap = new HashMap<>();
-    
+
     public DistinctBinarySizeHistogram(int pathLevels) {
         this.pathLevels = pathLevels;
     }
-    
+
     public void add(NodeData node) {
         ArrayList<Long> hashSizePairs = new ArrayList<>();
         for(NodeProperty p : node.getProperties()) {
@@ -90,7 +90,7 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
             add(key, hashSizePairs);
         }
     }
-    
+
     void add(String key, ArrayList<Long> hashSizePairs) {
         for (int i = 0; i < hashSizePairs.size(); i += 2) {
             long hash = hashSizePairs.get(i);
@@ -106,7 +106,7 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
             storage.add("total size", size);
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
@@ -115,8 +115,8 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
             }
         }
         return result;
-    }     
-    
+    }
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("DistinctBinarySizeHistogram\n");
@@ -127,6 +127,6 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
 
     @Override
     public void end() {
-    }    
-    
+    }
+
 }

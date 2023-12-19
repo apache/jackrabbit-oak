@@ -38,10 +38,10 @@ public class CountMinSketch {
         this.k = k;
         data = new long[k][m];
     }
-    
+
     /**
      * Add an entry.
-     * 
+     *
      * @param hash the hash
      * @return the new estimation
      */
@@ -54,7 +54,7 @@ public class CountMinSketch {
         }
         return min;
     }
-    
+
     public void add(long hash) {
         for (int i = 0; i < k; i++) {
             data[i][(int) (hash & (m - 1))]++;

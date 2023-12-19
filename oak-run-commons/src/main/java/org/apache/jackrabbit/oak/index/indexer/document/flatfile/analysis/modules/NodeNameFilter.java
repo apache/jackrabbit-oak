@@ -30,12 +30,12 @@ public class NodeNameFilter implements StatsCollector {
 
     private final StatsCollector base;
     private final String nodeName;
-    
+
     public NodeNameFilter(String nodeName, StatsCollector base) {
         this.nodeName = nodeName;
         this.base = base;
     }
-    
+
     @Override
     public void add(NodeData node) {
         List<String> pathElements = node.getPathElements();
@@ -51,11 +51,11 @@ public class NodeNameFilter implements StatsCollector {
     public void end() {
         base.end();
     }
-    
+
     public List<String> getRecords() {
         return base.getRecords();
     }
-    
+
     public String toString() {
         return "NodeNameFilter " + nodeName + " of " + base.toString();
     }

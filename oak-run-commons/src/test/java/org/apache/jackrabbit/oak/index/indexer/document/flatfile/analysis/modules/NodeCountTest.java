@@ -31,7 +31,7 @@ public class NodeCountTest {
     @Test
     public void nodeCount() {
         NodeCount nc = new NodeCount(1024);
-        
+
         for (int i = 0; i < 10_000_000; i++) {
             NodeData n = new NodeData(Arrays.asList("content", "dam", "folder" + (i % 10), "n" + i), Collections.emptyList());
             nc.add(n);

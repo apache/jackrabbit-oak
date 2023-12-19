@@ -52,12 +52,12 @@ public class PropertyStats implements StatsCollector {
     // we only consider the most common properties
     // to protect against millions of unique properties
     private final static long MAX_SIZE = 100_000;
-    
+
     // only collect statistics for indexed properties
     private final boolean indexedPropertiesOnly;
     private HashMap<String, ArrayList<IndexedProperty>> indexexPropertyMap;
     private HashSet<String> indexedProperties = new HashSet<String>();
-    
+
     private final long seed = 42;
     private final TreeMap<String, Stats> statsMap = new TreeMap<>();
 
@@ -65,7 +65,7 @@ public class PropertyStats implements StatsCollector {
     private int skip = 1;
 
     private int skipRemaining;
-    
+
     public PropertyStats(boolean indexedPropertiesOnly) {
         this.indexedPropertiesOnly = indexedPropertiesOnly;
     }
@@ -113,7 +113,7 @@ public class PropertyStats implements StatsCollector {
             }
         }
     }
-    
+
     private void add(String name, NodeProperty p) {
         Stats stats = statsMap.computeIfAbsent(name, e -> new Stats(name));
         stats.count++;
@@ -159,11 +159,11 @@ public class PropertyStats implements StatsCollector {
             }
         }
     }
-        
+
     @Override
     public void end() {
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Stats stats : statsMap.values()) {
@@ -174,7 +174,7 @@ public class PropertyStats implements StatsCollector {
             long weight = 5;
             long count = stats.count;
             long distinct = HyperLogLog3Linear64.estimate(stats.hll);
-            
+
             TopKValues top = stats.topValues;
             weight = distinct;
             if (top != null) {
@@ -210,14 +210,14 @@ public class PropertyStats implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("PropertyStats\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         return buff.toString();
     }
-    
+
     static class Stats {
         public Stats(String name) {
             this.name = name;

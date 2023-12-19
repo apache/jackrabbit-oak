@@ -42,5 +42,5 @@ public class TopKValuesTest {
         assertEquals(24849, v.getTopCount());
         assertEquals(24652, v.getSecondCount());
     }
-    
+
 }

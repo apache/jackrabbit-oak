@@ -45,16 +45,16 @@ import net.jpountz.lz4.LZ4FrameInputStream;
  * A reader for flat file stores.
  */
 public class NodeLineReader implements NodeDataReader {
-    
+
     private final LineNumberReader reader;
     private final long fileSize;
     private long count;
-    
+
     private NodeLineReader(LineNumberReader reader, long fileSize) {
         this.reader = reader;
         this.fileSize = fileSize;
     }
-    
+
     public static NodeLineReader open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
         InputStream in = new BufferedInputStream(new FileInputStream(fileName));
@@ -84,7 +84,7 @@ public class NodeLineReader implements NodeDataReader {
         String nodeJson = line.substring(pipeIndex + 1);
         return new NodeData(pathElements, parse(nodeJson));
     }
-    
+
     private static List<NodeProperty> parse(String nodeData) {
         ArrayList<NodeProperty> properties = new ArrayList<>();
         JsonObject json = JsonObject.fromJson(nodeData, true);
@@ -118,10 +118,10 @@ public class NodeLineReader implements NodeDataReader {
         }
         return properties;
     }
-    
+
     /**
      * Convert to a value if possible
-     * 
+     *
      * @param v the string
      * @return the property value, or null if the type is unknown (e.g. starts with "[0]:")
      */
@@ -171,7 +171,7 @@ public class NodeLineReader implements NodeDataReader {
             return new PropertyValue(ValueType.LONG, v);
         }
     }
-    
+
     public static NodeProperty fromJsonArray(String key, String json) {
         ArrayList<String> result = new ArrayList<>();
         ValueType type = null;
@@ -199,6 +199,6 @@ public class NodeLineReader implements NodeDataReader {
     @Override
     public long getFileSize() {
         return fileSize;
-    }       
-    
+    }
+
 }

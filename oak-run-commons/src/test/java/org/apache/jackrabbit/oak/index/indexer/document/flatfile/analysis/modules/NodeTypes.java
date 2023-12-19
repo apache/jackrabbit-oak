@@ -71,7 +71,7 @@ public class NodeTypes implements StatsCollector {
     @Override
     public void end() {
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, NodeType> e : map.entrySet()) {
@@ -79,15 +79,15 @@ public class NodeTypes implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("NodeTypes\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
-    }    
-    
+    }
+
     static class NodeType {
         String name;
         boolean isMixin;
@@ -95,9 +95,9 @@ public class NodeTypes implements StatsCollector {
         String[] primarySubTypes;
         String[] mixinSubTypes;
         ArrayList<String> allTypes = new ArrayList<>();
-        
+
         public String toString() {
-            return name + " " + (isMixin ? "(mixin) " : "") + " super " + Arrays.toString(superTypes) + 
+            return name + " " + (isMixin ? "(mixin) " : "") + " super " + Arrays.toString(superTypes) +
                     " primarySub " + Arrays.toString(primarySubTypes) +
                     " mixinSub " + Arrays.toString(mixinSubTypes);
         }

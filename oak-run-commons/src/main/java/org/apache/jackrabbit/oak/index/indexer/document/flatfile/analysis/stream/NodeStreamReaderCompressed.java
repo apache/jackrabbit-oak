@@ -41,7 +41,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
     private final InputStream in;
     private final long fileSize;
     private final String[] lastStrings = new String[WINDOW_SIZE];
-    
+
     private long currentId;
     private long count;
     private byte[] buffer = new byte[1024 * 1024];
@@ -55,7 +55,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
      * Read a variable size int.
      *
      * @return the value
-     * @throws IOException 
+     * @throws IOException
      */
     public static int readVarInt(InputStream in) throws IOException {
         int b = in.read();
@@ -94,7 +94,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
         }
         return new NodeStreamReaderCompressed(fileSize, in);
     }
-    
+
     public NodeData readNode() throws IOException {
         int size = readVarInt(in);
         if (size < 0) {
@@ -162,10 +162,10 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
         }
         return s;
     }
-    
+
     @Override
     public long getFileSize() {
         return fileSize;
-    }       
+    }
 
 }

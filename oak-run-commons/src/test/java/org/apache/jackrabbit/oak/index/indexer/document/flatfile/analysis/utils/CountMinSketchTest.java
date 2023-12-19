@@ -50,7 +50,7 @@ public class CountMinSketchTest {
     public void evenHash() {
         new CountMinSketch(4, 4);
     }
-    
+
     @Test
     public void testFusedAddEstimate() {
         CountMinSketch c1 = new CountMinSketch(5, 16);
@@ -146,5 +146,5 @@ public class CountMinSketchTest {
         public String toString() {
             return "entry " + stdDevEntryEstimation;
         }
-    }    
+    }
 }

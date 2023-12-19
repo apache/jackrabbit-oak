@@ -24,7 +24,7 @@ import java.util.HashSet;
  * A HyperLogLog implementation.
  */
 public class HyperLogLog {
-    
+
     private final int m;
     private final byte[] counters;
     private final double am;

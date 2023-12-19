@@ -32,14 +32,14 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * Collect the top largest binaries.
  */
 public class TopLargestBinaries implements StatsCollector {
-    
+
     private final Storage storage = new Storage();
     private final int k;
     private final ArrayList<TopEntry> top = new ArrayList<>();
-    
+
     private long totalCount;
     private long totalSize;
-    
+
     public TopLargestBinaries(int k) {
         this.k = k;
     }
@@ -85,7 +85,7 @@ public class TopLargestBinaries implements StatsCollector {
             }
         }
     }
-    
+
     public void end() {
         int i = 0;
         for(TopEntry e: top) {
@@ -96,16 +96,16 @@ public class TopLargestBinaries implements StatsCollector {
         storage.add("total count", totalCount);
         storage.add("total size", totalSize);
     }
-    
+
     static class TopEntry implements Comparable<TopEntry> {
         final long size;
         final List<String> pathElements;
-        
+
         TopEntry(long count, List<String> pathElements) {
             this.size = count;
             this.pathElements = pathElements;
         }
-        
+
         @Override
         public int compareTo(TopEntry o) {
             return Long.compare(size, o.size);
@@ -119,13 +119,13 @@ public class TopLargestBinaries implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("TopLargestBinaries\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
-    }    
+    }
 
 }

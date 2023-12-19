@@ -30,9 +30,9 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * A collector for node types.
  */
 public class NodeTypeCount implements StatsCollector {
-    
+
     private final Storage storage = new Storage();
-    
+
     public void add(NodeData node) {
         NodeProperty pt = node.getProperty("jcr:primaryType");
         if (pt != null) {
@@ -45,7 +45,7 @@ public class NodeTypeCount implements StatsCollector {
             }
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
@@ -54,7 +54,7 @@ public class NodeTypeCount implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("NodeTypeCount\n");

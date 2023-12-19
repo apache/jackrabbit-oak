@@ -29,7 +29,7 @@ public class NodeProperty {
     private final boolean multiple;
     private final ValueType type;
     private final String[] values;
-    
+
     public NodeProperty(String key, ValueType type, String value) {
         this(key, type, new String[] {value}, false);
     }
@@ -55,7 +55,7 @@ public class NodeProperty {
         WEAKREFERENCE(10),
         URI(11),
         DECIMAL(12);
-        
+
         private static ValueType[] LIST = ValueType.values();
         private final int ordinal;
         private ValueType(int ordinal) {
@@ -72,11 +72,11 @@ public class NodeProperty {
     public ValueType getType() {
         return type;
     }
-    
+
     public String[] getValues() {
         return values;
     }
-    
+
     public String toString() {
         return name + ": " + Arrays.toString(values);
     }
@@ -84,11 +84,11 @@ public class NodeProperty {
     public String getName() {
         return name;
     }
-    
+
     public static class PropertyValue {
         final ValueType type;
         final String value;
-        
+
         PropertyValue(ValueType type, String value) {
             this.type = type;
             this.value = value;
@@ -98,5 +98,5 @@ public class NodeProperty {
     public boolean isMultiple() {
         return multiple;
     }
-    
+
 }

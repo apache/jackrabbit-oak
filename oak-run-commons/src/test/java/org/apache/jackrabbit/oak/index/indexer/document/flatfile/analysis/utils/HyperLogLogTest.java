@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 import org.junit.Test;
 
 public class HyperLogLogTest {
-    
+
     @Test(expected = IllegalArgumentException.class)
     public void illegalHyperLogLogTooSmall() {
         new HyperLogLog(8, 0);
@@ -47,7 +47,7 @@ public class HyperLogLogTest {
         assertEquals(100, hll100.estimate());
         assertNotEquals(100, hll0.estimate());
     }
-    
+
     @Test
     public void test() {
         int testCount = 50;
@@ -164,15 +164,15 @@ public class HyperLogLogTest {
         // would mean we care more about larger sets, but we don't)
         return Math.pow(relStdDevP, exponent);
     }
-    
+
     static class HyperLogLogUsingLong extends HyperLogLog {
 
         private long value;
-        
+
         public HyperLogLogUsingLong(int m, int maxSmallSetSize) {
             super(m, maxSmallSetSize);
         }
-        
+
         public void add(long hash) {
             value = HyperLogLog3Linear64.add(value, hash);
         }
@@ -180,7 +180,7 @@ public class HyperLogLogTest {
         public long estimate() {
             return HyperLogLog3Linear64.estimate(value);
         }
-        
+
     }
 
 }

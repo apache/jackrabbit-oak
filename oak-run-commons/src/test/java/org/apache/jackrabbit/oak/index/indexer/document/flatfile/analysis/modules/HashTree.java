@@ -37,7 +37,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.
  * It is incomplete and not ready to be used.
  */
 public class HashTree implements StatsCollector {
-    
+
     private static final int MIN_LEVELS = 2;
     private static final int MAX_LEVELS = 3;
     private static final boolean CRYPTOGRAPHICALLY_SAFE = true;
@@ -89,22 +89,22 @@ public class HashTree implements StatsCollector {
             storage.put(path, sipHash.longHashCode());
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
             result.add(e.getKey() + ": " + e.getValue());
         }
         return result;
-    }     
-    
+    }
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("MerkleTree\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
-    }   
+    }
 
     @Override
     public void end() {

@@ -32,15 +32,15 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * Collects the total binary size (embedded binaries) per path.
  */
 public class BinarySizeEmbedded implements StatsCollector {
-    
+
     private final Storage storage = new Storage();
     private final int resolution;
     private final Random random = new Random(1);
-    
+
     public BinarySizeEmbedded(int resolution) {
         this.resolution = resolution;
     }
-    
+
     public void add(NodeData node) {
         long size = 0;
         for(NodeProperty p : node.getProperties()) {
@@ -85,7 +85,7 @@ public class BinarySizeEmbedded implements StatsCollector {
             }
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
@@ -95,7 +95,7 @@ public class BinarySizeEmbedded implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("BinarySizeEmbedded (MB)\n");

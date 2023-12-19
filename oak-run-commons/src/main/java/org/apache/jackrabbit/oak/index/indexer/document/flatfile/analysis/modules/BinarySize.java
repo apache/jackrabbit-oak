@@ -32,15 +32,15 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * Collects the total binary size (references to the datastore) per path.
  */
 public class BinarySize implements StatsCollector {
-    
+
     private final Storage storage = new Storage();
     private final int resolution;
     private final Random random = new Random(1);
-    
+
     public BinarySize(int resolution) {
         this.resolution = resolution;
     }
-    
+
     public void add(NodeData node) {
         long size = 0;
         for(NodeProperty p : node.getProperties()) {
@@ -87,7 +87,7 @@ public class BinarySize implements StatsCollector {
             }
         }
     }
-    
+
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
@@ -98,7 +98,7 @@ public class BinarySize implements StatsCollector {
         }
         return result;
     }
-    
+
     public String toString() {
         StringBuilder buff = new StringBuilder();
         buff.append("BinarySize GB (resolution: " + resolution + ")\n");

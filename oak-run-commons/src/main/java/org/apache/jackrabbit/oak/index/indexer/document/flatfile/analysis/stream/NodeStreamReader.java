@@ -34,18 +34,18 @@ import net.jpountz.lz4.LZ4FrameInputStream;
  * A node stream reader.
  */
 public class NodeStreamReader implements NodeDataReader {
-    
+
     private final InputStream in;
     private final long fileSize;
-    
+
     private long count;
     private byte[] buffer = new byte[1024 * 1024];
-    
+
     private NodeStreamReader(long fileSize, InputStream in) {
         this.fileSize = fileSize;
         this.in = in;
     }
-    
+
     static NodeStreamReader open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
         InputStream in = new FileInputStream(fileName);
@@ -54,12 +54,12 @@ public class NodeStreamReader implements NodeDataReader {
         }
         return new NodeStreamReader(fileSize, in);
     }
-    
+
     /**
      * Read a variable size int.
      *
      * @return the value
-     * @throws IOException 
+     * @throws IOException
      */
     public static int readVarInt(InputStream in) throws IOException {
         int b = in.read();
@@ -140,10 +140,10 @@ public class NodeStreamReader implements NodeDataReader {
         }
         return new String(buff, 0, len, StandardCharsets.UTF_8);
     }
-    
+
     @Override
     public long getFileSize() {
         return fileSize;
-    }       
+    }
 
 }

@@ -24,12 +24,12 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils
  * Improving the Performance of Cardinality Estimation of Large Data Streams"
  * from Qingjun Xiao, You Zhou, Shigang Chen, in
  * http://cse.seu.edu.cn/PersonalPage/csqjxiao/csqjxiao_files/papers/INFOCOM17.pdf
- * 
+ *
  * It uses linear counting for 60 bits, until 36 bits are set, then switches to
  * HyperLogLog. There, it uses 20 counters of 3 bits each (re-using the linear
  * counting data), and 4 bits for a base counter, which is increased if all
  * counters are larger than zero.
- * 
+ *
  * It is a little bit "order-dependent", that is, adding the same entry multiple
  * times can change the internal state. However, unlike in HyperBitBit, here the
  * effect is very small.
@@ -75,7 +75,7 @@ public class HyperLogLog3Linear64 {
         }
         return data;
     }
-    
+
     public static long estimate(long data) {
         long base = data & 0xf;
         if (base == 0) {
@@ -93,5 +93,5 @@ public class HyperLogLog3Linear64 {
         }
         return (long) (20 * 20 * 0.63375 / sum);
     }
-    
+
 }

@@ -53,7 +53,7 @@ public class IndexedProperty {
 
     /**
      * Check if a certain property matches the index definition.
-     * 
+     *
      * @param name the name of the property
      * @param node the node (which may have parent nodes)
      * @return whether the property matches the index definition

@@ -29,22 +29,22 @@ import net.jpountz.lz4.LZ4FrameOutputStream;
  * Allows to to convert a flat file store to a compressed stream of nodes.
  */
 public class NodeStreamConverterCompressed {
-    
+
     private static final int WINDOW_SIZE = 1024;
     private static final int CACHE_SIZE = 8 * 1024;
     private static final int MAX_LENGTH = 1024;
-    
+
     private final OutputStream out;
     private final long[] cacheId = new long[CACHE_SIZE];
     private final String[] cache = new String[CACHE_SIZE];
     private long currentId;
-    
+
     public static void main(String... args) throws IOException {
         String sourceFileName = args[0];
         String targetFileName = args[1];
         convert(sourceFileName, targetFileName);
     }
-    
+
     private NodeStreamConverterCompressed(OutputStream out) {
         this.out = out;
     }

@@ -25,10 +25,10 @@ public class Hash {
 
     /**
      * Calculate a 64-bit hash value from a value, using a seed.
-     * 
+     *
      * The current algorithm used the finalizer of the MurmurHash3 hash function,
      * but callers shouldn't rely on that.
-     * 
+     *
      * @param x    the value
      * @param seed the seed
      * @return the hash value
@@ -43,7 +43,7 @@ public class Hash {
 
     /**
      * Calculate a 64-bit hash value from a value.
-     * 
+     *
      * @param x the value
      * @return the hash value
      */
