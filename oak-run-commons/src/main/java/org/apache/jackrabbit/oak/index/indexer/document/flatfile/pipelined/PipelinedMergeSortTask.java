@@ -49,10 +49,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy.SENTINEL_SORTED_FILES_QUEUE;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.getSortedStoreFileName;
 
@@ -223,16 +219,24 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                     String metrics = MetricsFormatter.newBuilder()
                             .add("duration", FormattingUtils.formatToSeconds(w))
                             .add("durationSeconds", durationSeconds)
+                            .add("intermediateFilesCount", intermediateFilesCount)
+                            .add("eagerMergesRuns", eagerMergeRuns)
                             .add("filesMerged", sortedFiles.size())
                             .add("ffsSizeBytes", ffsSizeBytes)
                             .add("ffsSize", IOUtils.humanReadableByteCountBin(ffsSizeBytes))
                             .build();
 
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
-                    MetricsUtils.setCounterOnce(statisticsProvider, OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_COUNT, intermediateFilesCount);
-                    MetricsUtils.setCounterOnce(statisticsProvider, OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS, eagerMergeRuns);
-                    MetricsUtils.setCounterOnce(statisticsProvider, OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT, sortedFiles.size());
-                    MetricsUtils.setCounterOnce(statisticsProvider, OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_TIME, durationSeconds);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, eagerMergeRuns);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, sortedFiles.size());
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, ffsSizeBytes);
                     return new Result(flatFileStore, intermediateFilesCount, sortedFiles.size(), eagerMergeRuns);
 
                 } else {

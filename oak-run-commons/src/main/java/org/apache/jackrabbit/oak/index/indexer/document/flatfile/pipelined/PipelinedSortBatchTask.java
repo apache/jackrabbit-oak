@@ -23,6 +23,8 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +70,7 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
     private final BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue;
     private final BlockingQueue<Path> sortedFilesQueue;
     private final Path sortWorkDir;
+    private final StatisticsProvider statisticsProvider;
     private final ArrayList<SortKey> sortBuffer = new ArrayList<>(32 * 1024);
     private long entriesProcessed = 0;
     private long batchesProcessed = 0;
@@ -80,13 +83,15 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                                   Compression algorithm,
                                   BlockingQueue<NodeStateEntryBatch> emptyBuffersQueue,
                                   BlockingQueue<NodeStateEntryBatch> nonEmptyBuffersQueue,
-                                  BlockingQueue<Path> sortedFilesQueue) throws IOException {
+                                  BlockingQueue<Path> sortedFilesQueue,
+                                  StatisticsProvider statisticsProvider) throws IOException {
         this.pathComparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.algorithm = algorithm;
         this.emptyBuffersQueue = emptyBuffersQueue;
         this.nonEmptyBuffersQueue = nonEmptyBuffersQueue;
         this.sortedFilesQueue = sortedFilesQueue;
         this.sortWorkDir = createdSortWorkDir(storeDir);
+        this.statisticsProvider = statisticsProvider;
     }
 
     @Override
@@ -118,6 +123,15 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                             .add("totalTimeSeconds", totalTimeMillis / 1000)
                             .build();
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_CREATE_SORT_ARRAY_PERCENTAGE,
+                            PipelinedUtils.toPercentage(timeCreatingSortArrayMillis, totalTimeMillis));
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_SORT_ARRAY_PERCENTAGE,
+                            PipelinedUtils.toPercentage(timeSortingMillis, totalTimeMillis));
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_WRITE_TO_DISK_PERCENTAGE,
+                            PipelinedUtils.toPercentage(timeWritingMillis, totalTimeMillis));
                     return new Result(entriesProcessed);
                 }
                 sortAndSaveBatch(nseBuffer);
