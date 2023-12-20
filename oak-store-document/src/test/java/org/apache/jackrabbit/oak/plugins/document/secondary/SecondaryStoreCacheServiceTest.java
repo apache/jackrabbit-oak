@@ -99,7 +99,7 @@ public class SecondaryStoreCacheServiceTest {
     @Test
     public void configurePathFilter() throws Exception{
         Map<String, Object> config = new HashMap<>();
-        config.put("includedPaths", new String[] {"/a"});
+        config.put(PathFilter.PROP_INCLUDED_PATHS, new String[] {"/a"});
         MockOsgi.activate(cacheService, context.bundleContext(), config);
 
         assertEquals(PathFilter.Result.INCLUDE, cacheService.getPathFilter().filter("/a"));

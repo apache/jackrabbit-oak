@@ -35,7 +35,7 @@ import static org.junit.Assert.fail;
 public class PathFilterTest {
 
     @Test
-    public void exclude() throws Exception {
+    public void exclude() {
         PathFilter p = new PathFilter(Set.of("/"), Set.of("/etc"));
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/"));
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/a"));
@@ -44,7 +44,7 @@ public class PathFilterTest {
     }
 
     @Test
-    public void include() throws Exception {
+    public void include() {
         PathFilter p = new PathFilter(Set.of("/content", "/etc"), Set.of("/etc/workflow/instance"));
         assertEquals(PathFilter.Result.TRAVERSE, p.filter("/"));
         assertEquals(PathFilter.Result.EXCLUDE, p.filter("/var"));
@@ -68,7 +68,7 @@ public class PathFilterTest {
     }
 
     @Test
-    public void config() throws Exception {
+    public void config() {
         NodeBuilder root = EMPTY_NODE.builder();
         root.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/etc"), Type.STRINGS));
         root.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/etc/workflow"), Type.STRINGS));
@@ -106,7 +106,7 @@ public class PathFilterTest {
     }
 
     @Test
-    public void invalid() throws Exception {
+    public void invalid() {
         try {
             new PathFilter(Set.of(), Set.of("/etc"));
             fail();

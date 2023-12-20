@@ -29,7 +29,9 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -173,8 +175,8 @@ public class PathFilter {
      *
      * @return the value of the property if the property is set and is of type Strings or String, otherwise the default value
      */
-    private static Iterable<String> getStringsLenient(NodeBuilder builder, String propertyName, Collection<String> defaultVal) {
-        PropertyState property = builder.getProperty(propertyName);
+    public static Iterable<String> getStringsLenient(NodeBuilder builder, String propertyName, Collection<String> defaultVal) {
+        @Nullable PropertyState property = builder.getProperty(propertyName);
         if (property != null && property.getType() == Type.STRINGS) {
             return property.getValue(Type.STRINGS);
         } else if (property != null && property.getType() == Type.STRING) {
@@ -185,6 +187,18 @@ public class PathFilter {
             return List.of(value);
         } else {
             return defaultVal;
+        }
+    }
+
+    public static Iterable<String> getStringsLenient(NodeState idxState, String propertyName) {
+        @Nullable PropertyState property = idxState.getProperty(propertyName);
+        if (property != null && property.getType() == Type.STRINGS) {
+            return idxState.getStrings(propertyName);
+        } else if (property != null && property.getType() == Type.STRING) {
+            @NotNull String singleValue = property.getValue(Type.STRING);
+            return List.of(singleValue);
+        } else {
+            return idxState.getStrings(propertyName);
         }
     }
 

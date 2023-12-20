@@ -70,7 +70,7 @@ public class IndexUtils {
         index.setProperty(IndexConstants.ASYNC_PROPERTY_NAME,
                 new String[] { "async", "nrt" });
         index.setProperty(FulltextIndexConstants.COST_PER_EXECUTION, cost);
-        // index.setProperty("excludedPaths", "/jcr:system");
+//        index.setProperty(PathFilter.PROP_EXCLUDED_PATHS, "/jcr:system");
         Node indexRules = index.addNode(FulltextIndexConstants.INDEX_RULES);
         Node ntBase = indexRules.addNode("nt:base");
         Node props = ntBase.addNode(FulltextIndexConstants.PROP_NODE);
@@ -99,7 +99,6 @@ public class IndexUtils {
      * @param xpath the xpath query
      * @param expectedIndex the index that is expected to be used
      * @param expectedResult the expected list of results
-     * @return the index name used
      */
     public static void assertQueryUsesIndexAndReturns(Persistence p, String xpath, String expectedIndex,
             String expectedResult) throws RepositoryException {
