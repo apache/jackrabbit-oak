@@ -31,9 +31,6 @@ import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
@@ -44,7 +41,6 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
  * or not
  */
 public class PathFilter {
-    private static final Logger LOG = LoggerFactory.getLogger(PathFilter.class);
     private static final Collection<String> INCLUDE_ROOT = List.of("/");
     /**
      * Multi value property name used to determine list of paths to be included
@@ -82,8 +78,6 @@ public class PathFilter {
             return Result.INCLUDE;
         }
     };
-    private final String[] includedPaths;
-    private final String[] excludedPaths;
 
     /**
      * Constructs the predicate based on given definition state. It looks for
@@ -108,6 +102,41 @@ public class PathFilter {
     }
 
     /**
+     * Gets the value of a property as a list of Strings.
+     * <ul>
+     *     <li>If the property is of type Strings, the value is returned directly.</li>
+     *     <li>If it is of type String, then it is interpreted as a one-element array of Strings.</li>
+     *     <li>If it is of any other type or is not defined, the default value is returned.</li>
+     * </ul>
+     *
+     * @return the values of the property if the property is set and is of type Strings or String, otherwise the default value
+     */
+    public static Iterable<String> getStringsLenient(NodeBuilder builder, String propertyName, Collection<String> defaultVal) {
+        return getStringsLenientInner(builder.getProperty(propertyName), defaultVal);
+    }
+
+    /**
+     * Gets the value of a property as a list of Strings. if it is of type String, then it is interpreted as a one-element
+     * array of Strings. Otherwise this method works the same as calling {@link NodeState#getStrings(String)}.
+     */
+    public static Iterable<String> getStringsLenient(NodeState idxState, String propertyName) {
+        return getStringsLenientInner(idxState.getProperty(propertyName), List.of());
+    }
+
+    private static Iterable<String> getStringsLenientInner(PropertyState property, Collection<String> defaultVal) {
+        if (property != null && property.getType() == Type.STRINGS) {
+            return property.getValue(Type.STRINGS);
+        } else if (property != null && property.getType() == Type.STRING) {
+            return List.of(property.getValue(Type.STRING));
+        } else {
+            return defaultVal;
+        }
+    }
+
+    private final String[] includedPaths;
+    private final String[] excludedPaths;
+
+    /**
      * Constructs the predicate with given included and excluded paths
      * <p>
      * If both are empty then all paths would be considered to be included
@@ -121,8 +150,8 @@ public class PathFilter {
         PathUtils.unifyInExcludes(includeCopy, excludeCopy);
         checkState(!includeCopy.isEmpty(), "No valid include provided. Includes %s, " +
                 "Excludes %s", includes, excludes);
-        this.includedPaths = includeCopy.toArray(new String[includeCopy.size()]);
-        this.excludedPaths = excludeCopy.toArray(new String[excludeCopy.size()]);
+        this.includedPaths = includeCopy.toArray(new String[0]);
+        this.excludedPaths = excludeCopy.toArray(new String[0]);
     }
 
     /**
@@ -170,39 +199,6 @@ public class PathFilter {
     }
 
     /**
-     * Gets the value of a property of expected type Strings. However, if the property is of type String, interpret
-     * it as a single-element list instead of returning the default value.
-     *
-     * @return the value of the property if the property is set and is of type Strings or String, otherwise the default value
-     */
-    public static Iterable<String> getStringsLenient(NodeBuilder builder, String propertyName, Collection<String> defaultVal) {
-        @Nullable PropertyState property = builder.getProperty(propertyName);
-        if (property != null && property.getType() == Type.STRINGS) {
-            return property.getValue(Type.STRINGS);
-        } else if (property != null && property.getType() == Type.STRING) {
-            String value = property.getValue(Type.STRING);
-            LOG.warn("Property \"{}\"=\"{}\" has type String but it should be array of String. Proceeding by treating it as a " +
-                            "one-element array. Please correct the index definition by defining it instead as \"{}\" = [\"{}\"].",
-                    propertyName, value, propertyName, value);
-            return List.of(value);
-        } else {
-            return defaultVal;
-        }
-    }
-
-    public static Iterable<String> getStringsLenient(NodeState idxState, String propertyName) {
-        @Nullable PropertyState property = idxState.getProperty(propertyName);
-        if (property != null && property.getType() == Type.STRINGS) {
-            return idxState.getStrings(propertyName);
-        } else if (property != null && property.getType() == Type.STRING) {
-            @NotNull String singleValue = property.getValue(Type.STRING);
-            return List.of(singleValue);
-        } else {
-            return idxState.getStrings(propertyName);
-        }
-    }
-
-    /**
      * Check whether this node and all descendants are included in this filter.
      *
      * @param path the path
@@ -221,5 +217,4 @@ public class PathFilter {
         }
         return false;
     }
-
 }
