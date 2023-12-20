@@ -173,15 +173,13 @@ public class PropertyStats implements StatsCollector {
             long count = stats.count;
             long distinct = HyperLogLog3Linear64.estimate(stats.hll);
 
-            TopKValues top = stats.topValues;
             long weight = distinct;
-            if (top != null) {
-                if (!top.isNotSkewed()) {
-                    // we can not trust the number of distinct entries
-                    long topTotalCount = top.getCount();
-                    long avgOf2 = (top.getTopCount() + top.getSecondCount()) / 2;
-                    weight = Math.min(distinct, topTotalCount / Math.max(1, avgOf2));
-                }
+            TopKValues top = stats.topValues;
+            if (top != null && !top.isNotSkewed()) {
+                // we can not trust the number of distinct entries
+                long topTotalCount = top.getCount();
+                long avgOf2 = (top.getTopCount() + top.getSecondCount()) / 2;
+                weight = Math.min(distinct, topTotalCount / Math.max(1, avgOf2));
             }
             if (weight >= 10000) {
                 weight = 10000;

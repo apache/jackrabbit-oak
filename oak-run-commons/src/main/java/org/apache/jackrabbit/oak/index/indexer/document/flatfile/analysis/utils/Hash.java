@@ -23,6 +23,10 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils
  */
 public class Hash {
 
+    private Hash() {
+        // utility class
+    }
+
     /**
      * Calculate a 64-bit hash value from a value, using a seed.
      *

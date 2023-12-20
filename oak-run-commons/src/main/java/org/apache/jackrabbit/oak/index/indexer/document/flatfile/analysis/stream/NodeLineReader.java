@@ -49,7 +49,7 @@ public class NodeLineReader implements NodeDataReader, Closeable {
 
     private final LineNumberReader reader;
     private final long fileSize;
-    private long count;
+    private long lineCount;
 
     private NodeLineReader(LineNumberReader reader, long fileSize) {
         this.reader = reader;
@@ -80,8 +80,8 @@ public class NodeLineReader implements NodeDataReader, Closeable {
             close();
             return null;
         }
-        if (++count % 1000000 == 0) {
-            System.out.println(count + " lines");
+        if (++lineCount % 1000000 == 0) {
+            System.out.println(lineCount + " lines");
         }
         int pipeIndex = line.indexOf('|');
         if (pipeIndex < 0) {
@@ -191,7 +191,7 @@ public class NodeLineReader implements NodeDataReader, Closeable {
                 String r = tokenizer.readRawValue();
                 PropertyValue v = getValue(r);
                 if (v == null) {
-                    throw new IllegalArgumentException("Unsupported mixed type: " + json);
+                    throw new IllegalArgumentException("Array of empty arrays: " + json);
                 } else if (type != null && v.type != type) {
                     throw new IllegalArgumentException("Unsupported mixed type: " + json);
                 }

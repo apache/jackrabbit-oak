@@ -39,7 +39,7 @@ public class BinarySize implements StatsCollector {
 
     public BinarySize(int resolution, long seed) {
         this.resolution = resolution;
-        this.random = new Random(seed);
+        this.random = new Random(seed); //NOSONAR
     }
 
     public void add(NodeData node) {

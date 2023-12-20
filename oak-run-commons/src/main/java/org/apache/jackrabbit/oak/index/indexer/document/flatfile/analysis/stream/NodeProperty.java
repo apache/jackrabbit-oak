@@ -41,7 +41,7 @@ public class NodeProperty {
         this.multiple = multiple;
     }
 
-    public static enum ValueType {
+    public enum ValueType {
         NULL(0),
         STRING(1),
         BINARY(2),
@@ -56,7 +56,8 @@ public class NodeProperty {
         URI(11),
         DECIMAL(12);
 
-        private static ValueType[] LIST = ValueType.values();
+        private static final ValueType[] LIST = ValueType.values();
+
         private final int ordinal;
         private ValueType(int ordinal) {
             this.ordinal = ordinal;

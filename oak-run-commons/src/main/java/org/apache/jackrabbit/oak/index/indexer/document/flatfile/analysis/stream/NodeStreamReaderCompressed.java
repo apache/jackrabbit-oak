@@ -43,7 +43,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
     private final String[] lastStrings = new String[WINDOW_SIZE];
 
     private long currentId;
-    private long count;
+    private long lineCount;
     private byte[] buffer = new byte[1024 * 1024];
 
     private NodeStreamReaderCompressed(long fileSize, InputStream in) {
@@ -109,8 +109,8 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
             close();
             return null;
         }
-        if (++count % 1000000 == 0) {
-            System.out.println(count + " lines");
+        if (++lineCount % 1000000 == 0) {
+            System.out.println(lineCount + " lines");
         }
         ArrayList<String> pathElements = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
