@@ -523,7 +523,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
             }
             e.count = iterator.docFreq();
             totalCount += e.count;
-            if (e.count > 1) {
+            if (e.count > 0) {
                 list.add(e);
             }
             if (max > 0 && list.size() > 2 * max) {
