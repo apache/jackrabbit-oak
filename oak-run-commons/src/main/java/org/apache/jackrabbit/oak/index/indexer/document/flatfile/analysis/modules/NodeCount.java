@@ -31,12 +31,13 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.
  */
 public class NodeCount implements StatsCollector {
 
-    private final long seed = 42;
+    private final long seed;
     private final long bitMask;
     private final Storage storage = new Storage();
 
-    public NodeCount(int resolution) {
+    public NodeCount(int resolution, long seed) {
         this.bitMask = (Long.highestOneBit(resolution) * 2) - 1;
+        this.seed = seed;
     }
 
     public void add(NodeData node) {
@@ -77,10 +78,6 @@ public class NodeCount implements StatsCollector {
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
-    }
-
-    @Override
-    public void end() {
     }
 
 }

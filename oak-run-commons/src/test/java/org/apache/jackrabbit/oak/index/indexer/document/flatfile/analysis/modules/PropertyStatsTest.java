@@ -32,7 +32,7 @@ public class PropertyStatsTest {
 
     @Test
     public void manyUniqueProperties() {
-        PropertyStats pc = new PropertyStats(false);
+        PropertyStats pc = new PropertyStats(false, 42);
         pc.setSkip(0);
         for (int i = 0; i < 1_000_000; i++) {
             NodeProperty p = new NodeProperty("unique" + i, ValueType.STRING, "");
@@ -55,7 +55,7 @@ public class PropertyStatsTest {
 
     @Test
     public void skewed() {
-        PropertyStats pc = new PropertyStats(false);
+        PropertyStats pc = new PropertyStats(false, 42);
         pc.setSkip(0);
         Random r = new Random(1);
         for (int i = 0; i < 1_000_000; i++) {

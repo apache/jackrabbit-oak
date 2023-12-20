@@ -93,12 +93,7 @@ public class IndexedProperty {
             // here we simply ignore the hierarchy
             return pt.getValues()[0].equals(nodeType);
         }
-        if (pt != null && pt.getValues()[0].equals(nodeType)) {
-            // exact match
-            return true;
-        }
-        // Property mt = nodeTypeCheck.getProperty("jcr:mixinTypes");
-        return false;
+        return pt.getValues()[0].equals(nodeType);
     }
 
     public String getPropertyName() {

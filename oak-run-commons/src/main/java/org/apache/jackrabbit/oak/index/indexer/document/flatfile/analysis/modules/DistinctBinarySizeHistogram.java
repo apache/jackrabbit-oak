@@ -125,8 +125,4 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
         return buff.toString();
     }
 
-    @Override
-    public void end() {
-    }
-
 }

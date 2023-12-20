@@ -18,12 +18,13 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
+import java.io.Closeable;
 import java.io.IOException;
 
 /**
  * A reader for node data.
  */
-public interface NodeDataReader {
+public interface NodeDataReader extends Closeable {
 
     /**
      * Read the next node.

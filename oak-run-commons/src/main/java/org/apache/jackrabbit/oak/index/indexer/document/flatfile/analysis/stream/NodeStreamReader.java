@@ -46,13 +46,21 @@ public class NodeStreamReader implements NodeDataReader {
         this.in = in;
     }
 
-    static NodeStreamReader open(String fileName) throws IOException {
+    public static NodeStreamReader open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
-        InputStream in = new FileInputStream(fileName);
-        if (fileName.endsWith(".lz4")) {
-            in = new LZ4FrameInputStream(in);
+        InputStream fileIn = new FileInputStream(fileName);
+        try {
+            InputStream in;
+            if (fileName.endsWith(".lz4")) {
+                in = new LZ4FrameInputStream(fileIn);
+            } else {
+                in = fileIn;
+            }
+            return new NodeStreamReader(fileSize, in);
+        } catch (IOException e) {
+            fileIn.close();
+            throw e;
         }
-        return new NodeStreamReader(fileSize, in);
     }
 
     /**
@@ -93,7 +101,7 @@ public class NodeStreamReader implements NodeDataReader {
     public NodeData readNode() throws IOException {
         int size = readVarInt(in);
         if (size < 0) {
-            in.close();
+            close();
             return null;
         }
         if (++count % 1000000 == 0) {
@@ -144,6 +152,11 @@ public class NodeStreamReader implements NodeDataReader {
     @Override
     public long getFileSize() {
         return fileSize;
+    }
+
+    @Override
+    public void close() throws IOException {
+        in.close();
     }
 
 }

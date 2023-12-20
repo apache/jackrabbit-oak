@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
@@ -86,6 +87,7 @@ public class TopLargestBinaries implements StatsCollector {
         }
     }
 
+    @Override
     public void end() {
         int i = 0;
         for(TopEntry e: top) {
@@ -98,8 +100,8 @@ public class TopLargestBinaries implements StatsCollector {
     }
 
     static class TopEntry implements Comparable<TopEntry> {
-        final long size;
-        final List<String> pathElements;
+        private final long size;
+        private final List<String> pathElements;
 
         TopEntry(long count, List<String> pathElements) {
             this.size = count;
@@ -110,6 +112,24 @@ public class TopLargestBinaries implements StatsCollector {
         public int compareTo(TopEntry o) {
             return Long.compare(size, o.size);
         }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(pathElements, size);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null)
+                return false;
+            if (getClass() != obj.getClass())
+                return false;
+            TopEntry other = (TopEntry) obj;
+            return Objects.equals(pathElements, other.pathElements) && size == other.size;
+        }
+
     }
 
     public List<String> getRecords() {

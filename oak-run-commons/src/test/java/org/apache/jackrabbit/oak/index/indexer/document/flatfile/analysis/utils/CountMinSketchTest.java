@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -56,12 +57,12 @@ public class CountMinSketchTest {
         CountMinSketch c1 = new CountMinSketch(5, 16);
         CountMinSketch c2 = new CountMinSketch(5, 16);
         Random r = new Random(1);
-        for(int i=0; i<1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             long h = r.nextLong();
             c1.add(h);
             double e1 = c1.estimate(h);
             double e2 = c2.addAndEstimate(h);
-            assertTrue(e1 + " " + e2, Double.compare(e1, e2) == 0);
+            assertEquals(e1 + " " + e2, 0, Double.compare(e1, e2));
         }
     }
 

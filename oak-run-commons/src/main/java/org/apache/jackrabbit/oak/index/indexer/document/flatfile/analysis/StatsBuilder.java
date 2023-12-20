@@ -57,10 +57,10 @@ public class StatsBuilder {
         }
 
         ListCollector collectors = new ListCollector();
-        collectors.add(new NodeCount(1000));
+        collectors.add(new NodeCount(1000, 1));
         collectors.add(new BinarySize(100_000_000, 1));
         collectors.add(new BinarySizeEmbedded(100_000, 1));
-        PropertyStats ps = new PropertyStats(true);
+        PropertyStats ps = new PropertyStats(true, 1);
         collectors.add(ps);
         collectors.add(new NodeTypeCount());
         collectors.add(new BinarySizeHistogram(1));
@@ -90,7 +90,6 @@ public class StatsBuilder {
 
         while (true) {
             lineCount++;
-            // if(lineCount > 1000000) break;
             NodeData node = reader.readNode();
             if (node == null) {
                 break;

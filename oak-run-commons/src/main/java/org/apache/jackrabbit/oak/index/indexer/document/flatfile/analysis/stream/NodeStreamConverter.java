@@ -38,17 +38,19 @@ public class NodeStreamConverter {
     }
 
     public static void convert(String sourceFileName, String targetFileName) throws IOException {
-        NodeLineReader in = NodeLineReader.open(sourceFileName);
-        OutputStream out = new BufferedOutputStream(new FileOutputStream(targetFileName));
-        out = new LZ4FrameOutputStream(out);
-        while (true) {
-            NodeData node = in.readNode();
-            if (node == null) {
-                break;
+        try (NodeLineReader in = NodeLineReader.open(sourceFileName)) {
+            try (OutputStream fileOut = new BufferedOutputStream(new FileOutputStream(targetFileName))) {
+                try (OutputStream out = new LZ4FrameOutputStream(fileOut)) {
+                    while (true) {
+                        NodeData node = in.readNode();
+                        if (node == null) {
+                            break;
+                        }
+                        writeNode(out, node);
+                    }
+                }
             }
-            writeNode(out, node);
         }
-        out.close();
     }
 
     private static void writeNode(OutputStream out, NodeData node) throws IOException {

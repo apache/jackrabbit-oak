@@ -82,7 +82,7 @@ public class BinarySize implements StatsCollector {
                     storage.add(key, size);
                 } else {
                     if (random.nextInt(resolution) < size) {
-                        storage.add(key, (long) resolution);
+                        storage.add(key, resolution);
                     }
                 }
             }
@@ -106,10 +106,6 @@ public class BinarySize implements StatsCollector {
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
-    }
-
-    @Override
-    public void end() {
     }
 
 }

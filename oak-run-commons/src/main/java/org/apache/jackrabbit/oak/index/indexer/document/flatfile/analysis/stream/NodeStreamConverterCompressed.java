@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
+import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -28,7 +30,7 @@ import net.jpountz.lz4.LZ4FrameOutputStream;
 /**
  * Allows to to convert a flat file store to a compressed stream of nodes.
  */
-public class NodeStreamConverterCompressed {
+public class NodeStreamConverterCompressed implements Closeable {
 
     private static final int WINDOW_SIZE = 1024;
     private static final int CACHE_SIZE = 8 * 1024;
@@ -50,22 +52,25 @@ public class NodeStreamConverterCompressed {
     }
 
     public static void convert(String sourceFileName, String targetFileName) throws IOException {
-        NodeLineReader in = NodeLineReader.open(sourceFileName);
-        OutputStream out = new LZ4FrameOutputStream(
-                new FileOutputStream(targetFileName));
-        NodeStreamConverterCompressed writer = new NodeStreamConverterCompressed(out);
-        int count = 0;
-        while (true) {
-            NodeData node = in.readNode();
-            if (node == null) {
-                break;
-            }
-            writer.writeNode(node);
-            if (++count % 1000000 == 0) {
-                System.out.println(count + " lines converted");
+        try (NodeLineReader in = NodeLineReader.open(sourceFileName)) {
+            try (OutputStream fileOut = new BufferedOutputStream(new FileOutputStream(targetFileName))) {
+                try (OutputStream out = new LZ4FrameOutputStream(fileOut)) {
+                    try (NodeStreamConverterCompressed writer = new NodeStreamConverterCompressed(out)) {
+                        int count = 0;
+                        while (true) {
+                            NodeData node = in.readNode();
+                            if (node == null) {
+                                break;
+                            }
+                            writer.writeNode(node);
+                            if (++count % 1000000 == 0) {
+                                System.out.println(count + " lines converted");
+                            }
+                        }
+                    }
+                }
             }
         }
-        out.close();
     }
 
     private void writeNode(NodeData node) throws IOException {
@@ -132,6 +137,11 @@ public class NodeStreamConverterCompressed {
             x >>>= 7;
         }
         out.write((byte) x);
+    }
+
+    @Override
+    public void close() throws IOException {
+        out.close();
     }
 
 }

@@ -37,7 +37,9 @@ public interface StatsCollector {
     /**
      * End collection.
      */
-    void end();
+    default void end() {
+        // by default, do nothing
+    }
 
     /**
      * Get the statistics in the form of a list of records.

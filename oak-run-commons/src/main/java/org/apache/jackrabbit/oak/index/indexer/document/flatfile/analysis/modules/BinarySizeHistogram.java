@@ -121,8 +121,4 @@ public class BinarySizeHistogram implements StatsCollector {
         return buff.toString();
     }
 
-    @Override
-    public void end() {
-    }
-
 }

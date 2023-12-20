@@ -91,6 +91,9 @@ public class HyperLogLog3Linear64 {
             x >>>= 3;
             sum += 1. / (1L << (base + n));
         }
+        if (sum == 0) {
+            sum = 1;
+        }
         return (long) (20 * 20 * 0.63375 / sum);
     }
 

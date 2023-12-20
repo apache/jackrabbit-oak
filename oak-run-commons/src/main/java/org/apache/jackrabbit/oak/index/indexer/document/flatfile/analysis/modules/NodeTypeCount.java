@@ -63,8 +63,4 @@ public class NodeTypeCount implements StatsCollector {
         return buff.toString();
     }
 
-    @Override
-    public void end() {
-    }
-
 }

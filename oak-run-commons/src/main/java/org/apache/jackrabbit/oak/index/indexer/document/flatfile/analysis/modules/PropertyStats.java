@@ -23,7 +23,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -40,25 +42,25 @@ public class PropertyStats implements StatsCollector {
 
     // we start collecting distinct values data once we have seen this many entries
     // (to speed up processing)
-    private final static long MIN_PROPERTY_COUNT = 500;
+    private static final long MIN_PROPERTY_COUNT = 500;
 
     // we start collecting top k values once we have seen this many entries
     // (to save memory and speed up processing)
-    private final static long MIN_TOP_K = 10_000;
+    private static final long MIN_TOP_K = 10_000;
 
     // the number of top entries to collect
-    private final static int TOP_K = 8;
+    private static final int TOP_K = 8;
 
     // we only consider the most common properties
     // to protect against millions of unique properties
-    private final static long MAX_SIZE = 100_000;
+    private static final long MAX_SIZE = 100_000;
 
     // only collect statistics for indexed properties
     private final boolean indexedPropertiesOnly;
     private HashMap<String, ArrayList<IndexedProperty>> indexexPropertyMap;
-    private HashSet<String> indexedProperties = new HashSet<String>();
+    private HashSet<String> indexedProperties = new HashSet<>();
 
-    private final long seed = 42;
+    private final long seed;
     private final TreeMap<String, Stats> statsMap = new TreeMap<>();
 
     // skip this many entries (for sampling)
@@ -66,20 +68,21 @@ public class PropertyStats implements StatsCollector {
 
     private int skipRemaining;
 
-    public PropertyStats(boolean indexedPropertiesOnly) {
+    public PropertyStats(boolean indexedPropertiesOnly, long seed) {
         this.indexedPropertiesOnly = indexedPropertiesOnly;
+        this.seed = seed;
     }
 
     public void setSkip(int skip) {
         this.skip = skip;
     }
 
-    public void setIndexedPropertiesSet(HashSet<String> set) {
+    public void setIndexedPropertiesSet(Set<String> set) {
         indexedProperties.addAll(set);
     }
 
-    public void setIndexedProperties(HashMap<String, ArrayList<IndexedProperty>> map) {
-        this.indexexPropertyMap = map;
+    public void setIndexedProperties(Map<String, ArrayList<IndexedProperty>> map) {
+        indexexPropertyMap.putAll(map);
         indexedProperties.addAll(map.keySet());
     }
 
@@ -160,10 +163,6 @@ public class PropertyStats implements StatsCollector {
         }
     }
 
-    @Override
-    public void end() {
-    }
-
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Stats stats : statsMap.values()) {
@@ -171,12 +170,11 @@ public class PropertyStats implements StatsCollector {
             if (stats.count < MIN_PROPERTY_COUNT) {
                 continue;
             }
-            long weight = 5;
             long count = stats.count;
             long distinct = HyperLogLog3Linear64.estimate(stats.hll);
 
             TopKValues top = stats.topValues;
-            weight = distinct;
+            long weight = distinct;
             if (top != null) {
                 if (!top.isNotSkewed()) {
                     // we can not trust the number of distinct entries

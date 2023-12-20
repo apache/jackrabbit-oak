@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
 import java.io.BufferedInputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -44,7 +45,7 @@ import net.jpountz.lz4.LZ4FrameInputStream;
 /**
  * A reader for flat file stores.
  */
-public class NodeLineReader implements NodeDataReader {
+public class NodeLineReader implements NodeDataReader, Closeable {
 
     private final LineNumberReader reader;
     private final long fileSize;
@@ -57,18 +58,26 @@ public class NodeLineReader implements NodeDataReader {
 
     public static NodeLineReader open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
-        InputStream in = new BufferedInputStream(new FileInputStream(fileName));
-        if (fileName.endsWith(".lz4")) {
-            in = new LZ4FrameInputStream(in);
+        InputStream fileIn = new BufferedInputStream(new FileInputStream(fileName));
+        try {
+            InputStream in;
+            if (fileName.endsWith(".lz4")) {
+                in = new LZ4FrameInputStream(fileIn);
+            } else {
+                in = fileIn;
+            }
+            LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return new NodeLineReader(reader, fileSize);
+        } catch (IOException e) {
+            fileIn.close();
+            throw e;
         }
-        LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-        return new NodeLineReader(reader, fileSize);
     }
 
     public NodeData readNode() throws IOException {
         String line = reader.readLine();
         if (line == null) {
-            reader.close();
+            close();
             return null;
         }
         if (++count % 1000000 == 0) {
@@ -96,7 +105,7 @@ public class NodeLineReader implements NodeDataReader {
                 p = fromJsonArray(k, v);
             } else {
                 PropertyValue value = getValue(v);
-                if (value == null && v.startsWith("\"")) {
+                if (value == null) {
                     // special case empty array
                     String v2 = JsopTokenizer.decodeQuoted(v);
                     if (v2.startsWith("[0]:")) {
@@ -181,7 +190,9 @@ public class NodeLineReader implements NodeDataReader {
             do {
                 String r = tokenizer.readRawValue();
                 PropertyValue v = getValue(r);
-                if (type != null && v.type != type) {
+                if (v == null) {
+                    throw new IllegalArgumentException("Unsupported mixed type: " + json);
+                } else if (type != null && v.type != type) {
                     throw new IllegalArgumentException("Unsupported mixed type: " + json);
                 }
                 result.add(v.value);
@@ -199,6 +210,11 @@ public class NodeLineReader implements NodeDataReader {
     @Override
     public long getFileSize() {
         return fileSize;
+    }
+
+    @Override
+    public void close() throws IOException {
+        reader.close();
     }
 
 }

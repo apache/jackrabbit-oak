@@ -79,6 +79,9 @@ public class HyperLogLog {
             countZero += c == 0 ? 1 : 0;
             sum += 1. / (1L << (c & 0xff));
         }
+        if (sum == 0) {
+            sum = 1;
+        }
         long est = (long) (1. / sum * am * m * m);
         if (est <= 5 * m && countZero > 0) {
             // linear counting

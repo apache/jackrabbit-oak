@@ -34,11 +34,11 @@ public class TopKValues {
 
     // we shorten values longer than this size
     // to save memory
-    private final int MAX_VALUE_LENGTH = 100;
+    private static final int MAX_VALUE_LENGTH = 100;
 
     // after counting an entry, we skip this many,
     // to speed up processing
-    private final int SKIP = 10;
+    private static final int SKIP = 10;
 
     private final int k;
     private final CountMinSketch sketch = new CountMinSketch(5, 16);
