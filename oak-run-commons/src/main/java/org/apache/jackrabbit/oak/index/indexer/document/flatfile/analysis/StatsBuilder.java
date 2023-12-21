@@ -24,17 +24,18 @@ import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySize;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeEmbedded;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.DistinctBinarySize;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.DistinctBinarySizeHistogram;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.ListCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeCount;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypeCount;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeNameFilter;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.NodeTypeCount;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.PropertyStats;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.StatsCollector;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.TopLargestBinaries;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeDataReader;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeLineReader;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeStreamReaderCompressed;
 
 /**
  * Builder for commonly used statistics for flat file stores.
@@ -49,13 +50,11 @@ public class StatsBuilder {
      * @param args the file name
      */
     public static void main(String... args) throws Exception {
-
         String fileName = args[0];
         String filter = null;
         if (args.length > 1) {
             filter = args[1];
         }
-
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000, 1));
         collectors.add(new BinarySize(100_000_000, 1));
@@ -65,7 +64,7 @@ public class StatsBuilder {
         collectors.add(new NodeTypeCount());
         collectors.add(new BinarySizeHistogram(1));
         collectors.add(new DistinctBinarySizeHistogram(1));
-        collectors.add(new TopLargestBinaries(10));
+        collectors.add(new DistinctBinarySize(1024, 1024));
         if (filter != null) {
             collectors.add(new NodeNameFilter(filter, new BinarySize(100_000_000, 1)));
             collectors.add(new NodeNameFilter(filter, new BinarySizeEmbedded(100_000, 1)));
@@ -75,8 +74,8 @@ public class StatsBuilder {
 
         Profiler prof = new Profiler().startCollecting();
 
-        NodeLineReader reader = NodeLineReader.open(fileName);
-        // NodeStreamReaderCompressed reader = NodeStreamReaderCompressed.open(fileName);
+        // NodeLineReader reader = NodeLineReader.open(fileName);
+        NodeStreamReaderCompressed reader = NodeStreamReaderCompressed.open(fileName);
         collect(reader, collectors);
 
         System.out.println(prof.getTop(10));

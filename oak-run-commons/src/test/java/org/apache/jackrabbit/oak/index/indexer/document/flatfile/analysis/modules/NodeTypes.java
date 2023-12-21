@@ -68,10 +68,6 @@ public class NodeTypes implements StatsCollector {
         map.put(nt.name, nt);
     }
 
-    @Override
-    public void end() {
-    }
-
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, NodeType> e : map.entrySet()) {

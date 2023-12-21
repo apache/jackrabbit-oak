@@ -55,4 +55,17 @@ public class Hash {
         return hash64(x, 100);
     }
 
+    /**
+     * Shrink the hash to a value 0..n. Kind of like modulo, but using
+     * multiplication and shift, which are faster to compute.
+     *
+     * @param hash the hash
+     * @param n the maximum of the result
+     * @return the reduced value
+     */
+    public static int reduce(int hash, int n) {
+        // http://lemire.me/blog/2016/06/27/a-fast-alternative-to-the-modulo-reduction/
+        return (int) (((hash & 0xffffffffL) * (n & 0xffffffffL)) >>> 32);
+    }
+
 }

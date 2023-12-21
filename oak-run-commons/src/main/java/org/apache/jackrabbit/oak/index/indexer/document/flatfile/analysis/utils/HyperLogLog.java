@@ -25,9 +25,9 @@ import java.util.HashSet;
  */
 public class HyperLogLog {
 
+    private final double amm2;
     private final int m;
     private final byte[] counters;
-    private final double am;
     private final int maxSmallSetSize;
     private HashSet<Long> smallSet;
 
@@ -45,6 +45,7 @@ public class HyperLogLog {
             throw new IllegalArgumentException("Must be a power of 2, is " + m);
         }
         this.m = m;
+        double am;
         switch (m) {
         case 32:
             am = 0.697;
@@ -55,6 +56,7 @@ public class HyperLogLog {
         default:
             am = 0.7213 / (1.0 + 1.079 / m);
         }
+        amm2 = am * m * m;
         this.counters = new byte[m];
     }
 
@@ -82,12 +84,12 @@ public class HyperLogLog {
         if (sum == 0) {
             sum = 1;
         }
-        long est = (long) (1. / sum * am * m * m);
+        long est = (long) (1. / sum * amm2);
         if (est <= 5 * m && countZero > 0) {
             // linear counting
             est = (long) (m * Math.log((double) m / countZero));
         }
-        return Math.max(1, est);
+        return est;
     }
 
 }

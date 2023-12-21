@@ -39,7 +39,9 @@ public class HyperLogLogTest {
     @Test
     public void smallSet() {
         HyperLogLog hll100 = new HyperLogLog(16, 100);
+        assertEquals(0, hll100.estimate());
         HyperLogLog hll0 = new HyperLogLog(16, 0);
+        assertEquals(0, hll0.estimate());
         for (int i = 0; i < 10_000; i++) {
             hll100.add(i % 100);
             hll0.add(i % 100);

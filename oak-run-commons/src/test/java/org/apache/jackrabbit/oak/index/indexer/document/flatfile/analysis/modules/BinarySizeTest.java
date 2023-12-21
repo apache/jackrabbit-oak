@@ -77,6 +77,7 @@ public class BinarySizeTest {
         BinarySizeEmbedded binaryEmbedded = new BinarySizeEmbedded(10_000, 1);
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         DistinctBinarySizeHistogram distinctHistogram = new DistinctBinarySizeHistogram(1);
+        DistinctBinarySize size = new DistinctBinarySize(1, 1);
         TopLargestBinaries top = new TopLargestBinaries(3);
 
         ListCollector list = new ListCollector();
@@ -84,6 +85,7 @@ public class BinarySizeTest {
         list.add(binaryEmbedded);
         list.add(histogram);
         list.add(distinctHistogram);
+        list.add(size);
         list.add(top);
 
         // add 1000 nodes, where each node has one property:
@@ -95,7 +97,8 @@ public class BinarySizeTest {
             // 1 distinct embedded blobs, each 5 KB
             NodeProperty p1 = new NodeProperty("data1", ValueType.BINARY, ":blobId:0x" + embeddedBinary5k);
             // 20 distinct blobs ids, each 500 KB
-            NodeProperty p2 = new NodeProperty("data2", ValueType.BINARY, ":blobId:" + (i % 20) + "#5000000");
+            String id = ("00" + (i % 20)).repeat(20);
+            NodeProperty p2 = new NodeProperty("data2", ValueType.BINARY, ":blobId:" + id + "#5000000");
             NodeData n = new NodeData(Arrays.asList("content", "dam", "abc"), Arrays.asList(p1, p2));
             list.add(n);
         }
@@ -137,6 +140,18 @@ public class BinarySizeTest {
                 + "total count: 2000\n"
                 + "total size: 10000000000\n"
                 + "storage size: 0 MB; 6 entries\n"
+                + "time: 0 seconds\n"
+                + "DistinctBinarySize\n"
+                + "configBloomFilterMB: 1\n"
+                + "configLargeBinariesMB: 1\n"
+                + "estimatedCount: 20\n"
+                + "estimatedSize: 100000000\n"
+                + "largeBinariesCount: 20\n"
+                + "largeBinariesCountMax: 31250\n"
+                + "largeBinariesSize: 100000000\n"
+                + "referenceCount: 1000\n"
+                + "referenceSize: 5000000000\n"
+                + "storage size: 0 MB; 15 entries\n"
                 + "time: 0 seconds\n"
                 + "TopLargestBinaries\n"
                 + "#  1: /content/dam/abc: 5000000\n"
