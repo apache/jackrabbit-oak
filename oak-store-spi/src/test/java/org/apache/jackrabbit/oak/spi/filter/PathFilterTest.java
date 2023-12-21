@@ -135,34 +135,34 @@ public class PathFilterTest {
     public void getStringsLenientNodeBuilder_MultipleValues() {
         NodeBuilder root = EMPTY_NODE.builder();
         @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", Set.of("/p1", "/p2"), Type.STRINGS));
-        assertEquals(Set.of("/p1", "/p2"), toSet(PathFilter.getStringsLenient(b1, "propMultiple", Set.of("default"))));
+        assertEquals(Set.of("/p1", "/p2"), toSet(PathFilter.getStrings(b1.getProperty("propMultiple"), Set.of("default"))));
     }
 
     @Test
     public void getStringsLenientNodeBuilder_SingleValueAsSet() {
         NodeBuilder root = EMPTY_NODE.builder();
         @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", Set.of("/p1"), Type.STRINGS));
-        assertEquals(Set.of("/p1"), toSet(PathFilter.getStringsLenient(b1, "propMultiple", Set.of("default"))));
+        assertEquals(Set.of("/p1"), toSet(PathFilter.getStrings(b1.getProperty("propMultiple"), Set.of("default"))));
     }
 
     @Test
     public void getStringsLenientNodeBuilder_SingleValueAsString() {
         NodeBuilder root = EMPTY_NODE.builder();
         @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", "/p1", Type.STRING));
-        assertEquals(Set.of("/p1"), toSet(PathFilter.getStringsLenient(b1, "propMultiple", Set.of("default"))));
+        assertEquals(Set.of("/p1"), toSet(PathFilter.getStrings(b1.getProperty("propMultiple"), Set.of("default"))));
     }
 
     @Test
     public void getStringsLenientNodeBuilder_NoValue() {
         NodeBuilder root = EMPTY_NODE.builder();
-        assertEquals(Set.of("default"), toSet(PathFilter.getStringsLenient(root, "propMultiple", Set.of("default"))));
+        assertEquals(Set.of("default"), toSet(PathFilter.getStrings(root.getProperty("propMultiple"), Set.of("default"))));
     }
 
     @Test
     public void getStringsLenientNodeBuilder_WrongType() {
         NodeBuilder root = EMPTY_NODE.builder();
         @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", 1L, Type.LONG));
-        assertEquals(Set.of("default"), toSet(PathFilter.getStringsLenient(root, "propMultiple", Set.of("default"))));
+        assertEquals(Set.of("default"), toSet(PathFilter.getStrings(root.getProperty("propMultiple"), Set.of("default"))));
     }
 
     static private <T> Set<T> toSet(Iterable<T> iterable) {

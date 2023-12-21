@@ -21,7 +21,6 @@
 package org.apache.jackrabbit.oak.spi.filter;
 
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -29,7 +28,6 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
-import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
@@ -41,7 +39,7 @@ import static org.apache.jackrabbit.oak.commons.PathUtils.isAncestor;
  * or not
  */
 public class PathFilter {
-    private static final Collection<String> INCLUDE_ROOT = List.of("/");
+    private static final Set<String> INCLUDE_ROOT = Set.of("/");
     /**
      * Multi value property name used to determine list of paths to be included
      */
@@ -96,41 +94,21 @@ public class PathFilter {
             return ALL;
         }
         return new PathFilter(
-                getStringsLenient(defn, PROP_INCLUDED_PATHS, INCLUDE_ROOT),
-                getStringsLenient(defn, PROP_EXCLUDED_PATHS, List.of())
+                getStrings(defn.getProperty(PROP_INCLUDED_PATHS), INCLUDE_ROOT),
+                getStrings(defn.getProperty(PROP_EXCLUDED_PATHS), Set.of())
         );
     }
 
-    /**
-     * Gets the value of a property as a list of Strings.
-     * <ul>
-     *     <li>If the property is of type Strings, the value is returned directly.</li>
-     *     <li>If it is of type String, then it is interpreted as a one-element array of Strings.</li>
-     *     <li>If it is of any other type or is not defined, the default value is returned.</li>
-     * </ul>
-     *
-     * @return the values of the property if the property is set and is of type Strings or String, otherwise the default value
+    /*
+     * Gets the value of the given property as a set of strings. This works both if the property is of type STRING or
+     * type STRINGS. If the type is STRING, then it is interpreted as a single-element list. This is the default behavior
+     * of calling {@link PropertyState#getValue(Type)} with {@link Type#STRINGS}.
      */
-    public static Iterable<String> getStringsLenient(NodeBuilder builder, String propertyName, Collection<String> defaultVal) {
-        return getStringsLenientInner(builder.getProperty(propertyName), defaultVal);
-    }
-
-    /**
-     * Gets the value of a property as a list of Strings. if it is of type String, then it is interpreted as a one-element
-     * array of Strings. Otherwise this method works the same as calling {@link NodeState#getStrings(String)}.
-     */
-    public static Iterable<String> getStringsLenient(NodeState idxState, String propertyName) {
-        return getStringsLenientInner(idxState.getProperty(propertyName), List.of());
-    }
-
-    private static Iterable<String> getStringsLenientInner(PropertyState property, Collection<String> defaultVal) {
-        if (property != null && property.getType() == Type.STRINGS) {
-            return property.getValue(Type.STRINGS);
-        } else if (property != null && property.getType() == Type.STRING) {
-            return List.of(property.getValue(Type.STRING));
-        } else {
-            return defaultVal;
+    public static Iterable<String> getStrings(PropertyState ps, Set<String> defaultValues) {
+        if (ps != null && (ps.getType() == Type.STRING || ps.getType() == Type.STRINGS)) {
+            return ps.getValue(Type.STRINGS);
         }
+        return defaultValues;
     }
 
     private final String[] includedPaths;

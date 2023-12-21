@@ -92,8 +92,8 @@ public class NodeCounterMBeanEstimator implements NodeCountEstimator {
                     return;
                 }
 
-                Iterables.addAll(includes, PathFilter.getStringsLenient(idxState, PROP_INCLUDED_PATHS));
-                Iterables.addAll(excludes, PathFilter.getStringsLenient(idxState, PROP_EXCLUDED_PATHS));
+                Iterables.addAll(includes, PathFilter.getStrings(idxState.getProperty(PROP_INCLUDED_PATHS), Set.of()));
+                Iterables.addAll(excludes, PathFilter.getStrings(idxState.getProperty(PROP_EXCLUDED_PATHS), Set.of()));
             }
 
             if (includes.isEmpty()) {
