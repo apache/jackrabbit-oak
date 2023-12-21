@@ -19,13 +19,14 @@
 
 package org.apache.jackrabbit.oak.spi.filter;
 
-import java.util.Collections;
-
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
+import java.util.HashSet;
+import java.util.Set;
+
 import static org.apache.jackrabbit.oak.plugins.memory.EmptyNodeState.EMPTY_NODE;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.apache.jackrabbit.oak.spi.filter.PathFilter.PROP_EXCLUDED_PATHS;
@@ -36,8 +37,8 @@ import static org.junit.Assert.fail;
 public class PathFilterTest {
 
     @Test
-    public void exclude() throws Exception {
-        PathFilter p = new PathFilter(of("/"), of("/etc"));
+    public void exclude() {
+        PathFilter p = new PathFilter(Set.of("/"), Set.of("/etc"));
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/"));
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/a"));
         assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc"));
@@ -45,8 +46,8 @@ public class PathFilterTest {
     }
 
     @Test
-    public void include() throws Exception {
-        PathFilter p = new PathFilter(of("/content", "/etc"), of("/etc/workflow/instance"));
+    public void include() {
+        PathFilter p = new PathFilter(Set.of("/content", "/etc"), Set.of("/etc/workflow/instance"));
         assertEquals(PathFilter.Result.TRAVERSE, p.filter("/"));
         assertEquals(PathFilter.Result.EXCLUDE, p.filter("/var"));
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/content"));
@@ -61,7 +62,7 @@ public class PathFilterTest {
     }
 
     @Test
-    public void emptyConfig() throws Exception {
+    public void emptyConfig() {
         NodeBuilder root = EMPTY_NODE.builder();
         PathFilter p = PathFilter.from(root);
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/"));
@@ -69,10 +70,10 @@ public class PathFilterTest {
     }
 
     @Test
-    public void config() throws Exception {
+    public void config() {
         NodeBuilder root = EMPTY_NODE.builder();
-        root.setProperty(createProperty(PROP_INCLUDED_PATHS, of("/etc"), Type.STRINGS));
-        root.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/etc/workflow"), Type.STRINGS));
+        root.setProperty(createProperty(PROP_INCLUDED_PATHS, Set.of("/etc"), Type.STRINGS));
+        root.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/etc/workflow"), Type.STRINGS));
         PathFilter p = PathFilter.from(root);
         assertEquals(PathFilter.Result.TRAVERSE, p.filter("/"));
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc"));
@@ -82,9 +83,22 @@ public class PathFilterTest {
     }
 
     @Test
-    public void configOnlyExclude() throws Exception {
+    public void configWithStringProperties() {
         NodeBuilder root = EMPTY_NODE.builder();
-        root.setProperty(createProperty(PROP_EXCLUDED_PATHS, of("/etc/workflow"), Type.STRINGS));
+        root.setProperty(createProperty(PROP_INCLUDED_PATHS, "/etc", Type.STRING));
+        root.setProperty(createProperty(PROP_EXCLUDED_PATHS, "/etc/workflow", Type.STRING));
+        PathFilter p = PathFilter.from(root);
+        assertEquals(PathFilter.Result.TRAVERSE, p.filter("/"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc"));
+        assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc/a"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow"));
+        assertEquals(PathFilter.Result.EXCLUDE, p.filter("/etc/workflow/1"));
+    }
+
+    @Test
+    public void configOnlyExclude() {
+        NodeBuilder root = EMPTY_NODE.builder();
+        root.setProperty(createProperty(PROP_EXCLUDED_PATHS, Set.of("/etc/workflow"), Type.STRINGS));
         PathFilter p = PathFilter.from(root);
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/"));
         assertEquals(PathFilter.Result.INCLUDE, p.filter("/etc"));
@@ -94,26 +108,70 @@ public class PathFilterTest {
     }
 
     @Test
-    public void invalid() throws Exception {
+    public void invalid() {
         try {
-            new PathFilter(Collections.<String>emptyList(), of("/etc"));
+            new PathFilter(Set.of(), Set.of("/etc"));
             fail();
         } catch (IllegalStateException ignore) {
             // expected
         }
 
         try {
-            new PathFilter(of("/etc/workflow"), of("/etc"));
+            new PathFilter(Set.of("/etc/workflow"), Set.of("/etc"));
             fail();
         } catch (IllegalStateException ignore) {
             // expected
         }
 
         try {
-            new PathFilter(Collections.<String>emptyList(), Collections.<String>emptyList());
+            new PathFilter(Set.of(), Set.of());
             fail();
         } catch (IllegalStateException ignore) {
             // expected
         }
     }
+
+    @Test
+    public void getStringsLenientNodeBuilder_MultipleValues() {
+        NodeBuilder root = EMPTY_NODE.builder();
+        @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", Set.of("/p1", "/p2"), Type.STRINGS));
+        assertEquals(Set.of("/p1", "/p2"), toSet(PathFilter.getStrings(b1.getProperty("propMultiple"), Set.of("default"))));
+    }
+
+    @Test
+    public void getStringsLenientNodeBuilder_SingleValueAsSet() {
+        NodeBuilder root = EMPTY_NODE.builder();
+        @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", Set.of("/p1"), Type.STRINGS));
+        assertEquals(Set.of("/p1"), toSet(PathFilter.getStrings(b1.getProperty("propMultiple"), Set.of("default"))));
+    }
+
+    @Test
+    public void getStringsLenientNodeBuilder_SingleValueAsString() {
+        NodeBuilder root = EMPTY_NODE.builder();
+        @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", "/p1", Type.STRING));
+        assertEquals(Set.of("/p1"), toSet(PathFilter.getStrings(b1.getProperty("propMultiple"), Set.of("default"))));
+    }
+
+    @Test
+    public void getStringsLenientNodeBuilder_NoValue() {
+        NodeBuilder root = EMPTY_NODE.builder();
+        assertEquals(Set.of("default"), toSet(PathFilter.getStrings(root.getProperty("propMultiple"), Set.of("default"))));
+    }
+
+    @Test
+    public void getStringsLenientNodeBuilder_WrongType() {
+        NodeBuilder root = EMPTY_NODE.builder();
+        @NotNull NodeBuilder b1 = root.setProperty(createProperty("propMultiple", 1L, Type.LONG));
+        assertEquals(Set.of("default"), toSet(PathFilter.getStrings(root.getProperty("propMultiple"), Set.of("default"))));
+    }
+
+    static private <T> Set<T> toSet(Iterable<T> iterable) {
+        HashSet<T> set = new HashSet<>();
+        for (T t : iterable) {
+            set.add(t);
+        }
+        return set;
+    }
+
+
 }
