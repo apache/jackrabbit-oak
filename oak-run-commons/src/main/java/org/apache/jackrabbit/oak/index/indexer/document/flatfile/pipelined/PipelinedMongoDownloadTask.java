@@ -57,6 +57,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -245,18 +246,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // If regex filtering is enabled, start by downloading the ancestors of the path used for filtering.
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
-        Set<String> regexBasePaths = getPathsForRegexFiltering();
+        MongoFilterPaths mongoFilterPathsDefinition = getPathsForRegexFiltering();
         Bson childrenFilter;
-        if (regexBasePaths.isEmpty()) {
+        if (mongoFilterPathsDefinition == null) {
             childrenFilter = null;
         } else {
             // Regex path filtering is enabled
             // Download the ancestors in a separate query. No retrials done on this query, as it will take only a few
             // seconds and is done at the start of the job, so if it fails, the job can be retried without losing much work
-            downloadAncestors(regexBasePaths);
+            downloadAncestors(mongoFilterPathsDefinition.included);
 
             // Filter to apply to the main query
-            childrenFilter = descendantsFilter(regexBasePaths);
+            childrenFilter = descendantsFilter(mongoFilterPathsDefinition);
         }
 
         Instant failuresStartTimestamp = null; // When the last series of failures started
@@ -339,8 +340,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private void downloadWithNaturalOrdering() throws InterruptedException, TimeoutException {
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
-        Set<String> regexBasePath = getPathsForRegexFiltering();
-        if (regexBasePath.isEmpty()) {
+        MongoFilterPaths regexBasePath = getPathsForRegexFiltering();
+        if (regexBasePath == null) {
             LOG.info("Downloading full repository using natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
@@ -349,7 +350,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             download(mongoIterable);
 
         } else {
-            downloadAncestors(regexBasePath);
+            downloadAncestors(regexBasePath.included);
 
             Bson childrenQuery = descendantsFilter(regexBasePath);
             LOG.info("Downloading using regex path filtering. Downloading children: {}.", childrenQuery);
@@ -361,57 +362,62 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private Set<String> getPathsForRegexFiltering() {
+    private MongoFilterPaths getPathsForRegexFiltering() {
         if (!regexPathFiltering) {
             LOG.info("Regex path filtering disabled.");
-            return Set.of();
+            return null;
         }
-        return extractIncludedPaths(pathFilters);
+        return buildMongoFilter(pathFilters);
     }
 
-    /**
-     * Aggregates the included paths from the path filters. The final list will not contain duplicates or overlapping
-     * paths (i.e., /a and /a/b).
-     *
-     * @param pathFilters Empty set if path filtering should be disabled, otherwise the paths that should be included
-     *                    in the Mongo query filters
-     */
-    // Package private for testing
-    static Set<String> extractIncludedPaths(List<PathFilter> pathFilters) {
+    static MongoFilterPaths buildMongoFilter(List<PathFilter> pathFilters) {
         // Path filtering is enabled only if there are no excludedPaths.
-        if (pathFilters == null) {
-            return Set.of();
+        if (pathFilters == null || pathFilters.isEmpty()) {
+            return null;
         }
-        Set<String> includedPaths = new HashSet<>();
-        Set<String> excludedPaths = new HashSet<>();
+        HashSet<String> includedPaths = new HashSet<>();
+        HashSet<String> excludedPaths = new HashSet<>();
         for (PathFilter pathFilter : pathFilters) {
             includedPaths.addAll(pathFilter.getIncludedPaths());
             excludedPaths.addAll(pathFilter.getExcludedPaths());
         }
-        // Sort by natural order, so that parent paths appear before any children. This makes it easier to compute the
-        // common ancestors of included paths
-        List<String> sortedIncludedPaths = includedPaths.stream()
-                .sorted()
-                .collect(Collectors.toList());
 
-        LOG.info("Paths considered for regex filtering. IncludedPaths: {}, excludedPaths: {}", sortedIncludedPaths, excludedPaths);
-        if (sortedIncludedPaths.contains("/")) {
-            LOG.info("Disabling regex path filtering because root path is in the includedPaths: {}", sortedIncludedPaths);
-            return Set.of();
-        }
-        if (!excludedPaths.isEmpty()) {
-            LOG.info("Disabling regex path filtering because there are excluded paths: {}", excludedPaths);
-            return Set.of();
-        }
+        LOG.info("Paths considered for regex filtering. IncludedPaths: {}, excludedPaths: {}", includedPaths, excludedPaths);
+        PathUtils.unifyInExcludes(includedPaths, excludedPaths);
+        LOG.info("After unify. IncludedPaths: {}, excludedPaths: {}", includedPaths, excludedPaths);
 
-        // Keep only unique included paths. That is, if paths "/a/b" and "/a/b/c" are both in the list, keep only "/a/b"
-        HashSet<String> includedPathsRoots = new HashSet<>();
-        for (String path : sortedIncludedPaths) {
-            if (includedPathsRoots.stream().noneMatch(ancestor -> PathUtils.isAncestor(ancestor, path))) {
-                includedPathsRoots.add(path);
+        // Cases to consider:
+        // 1. Included paths not empty, excluded paths empty: use included paths
+        // 3. Included paths and excluded not empty: use included paths. Any excluded path is a child of an included path.
+        //    It will be downloaded but filtered during the transform stage.
+        // 4. Included paths and excluded empty: download everything
+
+        if (includedPaths.isEmpty()) {
+            throw new IllegalStateException("Included paths cannot be empty");
+        }
+        if (excludedPaths.isEmpty()) {
+            // Only included paths
+            if (includedPaths.contains("/")) {
+                return null; // Download everything
+            } else {
+                return new MongoFilterPaths(includedPaths, Set.of());
             }
+        } else {
+            return new MongoFilterPaths(includedPaths, excludedPaths);
         }
-        return includedPathsRoots;
+    }
+
+    private Bson descendantsFilter(MongoFilterPaths mongoFilterPathsDefinition) {
+        if (mongoFilterPathsDefinition == null) {
+            return null;
+        }
+        Bson pathFilter = descendantsFilter(mongoFilterPathsDefinition.included);
+        if (mongoFilterPathsDefinition.excluded.isEmpty()) {
+            return pathFilter;
+        } else {
+            Bson excludedFilter = descendantsFilter(mongoFilterPathsDefinition.excluded);
+            return Filters.and(pathFilter, Filters.nor(excludedFilter));
+        }
     }
 
     private static Bson descendantsFilter(Set<String> path) {
@@ -547,5 +553,38 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         public String toString() {
             return "Tried for " + retrialDurationSeconds + " seconds: \n" + super.toString();
         }
+    }
+}
+
+
+
+class MongoFilterPaths {
+    final Set<String> included;
+    final Set<String> excluded;
+
+    public MongoFilterPaths(Set<String> included, Set<String> excluded) {
+        this.included = included;
+        this.excluded = excluded;
+    }
+
+    @Override
+    public String toString() {
+        return "MongoFilterPaths{" +
+                "included=" + included +
+                ", excluded=" + excluded +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        MongoFilterPaths that = (MongoFilterPaths) o;
+        return Objects.equals(included, that.included) && Objects.equals(excluded, that.excluded);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(included, excluded);
     }
 }

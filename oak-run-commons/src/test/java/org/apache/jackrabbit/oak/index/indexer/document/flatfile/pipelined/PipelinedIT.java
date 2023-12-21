@@ -57,8 +57,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -162,6 +164,95 @@ public class PipelinedIT {
         List<PathFilter> pathFilters = List.of(contentDamPathFilter);
 
         testSuccessfulDownload(pathPredicate, pathFilters);
+    }
+
+    @Test
+    public void createFFS_mongoFiltering_include_excludes() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+
+        Predicate<String> pathPredicate = s -> true;
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/2023"), List.of("/content/dam/2023/02")));
+
+        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/2023|{\"p2\":\"v2023\"}",
+                "/content/dam/2023/01|{\"p1\":\"v202301\"}",
+                "/content/dam/2023/02|{}"
+        ));
+    }
+
+    @Test
+    public void createFFS_mongoFiltering_include_excludes2() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+
+        Predicate<String> pathPredicate = s -> true;
+
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/1000", "/content/dam/2022"), List.of("/content/dam/2022/02", "/content/dam/2022/04")));
+
+        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
+        "/|{}",
+        "/content|{}",
+        "/content/dam|{}",
+        "/content/dam/1000|{}",
+        "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+        "/content/dam/2022|{}",
+        "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+        "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
+        "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+        "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+        "/content/dam/2022/04|{\"p1\":\"v202204\"}"
+        ));
+    }
+
+
+    @Test
+    public void createFFS_mongoFiltering_include_excludes3() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+
+        Predicate<String> pathPredicate = s -> true;
+
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
+
+        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/etc|{}",
+                "/home|{}",
+                "/jcr:system|{}"
+        ));
+    }
+
+
+//    @Test
+//    public void createFFS_mongoFiltering_include_excludes2() throws Exception {
+//        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
+//        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+//
+//        Predicate<String> pathPredicate = s -> true;
+//
+//        List<PathFilter> pathFilters = getPathFilters();
+//        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
+//                "/|{}",
+//                "/content|{}",
+//                "/content/dam|{}",
+//                "/content/dam/2023|{\"p2\":\"v2023\"}",
+//                "/content/dam/2023/01|{\"p1\":\"v202301\"}"
+//        ));
+//    }
+
+    @NotNull
+    private static List<PathFilter> getPathFilters() {
+        Set<String> allIncluded = new HashSet<>(Arrays.asList("/apps", "/bin", "/conf", "/content", "/content/dam", "/content/dam/collections", "/content/xperience-fragments", "/content/screens", "/etc", "/etc/contentsync/templates", "/etc/packages", "/home", "/home/users", "/jcr:system/jcr:versionStorage", "/libs", "/system", "/tmp", "/var/commerce", "/var/contentsync/content/screens", "/var/dam/share", "/var/designs", "/var/eventing"));
+        Set<String> excludedPaths = new HashSet<>(Arrays.asList("/jcr:system", "/etc/workflow/instances", "/oak:index", "/etc/packages", "/etc/replication", "/var"));
+
+        List<PathFilter> pathFilters = List.of(new PathFilter(allIncluded, excludedPaths));
+        return pathFilters;
     }
 
     @Test
@@ -418,14 +509,23 @@ public class PipelinedIT {
     private void createContent(NodeStore rwNodeStore) throws CommitFailedException {
         @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
         @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
-        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
-        contentDamBuilder.child("2022").child("02").setProperty("p1", "v202202");
-        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
         contentDamBuilder.child("1000").child("12").setProperty("p1", "v100012");
+        contentDamBuilder.child("2022").child("01").setProperty("p1", "v202201");
+        contentDamBuilder.child("2022").child("01").child("01").setProperty("p1", "v20220101");
+        contentDamBuilder.child("2022").child("02").setProperty("p1", "v202202");
+        contentDamBuilder.child("2022").child("02").child("01").setProperty("p1", "v20220201");
+        contentDamBuilder.child("2022").child("02").child("02").setProperty("p1", "v20220202");
+        contentDamBuilder.child("2022").child("02").child("03").setProperty("p1", "v20220203");
+        contentDamBuilder.child("2022").child("02").child("04").setProperty("p1", "v20220204");
+        contentDamBuilder.child("2022").child("03").setProperty("p1", "v202203");
+        contentDamBuilder.child("2022").child("04").setProperty("p1", "v202204");
         contentDamBuilder.child("2023").setProperty("p2", "v2023");
+        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
+        contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
         contentDamBuilder.child("2023").child("02").child("28").setProperty("p1", "v20230228");
 
         // Node with very long name
+//        @NotNull NodeBuilder node = contentDamBuilder.child("long_path_test");
         @NotNull NodeBuilder node = contentDamBuilder;
         for (int i = 0; i < LONG_PATH_TEST_LEVELS; i++) {
             node = node.child(LONG_PATH_LEVEL_STRING + i);
@@ -451,7 +551,15 @@ public class PipelinedIT {
             "/content/dam/1000|{}",
             "/content/dam/1000/12|{\"p1\":\"v100012\"}",
             "/content/dam/2022|{}",
+            "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+            "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
             "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+            "/content/dam/2022/02/01|{\"p1\":\"v20220201\"}",
+            "/content/dam/2022/02/02|{\"p1\":\"v20220202\"}",
+            "/content/dam/2022/02/03|{\"p1\":\"v20220203\"}",
+            "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
+            "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+            "/content/dam/2022/04|{\"p1\":\"v202204\"}",
             "/content/dam/2023|{\"p2\":\"v2023\"}",
             "/content/dam/2023/01|{\"p1\":\"v202301\"}",
             "/content/dam/2023/02|{}",
