@@ -404,7 +404,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             return Set.of();
         }
 
-        // Keep only unique include paths. That is, if paths "/a/b" and "/a/b/c" are both in the list, keep only "/a/b"
+        // Keep only unique included paths. That is, if paths "/a/b" and "/a/b/c" are both in the list, keep only "/a/b"
         HashSet<String> includedPathsRoots = new HashSet<>();
         for (String path : sortedIncludedPaths) {
             if (includedPathsRoots.stream().noneMatch(ancestor -> PathUtils.isAncestor(ancestor, path))) {
