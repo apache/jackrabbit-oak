@@ -545,7 +545,7 @@ public class VersionGarbageCollectorIT {
         b1.child("unrelated").setProperty("unrelated", "unrelated");
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // step 5 : create a checkpoint at t(+1w+6sec)
+        // step 5 : create a checkpoint (valid for 42 days) at t(+1w+6sec)
         String checkpoint = store1.checkpoint(TimeUnit.DAYS.toMillis(42));
         assertEquals(exp, store1.getRoot().getChildNode("t").getString("foo"));
         assertEquals(exp, store1.retrieve(checkpoint).getChildNode("t").getString("foo"));
