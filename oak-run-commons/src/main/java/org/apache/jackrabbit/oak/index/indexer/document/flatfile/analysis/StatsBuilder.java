@@ -153,9 +153,9 @@ public class StatsBuilder {
         System.out.println(lineCount + " lines total");
         long time = System.nanoTime() - start;
         System.out.println((time / 1_000_000_000) + " seconds");
-        System.out.println((time / lineCount) + " ns/node");
+        System.out.println((time / Math.max(1, lineCount)) + " ns/node");
         System.out.println(reader.getFileSize() + " bytes");
-        System.out.println((reader.getFileSize() / lineCount) + " bytes/node");
+        System.out.println((reader.getFileSize() / Math.max(1, lineCount)) + " bytes/node");
     }
 
 }

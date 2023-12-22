@@ -54,10 +54,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
     }
 
     public int getProgressPercent() {
-        if (fileSize == 0) {
-            return 100;
-        }
-        return (int) (100 * countIn.getByteCount() / fileSize);
+        return (int) (100 * countIn.getByteCount() / Math.max(1, fileSize));
     }
 
     /**
@@ -102,7 +99,7 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
         try {
             InputStream in;
             if (fileName.endsWith(".lz4")) {
-                in = new LZ4FrameInputStream(countIn);
+                in = new LZ4FrameInputStream(countIn); //NOSONAR
             } else {
                 in = countIn;
             }
