@@ -49,7 +49,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Predicates.notNull;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterators.singletonIterator;
@@ -129,8 +128,10 @@ public class IdentifierManager {
             String uuid = k == -1
                     ? identifier
                     : identifier.substring(0, k);
-
-            checkArgument(UUIDUtils.isValidUUID(uuid), "Not a valid identifier '" + identifier + '\'');
+            if (!UUIDUtils.isValidUUID(uuid)) {
+                log.warn("Not a valid identifier '{}'",identifier);
+                return null;
+            }
 
             Tree tree = resolveUUIDToTree(createPropertyValue(uuid));
             if (tree == null) {

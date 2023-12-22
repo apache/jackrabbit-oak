@@ -96,11 +96,8 @@ public class IdentifierManagerTest {
         assertEquals(PATH_Z1, identifierManager.getTree(ID_Z1).getPath());
         assertNull(identifierManager.getTree(ID_NON_EXISTING));
 
-        try {
-            identifierManager.getTree(ID_INVALID);
-            fail("Expected IllegalArgumentException");
-        }
-        catch (IllegalArgumentException expected) { }
+        assertNull(identifierManager.getTree(ID_INVALID));
+
     }
 
     @Test
@@ -111,11 +108,7 @@ public class IdentifierManagerTest {
         assertEquals(PATH_Z1, identifierManager.getPath(ID_Z1));
         assertNull(identifierManager.getPath(ID_NON_EXISTING));
 
-        try {
-            identifierManager.getPath(ID_INVALID);
-            fail("Expected IllegalArgumentException");
-        }
-        catch (IllegalArgumentException expected) { }
+        assertNull(identifierManager.getPath(ID_INVALID));
     }
 
     @Test
