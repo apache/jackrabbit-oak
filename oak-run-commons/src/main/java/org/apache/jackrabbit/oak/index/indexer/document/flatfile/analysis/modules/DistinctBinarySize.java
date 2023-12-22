@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
@@ -188,24 +187,7 @@ public class DistinctBinarySize implements StatsCollector {
     }
 
     public List<String> getRecords() {
-        List<String> result = new ArrayList<>();
-        for(Entry<String, Long> e : storage.entrySet()) {
-            if (e.getValue() > 0) {
-                String k = e.getKey();
-                long v = e.getValue();
-                result.add(k + ": " + v);
-                if (k.endsWith(" size")) {
-                    k += " GiB";
-                    v /= 1024 * 1024 * 1024;
-                    result.add(k + ": " + v);
-                } else if (k.endsWith(" count")) {
-                    k += " million";
-                    v /= 1_000_000;
-                    result.add(k + ": " + v);
-                }
-            }
-        }
-        return result;
+        return BinarySizeHistogram.getRecordsWithSizeAndCount(storage);
     }
 
     public String toString() {

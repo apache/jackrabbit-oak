@@ -114,7 +114,7 @@ public class BinarySizeHistogram implements StatsCollector {
         }
     }
 
-    public List<String> getRecords() {
+    public static List<String> getRecordsWithSizeAndCount(Storage storage) {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
             if (e.getValue() > 0) {
@@ -133,6 +133,10 @@ public class BinarySizeHistogram implements StatsCollector {
             }
         }
         return result;
+    }
+
+    public List<String> getRecords() {
+        return getRecordsWithSizeAndCount(storage);
     }
 
     public String toString() {
