@@ -24,11 +24,10 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
 
 /**
  * A histogram of distinct binaries. For each size range, we calculate the
@@ -37,15 +36,6 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream
  * 1024, or HyperLogLog otherwise.
  */
 public class DistinctBinarySizeHistogram implements StatsCollector {
-
-    private static final String[] SIZES = new String[64];
-    static {
-        SIZES[0] = "0";
-        for (long x = 1; x > 0; x += x) {
-            int n = 64 - Long.numberOfLeadingZeros(x);
-            SIZES[n] = String.format("%2d", n) + " (" + (x / 2 + 1) + ".." + x + ")";
-        }
-    }
 
     private final int pathLevels;
     private final Storage storage = new Storage();
@@ -56,7 +46,7 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
     }
 
     public void add(NodeData node) {
-        ArrayList<Long> hashSizePairs = new ArrayList<>();
+        ArrayList<BinaryId> list = new ArrayList<>();
         for(NodeProperty p : node.getProperties()) {
             if (p.getType() == ValueType.BINARY) {
                 for (String v : p.getValues()) {
@@ -68,42 +58,41 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
                         // embedded: ignore
                     } else {
                         // reference
-                        int hashIndex = v.indexOf('#');
-                        long hash = Hash.hash64(v.hashCode());
-                        String length = v.substring(hashIndex + 1);
-                        long size = Long.parseLong(length);
-                        hashSizePairs.add(hash);
-                        hashSizePairs.add(size);
+                        list.add(new BinaryId(v));
                     }
                 }
             }
         }
-        if (hashSizePairs.isEmpty()) {
+        if (list.isEmpty()) {
             return;
         }
-        add("/", hashSizePairs);
+        add("/", list);
         StringBuilder buff = new StringBuilder();
         for (int i = 0; i < pathLevels && i < node.getPathElements().size(); i++) {
             String pe = node.getPathElements().get(i);
             buff.append('/').append(pe);
             String key = buff.toString();
-            add(key, hashSizePairs);
+            add(key, list);
+        }
+        storage.add("total count", 1L);
+        for (BinaryId id : list) {
+            storage.add("total size", id.getLength());
         }
     }
 
-    void add(String key, ArrayList<Long> hashSizePairs) {
-        for (int i = 0; i < hashSizePairs.size(); i += 2) {
-            long hash = hashSizePairs.get(i);
-            long size = hashSizePairs.get(i + 1);
-            int bits = 65 - Long.numberOfLeadingZeros(size);
-            String k = key + " " + SIZES[bits];
-            HyperLogLog hll = distinctMap.computeIfAbsent(k, n -> new HyperLogLog(128, 1024));
-            hll.add(hash);
-            long est = hll.estimate();
+    void add(String key, ArrayList<BinaryId> list) {
+        for (BinaryId id : list) {
+            int bits = 65 - Long.numberOfLeadingZeros(id.getLength());
+            String k = key + " " + BinarySizeHistogram.SIZES[bits];
+            HyperLogLog hll = distinctMap.computeIfAbsent(k, n -> new HyperLogLog(1024, 1024));
+            hll.add(id.getLongHash());
             storage.add(k, 1L);
-            storage.put(k + " distinct", est);
-            storage.add("total count", 1L);
-            storage.add("total size", size);
+        }
+    }
+
+    public void end() {
+        for(Entry<String, HyperLogLog> e : distinctMap.entrySet()) {
+            storage.put(e.getKey() + " distinct", e.getValue().estimate());
         }
     }
 
@@ -111,7 +100,18 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
             if (e.getValue() > 0) {
-                result.add(e.getKey() + ": " + e.getValue());
+                String k = e.getKey();
+                long v = e.getValue();
+                result.add(k + ": " + v);
+                if (k.endsWith(" size")) {
+                    k += " GiB";
+                    v /= 1024 * 1024 * 1024;
+                    result.add(k + ": " + v);
+                } else if (k.endsWith(" count")) {
+                    k += " million";
+                    v /= 1_000_000;
+                    result.add(k + ": " + v);
+                }
             }
         }
         return result;

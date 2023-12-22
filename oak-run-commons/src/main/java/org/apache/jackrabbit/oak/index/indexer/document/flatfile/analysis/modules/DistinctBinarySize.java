@@ -24,21 +24,40 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.BloomFilter;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.Hash;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.HyperLogLog;
 
 /**
- * A histogram of distinct binaries. For each size range, we calculate the
- * number of entries and number of distinct entries. The number of distinct
- * entries is calculated using a set if the number of entries is smaller than
- * 1024, or HyperLogLog otherwise.
+ * Collects the number and size of distinct binaries.
+ *
+ * We keep references to large binaries in a fixed-size set, so that for large
+ * binaries, we have accurate data. For smaller binaries, we have approximate
+ * data only, managed in a Bloom filter (also with a fixed size). If the set of
+ * large binaries grows too large, the entries are removed and instead added to
+ * a Bloom filter. The size threshold (which binaries go to the set and which
+ * binaries go to the Bloom filter) is changed dynamically. The Bloom filter can
+ * collect about 1 million entries per MB with a false-positive rate of 1%.
+ *
+ * That means that for large binaries, we have the exact de-duplicated count and
+ * size. For smaller binaries, we only have an approximation, due to the nature
+ * of the Bloom filter. To compensate for false positives, the total size of the
+ * presumed duplicates (where the size was not accumulated when adding to the
+ * Bloom filter) is summed up, and at the end of the collection process,
+ * multiplied with the false-positive rate of the Bloom filter.
+ *
+ * Experiments show that for 4 million references, total size 17 TB, the
+ * approximation error is less than nearly zero when allocating 16 MB for the
+ * large set, and 16 MB for the Bloom filter. When not allocating any memory for
+ * the large binaries, and only 1 MB for the Bloom filter, the estimation error
+ * is 5%. In general it seems that giving more memory to the Bloom filter is
+ * more efficient than giving the memory to have accurate data for very large
+ * binaries, unless if the size distribution of binaries is very skewed (and so,
+ * having an error for a very large binary would have a big effect).
  */
 public class DistinctBinarySize implements StatsCollector {
 
@@ -87,8 +106,8 @@ public class DistinctBinarySize implements StatsCollector {
         }
         referenceCount += list.size();
         for(BinaryId id : list) {
-            referenceSize += id.length;
-            if (largeBinariesCountMax > 0 && id.length >= largeBinarySizeThreshold) {
+            referenceSize += id.getLength();
+            if (largeBinariesCountMax > 0 && id.getLength() >= largeBinarySizeThreshold) {
                 largeBinaries.add(id);
                 truncateLargeBinariesSet();
             } else {
@@ -100,11 +119,11 @@ public class DistinctBinarySize implements StatsCollector {
     private void addToBloomFilter(BinaryId id) {
         hll.add(id.getLongHash());
         if (bloomFilter.mayContain(id.getLongHash())) {
-            bloomFilterIgnoredSize += id.length;
+            bloomFilterIgnoredSize += id.getLength();
         } else {
             bloomFilter.add(id.getLongHash());
             bloomFilterMinCount++;
-            bloomFilterMinSize += id.length;
+            bloomFilterMinSize += id.getLength();
         }
     }
 
@@ -115,14 +134,14 @@ public class DistinctBinarySize implements StatsCollector {
         long[] lengths = new long[largeBinaries.size()];
         int i = 0;
         for(BinaryId id : largeBinaries) {
-            lengths[i++] = id.length;
+            lengths[i++] = id.getLength();
         }
         Arrays.sort(lengths);
         // the new threshold is the median of all the lengths
         largeBinarySizeThreshold = lengths[largeBinariesCountMax];
         for(Iterator<BinaryId> it = largeBinaries.iterator(); it.hasNext();) {
             BinaryId id = it.next();
-            if (id.length < largeBinarySizeThreshold) {
+            if (id.getLength() < largeBinarySizeThreshold) {
                 addToBloomFilter(id);
                 it.remove();
             }
@@ -130,18 +149,19 @@ public class DistinctBinarySize implements StatsCollector {
     }
 
     public void end() {
-        storage.add("configBloomFilterMB", bloomFilterMB);
-        storage.add("configLargeBinariesMB", largeBinariesMB);
-        storage.add("largeBinariesCount", largeBinaries.size());
-        storage.add("largeBinariesCountMax", largeBinariesCountMax * 2);
-        storage.add("largeBinariesSizeThreshold", largeBinarySizeThreshold);
+        storage.add("config Bloom filter memory MB", bloomFilterMB);
+        storage.add("config large binaries set memory MB", largeBinariesMB);
+
+        storage.add("large binaries count", largeBinaries.size());
+        storage.add("large binaries count max", largeBinariesCountMax * 2);
+        storage.add("large binaries size threshold", largeBinarySizeThreshold);
         long largeBinariesSize = 0;
         for(BinaryId id : largeBinaries) {
-            largeBinariesSize += id.length;
+            largeBinariesSize += id.getLength();
         }
-        storage.add("largeBinariesSize", largeBinariesSize);
-        storage.add("smallBinariesMinCount", bloomFilterMinCount);
-        storage.add("smallBinariesMinSize", bloomFilterMinSize);
+        storage.add("large binaries size", largeBinariesSize);
+        storage.add("small binaries min count", bloomFilterMinCount);
+        storage.add("small binaries min size", bloomFilterMinSize);
         long smallBinariesEstimatedCountHLL = hll.estimate();
         long smallBinariesEstimatedCount = bloomFilter.getEstimatedEntryCount();
         if (smallBinariesEstimatedCount == Long.MAX_VALUE) {
@@ -155,22 +175,34 @@ public class DistinctBinarySize implements StatsCollector {
         double fpp = BloomFilter.calculateFpp(smallBinariesEstimatedCount, bloomFilter.getBitCount(), bloomFilter.getK());
         long bloomFilterEstimatedSize = bloomFilterMinSize;
         bloomFilterEstimatedSize += fpp * bloomFilterIgnoredSize;
-        storage.add("smallBinariesEstimatedCount", smallBinariesEstimatedCount);
-        storage.add("smallBinariesEstimatedCountHLL", smallBinariesEstimatedCountHLL);
-        storage.add("smallBinariesEstimatedSize", bloomFilterEstimatedSize);
+        storage.add("small binaries count", smallBinariesEstimatedCount);
+        storage.add("small binaries HLL count", smallBinariesEstimatedCountHLL);
+        storage.add("small binaries size", bloomFilterEstimatedSize);
+
         long estimatedCount = largeBinaries.size() + smallBinariesEstimatedCount;
-        storage.add("estimatedCount", estimatedCount);
+        storage.add("total distinct count", estimatedCount);
         long estimatedSize = largeBinariesSize + bloomFilterEstimatedSize;
-        storage.add("estimatedSize", estimatedSize);
-        storage.add("referenceCount", referenceCount);
-        storage.add("referenceSize", referenceSize);
+        storage.add("total distinct size", estimatedSize);
+        storage.add("total reference count", referenceCount);
+        storage.add("total reference size", referenceSize);
     }
 
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
             if (e.getValue() > 0) {
-                result.add(e.getKey() + ": " + e.getValue());
+                String k = e.getKey();
+                long v = e.getValue();
+                result.add(k + ": " + v);
+                if (k.endsWith(" size")) {
+                    k += " GiB";
+                    v /= 1024 * 1024 * 1024;
+                    result.add(k + ": " + v);
+                } else if (k.endsWith(" count")) {
+                    k += " million";
+                    v /= 1_000_000;
+                    result.add(k + ": " + v);
+                }
             }
         }
         return result;
@@ -182,56 +214,6 @@ public class DistinctBinarySize implements StatsCollector {
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();
-    }
-
-    static class BinaryId {
-        private final long v0;
-        private final long v1;
-        private final long v2;
-        private final long length;
-
-        BinaryId(String identifier) {
-            // we support identifiers of the following format:
-            // <hex digits or '-'>#<length>
-            // the '-' is ignored
-            int hashIndex = identifier.indexOf('#');
-            String length = identifier.substring(hashIndex + 1);
-            this.length = Long.parseLong(length);
-            StringBuilder buff = new StringBuilder(48);
-            for (int i = 0; i < hashIndex; i++) {
-                char c = identifier.charAt(i);
-                if (c != '-') {
-                    buff.append(c);
-                }
-            }
-            // we need to hash again because some of the bits are fixed
-            // in case of UUIDs: always a "4" here: xxxxxxxx-xxxx-4xxx
-            this.v0 = Hash.hash64(Long.parseUnsignedLong(buff.substring(0, 16), 16));
-            this.v1 = Hash.hash64(Long.parseUnsignedLong(buff.substring(16, 32), 16));
-            this.v2 = Hash.hash64(Long.parseUnsignedLong(buff.substring(32, Math.min(48, buff.length())), 16));
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(length, v0, v1, v2);
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            if (this == obj)
-                return true;
-            if (obj == null)
-                return false;
-            if (getClass() != obj.getClass())
-                return false;
-            BinaryId other = (BinaryId) obj;
-            return length == other.length && v0 == other.v0 && v1 == other.v1 && v2 == other.v2;
-        }
-
-        public long getLongHash() {
-            return v0 ^ v1 ^ v2 ^ length;
-        }
-
     }
 
 }

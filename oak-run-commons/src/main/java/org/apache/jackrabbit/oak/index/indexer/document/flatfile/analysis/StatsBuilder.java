@@ -35,6 +35,8 @@ import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.module
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.TopLargestBinaries;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeDataReader;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeLineReader;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeStreamReader;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeStreamReaderCompressed;
 
 /**
@@ -50,36 +52,66 @@ public class StatsBuilder {
      * @param args the file name
      */
     public static void main(String... args) throws Exception {
-        String fileName = args[0];
-        String filter = null;
-        if (args.length > 1) {
-            filter = args[1];
+        String fileName = null;
+        String nodeNameFilter = null;
+        boolean stream = false;
+        boolean compressedStream = false;
+        for(int i = 0; i<args.length; i++) {
+            String a = args[i];
+            if (a.equals("--fileName")) {
+                fileName = args[++i];
+            } else if (a.equals("--nodeNameFilter")) {
+                nodeNameFilter = args[++i];
+            } else if (a.endsWith("--stream")) {
+                stream = true;
+            } else if (a.equals("--compressedStream")) {
+                compressedStream = true;
+            }
         }
+        if (fileName == null) {
+            System.out.println("Command line arguments:");
+            System.out.println("  --fileName <file name>     (flat file store file name; mandatory)");
+            System.out.println("  --nodeNameFilter <filter>  (node name filter for binaries; optional)");
+            System.out.println("  --stream                   (use a stream file; optional)");
+            System.out.println("  --compressedStream         (use a compressed stream file; optional)");
+            return;
+        }
+        System.out.println("Processing " + fileName);
         ListCollector collectors = new ListCollector();
         collectors.add(new NodeCount(1000, 1));
-        collectors.add(new BinarySize(100_000_000, 1));
-        collectors.add(new BinarySizeEmbedded(100_000, 1));
-        PropertyStats ps = new PropertyStats(true, 1);
+        PropertyStats ps = new PropertyStats(false, 1);
         collectors.add(ps);
         collectors.add(new NodeTypeCount());
-        collectors.add(new BinarySizeHistogram(1));
-        collectors.add(new DistinctBinarySizeHistogram(1));
-        collectors.add(new DistinctBinarySize(1024, 1024));
-        if (filter != null) {
-            collectors.add(new NodeNameFilter(filter, new BinarySize(100_000_000, 1)));
-            collectors.add(new NodeNameFilter(filter, new BinarySizeEmbedded(100_000, 1)));
-            collectors.add(new NodeNameFilter(filter, new BinarySizeHistogram(1)));
-            collectors.add(new NodeNameFilter(filter, new TopLargestBinaries(10)));
+        if (nodeNameFilter != null) {
+            collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySize(100_000_000, 1)));
+            collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySizeEmbedded(100_000, 1)));
+            collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySizeHistogram(1)));
+            collectors.add(new NodeNameFilter(nodeNameFilter, new TopLargestBinaries(10)));
         }
+        collectors.add(new BinarySize(100_000_000, 1));
+        collectors.add(new BinarySizeEmbedded(100_000, 1));
+        collectors.add(new BinarySizeHistogram(1));
+        collectors.add(new TopLargestBinaries(10));
+        collectors.add(new DistinctBinarySizeHistogram(1));
+        collectors.add(new DistinctBinarySize(16, 16));
 
         Profiler prof = new Profiler().startCollecting();
-
-        // NodeLineReader reader = NodeLineReader.open(fileName);
-        NodeStreamReaderCompressed reader = NodeStreamReaderCompressed.open(fileName);
+        NodeDataReader reader;
+        if (compressedStream) {
+            reader = NodeStreamReaderCompressed.open(fileName);
+        } else if (stream) {
+            reader = NodeStreamReader.open(fileName);
+        } else {
+            reader = NodeLineReader.open(fileName);
+        }
         collect(reader, collectors);
 
         System.out.println(prof.getTop(10));
+        System.out.println();
+        System.out.println("Results");
+        System.out.println();
         System.out.println(collectors);
+        System.out.println("Done");
     }
 
     private static void collect(NodeDataReader reader, StatsCollector collector) throws IOException {

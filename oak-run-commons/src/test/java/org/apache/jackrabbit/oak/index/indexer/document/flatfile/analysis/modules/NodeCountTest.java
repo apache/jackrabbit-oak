@@ -37,7 +37,7 @@ public class NodeCountTest {
             nc.add(n);
         }
         assertEquals(
-                "NodeCount (millions)\n"
+                "NodeCount in million\n"
                 + "/: 10\n"
                 + "/content: 10\n"
                 + "/content/dam: 10\n"

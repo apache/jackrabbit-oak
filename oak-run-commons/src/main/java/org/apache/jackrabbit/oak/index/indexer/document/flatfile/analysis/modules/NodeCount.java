@@ -64,7 +64,11 @@ public class NodeCount implements StatsCollector {
 
     public List<String> getRecords() {
         List<String> result = new ArrayList<>();
-        for(Entry<String, Long> e : storage.entrySet()) {
+        ArrayList<Entry<String, Long>> entryList = new ArrayList<>(storage.entrySet());
+        // this would sort by value:
+        // Collections.sort(entryList, (o1, o2) -> o2.getValue().compareTo(o1.getValue()));
+        // but it's unclear if that's better or not
+        for(Entry<String, Long> e : entryList) {
             if (e.getValue() > 1_000_000) {
                 result.add(e.getKey() + ": " + (e.getValue() / 1_000_000));
             }
@@ -74,7 +78,7 @@ public class NodeCount implements StatsCollector {
 
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        buff.append("NodeCount (millions)\n");
+        buff.append("NodeCount in million\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();

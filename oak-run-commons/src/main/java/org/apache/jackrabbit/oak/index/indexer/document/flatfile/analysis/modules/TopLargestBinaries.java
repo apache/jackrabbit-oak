@@ -38,9 +38,6 @@ public class TopLargestBinaries implements StatsCollector {
     private final int k;
     private final ArrayList<TopEntry> top = new ArrayList<>();
 
-    private long totalCount;
-    private long totalSize;
-
     public TopLargestBinaries(int k) {
         this.k = k;
     }
@@ -58,7 +55,7 @@ public class TopLargestBinaries implements StatsCollector {
                     }
                     v = v.substring(":blobId:".length());
                     if (v.startsWith("0x")) {
-                        // embedded
+                        // embedded: ignore
                     } else {
                         // reference
                         int hashIndex = v.indexOf('#');
@@ -73,8 +70,6 @@ public class TopLargestBinaries implements StatsCollector {
             if (top.size() >= k && x < top.get(0).size) {
                 continue;
             }
-            totalCount++;
-            totalSize += x;
             TopEntry e = new TopEntry(x, pathElements);
             int index = Collections.binarySearch(top, e);
             if (index < 0) {
@@ -95,8 +90,22 @@ public class TopLargestBinaries implements StatsCollector {
             storage.add(path, e.size);
             i++;
         }
-        storage.add("total count", totalCount);
-        storage.add("total size", totalSize);
+    }
+
+    public List<String> getRecords() {
+        List<String> result = new ArrayList<>();
+        for(Entry<String, Long> e : storage.entrySet()) {
+            result.add(e.getKey() + ": " + e.getValue());
+        }
+        return result;
+    }
+
+    public String toString() {
+        StringBuilder buff = new StringBuilder();
+        buff.append("TopLargestBinaries\n");
+        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
+        buff.append(storage);
+        return buff.toString();
     }
 
     static class TopEntry implements Comparable<TopEntry> {
@@ -130,22 +139,6 @@ public class TopLargestBinaries implements StatsCollector {
             return Objects.equals(pathElements, other.pathElements) && size == other.size;
         }
 
-    }
-
-    public List<String> getRecords() {
-        List<String> result = new ArrayList<>();
-        for(Entry<String, Long> e : storage.entrySet()) {
-            result.add(e.getKey() + ": " + e.getValue());
-        }
-        return result;
-    }
-
-    public String toString() {
-        StringBuilder buff = new StringBuilder();
-        buff.append("TopLargestBinaries\n");
-        buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
-        buff.append(storage);
-        return buff.toString();
     }
 
 }

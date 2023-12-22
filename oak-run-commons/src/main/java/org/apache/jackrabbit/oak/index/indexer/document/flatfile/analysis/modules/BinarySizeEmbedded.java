@@ -53,9 +53,13 @@ public class BinarySizeEmbedded implements StatsCollector {
                     v = v.substring(":blobId:".length());
                     if (v.startsWith("0x")) {
                         // embedded
+                        int hashIndex = v.lastIndexOf('#');
+                        if (hashIndex >= 0) {
+                            v = v.substring(0, hashIndex);
+                        }
                         size = (v.length() - 2) / 2;
                     } else {
-                        // reference
+                        // reference: ignore
                     }
                 }
             }
@@ -99,7 +103,7 @@ public class BinarySizeEmbedded implements StatsCollector {
 
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        buff.append("BinarySizeEmbedded (MB)\n");
+        buff.append("BinarySizeEmbedded in MB (resolution: " + resolution + ")\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();

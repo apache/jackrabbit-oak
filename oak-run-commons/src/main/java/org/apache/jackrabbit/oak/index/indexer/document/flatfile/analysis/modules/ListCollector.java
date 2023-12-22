@@ -60,6 +60,7 @@ public class ListCollector implements StatsCollector {
         StringBuilder buff = new StringBuilder();
         for (StatsCollector collector : collectors) {
             buff.append(collector.toString());
+            buff.append("\n");
         }
         return buff.toString();
     }

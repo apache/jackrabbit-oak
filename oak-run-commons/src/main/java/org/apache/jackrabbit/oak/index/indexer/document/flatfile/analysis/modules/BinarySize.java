@@ -52,10 +52,10 @@ public class BinarySize implements StatsCollector {
                     }
                     v = v.substring(":blobId:".length());
                     if (v.startsWith("0x")) {
-                        // embedded
+                        // embedded: ignore
                     } else {
                         // reference
-                        int hashIndex = v.indexOf('#');
+                        int hashIndex = v.lastIndexOf('#');
                         String length = v.substring(hashIndex + 1);
                         size += Long.parseLong(length);
                     }
@@ -102,7 +102,7 @@ public class BinarySize implements StatsCollector {
 
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        buff.append("BinarySize GB (resolution: " + resolution + ")\n");
+        buff.append("BinarySize in GB (resolution: " + resolution + ")\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();

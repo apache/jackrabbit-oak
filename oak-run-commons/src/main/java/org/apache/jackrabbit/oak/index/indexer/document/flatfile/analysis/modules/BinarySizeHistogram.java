@@ -37,13 +37,16 @@ public class BinarySizeHistogram implements StatsCollector {
     private final int pathLevels;
     private final Storage storage = new Storage();
 
-    private static final String[] SIZES = new String[64];
-
+    public static final String[] SIZES = new String[64];
     static {
-        SIZES[0] = "0";
+        SIZES[0] = " 0";
+        String[] mag = new String[] { "B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB" };
+        String old = "1B";
         for (long x = 1; x > 0; x += x) {
             int n = 64 - Long.numberOfLeadingZeros(x);
-            SIZES[n] = String.format("%2d", n) + " (" + (x / 2 + 1) + ".." + x + ")";
+            String m = (x >> ((n - 1) / 10 * 10)) + mag[(n - 1) / 10];
+            SIZES[n] = String.format("%2d", n) + " (" + old + ".." + m + ")";
+            old = m;
         }
     }
 
@@ -63,11 +66,15 @@ public class BinarySizeHistogram implements StatsCollector {
                     v = v.substring(":blobId:".length());
                     if (v.startsWith("0x")) {
                         // embedded
+                        int hashIndex = v.lastIndexOf('#');
+                        if (hashIndex >= 0) {
+                            v = v.substring(0, hashIndex);
+                        }
                         long size = (v.length() - 2) / 2;
                         embedded.add(size);
                     } else {
                         // reference
-                        int hashIndex = v.indexOf('#');
+                        int hashIndex = v.lastIndexOf('#');
                         String length = v.substring(hashIndex + 1);
                         long size = Long.parseLong(length);
                         references.add(size);
@@ -92,14 +99,18 @@ public class BinarySizeHistogram implements StatsCollector {
         for(long x : embedded) {
             int bits = 65 - Long.numberOfLeadingZeros(x);
             storage.add("embedded " + key + " " + SIZES[bits], 1L);
-            storage.add("embedded total count", 1L);
-            storage.add("embedded total size", x);
+            if ("/".equals(key)) {
+                storage.add("embedded total count", 1L);
+                storage.add("embedded total size", x);
+            }
         }
         for(long x : references) {
             int bits = 65 - Long.numberOfLeadingZeros(x);
             storage.add("refs " + key + " " + SIZES[bits], 1L);
-            storage.add("refs total count", 1L);
-            storage.add("refs total size", x);
+            if ("/".equals(key)) {
+                storage.add("refs total count", 1L);
+                storage.add("refs total size", x);
+            }
         }
     }
 
@@ -107,7 +118,18 @@ public class BinarySizeHistogram implements StatsCollector {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
             if (e.getValue() > 0) {
-                result.add(e.getKey() + ": " + e.getValue());
+                String k = e.getKey();
+                long v = e.getValue();
+                result.add(k + ": " + v);
+                if (k.endsWith(" size")) {
+                    k += " GiB";
+                    v /= 1024 * 1024 * 1024;
+                    result.add(k + ": " + v);
+                } else if (k.endsWith(" count")) {
+                    k += " million";
+                    v /= 1_000_000;
+                    result.add(k + ": " + v);
+                }
             }
         }
         return result;

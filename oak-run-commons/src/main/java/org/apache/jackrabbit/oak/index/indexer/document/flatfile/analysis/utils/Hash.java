@@ -46,7 +46,9 @@ public class Hash {
     }
 
     /**
-     * Calculate a 64-bit hash value from a value.
+     * Calculate a 64-bit hash value from a value. The input is a 64-bit value and
+     * the output is a 64-bit values. Two different inputs are never mapped to the
+     * same output. The operation is reversible.
      *
      * @param x the value
      * @return the hash value
