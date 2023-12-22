@@ -77,10 +77,10 @@ public class BinarySizeTest {
 
     @Test
     public void manyNodes() {
-        // resolution of 10 MB
-        BinarySize binary = new BinarySize(10_000_000, 1);
-        // resolution of 10 KB
-        BinarySizeEmbedded binaryEmbedded = new BinarySizeEmbedded(10_000, 1);
+        // resolution of 1 GB
+        BinarySize binary = new BinarySize(false, 1);
+        // resolution of 1 MB
+        BinarySize binaryEmbedded = new BinarySize(true, 1);
         BinarySizeHistogram histogram = new BinarySizeHistogram(1);
         DistinctBinarySizeHistogram distinctHistogram = new DistinctBinarySizeHistogram(1);
         DistinctBinarySize size = new DistinctBinarySize(1, 1);
@@ -110,23 +110,23 @@ public class BinarySizeTest {
         }
         list.end();
 
-        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 4]]", Arrays.asList(binary.getRecords()).toString());
-        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 4]]", Arrays.asList(binaryEmbedded.getRecords()).toString());
+        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 5]]", Arrays.asList(binary.getRecords()).toString());
+        assertEquals("[[/: 5, /content: 5, /content/dam: 5, /content/dam/abc: 5]]", Arrays.asList(binaryEmbedded.getRecords()).toString());
         assertEquals(
-                "BinarySize in GB (resolution: 10000000)\n"
+                "BinarySize references in GB (resolution: 100000000)\n"
                 + "/: 5\n"
                 + "/content: 5\n"
                 + "/content/dam: 5\n"
-                + "/content/dam/abc: 4\n"
-                + "storage size: 0 MB; 514 entries\n"
+                + "/content/dam/abc: 5\n"
+                + "storage size: 0 MB; 53 entries\n"
                 + "time: 0 seconds\n"
                 + "\n"
-                + "BinarySizeEmbedded in MB (resolution: 10000)\n"
+                + "BinarySize embedded in MB (resolution: 100000)\n"
                 + "/: 5\n"
                 + "/content: 5\n"
                 + "/content/dam: 5\n"
-                + "/content/dam/abc: 4\n"
-                + "storage size: 0 MB; 502 entries\n"
+                + "/content/dam/abc: 5\n"
+                + "storage size: 0 MB; 50 entries\n"
                 + "time: 0 seconds\n"
                 + "\n"
                 + "BinarySizeHistogram\n"

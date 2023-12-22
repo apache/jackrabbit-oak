@@ -22,7 +22,6 @@ import java.io.IOException;
 
 import org.apache.jackrabbit.oak.commons.Profiler;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySize;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeEmbedded;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.BinarySizeHistogram;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.DistinctBinarySize;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.modules.DistinctBinarySizeHistogram;
@@ -83,13 +82,13 @@ public class StatsBuilder {
         collectors.add(ps);
         collectors.add(new NodeTypeCount());
         if (nodeNameFilter != null) {
-            collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySize(100_000_000, 1)));
-            collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySizeEmbedded(100_000, 1)));
+            collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySize(false, 1)));
+            collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySize(true, 1)));
             collectors.add(new NodeNameFilter(nodeNameFilter, new BinarySizeHistogram(1)));
             collectors.add(new NodeNameFilter(nodeNameFilter, new TopLargestBinaries(10)));
         }
-        collectors.add(new BinarySize(100_000_000, 1));
-        collectors.add(new BinarySizeEmbedded(100_000, 1));
+        collectors.add(new BinarySize(false, 1));
+        collectors.add(new BinarySize(true, 1));
         collectors.add(new BinarySizeHistogram(1));
         collectors.add(new TopLargestBinaries(10));
         collectors.add(new DistinctBinarySizeHistogram(1));

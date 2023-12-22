@@ -74,7 +74,7 @@ public class DistinctBinarySizeHistogram implements StatsCollector {
             String key = buff.toString();
             add(key, list);
         }
-        storage.add("total count", 1L);
+        storage.add("total count", list.size());
         for (BinaryId id : list) {
             storage.add("total size", id.getLength());
         }

@@ -35,10 +35,21 @@ public class BinarySize implements StatsCollector {
 
     private final Storage storage = new Storage();
     private final int resolution;
+    private final boolean embedded;
+    private final String unit;
+    private final int divideBy;
     private final Random random;
 
-    public BinarySize(int resolution, long seed) {
-        this.resolution = resolution;
+    public BinarySize(boolean embedded, long seed) {
+        this.embedded = embedded;
+        if (embedded) {
+            unit = "MB";
+            divideBy = 1_000_000;
+        } else {
+            unit = "GB";
+            divideBy = 1_000_000_000;
+        }
+        this.resolution = divideBy / 10;
         this.random = new Random(seed); //NOSONAR
     }
 
@@ -52,12 +63,21 @@ public class BinarySize implements StatsCollector {
                     }
                     v = v.substring(":blobId:".length());
                     if (v.startsWith("0x")) {
-                        // embedded: ignore
+                        // embedded
+                        if (embedded) {
+                            int hashIndex = v.lastIndexOf('#');
+                            if (hashIndex >= 0) {
+                                v = v.substring(0, hashIndex);
+                            }
+                            size = (v.length() - 2) / 2;
+                        }
                     } else {
                         // reference
-                        int hashIndex = v.lastIndexOf('#');
-                        String length = v.substring(hashIndex + 1);
-                        size += Long.parseLong(length);
+                        if (!embedded) {
+                            int hashIndex = v.lastIndexOf('#');
+                            String length = v.substring(hashIndex + 1);
+                            size += Long.parseLong(length);
+                        }
                     }
                 }
             }
@@ -93,8 +113,8 @@ public class BinarySize implements StatsCollector {
         List<String> result = new ArrayList<>();
         for(Entry<String, Long> e : storage.entrySet()) {
             long v = e.getValue();
-            if (v > 1_000_000_000) {
-                result.add(e.getKey() + ": " + (v / 1_000_000_000));
+            if (v > divideBy) {
+                result.add(e.getKey() + ": " + (v / divideBy));
             }
         }
         return result;
@@ -102,7 +122,10 @@ public class BinarySize implements StatsCollector {
 
     public String toString() {
         StringBuilder buff = new StringBuilder();
-        buff.append("BinarySize in GB (resolution: " + resolution + ")\n");
+        buff.append("BinarySize");
+        buff.append(embedded ? " embedded" : " references");
+        buff.append(" in " + unit);
+        buff.append(" (resolution: " + resolution + ")\n");
         buff.append(getRecords().stream().map(s -> s + "\n").collect(Collectors.joining()));
         buff.append(storage);
         return buff.toString();

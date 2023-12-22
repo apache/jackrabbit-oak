@@ -24,7 +24,7 @@ import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeData;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.utils.SipHash;
+import org.apache.jackrabbit.oak.plugins.index.counter.SipHash;
 
 /**
  * A collector for approximate node counts.
