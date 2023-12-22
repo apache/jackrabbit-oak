@@ -120,10 +120,12 @@ public class StatsBuilder {
         long lineCount = 0;
 
         while (true) {
-            lineCount++;
             NodeData node = reader.readNode();
             if (node == null) {
                 break;
+            }
+            if (++lineCount % 1000000 == 0) {
+                System.out.println(lineCount + " lines; " + reader.getProgressPercent() + "%");
             }
             if (ONLY_READ) {
                 continue;

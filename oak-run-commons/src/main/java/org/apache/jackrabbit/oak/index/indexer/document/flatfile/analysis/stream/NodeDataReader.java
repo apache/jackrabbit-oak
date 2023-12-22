@@ -40,4 +40,11 @@ public interface NodeDataReader extends Closeable {
      * @return the file size
      */
     long getFileSize();
+
+    /**
+     * Get the progress in percent (0..100).
+     *
+     * @return the progress
+     */
+    int getProgressPercent();
 }

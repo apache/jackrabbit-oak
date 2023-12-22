@@ -153,7 +153,7 @@ public class DistinctBinarySize implements StatsCollector {
         storage.add("config large binaries set memory MB", largeBinariesMB);
 
         storage.add("large binaries count", largeBinaries.size());
-        storage.add("large binaries count max", largeBinariesCountMax * 2);
+        storage.add("large binaries count max", largeBinariesCountMax * 2L);
         storage.add("large binaries size threshold", largeBinarySizeThreshold);
         long largeBinariesSize = 0;
         for(BinaryId id : largeBinaries) {

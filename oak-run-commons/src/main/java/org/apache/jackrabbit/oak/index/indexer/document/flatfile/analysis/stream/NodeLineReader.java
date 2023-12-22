@@ -33,6 +33,7 @@ import java.util.Map.Entry;
 
 import javax.jcr.PropertyType;
 
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.json.JsonObject;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
@@ -47,29 +48,38 @@ import net.jpountz.lz4.LZ4FrameInputStream;
  */
 public class NodeLineReader implements NodeDataReader, Closeable {
 
+    private final CountingInputStream countIn;
     private final LineNumberReader reader;
     private final long fileSize;
-    private long lineCount;
 
-    private NodeLineReader(LineNumberReader reader, long fileSize) {
+    private NodeLineReader(CountingInputStream countIn, LineNumberReader reader, long fileSize) {
+        this.countIn = countIn;
         this.reader = reader;
         this.fileSize = fileSize;
+    }
+
+    public int getProgressPercent() {
+        if (fileSize == 0) {
+            return 100;
+        }
+        return (int) (100 * countIn.getByteCount() / fileSize);
     }
 
     public static NodeLineReader open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
         InputStream fileIn = new BufferedInputStream(new FileInputStream(fileName));
+        CountingInputStream countIn = new CountingInputStream(fileIn);
         try {
             InputStream in;
             if (fileName.endsWith(".lz4")) {
-                in = new LZ4FrameInputStream(fileIn);
+                in = new LZ4FrameInputStream(countIn);
             } else {
-                in = fileIn;
+                in = countIn;
             }
             LineNumberReader reader = new LineNumberReader(new InputStreamReader(in, StandardCharsets.UTF_8));
-            return new NodeLineReader(reader, fileSize);
+            return new NodeLineReader(countIn, reader, fileSize);
         } catch (IOException e) {
-            fileIn.close();
+            countIn.close();
             throw e;
         }
     }
@@ -79,9 +89,6 @@ public class NodeLineReader implements NodeDataReader, Closeable {
         if (line == null) {
             close();
             return null;
-        }
-        if (++lineCount % 1000000 == 0) {
-            System.out.println(lineCount + " lines");
         }
         int pipeIndex = line.indexOf('|');
         if (pipeIndex < 0) {

@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
+import org.apache.commons.io.input.CountingInputStream;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeProperty.ValueType;
 
 import net.jpountz.lz4.LZ4FrameInputStream;
@@ -38,17 +39,25 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
     private static final int MAX_LENGTH = 1024;
     private static final int WINDOW_SIZE = 1024;
 
+    private final CountingInputStream countIn;
     private final InputStream in;
     private final long fileSize;
     private final String[] lastStrings = new String[WINDOW_SIZE];
 
     private long currentId;
-    private long lineCount;
     private byte[] buffer = new byte[1024 * 1024];
 
-    private NodeStreamReaderCompressed(long fileSize, InputStream in) {
-        this.fileSize = fileSize;
+    private NodeStreamReaderCompressed(CountingInputStream countIn, InputStream in, long fileSize) {
+        this.countIn = countIn;
         this.in = in;
+        this.fileSize = fileSize;
+    }
+
+    public int getProgressPercent() {
+        if (fileSize == 0) {
+            return 100;
+        }
+        return (int) (100 * countIn.getByteCount() / fileSize);
     }
 
     /**
@@ -89,16 +98,17 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
     public static NodeStreamReaderCompressed open(String fileName) throws IOException {
         long fileSize = new File(fileName).length();
         InputStream fileIn = new FileInputStream(fileName);
+        CountingInputStream countIn = new CountingInputStream(fileIn);
         try {
             InputStream in;
             if (fileName.endsWith(".lz4")) {
-                in = new LZ4FrameInputStream(fileIn);
+                in = new LZ4FrameInputStream(countIn);
             } else {
-                in = fileIn;
+                in = countIn;
             }
-            return new NodeStreamReaderCompressed(fileSize, in);
+            return new NodeStreamReaderCompressed(countIn, in, fileSize);
         } catch (IOException e) {
-            fileIn.close();
+            countIn.close();
             throw e;
         }
     }
@@ -108,9 +118,6 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
         if (size < 0) {
             close();
             return null;
-        }
-        if (++lineCount % 1000000 == 0) {
-            System.out.println(lineCount + " lines");
         }
         ArrayList<String> pathElements = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
