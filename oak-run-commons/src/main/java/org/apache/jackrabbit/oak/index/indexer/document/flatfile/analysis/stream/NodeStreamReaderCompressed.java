@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeStreamReader.readVarInt;
+
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -55,41 +57,6 @@ public class NodeStreamReaderCompressed implements NodeDataReader {
 
     public int getProgressPercent() {
         return (int) (100 * countIn.getByteCount() / Math.max(1, fileSize));
-    }
-
-    /**
-     * Read a variable size int.
-     *
-     * @return the value
-     * @throws IOException
-     */
-    public static int readVarInt(InputStream in) throws IOException {
-        int b = in.read();
-        if ((b & 0x80) == 0) {
-            return b;
-        }
-        // a separate function so that this one can be inlined
-        return readVarIntRest(in, b);
-    }
-
-    private static int readVarIntRest(InputStream in, int b) throws IOException {
-        int x = b & 0x7f;
-        b = in.read();
-        if ((b & 0x80) == 0) {
-            return x | (b << 7);
-        }
-        x |= (b & 0x7f) << 7;
-        b = in.read();
-        if ((b & 0x80) == 0) {
-            return x | (b << 14);
-        }
-        x |= (b & 0x7f) << 14;
-        b = in.read();
-        if ((b & 0x80) == 0) {
-            return x | b << 21;
-        }
-        x |= ((b & 0x7f) << 21) | (in.read() << 28);
-        return x;
     }
 
     public static NodeStreamReaderCompressed open(String fileName) throws IOException {

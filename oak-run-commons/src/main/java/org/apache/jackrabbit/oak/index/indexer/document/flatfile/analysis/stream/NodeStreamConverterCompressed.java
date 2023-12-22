@@ -18,6 +18,8 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.analysis.stream.NodeStreamConverter.writeVarInt;
+
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.FileOutputStream;
@@ -97,13 +99,13 @@ public class NodeStreamConverterCompressed implements Closeable {
 
     private void writeString(String s) throws IOException {
         if (s == null) {
-            writeVarInt(out, 0);
+            NodeStreamConverter.writeVarInt(out, 0);
             return;
         }
         int len = s.length();
         if (len < MAX_LENGTH) {
             if (len == 0) {
-                writeVarInt(out, 1);
+                NodeStreamConverter.writeVarInt(out, 1);
                 return;
             }
             int index = s.hashCode() & (CACHE_SIZE - 1);
@@ -112,7 +114,7 @@ public class NodeStreamConverterCompressed implements Closeable {
                 long offset = currentId - cacheId[index];
                 if (offset < WINDOW_SIZE) {
                     cacheId[index] = currentId++;
-                    writeVarInt(out, (int) ((offset << 1) | 1));
+                    NodeStreamConverter.writeVarInt(out, (int) ((offset << 1) | 1));
                     return;
                 }
             }
@@ -122,21 +124,6 @@ public class NodeStreamConverterCompressed implements Closeable {
         byte[] utf8 = s.getBytes(StandardCharsets.UTF_8);
         writeVarInt(out, utf8.length << 1);
         out.write(utf8);
-    }
-
-    /**
-     * Write a variable size int.
-     *
-     * @param out the output stream
-     * @param x the value
-     * @throws IOException if some data could not be written
-     */
-    private static void writeVarInt(OutputStream out, int x) throws IOException {
-        while ((x & ~0x7f) != 0) {
-            out.write((byte) (x | 0x80));
-            x >>>= 7;
-        }
-        out.write((byte) x);
     }
 
     @Override
