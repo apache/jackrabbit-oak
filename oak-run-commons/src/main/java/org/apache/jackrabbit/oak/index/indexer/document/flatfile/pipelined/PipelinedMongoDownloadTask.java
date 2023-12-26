@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,15 +60,14 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static com.mongodb.client.model.Filters.regex;
 import static com.mongodb.client.model.Sorts.ascending;
 
 public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
@@ -102,7 +102,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      * filtering in the indexing job. This feature may significantly reduce the number of documents downloaded from
      * Mongo.
      * The performance gains may not be proportional to the reduction in the number of documents downloaded because Mongo
-     * still has to traverse all the documents. This is the case because the regex expression used for path filtering
+     * still has to traverse all the documents. This is required because the regex expression used for path filtering
      * starts with a wildcard (because the _id starts with the depth of the path, so the regex expression must ignore
      * this part). Because of the wildcard at the start, Mongo cannot use of the index on _id.
      */
@@ -375,35 +375,45 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (pathFilters == null || pathFilters.isEmpty()) {
             return null;
         }
-        HashSet<String> includedPaths = new HashSet<>();
-        HashSet<String> excludedPaths = new HashSet<>();
+        // The list with all the includedPaths should be ordered, as a precondition to remove all paths that are children
+        // of other paths in the list, which will be done next.
+        // The list of excluded paths does not need to be sorted, but we do it anyway for consistency when logging the
+        // list of paths.
+        TreeSet<String> sortedCandidateIncludedPaths = new TreeSet<>();
+        TreeSet<String> candidateExcludedPaths = new TreeSet<>();
         for (PathFilter pathFilter : pathFilters) {
-            includedPaths.addAll(pathFilter.getIncludedPaths());
-            excludedPaths.addAll(pathFilter.getExcludedPaths());
+            sortedCandidateIncludedPaths.addAll(pathFilter.getIncludedPaths());
+            candidateExcludedPaths.addAll(pathFilter.getExcludedPaths());
         }
-
-        LOG.info("Paths considered for regex filtering. IncludedPaths: {}, excludedPaths: {}", includedPaths, excludedPaths);
-        PathUtils.unifyInExcludes(includedPaths, excludedPaths);
-        LOG.info("After unify. IncludedPaths: {}, excludedPaths: {}", includedPaths, excludedPaths);
-
-        // Cases to consider:
-        // 1. Included paths not empty, excluded paths empty: use included paths
-        // 3. Included paths and excluded not empty: use included paths. Any excluded path is a child of an included path.
-        //    It will be downloaded but filtered during the transform stage.
-        // 4. Included paths and excluded empty: download everything
-
-        if (includedPaths.isEmpty()) {
-            throw new IllegalStateException("Included paths cannot be empty");
+        // Keep only unique included paths. That is, if paths "/a/b" and "/a/b/c" are both in the list, keep only "/a/b"
+        TreeSet<String> includedPathsRoots = new TreeSet<>();
+        LOG.info("Sorted candidate included paths: {}", sortedCandidateIncludedPaths);
+        for (String candidateIncludedPath : sortedCandidateIncludedPaths) {
+            if (includedPathsRoots.stream().noneMatch(ancestor -> PathUtils.isAncestor(ancestor, candidateIncludedPath))) {
+                includedPathsRoots.add(candidateIncludedPath);
+            }
         }
-        if (excludedPaths.isEmpty()) {
+        LOG.info("Unique top level included paths: {}", includedPathsRoots);
+
+        LOG.info("Candidate excluded paths: {}", candidateExcludedPaths);
+        TreeSet<String> actualExcludedPaths = new TreeSet<>();
+        // Keep an excluded path only if it is not needed by any filter.
+        for (String candidateExcludedPath : candidateExcludedPaths) {
+            boolean notNeeded = pathFilters.stream().allMatch(pathFilter -> pathFilter.filter(candidateExcludedPath) == PathFilter.Result.EXCLUDE);
+            if (notNeeded) {
+                actualExcludedPaths.add(candidateExcludedPath);
+            }
+        }
+        LOG.info("Effective excluded paths: {}", actualExcludedPaths);
+        if (actualExcludedPaths.isEmpty()) {
             // Only included paths
-            if (includedPaths.contains("/")) {
+            if (includedPathsRoots.contains("/")) {
                 return null; // Download everything
             } else {
-                return new MongoFilterPaths(includedPaths, Set.of());
+                return new MongoFilterPaths(includedPathsRoots, Set.of());
             }
         } else {
-            return new MongoFilterPaths(includedPaths, excludedPaths);
+            return new MongoFilterPaths(includedPathsRoots, actualExcludedPaths);
         }
     }
 
@@ -420,27 +430,34 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static Bson descendantsFilter(Set<String> path) {
-        List<Bson> filters = path.stream()
-                .flatMap(PipelinedMongoDownloadTask::descendantsFilter)
-                .collect(Collectors.toList());
-        return Filters.or(filters);
-    }
-
-    private static Stream<Bson> descendantsFilter(String path) {
-        if (!path.endsWith("/")) {
-            path = path + "/";
+    private static Bson descendantsFilter(Set<String> paths) {
+        if (paths.isEmpty()) {
+            return null;
         }
-        String quotedPath = Pattern.quote(path);
-        // For entries with path sizes above a certain threshold, the _id field contains a hash instead of the path of
-        // the entry. The path is stored instead in the _path field. Therefore, we have to include in the filter also
-        // the documents with matching _path.
-        return Stream.of(
-                regex(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$")),
-                regex(NodeDocument.PATH, Pattern.compile(quotedPath + ".*$")
-                ));
-    }
+        // The filter for descendants of a list of paths is a series of or conditions. For each path, we have to build
+        // two conditions in two different fields of the documents:
+        // _ _id   - for non-long paths - In this case, the _id is of the form "2:/foo/bar"
+        // _ _path - for long paths - In this case, the _id is n hash and the document contains an additional _path
+        //      field with the path of the document.
+        // We use the $in operator with a regular expression to match the paths.
+        //  https://www.mongodb.com/docs/manual/reference/operator/query/in/#use-the--in-operator-with-a-regular-expression
 
+        ArrayList<Pattern> pathPatterns = new ArrayList<>();
+        ArrayList<Pattern> idPatterns = new ArrayList<>();
+
+        for (String path : paths) {
+            if (!path.endsWith("/")) {
+                path = path + "/";
+            }
+            String quotedPath = Pattern.quote(path);
+            idPatterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
+            pathPatterns.add(Pattern.compile(quotedPath + ".*$"));
+        }
+        return Filters.or(
+                Filters.in(NodeDocument.ID, idPatterns),
+                Filters.in(NodeDocument.PATH, pathPatterns)
+        );
+    }
 
     static Set<String> getAncestors(Set<String> paths) {
         Set<String> ancestors = new HashSet<>();
@@ -555,7 +572,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 }
-
 
 
 class MongoFilterPaths {
