@@ -327,6 +327,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     private void downloadAncestors(Set<String> basePath) throws InterruptedException, TimeoutException {
+        if (basePath.size() == 1 && basePath.iterator().next().equals("/")) {
+            return; // No need to download ancestors of root, the root will be downloaded as part of the normal traversal
+        }
         Bson ancestorQuery = ancestorsFilter(basePath);
         LOG.info("Downloading ancestors of: {}, Query: {}.", basePath, ancestorQuery);
         FindIterable<NodeDocument> ancestorsIterable = dbCollection

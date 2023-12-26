@@ -57,10 +57,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -218,7 +216,7 @@ public class PipelinedIT {
 
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
 
-        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
                 "/|{}",
                 "/content|{}",
                 "/content/dam|{}",
@@ -246,14 +244,7 @@ public class PipelinedIT {
 //        ));
 //    }
 
-    @NotNull
-    private static List<PathFilter> getPathFilters() {
-        Set<String> allIncluded = new HashSet<>(Arrays.asList("/apps", "/bin", "/conf", "/content", "/content/dam", "/content/dam/collections", "/content/xperience-fragments", "/content/screens", "/etc", "/etc/contentsync/templates", "/etc/packages", "/home", "/home/users", "/jcr:system/jcr:versionStorage", "/libs", "/system", "/tmp", "/var/commerce", "/var/contentsync/content/screens", "/var/dam/share", "/var/designs", "/var/eventing"));
-        Set<String> excludedPaths = new HashSet<>(Arrays.asList("/jcr:system", "/etc/workflow/instances", "/oak:index", "/etc/packages", "/etc/replication", "/var"));
 
-        List<PathFilter> pathFilters = List.of(new PathFilter(allIncluded, excludedPaths));
-        return pathFilters;
-    }
 
     @Test
     public void createFFS_mongoFiltering_multipleIndexes() throws Exception {
