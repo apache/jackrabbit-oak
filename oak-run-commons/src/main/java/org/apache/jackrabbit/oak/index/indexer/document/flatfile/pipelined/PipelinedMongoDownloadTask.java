@@ -54,12 +54,10 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -249,6 +247,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         MongoFilterPaths mongoFilterPathsDefinition = getPathsForRegexFiltering();
         Bson childrenFilter;
         if (mongoFilterPathsDefinition == null) {
+            LOG.info("Downloading full repository");
             childrenFilter = null;
         } else {
             // Regex path filtering is enabled
@@ -258,6 +257,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
             // Filter to apply to the main query
             childrenFilter = descendantsFilter(mongoFilterPathsDefinition);
+            LOG.info("Downloading from Mongo using filter: {}", childrenFilter);
         }
 
         Instant failuresStartTimestamp = null; // When the last series of failures started
@@ -326,8 +326,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         download(mongoIterable);
     }
 
-    private void downloadAncestors(Set<String> basePath) throws InterruptedException, TimeoutException {
-        if (basePath.size() == 1 && basePath.iterator().next().equals("/")) {
+    private void downloadAncestors(List<String> basePath) throws InterruptedException, TimeoutException {
+        if (basePath.size() == 1 && basePath.get(0).equals("/")) {
             return; // No need to download ancestors of root, the root will be downloaded as part of the normal traversal
         }
         Bson ancestorQuery = ancestorsFilter(basePath);
@@ -355,11 +355,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         } else {
             downloadAncestors(regexBasePath.included);
 
-            Bson childrenQuery = descendantsFilter(regexBasePath);
-            LOG.info("Downloading using regex path filtering. Downloading children: {}.", childrenQuery);
+            Bson childrenFilter = descendantsFilter(regexBasePath);
+            LOG.info("Downloading from Mongo using filter: {}", childrenFilter);
             FindIterable<NodeDocument> childrenIterable = dbCollection
                     .withReadPreference(readPreference)
-                    .find(childrenQuery)
+                    .find(childrenFilter)
                     .hint(NATURAL_HINT);
             download(childrenIterable);
         }
@@ -370,16 +370,22 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.info("Regex path filtering disabled.");
             return null;
         }
-        return buildMongoFilter(pathFilters);
+        LOG.info("Computing included/excluded paths for Mongo regex path filtering. PathFilters: {}", pathFilters.stream()
+                .map(pf -> "PF{includedPaths=" + pf.getIncludedPaths() + ", excludedPaths=" + pf.getExcludedPaths() + "}")
+                .collect(Collectors.joining(", ")));
+        MongoFilterPaths mongoFilterPaths = buildMongoFilter(pathFilters);
+        LOG.info("Paths used for regex filtering on Mongo: {}", mongoFilterPaths);
+        return mongoFilterPaths;
     }
 
     static MongoFilterPaths buildMongoFilter(List<PathFilter> pathFilters) {
-        // Path filtering is enabled only if there are no excludedPaths.
         if (pathFilters == null || pathFilters.isEmpty()) {
             return null;
         }
-        // The list with all the includedPaths should be ordered, as a precondition to remove all paths that are children
-        // of other paths in the list, which will be done next.
+        // Merge and deduplicate the included and excluded paths of all filters.
+        // The included paths will also be further de-deuplicated, by removing paths that are children of other path in
+        // the list, that is, by keeping only the top level paths. To make it easy to de-duplicate, we sort the paths
+        // alphabetically.
         // The list of excluded paths does not need to be sorted, but we do it anyway for consistency when logging the
         // list of paths.
         TreeSet<String> sortedCandidateIncludedPaths = new TreeSet<>();
@@ -389,34 +395,37 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             candidateExcludedPaths.addAll(pathFilter.getExcludedPaths());
         }
         // Keep only unique included paths. That is, if paths "/a/b" and "/a/b/c" are both in the list, keep only "/a/b"
-        TreeSet<String> includedPathsRoots = new TreeSet<>();
-        LOG.info("Sorted candidate included paths: {}", sortedCandidateIncludedPaths);
+        ArrayList<String> finalIncludedPathsRoots = new ArrayList<>();
+        LOG.debug("Candidate included paths: {}, candidate excluded paths: {}", sortedCandidateIncludedPaths, candidateExcludedPaths);
+        // The quadratic algorithm below could easily be replaced by linear time algorithm, but it's not worth the added
+        // complexity because the list of paths should never be more than a few tens
+        // Idea for linear time algorithm: after adding a path to the includedPathsRoots, advance in the list of candidates
+        // skipping all paths that are children of the path just added. Since the list is sorted alphabetically, the children
+        // of a path will be next to it in the list
         for (String candidateIncludedPath : sortedCandidateIncludedPaths) {
-            if (includedPathsRoots.stream().noneMatch(ancestor -> PathUtils.isAncestor(ancestor, candidateIncludedPath))) {
-                includedPathsRoots.add(candidateIncludedPath);
+            if (finalIncludedPathsRoots.stream().noneMatch(ancestor -> PathUtils.isAncestor(ancestor, candidateIncludedPath))) {
+                finalIncludedPathsRoots.add(candidateIncludedPath);
             }
         }
-        LOG.info("Unique top level included paths: {}", includedPathsRoots);
 
-        LOG.info("Candidate excluded paths: {}", candidateExcludedPaths);
-        TreeSet<String> actualExcludedPaths = new TreeSet<>();
+        ArrayList<String> finalExcludedPaths = new ArrayList<>();
         // Keep an excluded path only if it is not needed by any filter.
         for (String candidateExcludedPath : candidateExcludedPaths) {
             boolean notNeeded = pathFilters.stream().allMatch(pathFilter -> pathFilter.filter(candidateExcludedPath) == PathFilter.Result.EXCLUDE);
             if (notNeeded) {
-                actualExcludedPaths.add(candidateExcludedPath);
+                finalExcludedPaths.add(candidateExcludedPath);
             }
         }
-        LOG.info("Effective excluded paths: {}", actualExcludedPaths);
-        if (actualExcludedPaths.isEmpty()) {
+
+        if (finalExcludedPaths.isEmpty()) {
             // Only included paths
-            if (includedPathsRoots.contains("/")) {
+            if (finalIncludedPathsRoots.contains("/")) {
                 return null; // Download everything
             } else {
-                return new MongoFilterPaths(includedPathsRoots, Set.of());
+                return new MongoFilterPaths(finalIncludedPathsRoots, List.of());
             }
         } else {
-            return new MongoFilterPaths(includedPathsRoots, actualExcludedPaths);
+            return new MongoFilterPaths(finalIncludedPathsRoots, finalExcludedPaths);
         }
     }
 
@@ -428,12 +437,18 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (mongoFilterPathsDefinition.excluded.isEmpty()) {
             return pathFilter;
         } else {
+            // The Mongo filter returned here will download the top level path of each excluded subtree, which in theory
+            // should be excluded. That is, if the tree /a/b/c is excluded, the filter will download /a/b/c but none of
+            // its descendants.
+            // This is done because excluding also the top level path would add extra complexity to the filter and
+            // would not have any measurable impact on performance because it only downloads a few extra documents, one
+            // for each excluded subtree. The transform stage will anyway filter out these paths.
             Bson excludedFilter = descendantsFilter(mongoFilterPathsDefinition.excluded);
             return Filters.and(pathFilter, Filters.nor(excludedFilter));
         }
     }
 
-    private static Bson descendantsFilter(Set<String> paths) {
+    private static Bson descendantsFilter(List<String> paths) {
         if (paths.isEmpty()) {
             return null;
         }
@@ -462,8 +477,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         );
     }
 
-    static Set<String> getAncestors(Set<String> paths) {
-        Set<String> ancestors = new HashSet<>();
+    static List<String> getAncestors(List<String> paths) {
+        TreeSet<String> ancestors = new TreeSet<>();
         for (String child : paths) {
             String parent = child;
             while (true) {
@@ -474,11 +489,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 parent = PathUtils.getParentPath(parent);
             }
         }
-        return ancestors;
+        return new ArrayList<>(ancestors);
     }
 
 
-    static Bson ancestorsFilter(Set<String> paths) {
+    static Bson ancestorsFilter(List<String> paths) {
         List<String> parentFilters = getAncestors(paths).stream()
                 .map(Utils::getIdFromPath)
                 .collect(Collectors.toList());
@@ -574,36 +589,35 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             return "Tried for " + retrialDurationSeconds + " seconds: \n" + super.toString();
         }
     }
-}
 
+    static class MongoFilterPaths {
+        final List<String> included;
+        final List<String> excluded;
 
-class MongoFilterPaths {
-    final Set<String> included;
-    final Set<String> excluded;
+        public MongoFilterPaths(List<String> included, List<String> excluded) {
+            this.included = included;
+            this.excluded = excluded;
+        }
 
-    public MongoFilterPaths(Set<String> included, Set<String> excluded) {
-        this.included = included;
-        this.excluded = excluded;
-    }
+        @Override
+        public String toString() {
+            return "MongoFilterPaths{" +
+                    "included=" + included +
+                    ", excluded=" + excluded +
+                    '}';
+        }
 
-    @Override
-    public String toString() {
-        return "MongoFilterPaths{" +
-                "included=" + included +
-                ", excluded=" + excluded +
-                '}';
-    }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            MongoFilterPaths that = (MongoFilterPaths) o;
+            return Objects.equals(included, that.included) && Objects.equals(excluded, that.excluded);
+        }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        MongoFilterPaths that = (MongoFilterPaths) o;
-        return Objects.equals(included, that.included) && Objects.equals(excluded, that.excluded);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(included, excluded);
+        @Override
+        public int hashCode() {
+            return Objects.hash(included, excluded);
+        }
     }
 }

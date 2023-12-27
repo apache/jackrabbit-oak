@@ -24,6 +24,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.MongoFilterPaths;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -143,11 +144,11 @@ public class PipelinedMongoDownloadTaskTest {
 
     @Test
     public void ancestorsFilters() {
-        assertEquals(Set.of(), PipelinedMongoDownloadTask.getAncestors(Set.of()));
-        assertEquals(Set.of("/"), PipelinedMongoDownloadTask.getAncestors(Set.of("/")));
-        assertEquals(Set.of("/", "/a"), PipelinedMongoDownloadTask.getAncestors(Set.of("/a")));
-        assertEquals(Set.of("/", "/a", "/b", "/c", "/c/c1", "/c/c1/c2", "/c/c1/c2/c3", "/c/c1/c2/c4"),
-                PipelinedMongoDownloadTask.getAncestors(Set.of("/a", "/b", "/c/c1/c2/c3", "/c/c1/c2/c4"))
+        assertEquals(List.of(), PipelinedMongoDownloadTask.getAncestors(List.of()));
+        assertEquals(List.of("/"), PipelinedMongoDownloadTask.getAncestors(List.of("/")));
+        assertEquals(List.of("/", "/a"), PipelinedMongoDownloadTask.getAncestors(List.of("/a")));
+        assertEquals(List.of("/", "/a", "/b", "/c", "/c/c1", "/c/c1/c2", "/c/c1/c2/c3", "/c/c1/c2/c4"),
+                PipelinedMongoDownloadTask.getAncestors(List.of("/a", "/b", "/c/c1/c2/c3", "/c/c1/c2/c4"))
         );
     }
 
@@ -160,19 +161,19 @@ public class PipelinedMongoDownloadTaskTest {
         List<PathFilter> singlePathFilter = List.of(
                 new PathFilter(List.of("/content/dam"), List.of())
         );
-        assertEquals(new MongoFilterPaths(Set.of("/content/dam"), Set.of()), PipelinedMongoDownloadTask.buildMongoFilter(singlePathFilter));
+        assertEquals(new MongoFilterPaths(List.of("/content/dam"), List.of()), PipelinedMongoDownloadTask.buildMongoFilter(singlePathFilter));
 
         List<PathFilter> multipleIncludeFilters = createIncludedPathFilters("/content/dam", "/content/dam");
-        assertEquals(new MongoFilterPaths(Set.of("/content/dam"), Set.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFilters));
+        assertEquals(new MongoFilterPaths(List.of("/content/dam"), List.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFilters));
 
         List<PathFilter> includesRoot = createIncludedPathFilters("/", "/a/a1/a2");
         assertNull(PipelinedMongoDownloadTask.buildMongoFilter(includesRoot));
 
         List<PathFilter> multipleIncludeFiltersDifferent = createIncludedPathFilters("/a/a1", "/a/a1/a2");
-        assertEquals(new MongoFilterPaths(Set.of("/a/a1"), Set.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFiltersDifferent));
+        assertEquals(new MongoFilterPaths(List.of("/a/a1"), List.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFiltersDifferent));
 
         List<PathFilter> multipleIncludeFiltersDifferent2 = createIncludedPathFilters("/a/a1/a2", "/a/a1", "/b", "/c", "/cc");
-        assertEquals(new MongoFilterPaths(Set.of("/a/a1", "/b", "/c", "/cc"), Set.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFiltersDifferent2));
+        assertEquals(new MongoFilterPaths(List.of("/a/a1", "/b", "/c", "/cc"), List.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFiltersDifferent2));
     }
 
     @Test
@@ -183,13 +184,13 @@ public class PipelinedMongoDownloadTaskTest {
         List<PathFilter> withExcludeFilter1 = List.of(
                 new PathFilter(List.of("/a"), List.of("/a/b"))
         );
-        assertEquals(new MongoFilterPaths(Set.of("/a"), Set.of("/a/b")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter1));
+        assertEquals(new MongoFilterPaths(List.of("/a"), List.of("/a/b")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter1));
 
         // includedPath contains the root
         List<PathFilter> withExcludeFilter2 = List.of(
                 new PathFilter(List.of("/"), List.of("/a"))
         );
-        assertEquals(new MongoFilterPaths(Set.of("/"), Set.of("/a")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter2));
+        assertEquals(new MongoFilterPaths(List.of("/"), List.of("/a")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter2));
 
         // One of the filters excludes a directory that is included by another filter. The path should still be included.
         List<PathFilter> withExcludeFilter3_a = List.of(
@@ -202,7 +203,7 @@ public class PipelinedMongoDownloadTaskTest {
                 new PathFilter(List.of("/a"), List.of("/a/a_excluded")),
                 new PathFilter(List.of("/a"), List.of())
         );
-        assertEquals(new MongoFilterPaths(Set.of("/a"), Set.of()), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter3_b));
+        assertEquals(new MongoFilterPaths(List.of("/a"), List.of()), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter3_b));
 
         List<PathFilter> withExcludeFilter4 = List.of(
                 new PathFilter(List.of("/"), List.of("/exc_a")),
@@ -214,19 +215,20 @@ public class PipelinedMongoDownloadTaskTest {
                 new PathFilter(List.of("/a"), List.of("/a/a_excluded")),
                 new PathFilter(List.of("/b"), List.of("/b/b_excluded"))
         );
-        assertEquals(new MongoFilterPaths(Set.of("/a", "/b"), Set.of("/a/a_excluded", "/b/b_excluded")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter5));
+        assertEquals(new MongoFilterPaths(List.of("/a", "/b"), List.of("/a/a_excluded", "/b/b_excluded")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter5));
 
         List<PathFilter> withExcludeFilter6 = List.of(
                 new PathFilter(List.of("/"), List.of("/a", "/b", "/c")),
                 new PathFilter(List.of("/"), List.of("/b", "/c", "/d"))
         );
-        assertEquals(new MongoFilterPaths(Set.of("/"), Set.of("/b", "/c")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter6));
+        assertEquals(new MongoFilterPaths(List.of("/"), List.of("/b", "/c")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter6));
 
         List<PathFilter> withExcludeFilter7 = List.of(
                 new PathFilter(List.of("/a"), List.of("/a/b")),
                 new PathFilter(List.of("/a"), List.of("/a/b/c"))
         );
-        assertEquals(new MongoFilterPaths(Set.of("/a"), Set.of("/a/b/c")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter7));
+        assertEquals(new MongoFilterPaths(List.of("/"), List.of("/b", "/c")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter6));
+        assertEquals(new MongoFilterPaths(List.of("/a"), List.of("/a/b/c")), PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter7));
 
         List<PathFilter> withExcludeFilter8 = List.of(
                 new PathFilter(
@@ -235,8 +237,8 @@ public class PipelinedMongoDownloadTaskTest {
                 )
         );
         assertEquals(new MongoFilterPaths(
-                        Set.of("/p1", "/p2", "/p3", "/p4", "/p5", "/p6", "/p7", "/p8", "/p9"),
-                        Set.of("/p5/p5_s1", "/p5/p5_s2/p5_s3")),
+                        List.of("/p1", "/p2", "/p3", "/p4", "/p5", "/p6", "/p7", "/p8", "/p9"),
+                        List.of("/p5/p5_s1", "/p5/p5_s2/p5_s3")),
                 PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter8));
     }
 }

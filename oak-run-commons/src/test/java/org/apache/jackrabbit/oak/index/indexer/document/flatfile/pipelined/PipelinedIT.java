@@ -189,6 +189,10 @@ public class PipelinedIT {
 
         Predicate<String> pathPredicate = s -> true;
 
+        // NOTE: If a path /a/b is in the excluded paths, the descendants of /a/b will not be downloaded but /a/b will
+        // be downloaded. This is an intentional limitation of the logic to compute the Mongo filter which was done
+        // to avoid the extra complexity of also filtering the root of the excluded tree. The transform stage would anyway
+        // filter out these additional documents.
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/1000", "/content/dam/2022"), List.of("/content/dam/2022/02", "/content/dam/2022/04")));
 
         testSuccessfulDownload(pathPredicate, pathFilters,List.of(
@@ -226,25 +230,36 @@ public class PipelinedIT {
         ));
     }
 
+    @Test
+    public void createFFS_mongoFiltering_include_excludes4() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
 
-//    @Test
-//    public void createFFS_mongoFiltering_include_excludes2() throws Exception {
-//        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
-//        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
-//
-//        Predicate<String> pathPredicate = s -> true;
-//
-//        List<PathFilter> pathFilters = getPathFilters();
-//        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
-//                "/|{}",
-//                "/content|{}",
-//                "/content/dam|{}",
-//                "/content/dam/2023|{\"p2\":\"v2023\"}",
-//                "/content/dam/2023/01|{\"p1\":\"v202301\"}"
-//        ));
-//    }
+        Predicate<String> pathPredicate = s -> true;
 
+        List<PathFilter> pathFilters = List.of(
+                new PathFilter(List.of("/content/dam/1000"), List.of()),
+                new PathFilter(List.of("/content/dam/2022"), List.of("/content/dam/2022/01"))
+        );
 
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/1000|{}",
+                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+                "/content/dam/2022|{}",
+                "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+                "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+                "/content/dam/2022/02/01|{\"p1\":\"v20220201\"}",
+                "/content/dam/2022/02/02|{\"p1\":\"v20220202\"}",
+                "/content/dam/2022/02/03|{\"p1\":\"v20220203\"}",
+                "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
+                "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+                "/content/dam/2022/04|{\"p1\":\"v202204\"}"
+
+        ));
+    }
 
     @Test
     public void createFFS_mongoFiltering_multipleIndexes() throws Exception {
