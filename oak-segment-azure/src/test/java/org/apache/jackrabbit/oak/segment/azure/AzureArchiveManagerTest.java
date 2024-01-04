@@ -547,8 +547,6 @@ public class AzureArchiveManagerTest {
         assertNull(builder2.getProperty("foo"));
 
         rwFileStore2.close();
-
-        Mockito.doCallRealMethod().when(blobMocked).renewLease(Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     private PersistentCache createPersistenceCache() {
