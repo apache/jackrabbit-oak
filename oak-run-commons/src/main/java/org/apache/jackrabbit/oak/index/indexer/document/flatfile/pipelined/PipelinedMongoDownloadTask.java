@@ -28,6 +28,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.IOUtils;
@@ -51,7 +52,9 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -107,6 +110,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      */
     public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = "oak.indexer.pipelined.mongoRegexPathFiltering";
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = false;
+    public static final String OAK_INDEXER_PIPELINED_MONGO_FIELD_FILTERING = "oak.indexer.pipelined.mongoFieldFiltering";
+    public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_FIELD_FILTERING = true;
+    public static final String OAK_INDEXER_PIPELINED_MONGO_FIELDS_EXCLUDED = "oak.indexer.pipelined.mongoFieldsExcluded";
+    public static final String DEFAULT_OAK_INDEXER_PIPELINED_MONGO_FIELDS_EXCLUDED = "";
+
+
     // Use a short initial retry interval. In most cases if the connection to a replica fails, there will be other
     // replicas available so a reconnection attempt will succeed immediately.
     private final static long retryInitialIntervalMillis = 100;
@@ -119,6 +128,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final static BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
 
     private static final String THREAD_NAME = "mongo-dump";
+
+    private final IndexProjections indexProjections = new IndexProjections();
 
     private final int maxBatchNumberOfDocuments;
     private final BlockingQueue<NodeDocument[]> mongoDocQueue;
@@ -139,6 +150,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
 
+    private final NodeDocumentCodecProvider nodeDocumentCodecProvider;
+
 
     public PipelinedMongoDownloadTask(MongoDatabase mongoDatabase,
                                       MongoDocumentStore mongoDocStore,
@@ -148,7 +161,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
-        NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
+        this.nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
         CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
                 CodecRegistries.fromProviders(nodeDocumentCodecProvider),
                 MongoClientSettings.getDefaultCodecRegistry()
@@ -197,6 +210,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             } else {
                 downloadWithNaturalOrdering();
             }
+
+            logFieldSizes();
+
             long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
             String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueWaitTimeMillis, durationMillis);
             String metrics = MetricsFormatter.newBuilder()
@@ -228,6 +244,32 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);
+        }
+    }
+
+
+    private static final Pattern revisionField = Pattern.compile("^r[0-9a-f].*-\\S.*-\\S.*$");
+
+    private void logFieldSizes() {
+        var nodeDocumentCoded = nodeDocumentCodecProvider.getNodeDocumentCodec();
+        if (nodeDocumentCoded == null) {
+            LOG.info("NodeDocumentCodec not found, cannot log field sizes");
+        } else {
+            var fieldSizeTracer = nodeDocumentCoded.getFieldSizeTracker();
+            if (fieldSizeTracer == null) {
+                LOG.info("FieldSizeTracker not found, cannot log field sizes");
+            } else {
+                ArrayList<Map.Entry<String, Long>> fields = new ArrayList<>();
+                var iter = fieldSizeTracer.getKnownFields();
+                while (iter.hasNext()) {
+                    var e = iter.next();
+                    if (!revisionField.matcher(e.getKey()).matches()) {
+                        fields.add(e);
+                    }
+                }
+                Collections.sort(fields, (o1, o2) -> o2.getValue().compareTo(o1.getValue()));
+                LOG.info("Top 20 fields: {}", fields.stream().limit(20).collect(Collectors.toList()));
+            }
         }
     }
 
@@ -322,6 +364,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 .withReadPreference(readPreference)
                 .find(findQuery)
                 .sort(ascending(NodeDocument.MODIFIED_IN_SECS, NodeDocument.ID));
+        indexProjections.configureProjection(mongoIterable);
         download(mongoIterable);
     }
 
@@ -340,12 +383,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         Set<String> regexBasePath = getPathsForRegexFiltering();
+
         if (regexBasePath.isEmpty()) {
             LOG.info("Downloading full repository using natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
                     .find()
                     .hint(NATURAL_HINT);
+            indexProjections.configureProjection(mongoIterable);
             download(mongoIterable);
 
         } else {
@@ -357,6 +402,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .withReadPreference(readPreference)
                     .find(childrenQuery)
                     .hint(NATURAL_HINT);
+            indexProjections.configureProjection(childrenIterable);
             download(childrenIterable);
         }
     }
@@ -524,7 +570,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             enqueueDelay, mongoDocQueue.size(), MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES)
             );
         }
+        if (logCounter++ % 100 == 0) {
+            logFieldSizes();
+        }
     }
+
+    private int logCounter = 0;
 
     private void logWithRateLimit(Runnable f) {
         Instant now = Instant.now();
@@ -547,5 +598,32 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         public String toString() {
             return "Tried for " + retrialDurationSeconds + " seconds: \n" + super.toString();
         }
+    }
+}
+
+
+class IndexProjections {
+    private final static Logger logger = LoggerFactory.getLogger(IndexProjections.class);
+    public final boolean projectionEnabled = ConfigHelper.getSystemPropertyAsBoolean(
+            PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_FIELD_FILTERING,
+            PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_FIELD_FILTERING
+    );
+    public final String fieldsToFilter = ConfigHelper.getSystemPropertyAsString(
+            PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_FIELDS_EXCLUDED,
+            PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_FIELDS_EXCLUDED
+    );
+
+    public void configureProjection(FindIterable<NodeDocument> iterable) {
+        if (projectionEnabled) {
+            var excludedFields = Arrays.stream(fieldsToFilter.split(",")) // Split on comma
+                    .map(String::trim) // Remove whitespace
+                    .filter(s -> !s.isEmpty()) // Remove empty strings
+                    .collect(Collectors.toList());
+            logger.info("Using Mongo projections to exclude fields: {}", excludedFields);
+            iterable.projection(Projections.exclude(excludedFields));
+        } else {
+            logger.info("Mongo field projections disabled");
+        }
+
     }
 }
