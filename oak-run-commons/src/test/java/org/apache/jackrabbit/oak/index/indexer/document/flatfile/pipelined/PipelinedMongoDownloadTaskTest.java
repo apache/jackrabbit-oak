@@ -153,7 +153,7 @@ public class PipelinedMongoDownloadTaskTest {
     }
 
     @Test
-    public void regexFilters_includedPaths_only() {
+    public void regexFiltersIncludedPathsOnly() {
         assertNull(PipelinedMongoDownloadTask.buildMongoFilter(null));
 
         assertNull(PipelinedMongoDownloadTask.buildMongoFilter(List.of()));
@@ -177,7 +177,7 @@ public class PipelinedMongoDownloadTaskTest {
     }
 
     @Test
-    public void regexFilters_included_and_excluded_paths() {
+    public void regexFiltersIncludedAndExcludedPaths() {
         // Excludes is not empty
 
         // Exclude paths is inside the included path tree
