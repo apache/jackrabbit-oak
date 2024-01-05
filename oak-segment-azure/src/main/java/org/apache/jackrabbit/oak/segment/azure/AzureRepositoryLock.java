@@ -137,10 +137,11 @@ public class AzureRepositoryLock implements RepositoryLock {
             } catch (StorageException e) {
                 timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
 
+                if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
+                    writeAccessController.disableWriting();
+                }
+
                 if (e.getErrorCode().equals(StorageErrorCodeStrings.OPERATION_TIMED_OUT)) {
-                    if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
-                        writeAccessController.disableWriting();
-                    }
                     log.warn("Could not renew the lease due to the operation timeout. Retry in progress ...", e);
                 } else {
                     log.error("Can't renew the lease", e);
