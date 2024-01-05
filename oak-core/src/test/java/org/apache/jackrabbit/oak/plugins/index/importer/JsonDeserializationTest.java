@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.json.BlobSerializer;
 import org.apache.jackrabbit.oak.json.JsonDeserializer;
 import org.apache.jackrabbit.oak.json.JsonSerializer;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.EqualsDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertTrue;
 public class JsonDeserializationTest {
 
     @Test
-    public void deserialize() throws Exception{
+    public void deserialize() {
         String json = "{\n" +
                 "    \"evaluatePathRestrictions\": true,\n" +
                 "    \"compatVersion\": 2,\n" +
@@ -86,8 +87,8 @@ public class JsonDeserializationTest {
         tree.setProperty("evaluatePathRestrictions", true);
         tree.setProperty("compatVersion", 2);
         tree.setProperty("type", "lucene");
-        tree.setProperty("includedPaths", Collections.singletonList("/content"), Type.STRINGS);
-        tree.setProperty("excludedPaths", Collections.singletonList("/jcr:system"), Type.STRINGS);
+        tree.setProperty(PathFilter.PROP_INCLUDED_PATHS, Collections.singletonList("/content"), Type.STRINGS);
+        tree.setProperty(PathFilter.PROP_EXCLUDED_PATHS, Collections.singletonList("/jcr:system"), Type.STRINGS);
         tree.setProperty("async", "async");
         tree.setProperty("jcr:primaryType", "oak:QueryIndexDefinition", Type.NAME);
 

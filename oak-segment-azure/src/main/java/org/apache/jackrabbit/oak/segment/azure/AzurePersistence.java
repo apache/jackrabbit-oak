@@ -25,15 +25,14 @@ import java.util.concurrent.TimeUnit;
 
 import com.microsoft.azure.storage.OperationContext;
 import com.microsoft.azure.storage.RequestCompletedEvent;
-import com.microsoft.azure.storage.RetryLinearRetry;
 import com.microsoft.azure.storage.StorageEvent;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobListingDetails;
-import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudAppendBlob;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
 import com.microsoft.azure.storage.blob.ListBlobItem;
+import org.apache.jackrabbit.oak.segment.azure.util.AzureRequestOptions;
 import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
@@ -48,19 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AzurePersistence implements SegmentNodeStorePersistence {
-
-    private static final String RETRY_ATTEMPTS_PROP = "segment.azure.retry.attempts";
-    private static final int DEFAULT_RETRY_ATTEMPTS = 5;
-
-    private static final String RETRY_BACKOFF_PROP = "segment.azure.retry.backoff";
-    private static final int DEFAULT_RETRY_BACKOFF_SECONDS = 5;
-
-    private static final String TIMEOUT_EXECUTION_PROP = "segment.timeout.execution";
-    private static final int DEFAULT_TIMEOUT_EXECUTION = 30;
-
-    private static final String TIMEOUT_INTERVAL_PROP = "segment.timeout.interval";
-    private static final int DEFAULT_TIMEOUT_INTERVAL = 1;
-
     private static final Logger log = LoggerFactory.getLogger(AzurePersistence.class);
 
     protected final CloudBlobDirectory segmentstoreDirectory;
@@ -70,26 +56,7 @@ public class AzurePersistence implements SegmentNodeStorePersistence {
     public AzurePersistence(CloudBlobDirectory segmentStoreDirectory) {
         this.segmentstoreDirectory = segmentStoreDirectory;
 
-        BlobRequestOptions defaultRequestOptions = segmentStoreDirectory.getServiceClient().getDefaultRequestOptions();
-        if (defaultRequestOptions.getRetryPolicyFactory() == null) {
-            int retryAttempts = Integer.getInteger(RETRY_ATTEMPTS_PROP, DEFAULT_RETRY_ATTEMPTS);
-            if (retryAttempts > 0) {
-                Integer retryBackoffSeconds = Integer.getInteger(RETRY_BACKOFF_PROP, DEFAULT_RETRY_BACKOFF_SECONDS);
-                defaultRequestOptions.setRetryPolicyFactory(new RetryLinearRetry((int) TimeUnit.SECONDS.toMillis(retryBackoffSeconds), retryAttempts));
-            }
-        }
-        if (defaultRequestOptions.getMaximumExecutionTimeInMs() == null) {
-            int timeoutExecution = Integer.getInteger(TIMEOUT_EXECUTION_PROP, DEFAULT_TIMEOUT_EXECUTION);
-            if (timeoutExecution > 0) {
-                defaultRequestOptions.setMaximumExecutionTimeInMs((int) TimeUnit.SECONDS.toMillis(timeoutExecution));
-            }
-        }
-        if (defaultRequestOptions.getTimeoutIntervalInMs() == null) {
-            int timeoutInterval = Integer.getInteger(TIMEOUT_INTERVAL_PROP, DEFAULT_TIMEOUT_INTERVAL);
-            if (timeoutInterval > 0) {
-                defaultRequestOptions.setTimeoutIntervalInMs((int) TimeUnit.SECONDS.toMillis(timeoutInterval));
-            }
-        }
+        AzureRequestOptions.applyDefaultRequestOptions(segmentStoreDirectory.getServiceClient().getDefaultRequestOptions());
     }
 
     @Override

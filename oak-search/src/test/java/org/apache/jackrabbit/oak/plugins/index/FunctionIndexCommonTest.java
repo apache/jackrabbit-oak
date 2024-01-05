@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.event.Level;
@@ -91,7 +92,7 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     @Test
     public void lowerCaseLocalName() throws Exception {
         Tree luceneIndex = createIndex("lowerLocalName", Collections.emptySet());
-        luceneIndex.setProperty("excludedPaths",
+        luceneIndex.setProperty(PathFilter.PROP_EXCLUDED_PATHS,
                 List.of("/jcr:system", "/oak:index"), Type.STRINGS);
         Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
@@ -130,7 +131,7 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     @Test
     public void lengthName() throws Exception {
         Tree luceneIndex = createIndex("lengthName", Collections.emptySet());
-        luceneIndex.setProperty("excludedPaths",
+        luceneIndex.setProperty(PathFilter.PROP_EXCLUDED_PATHS,
                 List.of("/jcr:system", "/oak:index"), Type.STRINGS);
         Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
@@ -165,7 +166,7 @@ public abstract class FunctionIndexCommonTest extends AbstractQueryTest {
     @Test
     public void length() throws Exception {
         Tree luceneIndex = createIndex("length", Collections.emptySet());
-        luceneIndex.setProperty("excludedPaths", List.of("/jcr:system", "/oak:index"), Type.STRINGS);
+        luceneIndex.setProperty(PathFilter.PROP_EXCLUDED_PATHS, List.of("/jcr:system", "/oak:index"), Type.STRINGS);
         Tree func = luceneIndex.addChild(FulltextIndexConstants.INDEX_RULES)
                 .addChild("nt:base")
                 .addChild(FulltextIndexConstants.PROP_NODE)

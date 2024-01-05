@@ -139,6 +139,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             getBlobs(archiveName)
                     .forEach(cloudBlob -> {
                         try {
+                            writeAccessController.checkWritingAllowed();
                             cloudBlob.delete();
                         } catch (StorageException e) {
                             log.error("Can't delete segment {}", cloudBlob.getUri().getPath(), e);
@@ -158,6 +159,7 @@ public class AzureArchiveManager implements SegmentArchiveManager {
             getBlobs(from)
                     .forEach(cloudBlob -> {
                         try {
+                            writeAccessController.checkWritingAllowed();
                             renameBlob(cloudBlob, targetDirectory);
                         } catch (IOException e) {
                             log.error("Can't rename segment {}", cloudBlob.getUri().getPath(), e);
