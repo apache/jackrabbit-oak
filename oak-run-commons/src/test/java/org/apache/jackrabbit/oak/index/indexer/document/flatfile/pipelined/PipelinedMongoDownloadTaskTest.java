@@ -46,7 +46,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -154,9 +153,9 @@ public class PipelinedMongoDownloadTaskTest {
 
     @Test
     public void regexFiltersIncludedPathsOnly() {
-        assertNull(PipelinedMongoDownloadTask.buildMongoFilter(null));
+        assertEquals(MongoFilterPaths.DOWNLOAD_ALL, PipelinedMongoDownloadTask.buildMongoFilter(null));
 
-        assertNull(PipelinedMongoDownloadTask.buildMongoFilter(List.of()));
+        assertEquals(MongoFilterPaths.DOWNLOAD_ALL, PipelinedMongoDownloadTask.buildMongoFilter(List.of()));
 
         List<PathFilter> singlePathFilter = List.of(
                 new PathFilter(List.of("/content/dam"), List.of())
@@ -167,7 +166,7 @@ public class PipelinedMongoDownloadTaskTest {
         assertEquals(new MongoFilterPaths(List.of("/content/dam"), List.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFilters));
 
         List<PathFilter> includesRoot = createIncludedPathFilters("/", "/a/a1/a2");
-        assertNull(PipelinedMongoDownloadTask.buildMongoFilter(includesRoot));
+        assertEquals(MongoFilterPaths.DOWNLOAD_ALL, PipelinedMongoDownloadTask.buildMongoFilter(includesRoot));
 
         List<PathFilter> multipleIncludeFiltersDifferent = createIncludedPathFilters("/a/a1", "/a/a1/a2");
         assertEquals(new MongoFilterPaths(List.of("/a/a1"), List.of()), PipelinedMongoDownloadTask.buildMongoFilter(multipleIncludeFiltersDifferent));
@@ -197,7 +196,7 @@ public class PipelinedMongoDownloadTaskTest {
                 new PathFilter(List.of("/"), List.of("/a")),
                 new PathFilter(List.of("/"), List.of())
         );
-        assertNull(PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter3_a));
+        assertEquals(MongoFilterPaths.DOWNLOAD_ALL, PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter3_a));
 
         List<PathFilter> withExcludeFilter3_b = List.of(
                 new PathFilter(List.of("/a"), List.of("/a/a_excluded")),
@@ -209,7 +208,7 @@ public class PipelinedMongoDownloadTaskTest {
                 new PathFilter(List.of("/"), List.of("/exc_a")),
                 new PathFilter(List.of("/"), List.of("/exc_b"))
         );
-        assertNull(PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter4));
+        assertEquals(MongoFilterPaths.DOWNLOAD_ALL, PipelinedMongoDownloadTask.buildMongoFilter(withExcludeFilter4));
 
         List<PathFilter> withExcludeFilter5 = List.of(
                 new PathFilter(List.of("/a"), List.of("/a/a_excluded")),

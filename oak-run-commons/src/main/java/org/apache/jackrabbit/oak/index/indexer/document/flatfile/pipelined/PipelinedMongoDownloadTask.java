@@ -246,7 +246,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
         MongoFilterPaths mongoFilterPathsDefinition = getPathsForRegexFiltering();
         Bson childrenFilter;
-        if (mongoFilterPathsDefinition == null) {
+        if (mongoFilterPathsDefinition == MongoFilterPaths.DOWNLOAD_ALL) {
             LOG.info("Downloading full repository");
             childrenFilter = null;
         } else {
@@ -344,7 +344,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         MongoFilterPaths regexBasePath = getPathsForRegexFiltering();
-        if (regexBasePath == null) {
+        if (regexBasePath == MongoFilterPaths.DOWNLOAD_ALL) {
             LOG.info("Downloading full repository using natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
@@ -368,7 +368,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private MongoFilterPaths getPathsForRegexFiltering() {
         if (!regexPathFiltering) {
             LOG.info("Regex path filtering disabled.");
-            return null;
+            return MongoFilterPaths.DOWNLOAD_ALL;
         }
         LOG.info("Computing included/excluded paths for Mongo regex path filtering. PathFilters: {}", pathFilters.stream()
                 .map(pf -> "PF{includedPaths=" + pf.getIncludedPaths() + ", excludedPaths=" + pf.getExcludedPaths() + "}")
@@ -380,7 +380,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     static MongoFilterPaths buildMongoFilter(List<PathFilter> pathFilters) {
         if (pathFilters == null || pathFilters.isEmpty()) {
-            return null;
+            return MongoFilterPaths.DOWNLOAD_ALL;
         }
         // Merge and deduplicate the included and excluded paths of all filters.
         // The included paths will also be further de-deuplicated, by removing paths that are children of other path in
@@ -420,7 +420,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (finalExcludedPaths.isEmpty()) {
             // Only included paths
             if (finalIncludedPathsRoots.contains("/")) {
-                return null; // Download everything
+                return MongoFilterPaths.DOWNLOAD_ALL; // Download everything
             } else {
                 return new MongoFilterPaths(finalIncludedPathsRoots, List.of());
             }
@@ -430,7 +430,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     private Bson descendantsFilter(MongoFilterPaths mongoFilterPathsDefinition) {
-        if (mongoFilterPathsDefinition == null) {
+        if (mongoFilterPathsDefinition == MongoFilterPaths.DOWNLOAD_ALL) {
             return null;
         }
         Bson pathFilter = descendantsFilter(mongoFilterPathsDefinition.included);
@@ -591,6 +591,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     static class MongoFilterPaths {
+        // Special value that means "download everything". This is used when regex path filtering is disabled or when
+        // the path filters would require downloading everything. When this is returned, it is preferable to do not
+        // use any filter in the Mongo query, even though using the values in this object as filters would also result
+        // in downloading everything
+        public static final MongoFilterPaths DOWNLOAD_ALL = new MongoFilterPaths(List.of("/"), List.of());
+
         final List<String> included;
         final List<String> excluded;
 
