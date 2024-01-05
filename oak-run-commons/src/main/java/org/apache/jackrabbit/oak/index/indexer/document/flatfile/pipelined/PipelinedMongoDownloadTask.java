@@ -32,6 +32,7 @@ import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
@@ -57,7 +58,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -106,6 +106,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      */
     public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = "oak.indexer.pipelined.mongoRegexPathFiltering";
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = false;
+
+    /**
+     * Maximum number of elements in the included/excluded paths list used for regex path filtering. If after
+     * merging and de-deduplication of the paths of all the path filters the number of included or excluded paths exceeds
+     * this value, then disable path filtering to avoid creating Mongo queries with large number of filters
+     */
+    public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS = "oak.indexer.pipelined.mongoRegexPathFilteringMaxPaths";
+    public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS = 20;
+
+
     // Use a short initial retry interval. In most cases if the connection to a replica fails, there will be other
     // replicas available so a reconnection attempt will succeed immediately.
     private final static long retryInitialIntervalMillis = 100;
@@ -131,6 +141,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final int maxBatchSizeBytes;
     private final StatisticsProvider statisticsProvider;
+    private final MongoRegexPathFilterFactory regexPathFilterFactory;
 
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
@@ -172,6 +183,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.regexPathFiltering = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
+        int regexPathFilteringMaxNumberOfPaths = ConfigHelper.getSystemPropertyAsInt(
+                OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS,
+                DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS);
+        this.regexPathFilterFactory = new MongoRegexPathFilterFactory(regexPathFilteringMaxNumberOfPaths);
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
@@ -356,12 +371,19 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             downloadAncestors(regexBasePath.included);
 
             Bson childrenFilter = descendantsFilter(regexBasePath);
-            LOG.info("Downloading from Mongo using filter: {}", childrenFilter);
-            FindIterable<NodeDocument> childrenIterable = dbCollection
-                    .withReadPreference(readPreference)
-                    .find(childrenFilter)
-                    .hint(NATURAL_HINT);
-            download(childrenIterable);
+            FindIterable<NodeDocument> findIterable;
+            if (childrenFilter == null) {
+                LOG.info("Downloading full repository using natural order");
+                findIterable = dbCollection
+                        .withReadPreference(readPreference)
+                        .find();
+            } else {
+                LOG.info("Downloading from Mongo using filter: {}", childrenFilter);
+                findIterable = dbCollection
+                        .withReadPreference(readPreference)
+                        .find(childrenFilter);
+            }
+            download(findIterable.hint(NATURAL_HINT));
         }
     }
 
@@ -373,60 +395,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         LOG.info("Computing included/excluded paths for Mongo regex path filtering. PathFilters: {}", pathFilters.stream()
                 .map(pf -> "PF{includedPaths=" + pf.getIncludedPaths() + ", excludedPaths=" + pf.getExcludedPaths() + "}")
                 .collect(Collectors.joining(", ")));
-        MongoFilterPaths mongoFilterPaths = buildMongoFilter(pathFilters);
+        MongoFilterPaths mongoFilterPaths = this.regexPathFilterFactory.buildMongoFilter(pathFilters);
         LOG.info("Paths used for regex filtering on Mongo: {}", mongoFilterPaths);
         return mongoFilterPaths;
-    }
-
-    static MongoFilterPaths buildMongoFilter(List<PathFilter> pathFilters) {
-        if (pathFilters == null || pathFilters.isEmpty()) {
-            return MongoFilterPaths.DOWNLOAD_ALL;
-        }
-        // Merge and deduplicate the included and excluded paths of all filters.
-        // The included paths will also be further de-deuplicated, by removing paths that are children of other path in
-        // the list, that is, by keeping only the top level paths. To make it easy to de-duplicate, we sort the paths
-        // alphabetically.
-        // The list of excluded paths does not need to be sorted, but we do it anyway for consistency when logging the
-        // list of paths.
-        TreeSet<String> sortedCandidateIncludedPaths = new TreeSet<>();
-        TreeSet<String> candidateExcludedPaths = new TreeSet<>();
-        for (PathFilter pathFilter : pathFilters) {
-            sortedCandidateIncludedPaths.addAll(pathFilter.getIncludedPaths());
-            candidateExcludedPaths.addAll(pathFilter.getExcludedPaths());
-        }
-        // Keep only unique included paths. That is, if paths "/a/b" and "/a/b/c" are both in the list, keep only "/a/b"
-        ArrayList<String> finalIncludedPathsRoots = new ArrayList<>();
-        LOG.debug("Candidate included paths: {}, candidate excluded paths: {}", sortedCandidateIncludedPaths, candidateExcludedPaths);
-        // The quadratic algorithm below could easily be replaced by linear time algorithm, but it's not worth the added
-        // complexity because the list of paths should never be more than a few tens
-        // Idea for linear time algorithm: after adding a path to the includedPathsRoots, advance in the list of candidates
-        // skipping all paths that are children of the path just added. Since the list is sorted alphabetically, the children
-        // of a path will be next to it in the list
-        for (String candidateIncludedPath : sortedCandidateIncludedPaths) {
-            if (finalIncludedPathsRoots.stream().noneMatch(ancestor -> PathUtils.isAncestor(ancestor, candidateIncludedPath))) {
-                finalIncludedPathsRoots.add(candidateIncludedPath);
-            }
-        }
-
-        ArrayList<String> finalExcludedPaths = new ArrayList<>();
-        // Keep an excluded path only if it is not needed by any filter.
-        for (String candidateExcludedPath : candidateExcludedPaths) {
-            boolean notNeeded = pathFilters.stream().allMatch(pathFilter -> pathFilter.filter(candidateExcludedPath) == PathFilter.Result.EXCLUDE);
-            if (notNeeded) {
-                finalExcludedPaths.add(candidateExcludedPath);
-            }
-        }
-
-        if (finalExcludedPaths.isEmpty()) {
-            // Only included paths
-            if (finalIncludedPathsRoots.contains("/")) {
-                return MongoFilterPaths.DOWNLOAD_ALL; // Download everything
-            } else {
-                return new MongoFilterPaths(finalIncludedPathsRoots, List.of());
-            }
-        } else {
-            return new MongoFilterPaths(finalIncludedPathsRoots, finalExcludedPaths);
-        }
     }
 
     private Bson descendantsFilter(MongoFilterPaths mongoFilterPathsDefinition) {
@@ -587,43 +558,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         @Override
         public String toString() {
             return "Tried for " + retrialDurationSeconds + " seconds: \n" + super.toString();
-        }
-    }
-
-    static class MongoFilterPaths {
-        // Special value that means "download everything". This is used when regex path filtering is disabled or when
-        // the path filters would require downloading everything. When this is returned, it is preferable to do not
-        // use any filter in the Mongo query, even though using the values in this object as filters would also result
-        // in downloading everything
-        public static final MongoFilterPaths DOWNLOAD_ALL = new MongoFilterPaths(List.of("/"), List.of());
-
-        final List<String> included;
-        final List<String> excluded;
-
-        public MongoFilterPaths(List<String> included, List<String> excluded) {
-            this.included = included;
-            this.excluded = excluded;
-        }
-
-        @Override
-        public String toString() {
-            return "MongoFilterPaths{" +
-                    "included=" + included +
-                    ", excluded=" + excluded +
-                    '}';
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            MongoFilterPaths that = (MongoFilterPaths) o;
-            return Objects.equals(included, that.included) && Objects.equals(excluded, that.excluded);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(included, excluded);
         }
     }
 }
