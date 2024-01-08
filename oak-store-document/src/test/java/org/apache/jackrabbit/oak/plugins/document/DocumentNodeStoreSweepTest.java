@@ -19,14 +19,21 @@ package org.apache.jackrabbit.oak.plugins.document;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.prefetch.CountingMongoDatabase;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -34,6 +41,7 @@ import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -74,6 +82,256 @@ public class DocumentNodeStoreSweepTest {
     public static void resetClock() {
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
+    }
+
+    interface UpdateCallback {
+        /**
+         * @return true to continue going via this UpdateHandler, false to stop using
+         *         this UpdateHandler
+         */
+        boolean handleUpdate(UpdateOp op);
+    }
+
+    /** limited purpose MongoFixture that allows to pause after a specific update */
+    MongoFixture pausableMongoDocumentStore(final String targetId,
+            final UpdateCallback updateHandler) {
+        return new MongoFixture() {
+            @Override
+            public DocumentStore createDocumentStore(Builder builder) {
+                try {
+                    MongoConnection connection = MongoUtils.getConnection();
+                    CountingMongoDatabase db = new CountingMongoDatabase(
+                            connection.getDatabase());
+                    return new MongoDocumentStore(connection.getMongoClient(), db,
+                            builder) {
+                        volatile boolean done;
+
+                        @Override
+                        public <T extends Document> T findAndUpdate(
+                                Collection<T> collection, UpdateOp update) {
+                            try {
+                                return super.findAndUpdate(collection, update);
+                            } finally {
+                                updateHandler(targetId, updateHandler, update);
+                            }
+                        }
+
+                        private void updateHandler(final String targetId,
+                                final UpdateCallback updateHandler, UpdateOp update) {
+                            if (done) {
+                                return;
+                            }
+                            if (update.getId().equals(targetId)) {
+                                if (!updateHandler.handleUpdate(update)) {
+                                    done = true;
+                                    return;
+                                }
+                            }
+                        }
+
+                        @Override
+                        public <T extends Document> T createOrUpdate(
+                                Collection<T> collection, UpdateOp update) {
+                            try {
+                                return super.createOrUpdate(collection, update);
+                            } finally {
+                                updateHandler(targetId, updateHandler, update);
+                            }
+                        }
+
+                        @Override
+                        public <T extends Document> List<T> createOrUpdate(
+                                Collection<T> collection, List<UpdateOp> updateOps) {
+                            try {
+                                return super.createOrUpdate(collection, updateOps);
+                            } finally {
+                                for (UpdateOp update : updateOps) {
+                                    updateHandler(targetId, updateHandler, update);
+                                }
+                            }
+                        }
+                    };
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        };
+    }
+
+    /**
+     * Test to show-case a race-condition between a collision and
+     * MongoDocumentStore's nodesCache: when a document is read into
+     * the nodesCache shortly before a collision is rolled back,
+     * it runs risk of later making uncommitted changes visible.
+     * <p/>
+     * The test case works as follows:
+     * <ul>
+     * <li>consider clusterId 2 and 4 being active in a cluster</li>
+     * <li>a target path /parent/foo (and sibling /parent/bar) having 
+     * formerly been created</li>
+     * <li>clusterId 2: now wants to delete /parent/foo and /parent/bar, and starts
+     * doing so versus mongo by first setting _deleted:true on those two nodes
+     * (using revision r123456789a-0-2)</li>
+     * <li>before clusterId 2 continues, clusterId 4 comes with a conflicting update
+     * on /parent/foo (using revision r123456789b-0-4). This update notices
+     * the changes from 2 and leaves a corresponding collision marker (on 0:/
+     * with _collisions.r123456789a-0-2=r123456789b-0-4)</li>
+     * <li>beforre clusterId 4 proceeds, it happens to force a read from
+     * 2:/parent/foo from mongo - this is achieved in the test via 
+     * invalidateCache("2:/parent/foo"). While this is slightly hacky,
+     * it should be something that could happen eg via a mongo exception
+     * on clusterId 4, or an external change coming in to clusterId 4 
+     * for 2:/parent/foo.</li>
+     * <li>the result of the above is clusterId 4 having a state of 2:/parent/foo
+     * in its MongoDocumentStore nodesCache that contains uncommitted information.
+     * In this test case, that uncommitted information is a deletion. But it could
+     * be anything else really.</li>
+     * <li>then things continue on both clusterId 2 and 4 (from the previous
+     * test-pause)</li>
+     * <li>then clusterId 2 does another, unrelated change on /parent/bar,
+     * thereby resulting in a newer lastRev (on root and /parent) than the collision.
+     * Also, it results in a sweepRev that is newer than the collision</li>
+     * <li>when later, clusterId 4 reads /parent/foo, it still finds the
+     * cached 2:/parent/foo document with the uncommitted data - plus it
+     * now has a readRevision/lastRevision that is newer than that - plus
+     * it will resolve that uncommitted data's revision (r123456789a-0-2)
+     * as commitvalue="c", since it is newer than the sweepRevision</li>
+     * <li>and thus, clusterId2 managed to read uncommitted, rolled back data
+     * from an earlier collision</li>
+     * </ul>
+     */
+    @Test
+    @Ignore(value = "OAK-10595")
+    public void cachingUncommittedAfterCollisionRollback_minimal() throws Exception {
+        // two nodes part of the game:
+        // 1 : the main one that starts to do a subtree deletion
+        // 2 : a peer one that gets in between the above and causes a collision
+        // as a result 1 manages to read 2's rolled back (uncommitted) state as
+        // committed
+
+        ns.dispose();
+
+        final Semaphore breakpoint1 = new Semaphore(0);
+        final Semaphore breakpoint2 = new Semaphore(0);
+
+        final AtomicReference<Thread> breakInThread = new AtomicReference<Thread>();
+        UpdateCallback breakOnceInThread = new UpdateCallback() {
+
+            @Override
+            public boolean handleUpdate(UpdateOp update) {
+                final Thread localThread = breakInThread.get();
+                if (localThread == null || !localThread.equals(Thread.currentThread())) {
+                    return true;
+                }
+                breakpoint1.release();
+                try {
+                    breakpoint2.tryAcquire(1, 30, TimeUnit.MINUTES);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                return false;
+            }
+
+        };
+
+        MongoFixture mf = pausableMongoDocumentStore("2:/parent/foo",
+                breakOnceInThread);
+        DocumentStore store1 = mf.createDocumentStore(4);
+        DocumentStore store2 = mf.createDocumentStore(2);
+        ns = builderProvider.newBuilder().setDocumentStore(store1)
+                // use lenient mode because tests use a virtual clock
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(4).clock(clock)
+                .setAsyncDelay(0).getNodeStore();
+        DocumentNodeStore ns4 = ns;
+        DocumentNodeStore ns2 = builderProvider.newBuilder().setDocumentStore(store2)
+                // use lenient mode because tests use a virtual clock
+                .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(2).clock(clock)
+                .setAsyncDelay(0).getNodeStore();
+
+        {
+            // setup
+            NodeBuilder builder = ns4.getRoot().builder();
+            builder.child("parent").child("foo");
+            builder.child("parent").child("bar");
+            merge(ns4, builder);
+        }
+        ns4.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+
+        Runnable codeOn2 = new Runnable() {
+
+            @Override
+            public void run() {
+                try {
+                    // now delete but intercept the _revisions update
+                    NodeBuilder builder = ns2.getRoot().builder();
+                    assertTrue(builder.child("parent").child("foo").remove());
+                    assertTrue(builder.child("parent").child("bar").remove());
+                    breakInThread.set(Thread.currentThread());
+                    merge(ns2, builder);
+                    fail("supposed to fail");
+                } catch (CommitFailedException e) {
+                    // supposed to fail
+                }
+            }
+
+        };
+        ns4.runBackgroundOperations();
+
+        // prepare a regular collision on 4
+        NodeBuilder collisionBuilder4 = ns4.getRoot().builder();
+        collisionBuilder4.child("parent").child("bar").setProperty("collideOnPurpose",
+                "indeed");
+
+        // start /parent/foo deletion on 2 in a separate thread
+        Thread th2 = new Thread(codeOn2);
+        th2.setDaemon(true);
+        th2.start();
+
+        // wait for the separate thread to update /parent/foo but not commit yet
+        breakpoint1.tryAcquire(1, 30, TimeUnit.SECONDS);
+
+        // then continue with the regular collision on 4
+        merge(ns4, collisionBuilder4);
+
+        // "somehow" cause 2:/parent/foo to be re-read from mongo
+        // this direct invalidation is arguably somewhat suboptimal
+        // would be nicer if this was done via a slightly higher level action
+        // that causes this.
+        // The main point being, that this reads
+        // "_deleted":{"r123456789a-0-2":"true",..}
+        // which is uncommitted state that later gets rolled back
+        ns4.getDocumentStore().invalidateCache(Collection.NODES, "2:/parent/foo");
+
+        // check at this point though, /parent/foo is still there:
+        assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+
+        // release things and go ahead
+        breakpoint2.release();
+        // (no need to wait for th2 as it blocks anything on ns2 anyway,
+        // so is anyway waited for)
+
+        // some bg ops...
+        ns4.runBackgroundOperations();
+        ns2.runBackgroundOperations();
+        ns4.runBackgroundOperations();
+
+        assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+        {
+            NodeBuilder b2 = ns2.getRoot().builder();
+            b2.child("parent").child("bar").setProperty("z", "v");
+            merge(ns2, b2);
+            ns2.runBackgroundOperations();
+        }
+        ns4.runBackgroundOperations();
+
+        // this now fails since
+        // 1) the uncommitted collison rollback deletion is still there
+        // "_deleted":{"r123456789a-0-2":"true",..}
+        // 2) plus it now resolves to commitValue "c" since it is now passed
+        // the sweep revision (since we did another commit/bg just few lines above)
+        assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+        mf.dispose();
     }
 
     @Test
