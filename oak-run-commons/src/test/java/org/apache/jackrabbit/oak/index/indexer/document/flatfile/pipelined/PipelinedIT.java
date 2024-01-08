@@ -531,7 +531,6 @@ public class PipelinedIT {
         contentDamBuilder.child("2023").child("02").child("28").setProperty("p1", "v20230228");
 
         // Node with very long name
-//        @NotNull NodeBuilder node = contentDamBuilder.child("long_path_test");
         @NotNull NodeBuilder node = contentDamBuilder;
         for (int i = 0; i < LONG_PATH_TEST_LEVELS; i++) {
             node = node.child(LONG_PATH_LEVEL_STRING + i);
