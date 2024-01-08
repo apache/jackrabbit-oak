@@ -195,14 +195,14 @@ public class DocumentNodeStoreSweepTest {
      * cached 2:/parent/foo document with the uncommitted data - plus it
      * now has a readRevision/lastRevision that is newer than that - plus
      * it will resolve that uncommitted data's revision (r123456789a-0-2)
-     * as commitvalue="c", since it is newer than the sweepRevision</li>
+     * as commitvalue="c", since it is older than the sweepRevision</li>
      * <li>and thus, clusterId2 managed to read uncommitted, rolled back data
      * from an earlier collision</li>
      * </ul>
      */
     @Test
     @Ignore(value = "OAK-10595")
-    public void cachingUncommittedAfterCollisionRollback_minimal() throws Exception {
+    public void cachingUncommittedBeforeCollisionRollback() throws Exception {
         // two nodes part of the game:
         // 1 : the main one that starts to do a subtree deletion
         // 2 : a peer one that gets in between the above and causes a collision
