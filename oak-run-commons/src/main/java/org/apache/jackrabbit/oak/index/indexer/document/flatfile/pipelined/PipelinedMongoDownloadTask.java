@@ -34,6 +34,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
@@ -464,7 +465,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         List<Bson> filters = path.stream()
                 .flatMap(PipelinedMongoDownloadTask::descendantsFilter)
                 .collect(Collectors.toList());
-        return Filters.or(filters);
+
+        var excludedEndings = List.of(
+                ".*/jcr:content/renditions/cqdam.metadata.xml",
+                ".*/jcr:content/renditions/cqdam.machine.*",
+                ".*/jcr:content/metadata/imageFeatures");
+        var patterns = excludedEndings.stream().map(Pattern::compile);
+        LOG.info("Excluding patterns: {}", patterns);
+        Bson excludeEndingsFilter = Filters.nin(Document.ID, patterns.collect(Collectors.toList()));
+        LOG.info("Excluding filters: {}", excludeEndingsFilter);
+        return Filters.and(Filters.or(filters), excludeEndingsFilter);
+//        return Filters.or(filters);
     }
 
     private static Stream<Bson> descendantsFilter(String path) {
