@@ -589,10 +589,9 @@ public class RepositoryImpl implements JackrabbitRepository {
             return new SessionQuerySettings() {
                 @Override
                 public boolean useDirectResultCount() {
-                    if (System.getProperty("oak.fastQuerySize") != null) {
-                        return Boolean.getBoolean("oak.fastQuerySize");
-                    }
-                    return FastQuerySizeSettingsProvider.this.fastQueryResultSize;
+                    return Optional.ofNullable(System.getProperty("oak.fastQuerySize"))
+                            .map(Boolean::valueOf)
+                            .orElse(FastQuerySizeSettingsProvider.this.fastQueryResultSize);
                 }
             };
         }
