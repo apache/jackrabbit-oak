@@ -142,6 +142,7 @@ public class VersionGarbageCollector {
     private final DocumentStore ds;
     private final boolean detailedGCEnabled;
     private final boolean isDetailedGCDryRun;
+    private final boolean embeddedVerification;
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
@@ -158,6 +159,7 @@ public class VersionGarbageCollector {
         this.ds = gcSupport.getDocumentStore();
         this.detailedGCEnabled = detailedGCEnabled;
         this.isDetailedGCDryRun = isDetailedGCDryRun;
+        this.embeddedVerification = true; //TODO: make this "configurable"
         this.options = new VersionGCOptions();
     }
 
@@ -331,6 +333,7 @@ public class VersionGarbageCollector {
         long oldestModifiedDocTimeStamp;
         String oldestModifiedDocId;
         int updatedDetailedGCDocsCount;
+        int skippedDetailedGCDocsCount;
         int deletedPropsCount;
         int deletedUnmergedBCCount;
         final TimeDurationFormatter df = TimeDurationFormatter.forLogging();
@@ -410,6 +413,7 @@ public class VersionGarbageCollector {
                     ", oldestModifiedDocId=" + oldestModifiedDocId +
                     ", oldestModifiedDocTimeStamp=" + oldestModifiedDocTimeStamp +
                     ", updatedDetailedGCDocsCount=" + updatedDetailedGCDocsCount +
+                    ", skippedDetailedGCDocsCount=" + skippedDetailedGCDocsCount +
                     ", deletedPropsCount=" + deletedPropsCount +
                     ", deletedUnmergedBCCount=" + deletedUnmergedBCCount +
                     ", iterationCount=" + iterationCount +
@@ -435,6 +439,7 @@ public class VersionGarbageCollector {
             this.oldestModifiedDocTimeStamp = run.oldestModifiedDocTimeStamp;
             this.oldestModifiedDocId = run.oldestModifiedDocId;
             this.updatedDetailedGCDocsCount += run.updatedDetailedGCDocsCount;
+            this.skippedDetailedGCDocsCount += run.skippedDetailedGCDocsCount;
             this.deletedPropsCount += run.deletedPropsCount;
             this.deletedUnmergedBCCount += run.deletedUnmergedBCCount;
             if (run.iterationCount > 0) {
@@ -912,6 +917,7 @@ public class VersionGarbageCollector {
         private int garbageDocsCount;
         private int totalGarbageDocsCount;
         private final Revision revisionForModified;
+        private final Revision ownHeadRevision;
 
         public DetailedGC(@NotNull RevisionVector headRevision, long toModifiedMs, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
             this.headRevision = requireNonNull(headRevision);
@@ -924,6 +930,7 @@ public class VersionGarbageCollector {
             this.timer = createUnstarted();
             // clusterId is not used
             this.revisionForModified = Revision.newRevision(0);
+            this.ownHeadRevision = headRevision.getRevision(nodeStore.getClusterId());
         }
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
@@ -1222,6 +1229,29 @@ public class VersionGarbageCollector {
 
             timer.reset().start();
             try {
+                if (embeddedVerification) {
+                    // embedded verification is done completely independent of DocumentStore
+                    // also, it's done irrespective of dry-run or not
+                    final Iterator<UpdateOp> it = updateOpList.iterator();
+                    while(it.hasNext()) {
+                        final UpdateOp update = it.next();
+                        NodeDocument oldDoc = ds.find(Collection.NODES, update.getId());
+                        if (oldDoc == null) {
+                            log.error("removeGarbage.verify : no document found for update with id {}",
+                                    update.getId());
+                            return;
+                        }
+                        NodeDocument newDoc = Collection.NODES.newDocument(ds);
+                        oldDoc.deepCopy(newDoc);
+                        UpdateUtils.applyChanges(newDoc, update);
+                        if (!verify(oldDoc, newDoc, update)) {
+                            // verification failure
+                            // let's skip this document
+                            it.remove();
+                            stats.skippedDetailedGCDocsCount++;
+                        }
+                    };
+                }
                 if (!isDetailedGCDryRun) {
                     // only delete these in case it is not a dryRun
                     List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
@@ -1250,6 +1280,37 @@ public class VersionGarbageCollector {
                 deletedUnmergedBCSet.clear();
                 garbageDocsCount = 0;
                 delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel);
+            }
+        }
+
+        private boolean verify(NodeDocument oldDoc, NodeDocument newDoc, UpdateOp update) {
+            if (oldDoc.entrySet().equals(newDoc.entrySet())) {
+                return true;
+            }
+            // read both nodes at headRevision - with lastRevision with the ownHeadRevision
+            // (using own's headRevision as we're only interested at the state at headRevision time)
+            DocumentNodeState oldNS = oldDoc.getNodeAtRevision(nodeStore, headRevision, ownHeadRevision);
+            DocumentNodeState newNS = newDoc.getNodeAtRevision(nodeStore, headRevision, ownHeadRevision);
+            if (oldNS == null && newNS == null) {
+                // both don't exist - fine, that's considered equal
+                return true;
+            } else if ((oldNS == null && newNS != null)
+                    || (oldNS != null && newNS == null)) {
+                // failure : one is deleted/missing, the other not
+                log.error("removeGarbage.verify : failure in DetailedGC"
+                        + " with id : {}, oldNS exists : {}, newNS exists: {}, update: {}",
+                        oldDoc.getId(), oldNS == null, newNS == null, update);
+                return false;
+            } else if (oldNS.equals(newNS)) {
+                // AbstractDocumentNodeState.equals says they are equal, so: fine
+                return true;
+            } else {
+                // failure : they don't match
+                //TODO: not sure we should really log the whole document...
+                log.error("removeGarbage.verify : failure in DetailedGC"
+                        + " with id : {}, oldNS : {}, newNS : {}, update: {}",
+                        oldDoc.getId(), oldNS, newNS, update);
+                return false;
             }
         }
     }
