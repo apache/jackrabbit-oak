@@ -196,7 +196,7 @@ public class DocumentNodeStoreSweepTest {
      * now has a readRevision/lastRevision that is newer than that - plus
      * it will resolve that uncommitted data's revision (r123456789a-0-2)
      * as commitvalue="c", since it is older than the sweepRevision</li>
-     * <li>and thus, clusterId2 managed to read uncommitted, rolled back data
+     * <li>and thus, clusterId 4 managed to read uncommitted, rolled back data
      * from an earlier collision</li>
      * </ul>
      */
