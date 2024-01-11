@@ -1239,7 +1239,7 @@ public class VersionGarbageCollector {
                         if (oldDoc == null) {
                             log.error("removeGarbage.verify : no document found for update with id {}",
                                     update.getId());
-                            return;
+                            continue;
                         }
                         NodeDocument newDoc = Collection.NODES.newDocument(ds);
                         oldDoc.deepCopy(newDoc);
