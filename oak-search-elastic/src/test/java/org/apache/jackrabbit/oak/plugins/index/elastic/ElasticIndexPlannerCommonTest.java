@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
+import co.elastic.clients.elasticsearch.indices.GetIndexRequest;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexPlannerCommonTest;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateProvider;
@@ -102,7 +103,15 @@ public class ElasticIndexPlannerCommonTest extends IndexPlannerCommonTest {
     public void after() throws IOException {
         if (esConnection != null) {
             try {
-                esConnection.getClient().indices().delete(d->d.index(esConnection.getIndexPrefix() + "*"));
+                //esConnection.getClient().indices().delete(d->d.index(esConnection.getIndexPrefix() + "*"));
+                esConnection.getClient().indices().get(GetIndexRequest.of(f -> f.index(esConnection.getIndexPrefix() + "*")))
+                        .result().forEach((key, value) -> {
+                            try {
+                                esConnection.getClient().indices().delete(i -> i.index(key));
+                            } catch (IOException e) {
+                                throw new IllegalStateException(e);
+                            }
+                        });
             } catch (IOException e) {
                 log.error("Unable to delete ES index", e);
             } finally {

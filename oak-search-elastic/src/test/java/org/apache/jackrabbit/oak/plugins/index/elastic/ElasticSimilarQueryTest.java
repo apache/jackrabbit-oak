@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -172,6 +173,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    @Ignore("plugins not supported in serverless mode")
     public void vectorSimilarityElastiknnIndexConfiguration() throws Exception {
         final String indexName = "test1";
         final String fieldName1 = "fv1";
@@ -206,6 +208,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    @Ignore("plugins not supported in serverless mode")
     public void vectorSimilarityWithWrongVectorSizes() throws Exception {
         IndexDefinitionBuilder builder = createIndex("fv");
         builder.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex()
@@ -236,6 +239,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    @Ignore("plugins not supported in serverless mode")
     public void vectorSimilarity() throws Exception {
         IndexDefinitionBuilder builder = createIndex("fv");
         builder.indexRule("nt:base").property("fv").useInSimilarity(true).nodeScopeIndex();
@@ -309,6 +313,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     @Test
+    @Ignore("plugins not supported in serverless mode")
     public void vectorSimilarityLargeData() throws Exception {
 
         final int similarImageCount = 10;
