@@ -27,6 +27,12 @@ import org.apache.jackrabbit.oak.spi.commit.Observer;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+
+import java.io.File;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
@@ -35,9 +41,14 @@ import static org.apache.jackrabbit.JcrConstants.NT_FOLDER;
 
 public class LuceneIndexAggregationCommonTest extends IndexAggregationCommonTest {
 
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+
     @Override
     protected ContentRepository createRepository() {
         indexOptions = new LuceneIndexOptions();
+        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
         LowCostLuceneIndexProvider provider = new LowCostLuceneIndexProvider();
         return new Oak(new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT))
                 .with(new OpenSecurityProvider())
