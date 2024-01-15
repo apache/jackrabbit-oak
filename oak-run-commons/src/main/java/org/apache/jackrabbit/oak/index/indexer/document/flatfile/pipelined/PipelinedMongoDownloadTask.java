@@ -492,8 +492,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.info("Downloading from Mongo with natural order using filter: {}", childrenFilter);
             FindIterable<NodeDocument> findIterable = dbCollection
                     .withReadPreference(readPreference)
-                    .find()
-                    .filter(childrenFilter)
+                    .find(childrenFilter)
                     .hint(NATURAL_HINT);
             download(findIterable);
         }
