@@ -721,6 +721,11 @@
         <artifactId>azure-keyvault-core</artifactId>
         <version>1.2.6</version>
       </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-identity</artifactId>
+        <version>1.11.1</version>
+      </dependency>
 
       <!-- Pax Exam Integration Test Dependencies -->
       <dependency>

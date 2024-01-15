@@ -151,6 +151,13 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
         </dependency>
+
+        <!-- Azure Identity Client for Microsoft Entra ID dependency -->
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
+        </dependency>
+
         <!-- Azure Guava dependency -->
         <dependency>
             <groupId>com.google.guava</groupId>

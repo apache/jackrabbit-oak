@@ -84,6 +84,9 @@ public class AzureSegmentStoreService {
         if (!StringUtils.isBlank(configuration.connectionURL())) {
             return createPersistenceFromConnectionURL(configuration);
         }
+        if (!StringUtils.isBlank(configuration.clientId())) {
+            return createAzurePersistenceFromServicePrincipalCredentials(configuration);
+        }
         if (!StringUtils.isBlank(configuration.sharedAccessSignature())) {
             return createPersistenceFromSasUri(configuration);
         }
@@ -143,6 +146,11 @@ public class AzureSegmentStoreService {
         } catch (StorageException | URISyntaxException | InvalidKeyException e) {
             throw new IOException(e);
         }
+    }
+
+    @NotNull
+    private static AzurePersistence createAzurePersistenceFromServicePrincipalCredentials(Configuration configuration) throws IOException {
+        return null;
     }
 
     @NotNull
