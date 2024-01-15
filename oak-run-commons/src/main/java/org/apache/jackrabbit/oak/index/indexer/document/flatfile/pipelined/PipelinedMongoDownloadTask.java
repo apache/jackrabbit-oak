@@ -477,8 +477,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
-        Bson childrenFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludedPathsRegex);
-        if (childrenFilter == null) {
+        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludedPathsRegex);
+        if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
@@ -489,10 +489,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         } else {
             downloadAncestors(mongoFilterPaths.included);
 
-            LOG.info("Downloading from Mongo with natural order using filter: {}", childrenFilter);
+            LOG.info("Downloading from Mongo with natural order using filter: {}", mongoFilter);
             FindIterable<NodeDocument> findIterable = dbCollection
                     .withReadPreference(readPreference)
-                    .find(childrenFilter)
+                    .find(mongoFilter)
                     .hint(NATURAL_HINT);
             download(findIterable);
         }
@@ -514,8 +514,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private void download(FindIterable<NodeDocument> mongoIterable) throws
-            InterruptedException, TimeoutException {
+    private void download(FindIterable<NodeDocument> mongoIterable) throws InterruptedException, TimeoutException {
         try (MongoCursor<NodeDocument> cursor = mongoIterable.iterator()) {
             NodeDocument[] batch = new NodeDocument[maxBatchNumberOfDocuments];
             int nextIndex = 0;
