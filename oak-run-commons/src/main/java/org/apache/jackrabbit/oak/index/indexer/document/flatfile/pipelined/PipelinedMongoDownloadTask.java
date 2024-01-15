@@ -193,7 +193,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // The filter for descendants of a list of paths is a series of or conditions. For each path, we have to build
         // two conditions in two different fields of the documents:
         // _ _id   - for non-long paths - In this case, the _id is of the form "2:/foo/bar"
-        // _ _path - for long paths - In this case, the _id is n hash and the document contains an additional _path
+        // _ _path - for long paths - In this case, the _id is a hash and the document contains an additional _path
         //      field with the path of the document.
         // We use the $in operator with a regular expression to match the paths.
         //  https://www.mongodb.com/docs/manual/reference/operator/query/in/#use-the--in-operator-with-a-regular-expression
@@ -215,6 +215,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         );
     }
 
+    /**
+     * Returns all the ancestors paths of the given list of paths. That is, if the list is ["/a/b/c", "/a/b/d"],
+     * this method will return ["/", "/a", "/a/b", "/a/b/c", "/a/b/d"]. Note that the paths on the input list are also
+     * returned, even though they are not strictly ancestors of themselves.
+     */
     static List<String> getAncestors(List<String> paths) {
         TreeSet<String> ancestors = new TreeSet<>();
         for (String child : paths) {
@@ -231,7 +236,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
 
-    static Bson ancestorsFilter(List<String> paths) {
+    private static Bson ancestorsFilter(List<String> paths) {
         List<String> parentFilters = getAncestors(paths).stream()
                 .map(Utils::getIdFromPath)
                 .collect(Collectors.toList());
@@ -259,7 +264,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private long totalDataDownloadedBytes = 0;
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
-
 
     public PipelinedMongoDownloadTask(MongoDatabase mongoDatabase,
                                       MongoDocumentStore mongoDocStore,
