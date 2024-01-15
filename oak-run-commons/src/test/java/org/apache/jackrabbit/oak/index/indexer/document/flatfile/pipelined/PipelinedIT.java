@@ -67,7 +67,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
 import static org.junit.Assert.assertArrayEquals;
@@ -173,7 +172,7 @@ public class PipelinedIT {
         Predicate<String> pathPredicate = s -> true;
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/2023"), List.of("/content/dam/2023/02")));
 
-        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
                 "/|{}",
                 "/content|{}",
                 "/content/dam|{}",
@@ -196,18 +195,18 @@ public class PipelinedIT {
         // filter out these additional documents.
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/1000", "/content/dam/2022"), List.of("/content/dam/2022/02", "/content/dam/2022/04")));
 
-        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-                "/content/dam/2022|{}",
-                "/content/dam/2022/01|{\"p1\":\"v202201\"}",
-                "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
-                "/content/dam/2022/02|{\"p1\":\"v202202\"}",
-                "/content/dam/2022/03|{\"p1\":\"v202203\"}",
-                "/content/dam/2022/04|{\"p1\":\"v202204\"}"
+        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
+        "/|{}",
+        "/content|{}",
+        "/content/dam|{}",
+        "/content/dam/1000|{}",
+        "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+        "/content/dam/2022|{}",
+        "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+        "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
+        "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+        "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+        "/content/dam/2022/04|{\"p1\":\"v202204\"}"
         ));
     }
 
@@ -320,23 +319,6 @@ public class PipelinedIT {
         Collections.reverse(expected);
 
         testSuccessfulDownload(pathPredicate, pathFilters, expected);
-    }
-
-    @Test
-    public void createFFSCustomExcludePathsRegex() throws Exception {
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX,
-                "/content/dam/2022/.*$|/content/dam/2023/.*$|/content/dam/Z12345678901234567890-Level_0.*$");
-        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
-
-        testSuccessfulDownload(pathPredicate, null, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-                "/content/dam/2022|{}",
-                "/content/dam/2023|{\"p2\":\"v2023\"}"
-        ));
     }
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters)
