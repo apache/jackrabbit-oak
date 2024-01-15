@@ -63,8 +63,6 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
 
     private int estimatedSizeOfCurrentObject = 0;
 
-    private final FieldSizeTracker fieldSizeTracker = new FieldSizeTracker.HashMapFieldSizeTracker();
-
     public NodeDocumentCodec(MongoDocumentStore store, Collection<NodeDocument> collection, CodecRegistry defaultRegistry) {
         this.store = store;
         this.collection = collection;
@@ -79,14 +77,11 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     public NodeDocument decode(BsonReader reader, DecoderContext decoderContext) {
         NodeDocument nodeDocument = collection.newDocument(store);
         estimatedSizeOfCurrentObject = 0;
-        int prevEstimatedSizeOfCurrentObject = 0;
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String fieldName = reader.readName();
             Object value = readValue(reader, fieldName);
             nodeDocument.put(fieldName, value);
-            fieldSizeTracker.addField(fieldName, estimatedSizeOfCurrentObject- prevEstimatedSizeOfCurrentObject);
-            prevEstimatedSizeOfCurrentObject = estimatedSizeOfCurrentObject;
         }
         reader.readEndDocument();
         nodeDocument.put(SIZE_FIELD, estimatedSizeOfCurrentObject);
@@ -162,9 +157,5 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         }
         reader.readEndDocument();
         return map;
-    }
-
-    public FieldSizeTracker getFieldSizeTracker() {
-        return fieldSizeTracker;
     }
 }
