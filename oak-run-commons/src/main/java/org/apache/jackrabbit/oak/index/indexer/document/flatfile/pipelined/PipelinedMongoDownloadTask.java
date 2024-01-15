@@ -132,8 +132,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private static final String THREAD_NAME = "mongo-dump";
 
-    private static final Pattern revisionField = Pattern.compile("^r[0-9a-f].*-\\S.*-\\S.*$");
-
     /**
      * Creates the filter to be used in the Mongo query
      *
@@ -262,8 +260,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
 
-    private final NodeDocumentCodecProvider nodeDocumentCodecProvider;
-
 
     public PipelinedMongoDownloadTask(MongoDatabase mongoDatabase,
                                       MongoDocumentStore mongoDocStore,
@@ -273,7 +269,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
-        this.nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
+        NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
         CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
                 CodecRegistries.fromProviders(nodeDocumentCodecProvider),
                 MongoClientSettings.getDefaultCodecRegistry()
@@ -331,8 +327,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 downloadWithNaturalOrdering();
             }
 
-            logFieldSizes();
-
             long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
             String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueWaitTimeMillis, durationMillis);
             String metrics = MetricsFormatter.newBuilder()
@@ -366,29 +360,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             throw t;
         } finally {
             Thread.currentThread().setName(originalName);
-        }
-    }
-
-    private void logFieldSizes() {
-        var nodeDocumentCoded = nodeDocumentCodecProvider.getNodeDocumentCodec();
-        if (nodeDocumentCoded == null) {
-            LOG.info("NodeDocumentCodec not found, cannot log field sizes");
-        } else {
-            var fieldSizeTracer = nodeDocumentCoded.getFieldSizeTracker();
-            if (fieldSizeTracer == null) {
-                LOG.info("FieldSizeTracker not found, cannot log field sizes");
-            } else {
-                ArrayList<Map.Entry<String, Long>> fields = new ArrayList<>();
-                var iter = fieldSizeTracer.getKnownFields();
-                while (iter.hasNext()) {
-                    var e = iter.next();
-                    if (!revisionField.matcher(e.getKey()).matches()) {
-                        fields.add(e);
-                    }
-                }
-                fields.sort((o1, o2) -> o2.getValue().compareTo(o1.getValue()));
-                LOG.info("Top 20 fields: {}", fields.stream().limit(20).collect(Collectors.toList()));
-            }
         }
     }
 
@@ -604,12 +575,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             enqueueDelay, mongoDocQueue.size(), MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES)
             );
         }
-        if (logCounter++ % 100 == 0) {
-            logFieldSizes();
-        }
     }
-
-    private int logCounter = 0;
 
     private void logWithRateLimit(Runnable f) {
         Instant now = Instant.now();
