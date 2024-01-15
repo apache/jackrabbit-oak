@@ -299,6 +299,8 @@ and then restart the application:
 
     oak.query.fastResultSize=true
 
+With OAK-10424 (since Oak 1.62), it is possible to configure a list of principals that have fast result size enabled, using the OSGi configuration "SessionQuerySettingsProvider" / "directCountsPrincipals".
+
 #### Quoting
 
 [Special characters in queries need to be escaped.](https://jackrabbit.apache.org/archive/wiki/JCR/EncodingAndEscaping_115513396.html)
