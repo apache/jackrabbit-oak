@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.core.credential.TokenRequestContext;
+import com.azure.core.util.ClientOptions;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -132,7 +133,7 @@ public class AzureSegmentStoreService {
                 .tenantId(configuration.tenantId())
                 .build();
 
-        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext()).getToken();
+        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes("https://storage.azure.com/user_impersonation/.default")).getToken();
         StorageCredentialsToken storageCredentialsToken = new StorageCredentialsToken(configuration.accountName(), accessToken);
         
         try {
