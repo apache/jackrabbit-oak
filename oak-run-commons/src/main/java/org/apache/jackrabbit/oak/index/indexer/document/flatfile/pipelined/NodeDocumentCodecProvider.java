@@ -24,10 +24,15 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.bson.codecs.Codec;
 import org.bson.codecs.configuration.CodecProvider;
 import org.bson.codecs.configuration.CodecRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NodeDocumentCodecProvider implements CodecProvider {
+    private final Logger Log = LoggerFactory.getLogger(NodeDocumentCodecProvider.class);
     private final MongoDocumentStore store;
     private final Collection<NodeDocument> collection;
+
+    private NodeDocumentCodec nodeDocumentCodec;
 
     public NodeDocumentCodecProvider(MongoDocumentStore store, Collection<NodeDocument> collection) {
         this.store = store;
@@ -37,9 +42,15 @@ public class NodeDocumentCodecProvider implements CodecProvider {
     @Override
     public <T> Codec<T> get(Class<T> clazz, CodecRegistry registry) {
         if (clazz == NodeDocument.class) {
+            Log.info("Creating NodeDocumentCodec");
             NodeDocumentCodec nodeDocumentCodec = new NodeDocumentCodec(store, collection, registry);
+            this.nodeDocumentCodec = nodeDocumentCodec;
             return (Codec<T>) nodeDocumentCodec;
         }
         return null;
+    }
+
+    public NodeDocumentCodec getNodeDocumentCodec() {
+        return nodeDocumentCodec;
     }
 }

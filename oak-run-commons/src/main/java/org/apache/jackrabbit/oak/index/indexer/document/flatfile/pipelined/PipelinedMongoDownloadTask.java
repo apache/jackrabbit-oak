@@ -146,9 +146,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
     private long documentsRead = 0;
+    private long totalDataDownloadedBytes = 0;
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
 
+    private final NodeDocumentCodecProvider nodeDocumentCodecProvider;
+
+    private final EndingsTracker endingsTracker = new EndingsTracker();
 
     public PipelinedMongoDownloadTask(MongoDatabase mongoDatabase,
                                       MongoDocumentStore mongoDocStore,
@@ -158,7 +162,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       List<PathFilter> pathFilters,
                                       StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
-        NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
+        this.nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
         CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
                 CodecRegistries.fromProviders(nodeDocumentCodecProvider),
                 MongoClientSettings.getDefaultCodecRegistry()
@@ -211,12 +215,17 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             } else {
                 downloadWithNaturalOrdering();
             }
+
+            logFieldSizes();
+
             long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
             String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueWaitTimeMillis, durationMillis);
             String metrics = MetricsFormatter.newBuilder()
                     .add("duration", FormattingUtils.formatToSeconds(downloadStartWatch))
                     .add("durationSeconds", durationMillis / 1000)
                     .add("documentsDownloaded", documentsRead)
+                    .add("dataDownloadedBytes", totalDataDownloadedBytes)
+                    .add("dataDownloaded", IOUtils.humanReadableByteCountBin(totalDataDownloadedBytes))
                     .add("enqueueingDelayMillis", totalEnqueueWaitTimeMillis)
                     .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
                     .build();
@@ -244,6 +253,29 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             Thread.currentThread().setName(originalName);
         }
     }
+    private static final Pattern revisionField = Pattern.compile("^r[0-9a-f].*-\\S.*-\\S.*$");
+    private void logFieldSizes() {
+        var nodeDocumentCoded = nodeDocumentCodecProvider.getNodeDocumentCodec();
+        if (nodeDocumentCoded == null) {
+            LOG.info("NodeDocumentCodec not found, cannot log field sizes");
+        } else {
+            var fieldSizeTracer = nodeDocumentCoded.getFieldSizeTracker();
+            if (fieldSizeTracer == null) {
+                LOG.info("FieldSizeTracker not found, cannot log field sizes");
+            } else {
+                ArrayList<Map.Entry<String, Long>> fields = new ArrayList<>();
+                var iter = fieldSizeTracer.getKnownFields();
+                while (iter.hasNext()) {
+                    var e = iter.next();
+                    if (!revisionField.matcher(e.getKey()).matches()) {
+                        fields.add(e);
+                    }
+                }
+                fields.sort((o1, o2) -> o2.getValue().compareTo(o1.getValue()));
+                LOG.info("Top 20 fields: {}", fields.stream().limit(20).collect(Collectors.toList()));
+            }
+        }
+    }
 
     private void reportProgress(String id) {
         if (this.documentsRead % 10000 == 0) {
@@ -251,6 +283,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             String formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
             LOG.info("Dumping from NSET Traversed #{} {} [{}] (Elapsed {})",
                     this.documentsRead, id, formattedRate, FormattingUtils.formatToSeconds(downloadStartWatch));
+            if (this.documentsRead % 100_000 == 0) {
+                LOG.info("Download from MongoDB stats. Total bytes: {}, Unique entries: {}\n{}",
+                        IOUtils.humanReadableByteCountBin(totalDataDownloadedBytes),
+                        endingsTracker.endings.size(),
+                        endingsTracker.endings.entrySet().stream()
+                                .sorted((e1, e2) -> Long.compare(e2.getValue().size, e1.getValue().size))
+                                .limit(100)
+                                .map(e -> e.getKey() + ": " + e.getValue())
+                                .collect(Collectors.joining("\n")));
+            }
         }
         traversalLog.trace(id);
     }
@@ -486,12 +528,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     }
                     this.lastIdDownloaded = id;
                     this.documentsRead++;
+                    endingsTracker.trackDocument(next);
                     reportProgress(id);
 
                     batch[nextIndex] = next;
                     nextIndex++;
                     int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);
                     batchSize += docSize;
+                    totalDataDownloadedBytes += docSize;
                     if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
                         LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
                         tryEnqueueCopy(batch, nextIndex);
@@ -536,7 +580,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             enqueueDelay, mongoDocQueue.size(), MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES)
             );
         }
+        if (logCounter++ % 100 == 0) {
+            logFieldSizes();
+        }
     }
+
+    private int logCounter = 0;
 
     private void logWithRateLimit(Runnable f) {
         Instant now = Instant.now();
