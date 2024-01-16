@@ -28,7 +28,6 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closer;

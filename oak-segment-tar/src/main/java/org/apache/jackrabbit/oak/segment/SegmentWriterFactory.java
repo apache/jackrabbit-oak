@@ -17,13 +17,10 @@
  * under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file;
+package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.oak.segment.SegmentWriter;
 import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 
-interface SegmentWriterFactory {
-
+public interface SegmentWriterFactory {
     SegmentWriter newSegmentWriter(GCGeneration generation);
-
 }

@@ -28,8 +28,8 @@ import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.REINDEX_COU
 import static org.apache.jackrabbit.oak.plugins.index.IndexUtils.createIndexDefinition;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import javax.jcr.query.Query;
 
@@ -51,8 +51,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Lists;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Tests indexing and queries when using the composite node store.
@@ -70,12 +70,10 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         NodeBuilder b;
         NodeBuilder readOnlyBuilder = readOnlyStore.getRoot().builder();
         b = createIndexDefinition(readOnlyBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        b.setProperty("excludedPaths", "/jcr:system");
+                true, false, Set.of("foo"), null);
         NodeBuilder globalBuilder = globalStore.getRoot().builder();
         b = createIndexDefinition(globalBuilder.child(INDEX_DEFINITIONS_NAME), "foo",
-                true, false, ImmutableSet.of("foo"), null);
-        b.setProperty("excludedPaths", "/jcr:system");
+                true, false, Set.of("foo"), null);
         EditorHook hook = new EditorHook(
                 new IndexUpdateProvider(new PropertyIndexEditorProvider().with(mip)));
         readOnlyStore.merge(readOnlyBuilder, hook, CommitInfo.EMPTY);
@@ -184,8 +182,7 @@ public class CompositeNodeStoreQueryTest extends CompositeNodeStoreQueryTestBase
         b.setProperty(TYPE_PROPERTY_NAME, LuceneIndexConstants.TYPE_LUCENE);
         b.setProperty(FulltextIndexConstants.COMPAT_MODE, IndexFormatVersion.V2.getVersion());
         b.setProperty(IndexConstants.ASYNC_PROPERTY_NAME,
-                Lists.newArrayList("async", "nrt"), Type.STRINGS);
-        b.setProperty("excludedPaths", "/jcr:system");
+                List.of("async", "nrt"), Type.STRINGS);
         NodeBuilder foo = b.child(FulltextIndexConstants.INDEX_RULES)
                 .child("nt:base")
                 .child(FulltextIndexConstants.PROP_NODE)

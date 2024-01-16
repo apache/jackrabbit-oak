@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.59-SNAPSHOT</version>
+    <version>1.61-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -173,6 +173,12 @@
     <dependency>
       <groupId>org.apache.jackrabbit</groupId>
       <artifactId>oak-lucene</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.jackrabbit</groupId>
+      <artifactId>oak-search-elastic</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

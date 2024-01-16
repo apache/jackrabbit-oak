@@ -27,8 +27,6 @@ import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCStatus.COMPA
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.EXPEDITE_OPTION;
 import static org.apache.jackrabbit.oak.segment.file.TarRevisions.timeout;
 
-import org.apache.jackrabbit.guava.common.base.Function;
-
 import org.apache.jackrabbit.oak.segment.CheckpointCompactor;
 import org.apache.jackrabbit.oak.segment.ClassicCompactor;
 import org.apache.jackrabbit.oak.segment.Compactor;
@@ -44,12 +42,15 @@ import org.apache.jackrabbit.oak.segment.file.tar.GCGeneration;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
     abstract GCType getCompactionType();
 
-    abstract GCGeneration nextGeneration(GCGeneration current);
+    abstract GCGeneration partialGeneration(GCGeneration current);
+
+    abstract GCGeneration targetGeneration(GCGeneration current);
 
     private CompactionResult compactionSucceeded(
         Context context,
@@ -58,6 +59,20 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
     ) {
         context.getGCListener().compactionSucceeded(generation);
         return CompactionResult.succeeded(getCompactionType(), generation, context.getGCOptions(), compactedRootId, context.getGCCount());
+    }
+
+    private CompactionResult compactionPartiallySucceeded(
+            Context context,
+            GCGeneration generation,
+            RecordId compactedRootId
+    ) {
+        context.getGCListener().compactionSucceeded(generation);
+        return CompactionResult.partiallySucceeded(generation, compactedRootId, context.getGCCount());
+    }
+
+    private static CompactionResult compactionAborted(Context context, GCGeneration generation) {
+        context.getGCListener().compactionFailed(generation);
+        return CompactionResult.aborted(getGcGeneration(context), context.getGCCount());
     }
 
     private static GCGeneration getGcGeneration(Context context) {
@@ -72,23 +87,21 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
         return context.getTarFiles().size();
     }
 
-    private static CompactionResult compactionAborted(Context context, GCGeneration generation) {
-        context.getGCListener().compactionFailed(generation);
-        return CompactionResult.aborted(getGcGeneration(context), generation, context.getGCCount());
-    }
-
-    private static SegmentNodeState forceCompact(
+    private static CompactedNodeState forceCompact(
         Context context,
         NodeState base,
         NodeState onto,
         Compactor compactor,
         Canceller canceller
     ) throws InterruptedException {
-        RecordId compactedId = setHead(context, headId -> {
+        AtomicReference<CompactedNodeState> compacted = new AtomicReference<>();
+        context.getRevisions().setHead(headId -> {
             try {
                 PrintableStopwatch t = PrintableStopwatch.createStarted();
-                SegmentNodeState after = compactor.compact(base, context.getSegmentReader().readNode(headId), onto, canceller);
+                NodeState currentHead = context.getSegmentReader().readNode(headId);
+                CompactedNodeState after = compactor.compact(base, currentHead, onto, canceller);
                 if (after != null) {
+                    compacted.set(after);
                     return after.getRecordId();
                 }
                 context.getGCListener().info("compaction cancelled after {}", t);
@@ -97,15 +110,8 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
                 context.getGCListener().error("error during forced compaction.", e);
                 return null;
             }
-        });
-        if (compactedId == null) {
-            return null;
-        }
-        return context.getSegmentReader().readNode(compactedId);
-    }
-
-    private static RecordId setHead(Context context, Function<RecordId, RecordId> f) throws InterruptedException {
-        return context.getRevisions().setHead(f, timeout(context.getGCOptions().getForceTimeout(), SECONDS));
+        }, timeout(context.getGCOptions().getForceTimeout(), SECONDS));
+        return compacted.get();
     }
 
     private static String formatCompactionType(GCType compactionType) {
@@ -119,68 +125,109 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
         }
     }
 
+    private boolean setHead(Context context, SegmentNodeState previous, SegmentNodeState head) {
+        return context.getRevisions().setHead(previous.getRecordId(), head.getRecordId(), EXPEDITE_OPTION);
+    }
+
     final CompactionResult compact(Context context, NodeState base) {
         context.getGCListener().info("running {} compaction", formatCompactionType(getCompactionType()));
 
-        GCGeneration nextGeneration = nextGeneration(getGcGeneration(context));
+        GCGeneration baseGeneration = getGcGeneration(context);
+        GCGeneration partialGeneration = partialGeneration(baseGeneration);
+        GCGeneration targetGeneration = targetGeneration(baseGeneration);
+        GCIncrement gcIncrement = new GCIncrement(baseGeneration, partialGeneration, targetGeneration);
 
         try {
             PrintableStopwatch watch = PrintableStopwatch.createStarted();
             context.getGCListener().info(
-                "compaction started, gc options={}, current generation={}, new generation={}",
+                "compaction started, gc options={},\n{}",
                 context.getGCOptions(),
-                getHead(context).getRecordId().getSegment().getGcGeneration(),
-                nextGeneration
+                gcIncrement
             );
             context.getGCListener().updateStatus(COMPACTION.message());
 
             GCJournal.GCJournalEntry gcEntry = context.getGCJournal().read();
             long initialSize = size(context);
 
-            SegmentWriter writer = context.getSegmentWriterFactory().newSegmentWriter(nextGeneration);
+            CompactionWriter writer = new CompactionWriter(
+                    context.getSegmentReader(),
+                    context.getBlobStore(),
+                    gcIncrement,
+                    context.getSegmentWriterFactory());
 
             context.getCompactionMonitor().init(gcEntry.getRepoSize(), gcEntry.getNodes(), initialSize);
 
-            Canceller compactionCanceller = context.getCanceller().withShortCircuit();
+            Canceller hardCanceller = context.getHardCanceller().withShortCircuit();
+            Canceller softCanceller = context.getSoftCanceller().withShortCircuit();
 
             Compactor compactor = newCompactor(context, writer);
+            CompactedNodeState compacted = null;
 
-            SegmentNodeState head = getHead(context);
-            SegmentNodeState compacted = compactor.compact(base, head, base, compactionCanceller);
-            if (compacted == null) {
-                context.getGCListener().warn("compaction cancelled: {}.", compactionCanceller.check().getReason().orElse("unknown reason"));
-                return compactionAborted(context, nextGeneration);
-            }
+            int cycles;
+            boolean success;
+            final int retryCount = Math.max(0, context.getGCOptions().getRetryCount());
 
-            context.getGCListener().info("compaction cycle 0 completed in {}. Compacted {} to {}",
-                watch, head.getRecordId(), compacted.getRecordId());
+            SegmentNodeState head;
+            Flusher flusher = () -> {
+                writer.flush();
+                context.getFlusher().flush();
+            };
 
-            int cycles = 0;
-            boolean success = false;
-            SegmentNodeState previousHead = head;
-            while (cycles < context.getGCOptions().getRetryCount() &&
-                !(success = context.getRevisions().setHead(previousHead.getRecordId(), compacted.getRecordId(), EXPEDITE_OPTION))) {
-                // Some other concurrent changes have been made.
-                // Rebase (and compact) those changes on top of the
-                // compacted state before retrying to set the head.
-                cycles++;
-                context.getGCListener().info("compaction detected concurrent commits while compacting. " +
-                        "Compacting these commits. Cycle {} of {}",
-                    cycles, context.getGCOptions().getRetryCount());
-                context.getGCListener().updateStatus(COMPACTION_RETRY.message() + cycles);
-                PrintableStopwatch cycleWatch = PrintableStopwatch.createStarted();
-
+            do {
                 head = getHead(context);
-                compacted = compactor.compact(previousHead, head, compacted, compactionCanceller);
-                if (compacted == null) {
-                    context.getGCListener().warn("compaction cancelled: {}.", compactionCanceller.check().getReason().orElse("unknown reason"));
-                    return compactionAborted(context, nextGeneration);
+                SegmentNodeState after = (compacted == null) ? head : compacted;
+                Canceller stateSaveTrigger = context.getStateSaveTriggerSupplier().get().withShortCircuit();
+
+                if (stateSaveTrigger.isCancelable()) {
+                    context.getGCListener().info("intermediate state save enabled.");
+                    Canceller saveStateCanceller = softCanceller.withCondition(
+                            "save intermediate compaction state", () -> stateSaveTrigger.check().isCancelled());
+                    compacted = compactor.compactDown(base, after, hardCanceller, saveStateCanceller);
+                } else if (softCanceller.isCancelable()) {
+                    context.getGCListener().info("soft cancellation enabled.");
+                    compacted = compactor.compactDown(base, after, hardCanceller, softCanceller);
+                } else {
+                    compacted = compactor.compactUp(base, after, hardCanceller);
                 }
 
-                context.getGCListener().info("compaction cycle {} completed in {}. Compacted {} against {} to {}",
-                    cycles, cycleWatch, head.getRecordId(), previousHead.getRecordId(), compacted.getRecordId());
-                previousHead = head;
-            }
+                if (compacted == null) {
+                    context.getGCListener().warn("compaction cancelled: {}.",
+                            hardCanceller.check().getReason().orElse("unknown reason"));
+                    return compactionAborted(context, targetGeneration);
+                }
+
+                context.getGCListener().info("compaction cycle 0 completed in {}. Compacted {} to {}",
+                        watch, head.getRecordId(), compacted.getRecordId());
+
+                cycles = 0;
+
+                while (!(success = setHead(context, head, compacted)) && cycles < retryCount) {
+                    // Some other concurrent changes have been made.
+                    // Rebase (and compact) those changes on top of the
+                    // compacted state before retrying to set the head.
+                    cycles++;
+                    context.getGCListener().info("compaction detected concurrent commits while compacting. " +
+                                    "Compacting these commits. Cycle {} of {}", cycles, retryCount);
+                    context.getGCListener().updateStatus(COMPACTION_RETRY.message() + cycles);
+                    PrintableStopwatch cycleWatch = PrintableStopwatch.createStarted();
+
+                    SegmentNodeState newHead = getHead(context);
+                    compacted = compactor.compact(head, newHead,compacted, hardCanceller);
+                    if (compacted == null) {
+                        context.getGCListener().warn("compaction cancelled: {}.",
+                                hardCanceller.check().getReason().orElse("unknown reason"));
+                        return compactionAborted(context, targetGeneration);
+                    }
+
+                    context.getGCListener().info("compaction cycle {} completed in {}. Compacted {} against {} to {}",
+                            cycles, cycleWatch, head.getRecordId(), newHead.getRecordId(), compacted.getRecordId());
+                    head = newHead;
+                }
+
+                if (success) {
+                    flusher.flush();
+                }
+            } while (success && !compacted.isComplete() && !softCanceller.check().isCancelled());
 
             if (!success) {
                 context.getGCListener().info("compaction gave up compacting concurrent commits after {} cycles.", cycles);
@@ -194,12 +241,13 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
 
                     cycles++;
 
-                    Canceller forcedCompactionCanceller = compactionCanceller
+                    Canceller forcedCompactionCanceller = hardCanceller
                         .withTimeout("forced compaction timeout exceeded", forceTimeout, SECONDS)
                         .withShortCircuit();
-                    compacted = forceCompact(context, previousHead, compacted, compactor, forcedCompactionCanceller);
-                    success = compacted != null;
-                    if (success) {
+                    compacted = forceCompact(context, head, compacted, compactor, forcedCompactionCanceller);
+                    if (compacted != null) {
+                        success = true;
+                        flusher.flush();
                         context.getGCListener().info("compaction succeeded to force compact remaining commits after {}.", forceWatch);
                     } else {
                         Cancellation cancellation = forcedCompactionCanceller.check();
@@ -219,38 +267,40 @@ abstract class AbstractCompactionStrategy implements CompactionStrategy {
             if (success) {
                 // Update type of the last compaction before calling methods that could throw an exception.
                 context.getSuccessfulCompactionListener().onSuccessfulCompaction(getCompactionType());
-                writer.flush();
-                context.getFlusher().flush();
-                context.getGCListener().info("compaction succeeded in {}, after {} cycles", watch, cycles);
                 context.getCompactionMonitor().finished();
-                return compactionSucceeded(context, nextGeneration, compacted.getRecordId());
+
+                if (compacted.isComplete()) {
+                    context.getGCListener().info("compaction succeeded in {}, after {} cycles", watch, cycles);
+                    return compactionSucceeded(context, targetGeneration, compacted.getRecordId());
+                } else {
+                    context.getGCListener().info("compaction partially succeeded in {}: {}.",
+                            watch, softCanceller.check().getReason().orElse("unknown reason"));
+                    return compactionPartiallySucceeded(context, partialGeneration, compacted.getRecordId());
+                }
             } else {
                 context.getGCListener().info("compaction failed after {}, and {} cycles", watch, cycles);
-                return compactionAborted(context, nextGeneration);
+                return compactionAborted(context, targetGeneration);
             }
         } catch (InterruptedException e) {
             context.getGCListener().error("compaction interrupted", e);
             currentThread().interrupt();
-            return compactionAborted(context, nextGeneration);
+            return compactionAborted(context, targetGeneration);
         } catch (Throwable e) {
             context.getGCListener().error("compaction encountered an error", e instanceof Exception ? (Exception) e : new Exception(e));
-            return compactionAborted(context, nextGeneration);
+            return compactionAborted(context, targetGeneration);
         }
     }
 
-    private Compactor newCompactor(Context context, SegmentWriter writer) {
+    private Compactor newCompactor(Context context, CompactionWriter writer) {
         CompactorType compactorType = context.getGCOptions().getCompactorType();
         switch (compactorType) {
             case PARALLEL_COMPACTOR:
-                return new ParallelCompactor(context.getGCListener(), context.getSegmentReader(), writer,
-                        context.getBlobStore(), context.getCompactionMonitor(),
+                return new ParallelCompactor(context.getGCListener(), writer, context.getCompactionMonitor(),
                         context.getGCOptions().getConcurrency());
             case CHECKPOINT_COMPACTOR:
-                return new CheckpointCompactor(context.getGCListener(), context.getSegmentReader(), writer,
-                        context.getBlobStore(), context.getCompactionMonitor());
+                return new CheckpointCompactor(context.getGCListener(), writer, context.getCompactionMonitor());
             case CLASSIC_COMPACTOR:
-                return new ClassicCompactor(context.getSegmentReader(), writer, context.getBlobStore(),
-                        context.getCompactionMonitor());
+                return new ClassicCompactor(writer, context.getCompactionMonitor());
             default:
                 throw new IllegalArgumentException("Unknown compactor type: " + compactorType);
             }

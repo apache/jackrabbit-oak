@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static org.apache.jackrabbit.oak.jcr.AbstractRepositoryTest.dispose;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -223,7 +224,7 @@ public class NamePathTest {
         Random r = new Random();
         int i1 = r.nextInt();
         int i2 = r.nextInt();
-        String prefix = "nstest" + i1;
+        String prefix = "nstest" + i1 + "XXX";
         String uri1 = "foobar:1-" + i1;
         String uri2 = "foobar:2-" + i2;
         String testLocalName = "test";
@@ -234,7 +235,8 @@ public class NamePathTest {
         try {
             session.getWorkspace().getNamespaceRegistry().registerNamespace(prefix, uri1);
 
-            Node testNode = session.getRootNode().addNode(prefix + ":" + testLocalName);
+            String originalName = prefix + ":" + testLocalName;
+            Node testNode = session.getRootNode().addNode(originalName);
             session.save();
 
             // verify that name resolver finds correct namespaceURI
@@ -251,8 +253,18 @@ public class NamePathTest {
             Node n3 = session.getRootNode().getNode(expandedTestName);
             assertTrue(testNode.isSame(n3));
 
-            // verify that name resolver still finds correct namespaceURI
-            assertEquals(uri1, resolver.getQName(testNode.getName()).getNamespaceURI());
+            String remappedName = n3.getName();
+            assertNotEquals(originalName, remappedName);
+
+            int colon = remappedName.indexOf(':');
+            assertTrue("remapped name must contain colon:" + remappedName, colon > 0);
+            String remappedPrefix = remappedName.substring(0, colon);
+            assertNotEquals("prefix after mapping must be different", prefix, remappedPrefix);
+
+            // OAK-10544: adding the line below makes the test pass
+            // session.getNamespacePrefix(uri1);
+
+            assertEquals("remapped prefix need to map to original URI " + uri1, uri1, session.getNamespaceURI(remappedPrefix));
         } finally {
             session.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefix);
         }

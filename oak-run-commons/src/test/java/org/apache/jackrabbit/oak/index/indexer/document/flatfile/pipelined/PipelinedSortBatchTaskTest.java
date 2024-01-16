@@ -19,18 +19,14 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
-import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
@@ -65,7 +61,6 @@ public class PipelinedSortBatchTaskTest {
 
     private final PathElementComparator pathComparator = new PathElementComparator(Set.of());
     private final Compression algorithm = Compression.NONE;
-    private final NodeStateEntryWriter nodeStateEntryWriter = new NodeStateEntryWriter(new MemoryBlobStore());
 
     @Test
     public void noBatch() throws Exception {
@@ -81,6 +76,7 @@ public class PipelinedSortBatchTaskTest {
     @Test
     public void emptyBatch() throws Exception {
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
+        batch.flip();
 
         TestResult testResult = runTest(batch);
 
@@ -99,6 +95,7 @@ public class PipelinedSortBatchTaskTest {
         addEntry(batch, "/a0/b1", "{\"key\":5}");
         addEntry(batch, "/a0/b0/c1", "{\"key\":4}");
         addEntry(batch, "/a0/b0/c0", "{\"key\":3}");
+        batch.flip();
 
         TestResult testResult = runTest(batch);
 
@@ -125,11 +122,13 @@ public class PipelinedSortBatchTaskTest {
         addEntry(batch1, "/a0/b0", "{\"key\":2}");
         addEntry(batch1, "/a0", "{\"key\":1}");
         addEntry(batch1, "/a1/b0", "{\"key\":6}");
+        batch1.flip();
 
         NodeStateEntryBatch batch2 = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
         addEntry(batch2, "/a0/b1", "{\"key\":5}");
         addEntry(batch2, "/a0/b0/c1", "{\"key\":4}");
         addEntry(batch2, "/a0/b0/c0", "{\"key\":3}");
+        batch2.flip();
 
         TestResult testResult = runTest(batch1, batch2);
 
@@ -154,12 +153,8 @@ public class PipelinedSortBatchTaskTest {
         );
     }
 
-    private void addEntry(NodeStateEntryBatch batch, String path, String entry) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Writer writer = new OutputStreamWriter(baos);
-        nodeStateEntryWriter.writeTo(writer, path, entry);
-        writer.close();
-        batch.addEntry(path, baos.toByteArray());
+    private void addEntry(NodeStateEntryBatch batch, String path, String entry) {
+        batch.addEntry(path, entry.getBytes(StandardCharsets.UTF_8));
     }
 
     private TestResult runTest(NodeStateEntryBatch... nodeStateEntryBatches) throws Exception {
@@ -175,8 +170,8 @@ public class PipelinedSortBatchTaskTest {
         nonEmptyBatchesQueue.put(PipelinedStrategy.SENTINEL_NSE_BUFFER);
 
         PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                sortRoot, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
-        );
+                sortRoot, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue,
+                StatisticsProvider.NOOP);
         PipelinedSortBatchTask.Result taskResult = sortTask.call();
         LOG.info("Result: {}", taskResult.getTotalEntries());
         LOG.info("Empty batches: {}", emptyBatchesQueue.size());

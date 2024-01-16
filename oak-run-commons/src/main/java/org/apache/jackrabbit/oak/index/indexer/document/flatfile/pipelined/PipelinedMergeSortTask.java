@@ -27,12 +27,14 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSortByteArray;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -150,6 +152,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     private final Comparator<NodeStateHolder> comparator;
     private final Compression algorithm;
     private final BlockingQueue<Path> sortedFilesQueue;
+    private final StatisticsProvider statisticsProvider;
     private final PriorityQueue<PathAndSize> sortedFiles = new PriorityQueue<>();
     private final AtomicBoolean stopEagerMerging = new AtomicBoolean(false);
     private final int mergeTriggerThreshold;
@@ -163,11 +166,13 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     public PipelinedMergeSortTask(Path storeDir,
                                   PathElementComparator pathComparator,
                                   Compression algorithm,
-                                  BlockingQueue<Path> sortedFilesQueue) {
+                                  BlockingQueue<Path> sortedFilesQueue,
+                                  StatisticsProvider statisticsProvider) {
         this.storeDir = storeDir;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.algorithm = algorithm;
         this.sortedFilesQueue = sortedFilesQueue;
+        this.statisticsProvider = statisticsProvider;
 
         this.mergeTriggerThreshold = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD);
         Preconditions.checkArgument(mergeTriggerThreshold >= 16,
@@ -210,15 +215,28 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
 
                     LOG.info("Final merge completed in {}. Created file: {}", FormattingUtils.formatToSeconds(w), flatFileStore.toAbsolutePath());
                     long ffsSizeBytes = Files.size(flatFileStore);
+                    long durationSeconds = w.elapsed(TimeUnit.SECONDS);
                     String metrics = MetricsFormatter.newBuilder()
                             .add("duration", FormattingUtils.formatToSeconds(w))
-                            .add("durationSeconds", w.elapsed(TimeUnit.SECONDS))
+                            .add("durationSeconds", durationSeconds)
+                            .add("intermediateFilesCount", intermediateFilesCount)
+                            .add("eagerMergesRuns", eagerMergeRuns)
                             .add("filesMerged", sortedFiles.size())
                             .add("ffsSizeBytes", ffsSizeBytes)
                             .add("ffsSize", IOUtils.humanReadableByteCountBin(ffsSizeBytes))
                             .build();
 
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, eagerMergeRuns);
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, sortedFiles.size());
+                    MetricsUtils.setCounterOnce(statisticsProvider,
+                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, ffsSizeBytes);
                     return new Result(flatFileStore, intermediateFilesCount, sortedFiles.size(), eagerMergeRuns);
 
                 } else {
@@ -314,7 +332,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
 
     private Path sortStoreFile(List<Path> sortedFilesBatch) throws IOException {
         Path sortedFile = storeDir.resolve(getSortedStoreFileName(algorithm));
-        try (BufferedOutputStream writer = IndexStoreUtils.createOutputStream(sortedFile, algorithm)) {
+        try (OutputStream writer = IndexStoreUtils.createOutputStream(sortedFile, algorithm)) {
             Function<byte[], NodeStateHolder> byteArrayToType = new NodeStateHolderFactory();
             Function<NodeStateHolder, byte[]> typeToByteArray = holder -> holder == null ? null : holder.getLine();
             ExternalSortByteArray.mergeSortedFilesBinary(sortedFilesBatch,

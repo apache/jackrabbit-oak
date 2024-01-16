@@ -19,6 +19,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.BufferedWriter;
@@ -29,7 +32,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -40,8 +46,19 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
-    private final ClassLoader classLoader = getClass().getClassLoader();
-    private final Compression algorithm = Compression.NONE;
+    private static ScheduledExecutorService metricsExecutor;
+    private static final ClassLoader classLoader = PipelinedMergeSortTaskTest.class.getClassLoader();
+    private static final Compression algorithm = Compression.NONE;
+
+    @BeforeClass
+    public static void init() {
+        metricsExecutor = Executors.newSingleThreadScheduledExecutor();
+    }
+
+    @AfterClass
+    public static void shutdown() {
+        metricsExecutor.shutdown();
+    }
 
     @Test
     public void noFileToMerge() throws Exception {
@@ -89,27 +106,41 @@ public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
         Path sortRoot = sortFolder.getRoot().toPath();
         // +1 for the Sentinel.
         ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(files.length + 1);
-        PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(sortRoot, pathComparator, algorithm, sortedFilesQueue);
-        // Enqueue all the files that are to be merged
-        for (Path file : files) {
-            // The intermediate files are deleted after being merged, so we should copy them to the temporary sort root folder
-            Path workDirCopy = Files.copy(file, sortRoot.resolve(file.getFileName()));
-            sortedFilesQueue.put(workDirCopy);
-        }
-        // Signal end of files to merge
-        sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
-        // Run the merge task
-        PipelinedMergeSortTask.Result result = mergeSortTask.call();
+        try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, metricsExecutor)) {
+            PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(sortRoot,
+                    pathComparator,
+                    algorithm,
+                    sortedFilesQueue,
+                    metricStatisticsProvider);
+            // Enqueue all the files that are to be merged
+            for (Path file : files) {
+                // The intermediate files are deleted after being merged, so we should copy them to the temporary sort root folder
+                Path workDirCopy = Files.copy(file, sortRoot.resolve(file.getFileName()));
+                sortedFilesQueue.put(workDirCopy);
+            }
+            // Signal end of files to merge
+            sortedFilesQueue.put(SENTINEL_SORTED_FILES_QUEUE);
+            // Run the merge task
+            PipelinedMergeSortTask.Result result = mergeSortTask.call();
 
-        try (Stream<Path> fileStream = Files.list(sortRoot)) {
-            List<String> filesInWorkDir = fileStream
-                    .map(path -> path.getFileName().toString())
-                    .collect(Collectors.toList());
-            assertEquals("The sort work directory should contain only the flat file store, the intermediate files should have been deleted after merged. Instead it contains: " + filesInWorkDir,
-                    1, filesInWorkDir.size());
+            try (Stream<Path> fileStream = Files.list(sortRoot)) {
+                List<String> filesInWorkDir = fileStream
+                        .map(path -> path.getFileName().toString())
+                        .collect(Collectors.toList());
+                assertEquals("The sort work directory should contain only the flat file store, the intermediate files should have been deleted after merged. Instead it contains: " + filesInWorkDir,
+                        1, filesInWorkDir.size());
+            }
+            assertTrue(Files.exists(result.getFlatFileStoreFile()));
+            Set<String> metricNames = metricStatisticsProvider.getRegistry().getCounters().keySet();
+            assertEquals(metricNames, Set.of(
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL,
+                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES
+            ));
+            return result;
         }
-        assertTrue(Files.exists(result.getFlatFileStoreFile()));
-        return result;
     }
 
     @Test(expected = IllegalStateException.class)
