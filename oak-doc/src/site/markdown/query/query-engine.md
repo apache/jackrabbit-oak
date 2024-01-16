@@ -299,7 +299,7 @@ and then restart the application:
 
     oak.query.fastResultSize=true
 
-With OAK-10424 (since Oak 1.62), it is possible to configure a list of principals that have fast result size enabled, using the OSGi configuration "SessionQuerySettingsProvider" / "directCountsPrincipals".
+With OAK-10424 (since Oak 1.62), it is possible to configure a list of principals that have fast result size enabled for every query, using the OSGi configuration "SessionQuerySettingsProvider" / "directCountsPrincipals".
 
 #### Quoting
 
