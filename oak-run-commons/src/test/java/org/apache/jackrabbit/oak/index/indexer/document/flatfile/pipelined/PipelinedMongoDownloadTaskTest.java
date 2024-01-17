@@ -293,16 +293,16 @@ public class PipelinedMongoDownloadTaskTest {
     }
 
     @Test
-    public void createCustomExcludedPathsFilter() {
-        assertNull(PipelinedMongoDownloadTask.createCustomExcludedPathsFilter(null));
-        assertNull(PipelinedMongoDownloadTask.createCustomExcludedPathsFilter(""));
+    public void createCustomExcludeEntriesFilter() {
+        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(null));
+        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(""));
 
         Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expectedBson = Filters.nor(
                 Filters.regex(NodeDocument.ID, p),
                 Filters.regex(NodeDocument.PATH, p)
         );
-        var actualBson = PipelinedMongoDownloadTask.createCustomExcludedPathsFilter("^[0-9]{1,3}:/a/b.*$");
+        var actualBson = PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("^[0-9]{1,3}:/a/b.*$");
 
         assertBsonEquals(expectedBson, actualBson);
     }

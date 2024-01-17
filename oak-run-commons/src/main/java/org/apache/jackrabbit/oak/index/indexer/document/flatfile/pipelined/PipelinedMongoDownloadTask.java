@@ -108,8 +108,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      */
     public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = "oak.indexer.pipelined.mongoRegexPathFiltering";
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = false;
-    public static final String OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX = "oak.indexer.pipelined.mongoCustomRegexExcludePattern";
-    public static final String DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX = "";
+    /**
+     * Any document with a path that matches this regex pattern will not be downloaded. This pattern will be included
+     * in the Mongo query, that is, the filtering is done by server-side at Mongo, which avoids downloading the documents
+     * matching this query. This is typically a _suffix_, for example "/metadata.xml$|/renditions/.*.jpg$".
+     * To exclude subtrees such as /content/abc, use mongoFilterPaths instead.
+     */
+    public static final String OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX = "oak.indexer.pipelined.mongoCustomExcludeEntriesRegex";
+    public static final String DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX = "";
 
     /**
      * Maximum number of elements in the included/excluded paths list used for regex path filtering. If after
@@ -136,12 +142,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     /**
      * Creates the filter to be used in the Mongo query
      *
-     * @param mongoFilterPaths         The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
-     *                                 (see {@link MongoFilterPaths} for details)
-     * @param customExcludedPathsRegex A custom regex pattern to exclude paths from the download.
+     * @param mongoFilterPaths          The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
+     *                                  (see {@link MongoFilterPaths} for details)
+     * @param customExcludeEntriesRegex Documents with paths matching this regex are excluded from download
      * @return The filter to be used in the Mongo query, or null if no filter is required
      */
-    static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludedPathsRegex) {
+    static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>(4);
         if (mongoFilterPaths != MongoFilterPaths.DOWNLOAD_ALL) {
             filters.add(descendantsFilter(mongoFilterPaths.included));
@@ -160,7 +166,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
 
         // Custom regex filter to exclude paths
-        Bson customExcludedPathsFilter = createCustomExcludedPathsFilter(customExcludedPathsRegex);
+        Bson customExcludedPathsFilter = createCustomExcludedEntriesFilter(customExcludeEntriesRegex);
         if (customExcludedPathsFilter != null) {
             filters.add(customExcludedPathsFilter);
         }
@@ -173,7 +179,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    static Bson createCustomExcludedPathsFilter(String customRegexPattern) {
+    static Bson createCustomExcludedEntriesFilter(String customRegexPattern) {
         if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
             LOG.info("Mongo custom regex is disabled");
             return null;
@@ -257,7 +263,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final int maxBatchSizeBytes;
     private final StatisticsProvider statisticsProvider;
     private final MongoRegexPathFilterFactory regexPathFilterFactory;
-    private final String customExcludedPathsRegex;
+    private final String customExcludeEntriesRegex;
 
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
@@ -303,9 +309,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS);
         this.regexPathFilterFactory = new MongoRegexPathFilterFactory(regexPathFilteringMaxNumberOfPaths);
-        this.customExcludedPathsRegex = ConfigHelper.getSystemPropertyAsString(
-                PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX,
-                PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX
+        this.customExcludeEntriesRegex = ConfigHelper.getSystemPropertyAsString(
+                PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
+                PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX
         );
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
@@ -383,7 +389,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
-        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludedPathsRegex);
+        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository");
         } else {
@@ -478,7 +484,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
-        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludedPathsRegex);
+        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection

@@ -67,7 +67,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
-import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
 import static org.junit.Assert.assertArrayEquals;
@@ -324,7 +324,7 @@ public class PipelinedIT {
 
     @Test
     public void createFFSCustomExcludePathsRegex() throws Exception {
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS_REGEX,
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
                 "/content/dam/2022/.*$|/content/dam/2023/.*$|/content/dam/Z12345678901234567890-Level_0.*$");
         Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
 
