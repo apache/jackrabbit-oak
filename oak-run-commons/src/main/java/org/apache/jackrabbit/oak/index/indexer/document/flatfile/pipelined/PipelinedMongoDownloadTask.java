@@ -126,6 +126,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private final static BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
+    private final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h.*$");
 
     private static final String THREAD_NAME = "mongo-dump";
 
@@ -444,7 +445,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
         return Filters.or(
                 Filters.in(NodeDocument.ID, idPatterns),
-                Filters.in(NodeDocument.PATH, pathPatterns)
+                Filters.and(
+                        Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN),
+                        Filters.in(NodeDocument.PATH, pathPatterns)
+                )
         );
     }
 
