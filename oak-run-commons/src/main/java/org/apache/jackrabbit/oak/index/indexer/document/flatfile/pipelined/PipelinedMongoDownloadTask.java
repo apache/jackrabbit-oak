@@ -46,6 +46,7 @@ import org.bson.BsonDocument;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -140,8 +141,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      * @param customExcludedPathsRegex A custom regex pattern to exclude paths from the download.
      * @return The filter to be used in the Mongo query, or null if no filter is required
      */
-    private static Bson computeMongoQueryFilter(MongoFilterPaths mongoFilterPaths, String customExcludedPathsRegex) {
-        var filters = new ArrayList<Bson>();
+    static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludedPathsRegex) {
+        var filters = new ArrayList<Bson>(4);
         if (mongoFilterPaths != MongoFilterPaths.DOWNLOAD_ALL) {
             filters.add(descendantsFilter(mongoFilterPaths.included));
             if (!mongoFilterPaths.excluded.isEmpty()) {
@@ -172,7 +173,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static Bson createCustomExcludedPathsFilter(String customRegexPattern) {
+    static Bson createCustomExcludedPathsFilter(String customRegexPattern) {
         if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
             LOG.info("Mongo custom regex is disabled");
             return null;
