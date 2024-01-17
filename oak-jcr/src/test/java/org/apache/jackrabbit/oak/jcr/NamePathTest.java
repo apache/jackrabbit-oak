@@ -261,9 +261,6 @@ public class NamePathTest {
             String remappedPrefix = remappedName.substring(0, colon);
             assertNotEquals("prefix after mapping must be different", prefix, remappedPrefix);
 
-            // OAK-10544: adding the line below makes the test pass
-            // session.getNamespacePrefix(uri1);
-
             assertEquals("remapped prefix need to map to original URI " + uri1, uri1, session.getNamespaceURI(remappedPrefix));
         } finally {
             session.getWorkspace().getNamespaceRegistry().unregisterNamespace(prefix);
