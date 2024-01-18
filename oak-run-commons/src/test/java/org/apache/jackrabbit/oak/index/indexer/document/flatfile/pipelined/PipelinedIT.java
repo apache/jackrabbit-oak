@@ -324,19 +324,39 @@ public class PipelinedIT {
 
     @Test
     public void createFFSCustomExcludePathsRegex() throws Exception {
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
-                "/content/dam/2022/.*$|/content/dam/2023/.*$|/content/dam/Z12345678901234567890-Level_0.*$");
+        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*");
         Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
 
-        testSuccessfulDownload(pathPredicate, null, List.of(
+        Backend rwStore = createNodeStore(false);
+
+        // Create content
+        var rwNodeStore = rwStore.documentNodeStore;
+        @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+        @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
+        contentDamBuilder.child("a.jpg").child("jcr:content").child("metadata.xml");
+        contentDamBuilder.child("a.jpg").child("jcr:content").child("metadata.text");
+        contentDamBuilder.child("image_a.png").child("jcr:content").child("metadata.text");
+        contentDamBuilder.child("image_a.png").child("jcr:content").child("metadata.xml");
+        rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        Backend roStore = createNodeStore(true);
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, null);
+
+        File file = pipelinedStrategy.createSortedStoreFile();
+
+        assertTrue(file.exists());
+        var expected = List.of(
                 "/|{}",
                 "/content|{}",
                 "/content/dam|{}",
-                "/content/dam/1000|{}",
-                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-                "/content/dam/2022|{}",
-                "/content/dam/2023|{\"p2\":\"v2023\"}"
-        ));
+                "/content/dam/a.jpg|{}",
+                "/content/dam/image_a.png|{}",
+                "/content/dam/image_a.png/jcr:content|{}",
+                "/content/dam/image_a.png/jcr:content/metadata.text|{}"
+        );
+        assertEquals(expected, Files.readAllLines(file.toPath()));
+        assertMetrics();
     }
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters)
