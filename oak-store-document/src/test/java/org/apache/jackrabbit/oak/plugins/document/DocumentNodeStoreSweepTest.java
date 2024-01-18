@@ -302,7 +302,7 @@ public class DocumentNodeStoreSweepTest {
         th2.start();
 
         // wait for the separate thread to update /parent/foo but not commit yet
-        breakpoint1.tryAcquire(1, 30, TimeUnit.SECONDS);
+        assertTrue(breakpoint1.tryAcquire(1, 30, TimeUnit.SECONDS));
 
         // then continue with the regular collision on 4
         merge(ns4, collisionBuilder4);
