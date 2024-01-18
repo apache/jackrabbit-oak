@@ -30,6 +30,12 @@ public class ConfigHelper {
         return result;
     }
 
+    public static String getSystemPropertyAsString(String name, String defaultValue) {
+        String result = System.getProperty(name, defaultValue);
+        LOG.info("Config {}={}", name, result);
+        return result;
+    }
+
     public static boolean getSystemPropertyAsBoolean(String name, boolean defaultValue) {
         String sysPropValue = System.getProperty(name);
         boolean value;
