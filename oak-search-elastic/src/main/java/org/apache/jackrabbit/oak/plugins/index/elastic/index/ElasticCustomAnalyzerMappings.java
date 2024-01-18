@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.cjk.CJKBigramFilterFactory;
 import org.apache.lucene.analysis.commongrams.CommonGramsFilterFactory;
@@ -33,7 +34,6 @@ import org.apache.lucene.analysis.pattern.PatternCaptureGroupFilterFactory;
 import org.apache.lucene.analysis.payloads.DelimitedPayloadTokenFilterFactory;
 import org.apache.lucene.analysis.shingle.ShingleFilterFactory;
 import org.apache.lucene.analysis.synonym.SynonymFilterFactory;
-import org.apache.lucene.analysis.util.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.util.ElisionFilterFactory;
 import org.jetbrains.annotations.Nullable;
 
@@ -76,7 +76,7 @@ public class ElasticCustomAnalyzerMappings {
     static {
         CONTENT_TRANSFORMERS = new LinkedHashMap<>();
         CONTENT_TRANSFORMERS.put("mapping", line -> {
-            if (line.length() == 0 || line.startsWith("#")) {
+            if (line.isEmpty() || line.startsWith("#")) {
                 return null;
             } else {
                 return line.replaceAll("\"", "");

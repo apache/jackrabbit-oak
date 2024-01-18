@@ -36,8 +36,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
-import static java.util.Arrays.asList;
 import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -68,7 +66,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         root.commit();
 
         // results are sorted by score desc, node `b` returns first because it has a higher score from a tf/idf perspective
-        assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello')", asList("/test/b", "/test/a"));
+        assertEventually(() -> assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello')", List.of("/test/b", "/test/a")));
     }
 
     @Test
@@ -84,11 +82,13 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         test.addChild("b").setProperty("foo", "hello hello");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello') order by [jcr:score]",
-                asList("/test/a", "/test/b"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello') order by [jcr:score]",
+                    List.of("/test/a", "/test/b"));
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello') order by [jcr:score] DESC",
-                asList("/test/b", "/test/a"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] where contains(foo, 'hello') order by [jcr:score] DESC",
+                    List.of("/test/b", "/test/a"));
+        });
     }
 
     @Test
@@ -100,8 +100,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         test.addChild("b").setProperty("foo", "bar");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by [jcr:path]", asList("/test/a", "/test/b"));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by [jcr:path] DESC", asList("/test/b", "/test/a"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by [jcr:path]", List.of("/test/a", "/test/b"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by [jcr:path] DESC", List.of("/test/b", "/test/a"));
+        });
     }
 
     @Test
@@ -119,8 +121,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         b.setProperty("baz", "aaaaaa");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz", asList("/test/b", "/test/a"));
-        assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz DESC", asList("/test/a", "/test/b"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz", List.of("/test/b", "/test/a"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by @baz DESC", List.of("/test/a", "/test/b"));
+        });
     }
 
     @Test
@@ -148,8 +152,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "select [jcr:path] from [nt:base] as a where isdescendantnode(a, '/test')";
-        assertOrderedQuery(query + " order by [dt]", asList("/test/a", "/test/b", "/test/c"));
-        assertOrderedQuery(query + " order by [dt] desc", asList("/test/c", "/test/b", "/test/a"));
+        assertEventually(() -> {
+            assertOrderedQuery(query + " order by [dt]", List.of("/test/a", "/test/b", "/test/c"));
+            assertOrderedQuery(query + " order by [dt] desc", List.of("/test/c", "/test/b", "/test/a"));
+        });
     }
 
     @Test
@@ -177,8 +183,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "select [jcr:path] from [nt:base] as a where isdescendantnode(a, '/test')";
-        assertOrderedQuery(query + " order by [dt]", asList("/test/a", "/test/b", "/test/c"));
-        assertOrderedQuery(query + " order by [dt] desc", asList("/test/c", "/test/b", "/test/a"));
+        assertEventually(() -> {
+            assertOrderedQuery(query + " order by [dt]", List.of("/test/a", "/test/b", "/test/c"));
+            assertOrderedQuery(query + " order by [dt] desc", List.of("/test/c", "/test/b", "/test/a"));
+        });
     }
 
     @Test
@@ -192,8 +200,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         test.addChild("b").setProperty("foo", "bar");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by lower(name(a))", asList("/test/A", "/test/b"));
-        assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by lower(name(a)) DESC", asList("/test/b", "/test/A"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by lower(name(a))", List.of("/test/A", "/test/b"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] as a where foo = 'bar' order by lower(name(a)) DESC", List.of("/test/b", "/test/A"));
+        });
     }
 
     @Test
@@ -209,8 +219,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         b.setProperty("baz", "aaaaaa");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", asList("/test/b", "/test/a"));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", asList("/test/a", "/test/b"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", List.of("/test/b", "/test/a"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", List.of("/test/a", "/test/b"));
+        });
     }
 
     @Test
@@ -232,9 +244,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
 
         // this test verifies we use the keyword multi field when an analyzed properties is specified in order by
         // http://www.technocratsid.com/string-sorting-in-elasticsearch/
-
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", asList("/test/a", "/test/b"));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", asList("/test/b", "/test/a"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", List.of("/test/a", "/test/b"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", List.of("/test/b", "/test/a"));
+        });
     }
 
     @Test
@@ -253,8 +266,10 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         b.setProperty("baz", "5");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", asList("/test/b", "/test/a"));
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", asList("/test/a", "/test/b"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz", List.of("/test/b", "/test/a"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'bar' order by @baz DESC", List.of("/test/a", "/test/b"));
+        });
     }
 
     @Test
@@ -279,14 +294,16 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         b.setProperty("baz", "b");
         root.commit();
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @baz, @bar",
-                asList("/test/a1", "/test/a2", "/test/b"));
+        assertEventually(() -> {
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @baz, @bar",
+                    List.of("/test/a1", "/test/a2", "/test/b"));
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @baz, @bar DESC",
-                asList("/test/a2", "/test/a1", "/test/b"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @baz, @bar DESC",
+                    List.of("/test/a2", "/test/a1", "/test/b"));
 
-        assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @bar DESC, @baz DESC",
-                asList("/test/b", "/test/a2", "/test/a1"));
+            assertOrderedQuery("select [jcr:path] from [nt:base] where foo = 'foobar' order by @bar DESC, @baz DESC",
+                    List.of("/test/b", "/test/a2", "/test/a1"));
+        });
     }
 
     @Test
@@ -298,7 +315,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
                 .propertyIndex()
                 .ordered()
                 .function("fn:name()");
-        idbFnName.getBuilderTree().setProperty("tags", of("fnName"), STRINGS);
+        idbFnName.getBuilderTree().setProperty("tags", List.of("fnName"), STRINGS);
         indexOptions.setIndex(root, "fnName", indexOptions.createIndex(idbFnName, false));
 
         // same index as above except for function - "name()"
@@ -308,7 +325,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
                 .propertyIndex()
                 .ordered()
                 .function("name()");
-        idbName.getBuilderTree().setProperty("tags", of("name"), STRINGS);
+        idbName.getBuilderTree().setProperty("tags", List.of("name"), STRINGS);
         indexOptions.setIndex(root, "name", indexOptions.createIndex(idbName, false));
 
         Tree testTree = root.getTree("/").addChild("test");
@@ -319,30 +336,32 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         }).sorted().collect(Collectors.toList());
         root.commit();
 
-        String query = "/jcr:root/test/* order by fn:name() option(index tag fnName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnName(/oak:index/fnName)");
-        assertEquals(expected, executeQuery(query, XPATH));
+        assertEventually(() -> {
+            String query = "/jcr:root/test/* order by fn:name() option(index tag fnName)";
+            assertXpathPlan(query, "/oak:index/fnName");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:name() ascending option(index tag fnName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnName(/oak:index/fnName)");
-        assertEquals(expected, executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:name() ascending option(index tag fnName)";
+            assertXpathPlan(query, "/oak:index/fnName");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnName(/oak:index/fnName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:name() descending option(index tag fnName)";
+            assertXpathPlan(query, "/oak:index/fnName");
+            assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
 
-        // order by fn:name() although function index is on "name()"
-        query = "/jcr:root/test/* order by fn:name() option(index tag name)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":name(/oak:index/name)");
-        assertEquals(expected, executeQuery(query, XPATH));
+            // order by fn:name() although function index is on "name()"
+            query = "/jcr:root/test/* order by fn:name() option(index tag name)";
+            assertXpathPlan(query, "/oak:index/name");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:name() ascending option(index tag name)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":name(/oak:index/name)");
-        assertEquals(expected, executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:name() ascending option(index tag name)";
+            assertXpathPlan(query, "/oak:index/name");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":name(/oak:index/name)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:name() descending option(index tag name)";
+            assertXpathPlan(query, "/oak:index/name");
+            assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+        });
     }
 
     @Test
@@ -354,7 +373,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
                 .propertyIndex()
                 .ordered()
                 .function("fn:local-name()");
-        idbFnLocalName.getBuilderTree().setProperty("tags", of("fnLocalName"), STRINGS);
+        idbFnLocalName.getBuilderTree().setProperty("tags", List.of("fnLocalName"), STRINGS);
         indexOptions.setIndex(root, "fnLocalName", indexOptions.createIndex(idbFnLocalName, false));
 
         // same index as above except for function - "localName()"
@@ -364,7 +383,7 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
                 .propertyIndex()
                 .ordered()
                 .function("localname()");
-        idbLocalName.getBuilderTree().setProperty("tags", of("localName"), STRINGS);
+        idbLocalName.getBuilderTree().setProperty("tags", List.of("localName"), STRINGS);
         indexOptions.setIndex(root, "localName", indexOptions.createIndex(idbLocalName, false));
 
         Tree testTree = root.getTree("/").addChild("test");
@@ -391,30 +410,32 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         }).collect(Collectors.toList());
         root.commit();
 
-        String query = "/jcr:root/test/* order by fn:local-name() option(index tag fnLocalName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnLocalName(/oak:index/fnLocalName)");
-        assertEquals(expected, executeQuery(query, XPATH));
+        assertEventually(() -> {
+            String query = "/jcr:root/test/* order by fn:local-name() option(index tag fnLocalName)";
+            assertXpathPlan(query, "/oak:index/fnLocalName");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag fnLocalName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnLocalName(/oak:index/fnLocalName)");
-        assertEquals(expected, executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag fnLocalName)";
+            assertXpathPlan(query, "/oak:index/fnLocalName");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag fnLocalName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":fnLocalName(/oak:index/fnLocalName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:local-name() descending option(index tag fnLocalName)";
+            assertXpathPlan(query, "/oak:index/fnLocalName");
+            assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
 
-        // order by fn:name() although function index is on "name()"
-        query = "/jcr:root/test/* order by fn:local-name() option(index tag localName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":localName(/oak:index/localName)");
-        assertEquals(expected, executeQuery(query, XPATH));
+            // order by fn:name() although function index is on "name()"
+            query = "/jcr:root/test/* order by fn:local-name() option(index tag localName)";
+            assertXpathPlan(query, "/oak:index/localName");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag localName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":localName(/oak:index/localName)");
-        assertEquals(expected, executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:local-name() ascending option(index tag localName)";
+            assertXpathPlan(query, "/oak:index/localName");
+            assertEquals(expected, executeQuery(query, XPATH));
 
-        query = "/jcr:root/test/* order by fn:local-name() descending option(index tag localName)";
-        assertXpathPlan(query, indexOptions.getIndexType() + ":localName(/oak:index/localName)");
-        assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+            query = "/jcr:root/test/* order by fn:local-name() descending option(index tag localName)";
+            assertXpathPlan(query, "/oak:index/localName");
+            assertEquals(Lists.reverse(expected), executeQuery(query, XPATH));
+        });
     }
 
     @Test
@@ -447,44 +468,50 @@ public abstract class OrderByCommonTest extends AbstractQueryTest {
         for (int i = 0; i < 10; i++) {
             testRoot.addChild("extra" + i).setProperty("foo", "stuff");
         }
-
         root.commit();
 
-        List<String> expected = asList(c2.getPath(), c1.getPath(), c3.getPath());
+        List<String> expected = List.of(c2.getPath(), c1.getPath(), c3.getPath());
 
-        // manual union
-        String query =
-                "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path1.getPath() + "')" +
-                        " union " +
-                        "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path2.getPath() + "')" +
-                        " order by [jcr:score] desc";
+        assertEventually(() -> {
+            // manual union
+            String query =
+                    "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path1.getPath() + "')" +
+                            " union " +
+                            "select [jcr:path] from [nt:base] where contains(*, 'bar') and isdescendantnode('" + path2.getPath() + "')" +
+                            " order by [jcr:score] desc";
 
-        assertEquals(expected, executeQuery(query, SQL2));
+            assertEquals(expected, executeQuery(query, SQL2));
 
-        // no union (estimated fulltext without union would be same as sub-queries and it won't be optimized
-        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
-                " and (isdescendantnode('" + path1.getPath() + "') or" +
-                " isdescendantnode('" + path2.getPath() + "'))" +
-                " order by [jcr:score] desc";
+            // no union (estimated fulltext without union would be same as sub-queries and it won't be optimized
+            query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
+                    " and (isdescendantnode('" + path1.getPath() + "') or" +
+                    " isdescendantnode('" + path2.getPath() + "'))" +
+                    " order by [jcr:score] desc";
 
-        assertEquals(expected, executeQuery(query, SQL2));
+            assertEquals(expected, executeQuery(query, SQL2));
 
-        // optimization UNION as we're adding constraints to sub-queries that would improve cost of optimized union
-        query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
-                " and ( (p1 = 'd' and isdescendantnode('" + path1.getPath() + "')) or" +
-                " (p2 = 'd' and isdescendantnode('" + path2.getPath() + "')))" +
-                " order by [jcr:score] desc";
+            // optimization UNION as we're adding constraints to sub-queries that would improve cost of optimized union
+            query = "select [jcr:path] from [nt:base] where contains(*, 'bar')" +
+                    " and ( (p1 = 'd' and isdescendantnode('" + path1.getPath() + "')) or" +
+                    " (p2 = 'd' and isdescendantnode('" + path2.getPath() + "')))" +
+                    " order by [jcr:score] desc";
 
-        assertEquals(expected, executeQuery(query, SQL2));
+            assertEquals(expected, executeQuery(query, SQL2));
+        });
     }
 
-    private void assertXpathPlan(String query, String planExpectation) throws ParseException {
+    private void assertXpathPlan(String query, String planExpectation) {
         assertThat(explainXpath(query), containsString(planExpectation));
     }
 
-    private String explainXpath(String query) throws ParseException {
+    private String explainXpath(String query) {
         String explain = "explain " + query;
-        Result result = executeQuery(explain, "xpath", NO_BINDINGS);
+        Result result;
+        try {
+            result = executeQuery(explain, "xpath", NO_BINDINGS);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
         ResultRow row = Iterables.getOnlyElement(result.getRows());
         return row.getValue("plan").getValue(Type.STRING);
     }

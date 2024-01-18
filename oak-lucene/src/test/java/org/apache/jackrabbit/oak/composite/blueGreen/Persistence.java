@@ -372,7 +372,11 @@ public class Persistence {
         }        
         
     }
-    
+
+    public MountInfoProvider getMountInfoProvider() {
+        return MOUNT_INFO_PROVIDER;
+    }
+
     public static class Config {
         public BlobStore blobStore;
         public File indexDir;

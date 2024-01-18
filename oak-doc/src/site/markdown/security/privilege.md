@@ -112,6 +112,9 @@ of the default access control and permission evaluation.
 - Mapping Privileges to Items and API Calls
     - [Mapping Privileges to Items](privilege/mappingtoitems.html)
     - [Mapping API Calls to Privileges](privilege/mappingtoprivileges.html)
+- Mapping JCR/Jackrabbit Actions
+    - [Mapping Privileges to JCR/Jackrabbit Actions](privilege/mappingprivilegestoactions.html)
+    - [Mapping of JCR Actions to Oak Permissions](permission.html#mapping-of-jcr-actions-to-oak-permissions)
 
 
 <!-- references -->

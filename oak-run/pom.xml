@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.57-SNAPSHOT</version>
+    <version>1.61-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -31,7 +31,7 @@
   <name>Oak Runnable Jar</name>
 
   <properties>
-    <jetty.version>9.4.46.v20220331</jetty.version>
+    <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
       + 60 MB Groovy 2.5 (OAK-10066)
@@ -474,8 +474,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.arakelian</groupId>
-      <artifactId>docker-junit-rule</artifactId>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

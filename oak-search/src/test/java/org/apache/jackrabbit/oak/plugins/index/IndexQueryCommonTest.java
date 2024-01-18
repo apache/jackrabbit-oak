@@ -207,7 +207,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
         root.commit();
 
         String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), false));
     }
 
     // Check if this is a valid behaviour or not ?
@@ -216,7 +216,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
     @Test
     public void descendantTestWithIndexTagExplainWithNoData() {
         String query = "explain select [jcr:path] from [nt:base] where isdescendantnode('/test') option (index tag x)";
-        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), true));
+        assertEventually(getAssertionForExplain(query, Query.JCR_SQL2, getExplainValueForDescendantTestWithIndexTagExplain(), false));
     }
 
     @Test
@@ -823,7 +823,7 @@ public abstract class IndexQueryCommonTest extends AbstractQueryTest {
             }
             ResultRow row = result.getRows().iterator().next();
             if (matchComplete) {
-                assertEquals(row.getValue("plan").toString(), expected);
+                assertEquals(expected, row.getValue("plan").toString());
             } else {
                 assertTrue(row.getValue("plan").toString().contains(expected));
             }

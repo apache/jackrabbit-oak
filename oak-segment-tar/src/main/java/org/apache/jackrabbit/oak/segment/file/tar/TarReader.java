@@ -34,6 +34,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
@@ -244,7 +245,7 @@ public class TarReader implements Closeable {
                 SegmentArchiveReader reader = openStrategy.open(archiveManager, name);
                 if (reader != null) {
                     for (String other : archives) {
-                        if (other != name) {
+                        if (!Objects.equals(other, name)) {
                             log.info("Removing unused tar file {}", other);
                             archiveManager.delete(other);
                         }

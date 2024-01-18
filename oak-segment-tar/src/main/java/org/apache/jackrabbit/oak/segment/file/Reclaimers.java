@@ -36,6 +36,19 @@ class Reclaimers {
     }
 
     /**
+     * Create a reclaimer that will never reclaim a segment.
+     */
+    static Predicate<GCGeneration> newEmptyReclaimer() {
+        return new Predicate<GCGeneration>() {
+
+            @Override
+            public boolean apply(GCGeneration generation) {
+                return false;
+            }
+        };
+    }
+
+    /**
      * Create a reclaimer for segments of old generations. Whether a segment is considered old and
      * thus reclaimable depends on the type of the most recent GC operation and the number of
      * retained generations.
@@ -137,7 +150,7 @@ class Reclaimers {
     /**
      * Create an exact reclaimer. An exact reclaimer reclaims only segment of on single generation.
      * @param referenceGeneration  the generation to collect.
-     * @return  an new instance of an exact reclaimer for segments with their generation
+     * @return  a new instance of an exact reclaimer for segments with their generation
      *          matching {@code referenceGeneration}.
      */
     static Predicate<GCGeneration> newExactReclaimer(@NotNull final GCGeneration referenceGeneration) {

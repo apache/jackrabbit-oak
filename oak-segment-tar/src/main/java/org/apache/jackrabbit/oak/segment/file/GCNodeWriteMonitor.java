@@ -48,17 +48,18 @@ public class GCNodeWriteMonitor {
     private long estimated = -1;
 
     /**
-     * Number of compacted nodes
+     * Number of compacted nodes. This is queried much more often than other properties,
+     * therefore it is the only one to use {@link AtomicLong} instead of {@link LongAdder}.
      */
     private long nodes;
 
     /**
-     * Number of compacted properties
+     * Number of compacted properties.
      */
     private long properties;
 
     /**
-     * Number of compacted binaries
+     * Number of compacted binaries.
      */
     private long binaries;
 
@@ -88,6 +89,8 @@ public class GCNodeWriteMonitor {
             gcMonitor.info("unable to estimate number of nodes for compaction, missing gc history.");
         }
         nodes = 0;
+        properties = 0;
+        binaries = 0;
         start = System.currentTimeMillis();
         running = true;
     }

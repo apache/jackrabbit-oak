@@ -47,6 +47,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     private String uri;
     private String name;
     private String collectionCompressionType;
+    private MongoClient mongoClient;
 
     /**
      * Uses the given information to connect to to MongoDB as backend
@@ -212,6 +213,15 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return mongoStatus;
     }
 
+    /**
+     * Returns the MongoDB client configured in the {@link #setMongoDB(String, String, int)} method.
+     *
+     * @return the client or null if the {@link #setMongoDB(String, String, int)} method hasn't been called.
+     */
+    public MongoClient getMongoClient() {
+        return mongoClient;
+    }
+
     long getMaxReplicationLagMillis() {
         return maxReplicationLagMillis;
     }
@@ -227,16 +237,17 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
         return newMongoDBConnection(uri, name, mongoClock, socketTimeout, socketKeepAlive);
     }
 
-    private T setMongoDB(@NotNull MongoDBConnection client,
+    private T setMongoDB(@NotNull MongoDBConnection mongoDBConnection,
                          int blobCacheSizeMB) {
-        client.checkReadWriteConcern();
-        this.mongoStatus = client.getStatus();
+        mongoDBConnection.checkReadWriteConcern();
+        this.mongoClient = mongoDBConnection.getClient();
+        this.mongoStatus = mongoDBConnection.getStatus();
         this.documentStoreSupplier = memoize(() -> new MongoDocumentStore(
-                client.getClient(), client.getDatabase(), MongoDocumentNodeStoreBuilderBase.this));
+                mongoDBConnection.getClient(), mongoDBConnection.getDatabase(), MongoDocumentNodeStoreBuilderBase.this));
 
         if (this.blobStoreSupplier == null) {
             this.blobStoreSupplier = memoize(
-                    () -> new MongoBlobStore(client.getDatabase(), blobCacheSizeMB * 1024 * 1024L, MongoDocumentNodeStoreBuilderBase.this));
+                    () -> new MongoBlobStore(mongoDBConnection.getDatabase(), blobCacheSizeMB * 1024 * 1024L, MongoDocumentNodeStoreBuilderBase.this));
         }
 
         return thisBuilder();

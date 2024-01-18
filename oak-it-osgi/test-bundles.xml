@@ -30,8 +30,6 @@
       <includes>
         <include>javax.jcr:jcr</include>
         <include>javax.servlet:javax.servlet-api</include>
-        <!-- to be removed when OAK-10371 is resolved -->
-        <include>com.google.guava:guava</include>
         <include>org.slf4j:slf4j-api</include>
         <include>ch.qos.logback:logback-core</include>
         <include>ch.qos.logback:logback-classic</include>
@@ -57,6 +55,7 @@
         <include>org.apache.jackrabbit:oak-segment-azure</include>
         <include>org.apache.jackrabbit:oak-jcr</include>
         <include>org.apache.jackrabbit:oak-lucene</include>
+        <include>org.apache.jackrabbit:oak-search-elastic</include>
         <include>org.apache.tika:tika-core</include>
         <include>org.apache.jackrabbit:oak-blob</include>
         <include>org.apache.jackrabbit:oak-blob-cloud-azure</include>

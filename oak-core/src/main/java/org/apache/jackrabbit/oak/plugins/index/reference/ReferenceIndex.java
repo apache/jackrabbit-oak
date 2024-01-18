@@ -36,6 +36,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.plugins.index.property.Multiplexers;
 import org.apache.jackrabbit.oak.plugins.index.property.strategy.IndexStoreStrategy;
+import org.apache.jackrabbit.oak.query.SQL2Parser;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
@@ -163,23 +164,25 @@ class ReferenceIndex implements QueryIndex {
 
     @Override
     public String getPlan(Filter filter, NodeState root) {
-        StringBuilder buff = new StringBuilder("reference");
+        StringBuilder buff = new StringBuilder();
+        buff.append("reference\n");
         for (PropertyRestriction pr : filter.getPropertyRestrictions()) {
             if (pr.propertyType == REFERENCE) {
-                buff.append(" PROPERTY([");
+                buff.append("    on: property([");
                 buff.append(pr.propertyName);
                 buff.append("], 'Reference') = ");
-                buff.append(pr.first.getValue(STRING));
-                return buff.toString();
+                buff.append(SQL2Parser.escapeStringLiteral(pr.first.getValue(STRING)));
+                break;
             }
             if (pr.propertyType == WEAKREFERENCE) {
-                buff.append(" PROPERTY([");
+                buff.append("    on: property([");
                 buff.append(pr.propertyName);
                 buff.append("], 'WeakReference') = ");
-                buff.append(pr.first.getValue(STRING));
-                return buff.toString();
+                buff.append(SQL2Parser.escapeStringLiteral(pr.first.getValue(STRING)));
+                break;
             }
         }
+        buff.append("\n");
         return buff.toString();
     }
 

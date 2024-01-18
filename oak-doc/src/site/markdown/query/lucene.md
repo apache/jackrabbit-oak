@@ -253,7 +253,7 @@ refresh
 
 [blobSize][OAK-2201]
 : Default value 32768 (32kb).
-: Size in bytes used for splitting the index files when storing them in NodeStore
+: Size in bytes used for splitting the index files when storing them
 
 functionName
 : Name to be used to enable index usage with [native query support](#native-query).
@@ -659,6 +659,8 @@ node to easier search on content that is scattered across multiple nodes.
 Oak allows you to define index aggregates based on relative path patterns and
 primary node types. Changes to aggregated items cause the main item to be
 reindexed, even if it was not modified.
+
+<b>Please note that aggregation does not support nodeType inheritance. To support aggregation on child nodeTypes, they need to be explicitly defined as a separate aggregation configuration in the index definition.</b>
 
 Aggregation configuration is defined under the `aggregates` node under index
 configuration. The following example creates an index aggregate on nt:file that
@@ -1342,8 +1344,8 @@ To disable active deletion in a certain installation, set the system property `o
 ### <a name="luke"></a>Analyzing created Lucene Index
 
 [Luke]  is a handy development and diagnostic tool, which accesses already
-existing Lucene indexes and allows you to display index details. In Oak
-Lucene index files are stored in `NodeStore` and hence not directly
+existing Lucene indexes and allows you to display index details. In Oak,
+Lucene index files are not directly
 accessible. To enable analyzing the index files via Luke follow below
 mentioned steps
 
@@ -1353,8 +1355,8 @@ mentioned steps
 
         $wget https://github.com/DmitryKey/luke/releases/download/4.7.0/luke-with-deps.jar
 
-2. Use the [Oak Console][oak-console] to dump the Lucene index from `NodeStore`
-   to filesystem directory. Use the `lc dump` command
+2. Use the [Oak Console][oak-console] to dump the Lucene index files to a directory.
+   Use the `lc dump` command as follows:
 
         $ java -jar oak-run-*.jar console /path/to/oak/repository
         Apache Jackrabbit Oak 1.1-SNAPSHOT
@@ -1375,7 +1377,7 @@ mentioned steps
         Copied 8.5 MB in 218.7 ms
         />
 
-3. Post dump open the index via Luke. Oak Lucene uses a [custom
+3. Afterwards, open the index via Luke. Oak Lucene uses a [custom
    Codec][OAK-1737]. So oak-lucene jar needs to be included in Luke classpath
    for it to display the index details
 

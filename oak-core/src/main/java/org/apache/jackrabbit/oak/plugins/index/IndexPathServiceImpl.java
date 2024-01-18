@@ -22,7 +22,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 import java.util.Iterator;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
-import org.apache.jackrabbit.guava.common.collect.Iterators;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.plugins.index.nodetype.NodeTypeIndexProvider;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -35,7 +34,6 @@ import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.query.IndexRow;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
-import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
@@ -115,5 +113,10 @@ public class IndexPathServiceImpl implements IndexPathService {
         NodeTypeIndexProvider idxProvider = new NodeTypeIndexProvider();
         idxProvider.with(mountInfoProvider);
         return idxProvider.getQueryIndexes(nodeStore.getRoot()).get(0);
+    }
+
+    @Override
+    public MountInfoProvider getMountInfoProvider() {
+        return mountInfoProvider;
     }
 }

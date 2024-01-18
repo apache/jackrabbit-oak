@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.57-SNAPSHOT</version>
+  <version>1.61-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -45,7 +45,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.12</jackrabbit.version>
+    <jackrabbit.version>2.20.14</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -61,17 +61,16 @@
     <logback.version>1.2.10</logback.version>
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
-    <!-- OAK-10369 --><guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.15.2</jackson.version>
-    <testcontainers.version>1.18.3</testcontainers.version>
+    <jackson.version>2.16.1</jackson.version>
+    <testcontainers.version>1.19.0</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>2.5.22</groovy.version>
-
-    <java.version>11</java.version>
-    <maven.compiler.release>${java.version}</maven.compiler.release>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <minimalJavaBuildVersion>${java.version}</minimalJavaBuildVersion>
+    <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
+    <javaTargetVersion>11</javaTargetVersion>
+    <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
+    <maven.compiler.target>${javaTargetVersion}</maven.compiler.target>
+    <minimalJavaBuildVersion>${javaTargetVersion}</minimalJavaBuildVersion>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -556,12 +555,12 @@
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>3.6</version>
+        <version>5.2.0</version>
       </dependency>
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
-        <version>4.11.0</version>
+        <version>5.6.0</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -705,20 +704,22 @@
         <artifactId>httpmime</artifactId>
         <version>4.5.14</version>
       </dependency>
+      <!-- Testcontainers dependency -->
       <dependency>
-        <groupId>com.arakelian</groupId>
-        <artifactId>docker-junit-rule</artifactId>
-        <version>2.3.0</version>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers</artifactId>
+        <version>${testcontainers.version}</version>
+        <scope>test</scope>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-storage</artifactId>
-        <version>8.6.0</version>
+        <version>8.6.6</version>
       </dependency>
       <dependency>
         <groupId>com.microsoft.azure</groupId>
         <artifactId>azure-keyvault-core</artifactId>
-        <version>1.2.2</version>
+        <version>1.2.6</version>
       </dependency>
 
       <!-- Pax Exam Integration Test Dependencies -->
@@ -780,6 +781,12 @@
         <groupId>javax.inject</groupId>
         <artifactId>javax.inject</artifactId>
         <version>1</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.github.stefanbirkner</groupId>
+        <artifactId>system-rules</artifactId>
+        <version>1.19.0</version>
         <scope>test</scope>
       </dependency>
     </dependencies>

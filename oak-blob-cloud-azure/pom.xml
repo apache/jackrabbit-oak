@@ -21,7 +21,7 @@
     <parent>
         <artifactId>oak-parent</artifactId>
         <groupId>org.apache.jackrabbit</groupId>
-        <version>1.57-SNAPSHOT</version>
+        <version>1.61-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -36,10 +36,12 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <configuration>
-                    <instructions>
+                    <instructions combine.self="override">
                         <Import-Package>
-                            <!-- OAK-10369 -->${guava.osgi.import},
-                            *
+                          !com.google.*,
+                          !org.checkerframework.*,
+                          !android.os,
+                          *
                         </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
@@ -47,8 +49,12 @@
                         <DynamicImport-Package>sun.io</DynamicImport-Package>
                         <Embed-Dependency>
                             azure-storage,
-                            azure-keyvault-core
+                            azure-keyvault-core,
+                            guava,
+                            jsr305
                         </Embed-Dependency>
+                        <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
+                        <_plugin />
                     </instructions>
                 </configuration>
             </plugin>
@@ -138,6 +144,17 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
         </dependency>
+        <!-- Azure Guava dependency -->
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>33.0.0-jre</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+            <version>3.0.2</version>
+        </dependency>
 
         <!-- Test dependencies -->
         <dependency>
@@ -181,10 +198,9 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
-
         <dependency>
-            <groupId>com.arakelian</groupId>
-            <artifactId>docker-junit-rule</artifactId>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
 
