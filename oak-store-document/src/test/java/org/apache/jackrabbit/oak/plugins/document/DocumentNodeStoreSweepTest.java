@@ -39,6 +39,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
+import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -68,6 +69,8 @@ public class DocumentNodeStoreSweepTest {
 
     private DocumentNodeStore ns;
 
+    private MongoFixture mf;
+
     @Before
     public void before() throws Exception {
         clock = new Clock.Virtual();
@@ -76,6 +79,14 @@ public class DocumentNodeStoreSweepTest {
         ClusterNodeInfo.setClock(clock);
         store = new FailingDocumentStore(new MemoryDocumentStore());
         ns = createDocumentNodeStore(0);
+    }
+
+    @After
+    public void after() throws Exception {
+        if (mf != null) {
+            mf.dispose();
+            mf = null;
+        }
     }
 
     @AfterClass
@@ -234,7 +245,7 @@ public class DocumentNodeStoreSweepTest {
 
         };
 
-        MongoFixture mf = pausableMongoDocumentStore("2:/parent/foo",
+        mf = pausableMongoDocumentStore("2:/parent/foo",
                 breakOnceInThread);
         DocumentStore store1 = mf.createDocumentStore(4);
         DocumentStore store2 = mf.createDocumentStore(2);
@@ -258,6 +269,7 @@ public class DocumentNodeStoreSweepTest {
         ns4.runBackgroundOperations();
         ns2.runBackgroundOperations();
 
+        final Semaphore successOn2 = new Semaphore(0);
         Runnable codeOn2 = new Runnable() {
 
             @Override
@@ -272,6 +284,7 @@ public class DocumentNodeStoreSweepTest {
                     fail("supposed to fail");
                 } catch (CommitFailedException e) {
                     // supposed to fail
+                    successOn2.release();
                 }
             }
 
@@ -308,8 +321,7 @@ public class DocumentNodeStoreSweepTest {
 
         // release things and go ahead
         breakpoint2.release();
-        // (no need to wait for th2 as it blocks anything on ns2 anyway,
-        // so is anyway waited for)
+        assertTrue(successOn2.tryAcquire(5, TimeUnit.SECONDS));
 
         // some bg ops...
         ns4.runBackgroundOperations();
@@ -330,8 +342,7 @@ public class DocumentNodeStoreSweepTest {
         // "_deleted":{"r123456789a-0-2":"true",..}
         // 2) plus it now resolves to commitValue "c" since it is now passed
         // the sweep revision (since we did another commit/bg just few lines above)
-        assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
-        mf.dispose();
+        assertTrue("/parent/foo should exist", ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
     }
 
     @Test
