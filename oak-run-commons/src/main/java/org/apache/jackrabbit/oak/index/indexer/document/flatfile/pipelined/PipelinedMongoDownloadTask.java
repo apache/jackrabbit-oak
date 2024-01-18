@@ -143,8 +143,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     /**
      * Creates the filter to be used in the Mongo query
      *
-     * @param mongoFilterPaths          The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
-     *                                  (see {@link MongoFilterPaths} for details)
+     * @param mongoFilterPaths         The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
+     *                                 (see {@link MongoFilterPaths} for details)
      * @param customExcludeEntriesRegex Documents with paths matching this regex are excluded from download
      * @return The filter to be used in the Mongo query, or null if no filter is required
      */
@@ -189,7 +189,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             var pattern = Pattern.compile(customRegexPattern);
             return Filters.nor(
                     Filters.regex(NodeDocument.ID, pattern),
-                    Filters.regex(NodeDocument.PATH, pattern)
+                    Filters.and(
+                            Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN),
+                            Filters.regex(NodeDocument.PATH, pattern)
+                    )
             );
         }
     }
@@ -219,7 +222,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
         return Filters.or(
                 Filters.in(NodeDocument.ID, idPatterns),
-                Filters.in(NodeDocument.PATH, pathPatterns)
+                Filters.and(
+                        Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN),
+                        Filters.in(NodeDocument.PATH, pathPatterns)
+                )
         );
     }
 
