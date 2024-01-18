@@ -184,15 +184,12 @@ public class DocumentNodeStoreSweepTest {
      * doing so versus mongo by first setting _deleted:true on those two nodes
      * (using revision r123456789a-0-2)</li>
      * <li>before clusterId 2 continues, clusterId 4 comes with a conflicting update
-     * on /parent/foo (using revision r123456789b-0-4). This update notices
+     * on /parent/bar (using revision r123456789b-0-4). This update notices
      * the changes from 2 and leaves a corresponding collision marker (on 0:/
      * with _collisions.r123456789a-0-2=r123456789b-0-4)</li>
      * <li>beforre clusterId 4 proceeds, it happens to force a read from
-     * 2:/parent/foo from mongo - this is achieved in the test via 
-     * invalidateCache("2:/parent/foo"). While this is slightly hacky,
-     * it should be something that could happen eg via a mongo exception
-     * on clusterId 4, or an external change coming in to clusterId 4 
-     * for 2:/parent/foo.</li>
+     * 2:/parent/foo from mongo - this is achieved as a result of
+     * another /parent/foo</li>
      * <li>the result of the above is clusterId 4 having a state of 2:/parent/foo
      * in its MongoDocumentStore nodesCache that contains uncommitted information.
      * In this test case, that uncommitted information is a deletion. But it could
@@ -295,6 +292,9 @@ public class DocumentNodeStoreSweepTest {
         NodeBuilder collisionBuilder4 = ns4.getRoot().builder();
         collisionBuilder4.child("parent").child("bar").setProperty("collideOnPurpose",
                 "indeed");
+        // do the collision also on /parent/foo
+        collisionBuilder4.child("parent").child("foo").setProperty("someotherchange",
+                "42");
 
         // start /parent/foo deletion on 2 in a separate thread
         Thread th2 = new Thread(codeOn2);
@@ -306,15 +306,6 @@ public class DocumentNodeStoreSweepTest {
 
         // then continue with the regular collision on 4
         merge(ns4, collisionBuilder4);
-
-        // "somehow" cause 2:/parent/foo to be re-read from mongo
-        // this direct invalidation is arguably somewhat suboptimal
-        // would be nicer if this was done via a slightly higher level action
-        // that causes this.
-        // The main point being, that this reads
-        // "_deleted":{"r123456789a-0-2":"true",..}
-        // which is uncommitted state that later gets rolled back
-        ns4.getDocumentStore().invalidateCache(Collection.NODES, "2:/parent/foo");
 
         // check at this point though, /parent/foo is still there:
         assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
