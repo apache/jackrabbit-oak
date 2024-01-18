@@ -24,11 +24,18 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.api.Root;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Name mapper with local namespace mappings.
+ * <p>
+ * Note that mapping Oak names to JCR names may require adding new prefixes to
+ * the local map; this will happen if and only if the "local" map is mutable.
  */
 public class LocalNameMapper extends GlobalNameMapper {
+
+    private static final Logger log = LoggerFactory.getLogger(LocalNameMapper.class);
 
     protected final Map<String, String> local;
 
@@ -81,7 +88,13 @@ public class LocalNameMapper extends GlobalNameMapper {
                     for (int i = 2; true; i++) {
                         String jcrPrefix = oakPrefix + i;
                         if (!local.containsKey(jcrPrefix)) {
-                            local.put(jcrPrefix, uri);
+                            try {
+                                // try to update local mappings
+                                local.put(jcrPrefix, uri);
+                            } catch (UnsupportedOperationException ex) {
+                                // failed because immmutable, so caller may not want to know; proceeding with fingers crossed
+                                log.warn("Local namespace map needs a prefix for namespace name '{}', but is not modifiable", uri);
+                            }
                             return jcrPrefix + oakName.substring(colon);
                         }
                     }

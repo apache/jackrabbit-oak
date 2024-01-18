@@ -18,11 +18,13 @@ package org.apache.jackrabbit.oak.namepath.impl;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -134,6 +136,30 @@ public class NamePathMapperImplTest {
             fail("expanded name should not be accepted");
         } catch (IllegalArgumentException expected) {
         }
+    }
+
+    @Test
+    public void testOakToJcrPrefixTakenMapImmutable() {
+        Map<String, String> global = Map.of("foo", "ns:");
+        Map<String, String> local = Map.of("foo", "other-ns:");
+        NameMapper mapper = new LocalNameMapper(global, local);
+        // verify that we get a new prefix, although it can't be registered
+        String jcrname = mapper.getJcrName("foo:bar");
+        assertNotEquals("mapped name should have a different prefix", "foo:bar", jcrname);
+    }
+
+    @Test
+    public void testOakToJcrPrefixTakenMapMutable() {
+        Map<String, String> global = Map.of("foo", "ns:");
+        Map<String, String> local = new HashMap<>();
+        local.put("foo", "other-ns:");
+        NameMapper mapper = new LocalNameMapper(global, local);
+        // verify that we get a new prefix, although it can't be registered
+        String jcrname = mapper.getJcrName("foo:bar");
+        assertNotEquals("mapped name should have a different prefix", "foo:bar", jcrname);
+        String prefix = jcrname.substring(0, jcrname.indexOf(':') - 1);
+        String nsname = local.get(prefix);
+        assertEquals("other-ns:", nsname);
     }
 
     @Test
