@@ -92,7 +92,7 @@ public class LocalNameMapper extends GlobalNameMapper {
                                 // try to update local mappings
                                 local.put(jcrPrefix, uri);
                             } catch (UnsupportedOperationException ex) {
-                                // failed because immmutable, so caller may not want to know; proceeding with fingers crossed
+                                // failed because immutable, so caller may not want to know; proceeding with fingers crossed
                                 log.warn("Local namespace map needs a prefix for namespace name '{}', but is not modifiable", uri);
                             }
                             return jcrPrefix + oakName.substring(colon);
