@@ -18,12 +18,14 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import com.mongodb.MongoClient;
 import com.mongodb.MongoSocketException;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -44,10 +46,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -287,4 +291,88 @@ public class PipelinedMongoDownloadTaskTest {
         var pathFilter = List.of(new PathFilter(List.of("/parent"), excludedPaths));
         assertEquals(new MongoFilterPaths(List.of("/parent"), List.of()), regexFilterBuilder.buildMongoFilter(pathFilter));
     }
+
+    @Test
+    public void createCustomExcludeEntriesFilter() {
+        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(null));
+        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(""));
+
+        Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
+        var expectedBson = Filters.nor(
+                Filters.regex(NodeDocument.ID, p),
+                Filters.regex(NodeDocument.PATH, p)
+        );
+        var actualBson = PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("^[0-9]{1,3}:/a/b.*$");
+
+        assertBsonEquals(expectedBson, actualBson);
+    }
+
+    @Test
+    public void computeMongoQueryFilterNoPathFilterNoExcludeFilter() {
+        // No path filter and no exclude filter
+        assertNull(
+                PipelinedMongoDownloadTask.computeMongoQueryFilter(
+                        MongoFilterPaths.DOWNLOAD_ALL,
+                        null
+                )
+        );
+    }
+
+    @Test
+    public void computeMongoQueryFilterWithPathFilterNoExcludeFilter() {
+        // Path filter but no exclude filter
+        var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
+                new MongoFilterPaths(List.of("/parent"), List.of()),
+                null
+        );
+        var expected = Filters.or(
+                Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$")),
+                Filters.in(NodeDocument.PATH, Pattern.compile(Pattern.quote("/parent/") + ".*$"))
+        );
+        assertBsonEquals(expected, actual);
+    }
+
+    @Test
+    public void computeMongoQueryFilterNoPathFilterWithExcludeFilter() {
+        var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
+                MongoFilterPaths.DOWNLOAD_ALL,
+                "^[0-9]{1,3}:/a/b.*$"
+        );
+        Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
+        assertBsonEquals(
+                Filters.nor(Filters.regex(NodeDocument.ID, p), Filters.regex(NodeDocument.PATH, p)),
+                actual
+        );
+    }
+
+    @Test
+    public void computeMongoQueryFilterWithPathFilterWithExcludeFilter() {
+        var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
+                new MongoFilterPaths(List.of("/parent"), List.of()),
+                "^[0-9]{1,3}:/a/b.*$"
+        );
+
+        Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
+        var expected =
+                Filters.and(
+                        Filters.nor(Filters.regex(NodeDocument.ID, p), Filters.regex(NodeDocument.PATH, p)),
+                        Filters.or(
+                                Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$")),
+                                Filters.in(NodeDocument.PATH, Pattern.compile(Pattern.quote("/parent/") + ".*$"))
+                        ));
+        assertBsonEquals(expected, actual);
+    }
+
+    private void assertBsonEquals(Bson actual, Bson expected) {
+        if (actual == null && expected == null) {
+            return;
+        } else if (actual == null || expected == null) {
+            throw new AssertionError("One of the bson is null. Actual: " + actual + ", expected: " + expected);
+        }
+        assertEquals(
+                actual.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry()),
+                expected.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry())
+        );
+    }
 }
+

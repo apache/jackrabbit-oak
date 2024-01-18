@@ -46,6 +46,7 @@ import org.bson.BsonDocument;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,6 +70,7 @@ import java.util.stream.Collectors;
 import static com.mongodb.client.model.Sorts.ascending;
 
 public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownloadTask.Result> {
+
     public static class Result {
         private final long documentsDownloaded;
 
@@ -106,6 +108,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      */
     public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = "oak.indexer.pipelined.mongoRegexPathFiltering";
     public static final boolean DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING = false;
+    /**
+     * Any document with a path that matches this regex pattern will not be downloaded. This pattern will be included
+     * in the Mongo query, that is, the filtering is done by server-side at Mongo, which avoids downloading the documents
+     * matching this query. This is typically a _suffix_, for example "/metadata.xml$|/renditions/.*.jpg$".
+     * To exclude subtrees such as /content/abc, use mongoFilterPaths instead.
+     */
+    public static final String OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX = "oak.indexer.pipelined.mongoCustomExcludeEntriesRegex";
+    public static final String DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX = "";
 
     /**
      * Maximum number of elements in the included/excluded paths list used for regex path filtering. If after
@@ -130,6 +140,117 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     private static final String THREAD_NAME = "mongo-dump";
 
+    /**
+     * Creates the filter to be used in the Mongo query
+     *
+     * @param mongoFilterPaths          The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
+     *                                  (see {@link MongoFilterPaths} for details)
+     * @param customExcludeEntriesRegex Documents with paths matching this regex are excluded from download
+     * @return The filter to be used in the Mongo query, or null if no filter is required
+     */
+    static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
+        var filters = new ArrayList<Bson>(4);
+        if (mongoFilterPaths != MongoFilterPaths.DOWNLOAD_ALL) {
+            filters.add(descendantsFilter(mongoFilterPaths.included));
+            if (!mongoFilterPaths.excluded.isEmpty()) {
+                // The Mongo filter returned here will download the top level path of each excluded subtree, which in theory
+                // should be excluded. That is, if the tree /a/b/c is excluded, the filter will download /a/b/c but none of
+                // its descendants.
+                // This is done because excluding also the top level path would add extra complexity to the filter and
+                // would not have any measurable impact on performance because it only downloads a few extra documents, one
+                // for each excluded subtree. The transform stage will anyway filter out these paths.
+                Bson excludedFilter = descendantsFilter(mongoFilterPaths.excluded);
+                if (excludedFilter != null) {
+                    filters.add(Filters.nor(excludedFilter));
+                }
+            }
+        }
+
+        // Custom regex filter to exclude paths
+        Bson customExcludedPathsFilter = createCustomExcludedEntriesFilter(customExcludeEntriesRegex);
+        if (customExcludedPathsFilter != null) {
+            filters.add(customExcludedPathsFilter);
+        }
+        if (filters.isEmpty()) {
+            return null;
+        } else if (filters.size() == 1) {
+            return filters.get(0);
+        } else {
+            return Filters.and(filters);
+        }
+    }
+
+    static Bson createCustomExcludedEntriesFilter(String customRegexPattern) {
+        if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
+            LOG.info("Mongo custom regex is disabled");
+            return null;
+        } else {
+            LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
+            var pattern = Pattern.compile(customRegexPattern);
+            return Filters.nor(
+                    Filters.regex(NodeDocument.ID, pattern),
+                    Filters.regex(NodeDocument.PATH, pattern)
+            );
+        }
+    }
+
+    private static Bson descendantsFilter(List<String> paths) {
+        if (paths.isEmpty()) {
+            return null;
+        }
+        // The filter for descendants of a list of paths is a series of or conditions. For each path, we have to build
+        // two conditions in two different fields of the documents:
+        // _ _id   - for non-long paths - In this case, the _id is of the form "2:/foo/bar"
+        // _ _path - for long paths - In this case, the _id is a hash and the document contains an additional _path
+        //      field with the path of the document.
+        // We use the $in operator with a regular expression to match the paths.
+        //  https://www.mongodb.com/docs/manual/reference/operator/query/in/#use-the--in-operator-with-a-regular-expression
+
+        ArrayList<Pattern> pathPatterns = new ArrayList<>();
+        ArrayList<Pattern> idPatterns = new ArrayList<>();
+
+        for (String path : paths) {
+            if (!path.endsWith("/")) {
+                path = path + "/";
+            }
+            String quotedPath = Pattern.quote(path);
+            idPatterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
+            pathPatterns.add(Pattern.compile(quotedPath + ".*$"));
+        }
+        return Filters.or(
+                Filters.in(NodeDocument.ID, idPatterns),
+                Filters.in(NodeDocument.PATH, pathPatterns)
+        );
+    }
+
+    /**
+     * Returns all the ancestors paths of the given list of paths. That is, if the list is ["/a/b/c", "/a/b/d"],
+     * this method will return ["/", "/a", "/a/b", "/a/b/c", "/a/b/d"]. Note that the paths on the input list are also
+     * returned, even though they are not strictly ancestors of themselves.
+     */
+    static List<String> getAncestors(List<String> paths) {
+        TreeSet<String> ancestors = new TreeSet<>();
+        for (String child : paths) {
+            String parent = child;
+            while (true) {
+                ancestors.add(parent);
+                if (PathUtils.denotesRoot(parent)) {
+                    break;
+                }
+                parent = PathUtils.getParentPath(parent);
+            }
+        }
+        return new ArrayList<>(ancestors);
+    }
+
+
+    private static Bson ancestorsFilter(List<String> paths) {
+        List<String> parentFilters = getAncestors(paths).stream()
+                .map(Utils::getIdFromPath)
+                .collect(Collectors.toList());
+        return Filters.in(NodeDocument.ID, parentFilters);
+    }
+
     private final int maxBatchNumberOfDocuments;
     private final BlockingQueue<NodeDocument[]> mongoDocQueue;
     private final List<PathFilter> pathFilters;
@@ -143,13 +264,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final int maxBatchSizeBytes;
     private final StatisticsProvider statisticsProvider;
     private final MongoRegexPathFilterFactory regexPathFilterFactory;
+    private final String customExcludeEntriesRegex;
 
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
     private long documentsRead = 0;
+    private long totalDataDownloadedBytes = 0;
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
-
 
     public PipelinedMongoDownloadTask(MongoDatabase mongoDatabase,
                                       MongoDocumentStore mongoDocStore,
@@ -188,6 +310,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS);
         this.regexPathFilterFactory = new MongoRegexPathFilterFactory(regexPathFilteringMaxNumberOfPaths);
+        this.customExcludeEntriesRegex = ConfigHelper.getSystemPropertyAsString(
+                PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
+                PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX
+        );
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
@@ -212,12 +338,15 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             } else {
                 downloadWithNaturalOrdering();
             }
+
             long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
             String enqueueingDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueWaitTimeMillis, durationMillis);
             String metrics = MetricsFormatter.newBuilder()
                     .add("duration", FormattingUtils.formatToSeconds(downloadStartWatch))
                     .add("durationSeconds", durationMillis / 1000)
                     .add("documentsDownloaded", documentsRead)
+                    .add("dataDownloadedBytes", totalDataDownloadedBytes)
+                    .add("dataDownloaded", IOUtils.humanReadableByteCountBin(totalDataDownloadedBytes))
                     .add("enqueueingDelayMillis", totalEnqueueWaitTimeMillis)
                     .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
                     .build();
@@ -260,20 +389,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // If regex filtering is enabled, start by downloading the ancestors of the path used for filtering.
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
-        MongoFilterPaths mongoFilterPathsDefinition = getPathsForRegexFiltering();
-        Bson childrenFilter;
-        if (mongoFilterPathsDefinition == MongoFilterPaths.DOWNLOAD_ALL) {
+        MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
+        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
+        if (mongoFilter == null) {
             LOG.info("Downloading full repository");
-            childrenFilter = null;
         } else {
+            LOG.info("Downloading from Mongo using filter: {}", mongoFilter);
             // Regex path filtering is enabled
             // Download the ancestors in a separate query. No retrials done on this query, as it will take only a few
             // seconds and is done at the start of the job, so if it fails, the job can be retried without losing much work
-            downloadAncestors(mongoFilterPathsDefinition.included);
-
-            // Filter to apply to the main query
-            childrenFilter = descendantsFilter(mongoFilterPathsDefinition);
-            LOG.info("Downloading from Mongo using filter: {}", childrenFilter);
+            downloadAncestors(mongoFilterPaths.included);
         }
 
         Instant failuresStartTimestamp = null; // When the last series of failures started
@@ -287,14 +412,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 if (lastIdDownloaded != null) {
                     LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
-                    downloadRange(new DownloadRange(nextLastModified, nextLastModified + 1, lastIdDownloaded), childrenFilter);
+                    downloadRange(new DownloadRange(nextLastModified, nextLastModified + 1, lastIdDownloaded), mongoFilter);
                     // We have managed to reconnect, reset the failure timestamp
                     failuresStartTimestamp = null;
                     numberOfFailures = 0;
                     // Continue downloading everything starting from the next _lastmodified value
-                    downloadRange(new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null), childrenFilter);
+                    downloadRange(new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null), mongoFilter);
                 } else {
-                    downloadRange(new DownloadRange(nextLastModified, Long.MAX_VALUE, null), childrenFilter);
+                    downloadRange(new DownloadRange(nextLastModified, Long.MAX_VALUE, null), mongoFilter);
                 }
                 downloadCompleted = true;
             } catch (MongoException e) {
@@ -359,9 +484,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private void downloadWithNaturalOrdering() throws InterruptedException, TimeoutException {
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
-        MongoFilterPaths regexBasePath = getPathsForRegexFiltering();
-        if (regexBasePath == MongoFilterPaths.DOWNLOAD_ALL) {
-            LOG.info("Downloading full repository using natural order");
+        MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
+        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
+        if (mongoFilter == null) {
+            LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
                     .withReadPreference(readPreference)
                     .find()
@@ -369,22 +495,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             download(mongoIterable);
 
         } else {
-            downloadAncestors(regexBasePath.included);
+            downloadAncestors(mongoFilterPaths.included);
 
-            Bson childrenFilter = descendantsFilter(regexBasePath);
-            FindIterable<NodeDocument> findIterable;
-            if (childrenFilter == null) {
-                LOG.info("Downloading full repository using natural order");
-                findIterable = dbCollection
-                        .withReadPreference(readPreference)
-                        .find();
-            } else {
-                LOG.info("Downloading from Mongo using filter: {}", childrenFilter);
-                findIterable = dbCollection
-                        .withReadPreference(readPreference)
-                        .find(childrenFilter);
-            }
-            download(findIterable.hint(NATURAL_HINT));
+            LOG.info("Downloading from Mongo with natural order using filter: {}", mongoFilter);
+            FindIterable<NodeDocument> findIterable = dbCollection
+                    .withReadPreference(readPreference)
+                    .find(mongoFilter)
+                    .hint(NATURAL_HINT);
+            download(findIterable);
         }
     }
 
@@ -392,87 +510,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (!regexPathFiltering) {
             LOG.info("Regex path filtering disabled.");
             return MongoFilterPaths.DOWNLOAD_ALL;
-        }
-        LOG.info("Computing included/excluded paths for Mongo regex path filtering. PathFilters: {}", pathFilters.stream()
-                .map(pf -> "PF{includedPaths=" + pf.getIncludedPaths() + ", excludedPaths=" + pf.getExcludedPaths() + "}")
-                .collect(Collectors.joining(", ")));
-        MongoFilterPaths mongoFilterPaths = this.regexPathFilterFactory.buildMongoFilter(pathFilters);
-        LOG.info("Paths used for regex filtering on Mongo: {}", mongoFilterPaths);
-        return mongoFilterPaths;
-    }
-
-    private Bson descendantsFilter(MongoFilterPaths mongoFilterPathsDefinition) {
-        if (mongoFilterPathsDefinition == MongoFilterPaths.DOWNLOAD_ALL) {
-            return null;
-        }
-        Bson pathFilter = descendantsFilter(mongoFilterPathsDefinition.included);
-        if (mongoFilterPathsDefinition.excluded.isEmpty()) {
-            return pathFilter;
         } else {
-            // The Mongo filter returned here will download the top level path of each excluded subtree, which in theory
-            // should be excluded. That is, if the tree /a/b/c is excluded, the filter will download /a/b/c but none of
-            // its descendants.
-            // This is done because excluding also the top level path would add extra complexity to the filter and
-            // would not have any measurable impact on performance because it only downloads a few extra documents, one
-            // for each excluded subtree. The transform stage will anyway filter out these paths.
-            Bson excludedFilter = descendantsFilter(mongoFilterPathsDefinition.excluded);
-            return Filters.and(pathFilter, Filters.nor(excludedFilter));
+            LOG.info("Computing included/excluded paths for Mongo regex path filtering. PathFilters: {}",
+                    pathFilters.stream()
+                            .map(pf -> "PF{includedPaths=" + pf.getIncludedPaths() + ", excludedPaths=" + pf.getExcludedPaths() + "}")
+                            .collect(Collectors.joining(", "))
+            );
+            MongoFilterPaths mongoFilterPaths = this.regexPathFilterFactory.buildMongoFilter(pathFilters);
+            LOG.info("Paths used for regex filtering on Mongo: {}", mongoFilterPaths);
+            return mongoFilterPaths;
         }
-    }
-
-    private static Bson descendantsFilter(List<String> paths) {
-        if (paths.isEmpty()) {
-            return null;
-        }
-        // The filter for descendants of a list of paths is a series of or conditions. For each path, we have to build
-        // two conditions in two different fields of the documents:
-        // _ _id   - for non-long paths - In this case, the _id is of the form "2:/foo/bar"
-        // _ _path - for long paths - In this case, the _id is n hash and the document contains an additional _path
-        //      field with the path of the document.
-        // We use the $in operator with a regular expression to match the paths.
-        //  https://www.mongodb.com/docs/manual/reference/operator/query/in/#use-the--in-operator-with-a-regular-expression
-
-        ArrayList<Pattern> pathPatterns = new ArrayList<>();
-        ArrayList<Pattern> idPatterns = new ArrayList<>();
-
-        for (String path : paths) {
-            if (!path.endsWith("/")) {
-                path = path + "/";
-            }
-            String quotedPath = Pattern.quote(path);
-            idPatterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
-            pathPatterns.add(Pattern.compile(quotedPath + ".*$"));
-        }
-        return Filters.or(
-                Filters.in(NodeDocument.ID, idPatterns),
-                Filters.and(
-                        Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN),
-                        Filters.in(NodeDocument.PATH, pathPatterns)
-                )
-        );
-    }
-
-    static List<String> getAncestors(List<String> paths) {
-        TreeSet<String> ancestors = new TreeSet<>();
-        for (String child : paths) {
-            String parent = child;
-            while (true) {
-                ancestors.add(parent);
-                if (PathUtils.denotesRoot(parent)) {
-                    break;
-                }
-                parent = PathUtils.getParentPath(parent);
-            }
-        }
-        return new ArrayList<>(ancestors);
-    }
-
-
-    static Bson ancestorsFilter(List<String> paths) {
-        List<String> parentFilters = getAncestors(paths).stream()
-                .map(Utils::getIdFromPath)
-                .collect(Collectors.toList());
-        return Filters.in(NodeDocument.ID, parentFilters);
     }
 
     private void download(FindIterable<NodeDocument> mongoIterable) throws InterruptedException, TimeoutException {
@@ -496,6 +543,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     nextIndex++;
                     int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);
                     batchSize += docSize;
+                    totalDataDownloadedBytes += docSize;
                     if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
                         LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
                         tryEnqueueCopy(batch, nextIndex);

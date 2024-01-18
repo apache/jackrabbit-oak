@@ -67,6 +67,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
 import static org.junit.Assert.assertArrayEquals;
@@ -172,7 +173,7 @@ public class PipelinedIT {
         Predicate<String> pathPredicate = s -> true;
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/2023"), List.of("/content/dam/2023/02")));
 
-        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
                 "/|{}",
                 "/content|{}",
                 "/content/dam|{}",
@@ -195,18 +196,18 @@ public class PipelinedIT {
         // filter out these additional documents.
         List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/1000", "/content/dam/2022"), List.of("/content/dam/2022/02", "/content/dam/2022/04")));
 
-        testSuccessfulDownload(pathPredicate, pathFilters,List.of(
-        "/|{}",
-        "/content|{}",
-        "/content/dam|{}",
-        "/content/dam/1000|{}",
-        "/content/dam/1000/12|{\"p1\":\"v100012\"}",
-        "/content/dam/2022|{}",
-        "/content/dam/2022/01|{\"p1\":\"v202201\"}",
-        "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
-        "/content/dam/2022/02|{\"p1\":\"v202202\"}",
-        "/content/dam/2022/03|{\"p1\":\"v202203\"}",
-        "/content/dam/2022/04|{\"p1\":\"v202204\"}"
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/1000|{}",
+                "/content/dam/1000/12|{\"p1\":\"v100012\"}",
+                "/content/dam/2022|{}",
+                "/content/dam/2022/01|{\"p1\":\"v202201\"}",
+                "/content/dam/2022/01/01|{\"p1\":\"v20220101\"}",
+                "/content/dam/2022/02|{\"p1\":\"v202202\"}",
+                "/content/dam/2022/03|{\"p1\":\"v202203\"}",
+                "/content/dam/2022/04|{\"p1\":\"v202204\"}"
         ));
     }
 
@@ -319,6 +320,43 @@ public class PipelinedIT {
         Collections.reverse(expected);
 
         testSuccessfulDownload(pathPredicate, pathFilters, expected);
+    }
+
+    @Test
+    public void createFFSCustomExcludePathsRegex() throws Exception {
+        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*");
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+
+        Backend rwStore = createNodeStore(false);
+
+        // Create content
+        var rwNodeStore = rwStore.documentNodeStore;
+        @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+        @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
+        contentDamBuilder.child("a.jpg").child("jcr:content").child("metadata.xml");
+        contentDamBuilder.child("a.jpg").child("jcr:content").child("metadata.text");
+        contentDamBuilder.child("image_a.png").child("jcr:content").child("metadata.text");
+        contentDamBuilder.child("image_a.png").child("jcr:content").child("metadata.xml");
+        rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+
+        Backend roStore = createNodeStore(true);
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, null);
+
+        File file = pipelinedStrategy.createSortedStoreFile();
+
+        assertTrue(file.exists());
+        var expected = List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/content/dam/a.jpg|{}",
+                "/content/dam/image_a.png|{}",
+                "/content/dam/image_a.png/jcr:content|{}",
+                "/content/dam/image_a.png/jcr:content/metadata.text|{}"
+        );
+        assertEquals(expected, Files.readAllLines(file.toPath()));
+        assertMetrics();
     }
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters)
