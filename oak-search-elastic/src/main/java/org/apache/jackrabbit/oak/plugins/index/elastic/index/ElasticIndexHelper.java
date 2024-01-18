@@ -115,7 +115,10 @@ class ElasticIndexHelper {
                                 b2 -> b2.analyzer("oak_analyzer")))
                 .properties(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT,
                         b1 -> b1.text(
-                                b2 -> b2.analyzer("oak_analyzer")));
+                                b2 -> b2.analyzer("oak_analyzer")))
+                .properties(FieldNames.SPELLCHECK,
+                        b1 -> b1.text(
+                                b2 -> b2.analyzer("trigram")));
         // TODO: the mapping below is for features currently not supported. These need to be reviewed
         // mappingBuilder.startObject(FieldNames.NOT_NULL_PROPS)
         //  .field("type", "keyword")
@@ -241,11 +244,6 @@ class ElasticIndexHelper {
                 }
             }
             builder.properties(name, pBuilder.build());
-
-            builder.properties(FieldNames.SPELLCHECK,
-                    b1 -> b1.text(
-                            b2 -> b2.analyzer("trigram"))
-            );
 
             if (useInSuggest) {
                 builder.properties(FieldNames.SUGGEST,
