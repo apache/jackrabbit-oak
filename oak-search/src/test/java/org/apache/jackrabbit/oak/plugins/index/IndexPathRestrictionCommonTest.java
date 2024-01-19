@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.InitialContentHelper;
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
@@ -43,13 +41,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableSet.of;
 import static org.apache.jackrabbit.JcrConstants.NT_BASE;
 import static org.junit.Assert.assertEquals;
 
@@ -100,13 +98,12 @@ public abstract class IndexPathRestrictionCommonTest {
         FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
-        validateResult(f, ImmutableSet.of("/test/a"), null);
+        validateResult(f, Set.of("/test/a"), null);
     }
 
     @Test
     public void pathTransformationWithNoPathRestriction() throws Exception {
         setupTestData(evaluatePathRestrictionsInIndex);
-        FilterImpl f;
 
         // NOTE : The expected results here might seem "incorrect"
         // for example : /test doesn't really satisfy the condition j:c/@foo=bar but still is in the result set
@@ -115,7 +112,7 @@ public abstract class IndexPathRestrictionCommonTest {
         // Refer FullTextIndexCommonTest#pathTransformationsWithNoPathRestrictions for seeing the e2e behaviour when executing an xpath query.
 
         // //*[j:c/foo = 'bar'] -> foo:bar -> transform 1 level up
-        f = createFilter(root, NT_BASE);
+        FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         Map<String, Boolean> expectedMap = new LinkedHashMap<>();
         expectedMap.put("/test/a", true);
@@ -124,12 +121,12 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap.put("/tmp/a", true);
         expectedMap.put("/tmp", true);
         expectedMap.put("/tmp/c/d", true);
-        validateResult(f, ImmutableSet.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap);
+        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap);
 
         // //*[*/foo = 'bar'] -> foo:bar -> transform 1 level up
         f = createFilter(root, NT_BASE);
         f.restrictProperty("*/foo", Operator.EQUAL, PropertyValues.newString("bar"));
-        validateResult(f, ImmutableSet.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap);
+        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap);
 
         // //*[d/*/foo = 'bar'] -> foo:bar -> transform 2 level up
         f = createFilter(root, NT_BASE);
@@ -140,9 +137,8 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap2.put("/test/c", true);
         expectedMap2.put("/tmp", true);
         expectedMap2.put("/tmp/c", true);
-        validateResult(f, of("/", "/test", "/test/c", "/tmp", "/tmp/c"), expectedMap2);
+        validateResult(f, Set.of("/", "/test", "/test/c", "/tmp", "/tmp/c"), expectedMap2);
     }
-
 
     @Test
     public void entryCountWithNoPathRestriction() throws Exception {
@@ -161,10 +157,8 @@ public abstract class IndexPathRestrictionCommonTest {
         }
         commit();
 
-        FilterImpl f;
-
         // //*[foo = 'bar']
-        f = createFilter(root, NT_BASE);
+        FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("foo", Operator.EQUAL, PropertyValues.newString("bar"));
         // equality check: we assume FulltextIndexPlanner#DEFAULT_PROPERTY_WEIGHT different values
         int cost = count / FulltextIndexPlanner.DEFAULT_PROPERTY_WEIGHT;
@@ -200,11 +194,9 @@ public abstract class IndexPathRestrictionCommonTest {
         testRootBuilder.child("d").child("e").child("j:c").setProperty("foo", "bar");
         commit();
 
-        FilterImpl f;
-
         // Validation 1
         // /jcr:root/test//*[j:c/foo = 'bar'] -> foo:bar :ancestors:/test -> transform 1 level up
-        f = createFilter(root, NT_BASE);
+        FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test", Filter.PathRestriction.ALL_CHILDREN);
 
@@ -229,7 +221,7 @@ public abstract class IndexPathRestrictionCommonTest {
             expectedMap1.put("/tmp/c/d", false);
             expectedMap1.put("/test/d/e", true);
         }
-        validateResult(f, of("/test/a", "/test/c/d", "/test/d/e"), expectedMap1);
+        validateResult(f, Set.of("/test/a", "/test/c/d", "/test/d/e"), expectedMap1);
 
         // Validation 2
         // /jcr:root/test//*[*/foo = 'bar'] -> foo:bar :ancestors:/test -> transform 1 level up
@@ -258,7 +250,7 @@ public abstract class IndexPathRestrictionCommonTest {
             expectedMap2.put("/tmp/c/d", false);
             expectedMap2.put("/test/d/e", true);
         }
-        validateResult(f, of("/test/a", "/test/c/d", "/test/d/e"), expectedMap2);
+        validateResult(f, Set.of("/test/a", "/test/c/d", "/test/d/e"), expectedMap2);
 
         // Validation 3
         // /jcr:root/test//*[d/*/foo = 'bar'] -> foo:bar :ancestors:/test -> transform 2 level up
@@ -294,7 +286,7 @@ public abstract class IndexPathRestrictionCommonTest {
         // This is handled later in the QueryEngine and the final result
         // of query like /jcr:root/test//*[d/*/foo = 'bar'] will not contain /test/d and only return /test/c.
         // This test is demonstrated at QueryEngine level in FullTextIndexCommonTest#pathTransformationsWithPathRestrictions
-        validateResult(f, of("/test/c", "/test/d"), expectedMap3);
+        validateResult(f, Set.of("/test/c", "/test/d"), expectedMap3);
 
         // Validation 4
         // /jcr:root/test//*[foo = 'bar'] -> foo:bar :ancestors:/test -> no transformation
@@ -321,16 +313,15 @@ public abstract class IndexPathRestrictionCommonTest {
             expectedMap4.put("/tmp/c/d/j:c", true);
             expectedMap4.put("/test/d/e/j:c", false);
         }
-        validateResult(f, of("/tmp/a/j:c", "/tmp/b", "/tmp/c/d/j:c"), expectedMap4);
+        validateResult(f, Set.of("/tmp/a/j:c", "/tmp/b", "/tmp/c/d/j:c"), expectedMap4);
     }
 
     @Test
     public void pathTransformationWithDirectChildrenPathRestriction() throws Exception {
         setupTestData(evaluatePathRestrictionsInIndex);
-        FilterImpl f;
 
         // /jcr:root/test/*[j:c/foo = 'bar'] -> foo:bar :ancestors:/test :depth:[3 TO 3] -> transform 1 level up
-        f = createFilter(root, NT_BASE);
+        FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
         Map<String, Boolean> expectedMap = new LinkedHashMap<>();
@@ -344,7 +335,7 @@ public abstract class IndexPathRestrictionCommonTest {
             expectedMap.put("/tmp", false);
             expectedMap.put("/tmp/c/d", false);
         }
-        validateResult(f, of("/test/a"), expectedMap);
+        validateResult(f, Set.of("/test/a"), expectedMap);
 
         // /jcr:root/test/*[*/foo = 'bar'] -> foo:bar :ancestors:/test :depth:[3 TO 3] -> transform 1 level up
         f = createFilter(root, NT_BASE);
@@ -361,7 +352,7 @@ public abstract class IndexPathRestrictionCommonTest {
             expectedMap2.put("/tmp", false);
             expectedMap2.put("/tmp/c/d", false);
         }
-        validateResult(f, of("/test/a"), expectedMap2);
+        validateResult(f, Set.of("/test/a"), expectedMap2);
 
         // /jcr:root/test/*[d/*/foo = 'bar'] -> foo:bar :ancestors:/test :depth:[4 TO 4] -> transform 2 level up
         f = createFilter(root, NT_BASE);
@@ -377,16 +368,15 @@ public abstract class IndexPathRestrictionCommonTest {
             expectedMap3.put("/tmp", false);
             expectedMap3.put("/tmp/c", false);
         }
-        validateResult(f, of("/test/c"), expectedMap3);
+        validateResult(f, Set.of("/test/c"), expectedMap3);
     }
 
     @Test
     public void pathTransformationWithExactPathRestriction() throws Exception {
         setupTestData(evaluatePathRestrictionsInIndex);
-        FilterImpl f;
 
         // /jcr:root/test/a[j:c/foo = 'bar'] -> foo:bar :path:/test/a/j:c -> transform 1 level up
-        f = createFilter(root, NT_BASE);
+        FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test/a", Filter.PathRestriction.EXACT);
         Map<String, Boolean> expectedMap = new LinkedHashMap<>();
@@ -394,7 +384,7 @@ public abstract class IndexPathRestrictionCommonTest {
         // (because we don't need ancestor query here, a simple term query on path term(:path) works which is always indexed)
         // so expectedMap here would be same for both
         expectedMap.put("/test/a", true);
-        validateResult(f, of("/test/a"), expectedMap);
+        validateResult(f, Set.of("/test/a"), expectedMap);
 
         // /jcr:root/test/a[*/foo = 'bar'] -> foo:bar -> transform 1 level up + filter path restriction
         f = createFilter(root, NT_BASE);
@@ -410,7 +400,7 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap2.put("/tmp/a", false);
         expectedMap2.put("/tmp", false);
         expectedMap2.put("/tmp/c/d", false);
-        validateResult(f, of("/test/a"), expectedMap2);
+        validateResult(f, Set.of("/test/a"), expectedMap2);
 
         // /jcr:root/test/c[d/*/foo = 'bar'] -> foo:bar -> transform 2 level up + filter path restriction
         f = createFilter(root, NT_BASE);
@@ -425,7 +415,7 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap3.put("/test/c", true);
         expectedMap3.put("/tmp", false);
         expectedMap3.put("/tmp/c", false);
-        validateResult(f, of("/test/c"), expectedMap3);
+        validateResult(f, Set.of("/test/c"), expectedMap3);
 
 
         // /jcr:root/test/a/j:c[foo = 'bar'] -> foo:bar :path:/test/a/j:c -> No Transformation
@@ -434,24 +424,22 @@ public abstract class IndexPathRestrictionCommonTest {
         f.restrictPath("/test/a/j:c", Filter.PathRestriction.EXACT);
         Map<String, Boolean> expectedMap4 = new LinkedHashMap<>();
         expectedMap4.put("/test/a/j:c", true);
-        validateResult(f, of("/test/a/j:c"), expectedMap4);
+        validateResult(f, Set.of("/test/a/j:c"), expectedMap4);
     }
 
     @Test
     public void pathTransformationWithParentFilter() throws Exception {
         setupTestData(evaluatePathRestrictionsInIndex);
 
-        FilterImpl f;
-
         // /jcr:root/test/a/b/j:c/..[j:c/foo = 'bar'] -> foo:bar :path:/test/a/b/j:c -> transform 1 level up
-        f = createFilter(root, NT_BASE);
+        FilterImpl f = createFilter(root, NT_BASE);
         f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
         f.restrictPath("/test/c/d/j:c", Filter.PathRestriction.PARENT);
         Map<String, Boolean> expectedMap = new LinkedHashMap<>();
         // In case of PARENT path restriction, index can still serve path restriction even if evaluatePathRestrictions is false
         // (because we don't need ancestor query here, a simple term query on path term(:path) works which is always indexed)
         expectedMap.put("/test/c/d", true);
-        validateResult(f, of("/test/c/d"), expectedMap);
+        validateResult(f, Set.of("/test/c/d"), expectedMap);
 
         // /jcr:root/test/a/b/j:c/..[*/foo = 'bar'] -> foo:bar -> transform 1 level up
         f = createFilter(root, NT_BASE);
@@ -469,7 +457,7 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap2.put("/tmp/a", true);
         expectedMap2.put("/tmp", true);
         expectedMap2.put("/tmp/c/d", true);
-        validateResult(f, ImmutableSet.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap2);
+        validateResult(f, Set.of("/test", "/test/a", "/test/c/d", "/tmp", "/tmp/a", "/tmp/c/d"), expectedMap2);
 
         // /jcr:root/test/c/d/..[d/*/foo = 'bar'] -> foo:bar -> transform 2 level up
         f = createFilter(root, NT_BASE);
@@ -482,7 +470,7 @@ public abstract class IndexPathRestrictionCommonTest {
         expectedMap3.put("/test/c", true);
         expectedMap3.put("/tmp", true);
         expectedMap3.put("/tmp/c", true);
-        validateResult(f, of("/", "/test", "/test/c", "/tmp", "/tmp/c"), expectedMap3);
+        validateResult(f, Set.of("/", "/test", "/test/c", "/tmp", "/tmp/c"), expectedMap3);
 
 
         // /jcr:root/test/c/d/..[foo = 'bar'] -> foo:bar :path:/test/c/d -> No Transformation
@@ -493,7 +481,7 @@ public abstract class IndexPathRestrictionCommonTest {
 
         expectedMap4.put("/tmp2/a", true);
 
-        validateResult(f, of("/tmp2/a"), expectedMap4);
+        validateResult(f, Set.of("/tmp2/a"), expectedMap4);
     }
 
     private void setupTestData(boolean evaluatePathRestrictionsInIndex) throws Exception {
@@ -526,7 +514,6 @@ public abstract class IndexPathRestrictionCommonTest {
         commit();
     }
 
-
     private void commit() throws Exception {
         // This part of code is used by both lucene and elastic tests.
         // The index definitions in these tests don't have async property set
@@ -551,13 +538,6 @@ public abstract class IndexPathRestrictionCommonTest {
             // So the timeout here needs to be a little bit more than that
             assertEquals(expectedCount, plan.getEstimatedEntryCount());
         }, 4000 * 5);
-    }
-
-    private long getEstimatedCount(Filter f) {
-        List<QueryIndex.IndexPlan> plans = index.getPlans(f, null, root);
-        assertEquals("Only one plan must show up", 1, plans.size());
-        QueryIndex.IndexPlan plan = plans.get(0);
-        return plan.getEstimatedEntryCount();
     }
 
     private static FilterImpl createFilter(NodeState root, String nodeTypeName) {
@@ -588,7 +568,8 @@ public abstract class IndexPathRestrictionCommonTest {
             try {
                 customLogs.starting();
                 Cursor cursor = index.query(plan, root);
-                Set<String> paths = Sets.newHashSet();
+
+                Set<String> paths = new HashSet<>();
 
                 while (cursor.hasNext()) {
                     paths.add(cursor.next().getPath());
@@ -607,7 +588,6 @@ public abstract class IndexPathRestrictionCommonTest {
             } finally {
                 customLogs.finished();
             }
-
 
         }, 3000 * 3);
 
