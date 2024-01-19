@@ -188,10 +188,9 @@ public class PathParserTest {
     @Test
     @Ignore  //OAK-10611
     public void testUnexpectedOpeningSquareBracket() throws RepositoryException {
-        //TODO check for specific error messages
         String path = "[";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'[' not allowed in name")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -200,7 +199,7 @@ public class PathParserTest {
         path = "/[";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'[' not allowed in name")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -209,7 +208,7 @@ public class PathParserTest {
         path = "./[";
         listener = new TestListener(
                 CALLBACKRESULT_CURRENT,
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'[' not allowed in name")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -218,7 +217,7 @@ public class PathParserTest {
         path = "../[";
         listener = new TestListener(
                 CALLBACKRESULT_PARENT,
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'[' not allowed in name")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -226,7 +225,7 @@ public class PathParserTest {
 
         path = ".[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'[' not allowed in name")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -234,7 +233,7 @@ public class PathParserTest {
 
         path = "..[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'[' not allowed in name")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -242,7 +241,7 @@ public class PathParserTest {
 
         path = "{[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'{[' is not a valid path. Missing '}'.")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -250,7 +249,7 @@ public class PathParserTest {
 
         path = "a[[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
+                CALLBACKRESULT_ERROR("'[' not allowed in name")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -260,61 +259,11 @@ public class PathParserTest {
     @Test
     @Ignore  //OAK-10611
     public void testMissingClosingSquareBracket() throws RepositoryException {
-        //TODO check for specific error messages
-        String path = "[";
+        String path = "/a[";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
-        );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
-
-        path = "/[";
-        listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR_ANY
-        );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
-
-        path = "./[";
-        listener = new TestListener(
-                CALLBACKRESULT_CURRENT,
-                CALLBACKRESULT_ERROR_ANY
-        );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
-
-        path = "../[";
-        listener = new TestListener(
-                CALLBACKRESULT_PARENT,
-                CALLBACKRESULT_ERROR_ANY
-        );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
-
-        path = ".[";
-        listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
-        );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
-
-        path = "..[";
-        listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
-        );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
-
-        path = "{[";
-        listener = new TestListener(
-                CALLBACKRESULT_ERROR_ANY
+                //the parser actually produces an error, but we should change the error message to something like this
+                CALLBACKRESULT_ERROR("'/a[' is not a valid path. ']' expected after index.")
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
