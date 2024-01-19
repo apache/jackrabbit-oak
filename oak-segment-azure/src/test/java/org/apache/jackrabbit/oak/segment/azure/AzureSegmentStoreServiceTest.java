@@ -65,6 +65,7 @@ public class AzureSegmentStoreServiceTest {
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
     private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
 
+    private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
     private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
     private static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
     private static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
@@ -143,14 +144,20 @@ public class AzureSegmentStoreServiceTest {
 
     @Test
     public void connectWithServicePrincipal() throws Exception {
+        // Note: make sure blob1.txt and blob2.txt are uploaded to
+        // AZURE_ACCOUNT_NAME/oak before running this test
+
+        assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME));
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_TENANT_ID));
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_ID));
         assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_SECRET));
+
         AzureSegmentStoreService azureSegmentStoreService = new AzureSegmentStoreService();
+        String accountName = ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME);
         String tenantId = ENVIRONMENT.getVariable(AZURE_TENANT_ID);
         String clientId = ENVIRONMENT.getVariable(AZURE_CLIENT_ID);
         String clientSecret = ENVIRONMENT.getVariable(AZURE_CLIENT_SECRET);
-        azureSegmentStoreService.activate(context.componentContext(), getConfigurationWithServicePrincipal(clientId, clientSecret, tenantId));
+        azureSegmentStoreService.activate(context.componentContext(), getConfigurationWithServicePrincipal(accountName, clientId, clientSecret, tenantId));
 
         SegmentNodeStorePersistence persistence = context.getService(SegmentNodeStorePersistence.class);
         assertNotNull(persistence);
@@ -186,6 +193,7 @@ public class AzureSegmentStoreServiceTest {
         Set<String> actualBlobNames = StreamSupport.stream(container.listBlobs().spliterator(), false)
             .map(blob -> blob.getUri().getPath())
             .map(path -> path.substring(path.lastIndexOf('/') + 1))
+            .filter(name -> name.equals("test.txt") || name.startsWith("blob"))
             .collect(toSet());
         Set<String> expectedBlobNames = expectedBlobs.stream().map(name -> name + ".txt").collect(toSet());
 
@@ -239,11 +247,11 @@ public class AzureSegmentStoreServiceTest {
     }
 
     private static Configuration getConfigurationWithSharedAccessSignature(String sasToken) {
-        return getConfiguration(sasToken, null, null, null, null, null);
+        return getConfiguration(sasToken, AzuriteDockerRule.ACCOUNT_NAME, null, null, null, null, null);
     }
 
     private static Configuration getConfigurationWithAccessKey(String accessKey) {
-        return getConfiguration(null, accessKey, null,  null, null, null);
+        return getConfiguration(null, AzuriteDockerRule.ACCOUNT_NAME, accessKey, null,  null, null, null);
     }
 
     private static Configuration getConfigurationWithConfigurationURL(String accessKey) {
@@ -251,18 +259,18 @@ public class AzureSegmentStoreServiceTest {
             + "BlobEndpoint=" + azurite.getBlobEndpoint() + ';'
             + "AccountName=" + AzuriteDockerRule.ACCOUNT_NAME + ';'
             + "AccountKey=" + accessKey + ';';
-        return getConfiguration(null, null, connectionString, null, null, null);
+        return getConfiguration(null, AzuriteDockerRule.ACCOUNT_NAME, null, connectionString, null, null, null);
     }
 
-    private static Configuration getConfigurationWithServicePrincipal(String clientId, String clientSecret, String tenantId) {
-        return getConfiguration(null, null, null, clientId, clientSecret, tenantId);
+    private static Configuration getConfigurationWithServicePrincipal(String accountName, String clientId, String clientSecret, String tenantId) {
+        return getConfiguration(null, accountName, null, null, clientId, clientSecret, tenantId);
     }
 
     @NotNull
-    private static Configuration getConfiguration(String sasToken, String accessKey, String connectionURL, String clientId, String clientSecret, String tenantId) {
+    private static Configuration getConfiguration(String sasToken, String accountName, String accessKey, String connectionURL, String clientId, String clientSecret, String tenantId) {
         return Converters.standardConverter()
                 .convert(new HashMap<Object, Object>() {{
-                    put("accountName", AzuriteDockerRule.ACCOUNT_NAME);
+                    put("accountName", accountName);
                     put("accessKey", accessKey);
                     put("connectionURL", connectionURL);
                     put("sharedAccessSignature", sasToken);

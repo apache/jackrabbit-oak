@@ -19,7 +19,6 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.azure.core.credential.TokenRequestContext;
-import com.azure.core.util.ClientOptions;
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;
 import com.microsoft.azure.storage.CloudStorageAccount;
@@ -89,7 +88,7 @@ public class AzureSegmentStoreService {
         if (!StringUtils.isBlank(configuration.connectionURL())) {
             return createPersistenceFromConnectionURL(configuration);
         }
-        if (!StringUtils.isBlank(configuration.clientId())) {
+        if (!StringUtils.isAnyBlank(configuration.clientId(), configuration.clientSecret(), configuration.tenantId())) {
             return createPersistenceFromServicePrincipalCredentials(configuration);
         }
         if (!StringUtils.isBlank(configuration.sharedAccessSignature())) {
@@ -133,7 +132,7 @@ public class AzureSegmentStoreService {
                 .tenantId(configuration.tenantId())
                 .build();
 
-        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes("https://storage.azure.com/user_impersonation/.default")).getToken();
+        String accessToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes("https://storage.azure.com/.default")).getToken();
         StorageCredentialsToken storageCredentialsToken = new StorageCredentialsToken(configuration.accountName(), accessToken);
         
         try {
