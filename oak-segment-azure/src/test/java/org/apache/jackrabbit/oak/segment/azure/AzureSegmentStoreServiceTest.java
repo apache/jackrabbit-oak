@@ -23,7 +23,10 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
@@ -31,12 +34,22 @@ import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.osgi.util.converter.Converters;
 
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.*;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.CREATE;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeNotNull;
 
 public class AzureSegmentStoreServiceTest {
