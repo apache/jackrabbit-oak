@@ -991,6 +991,10 @@ public class DocumentNodeStoreService {
                 VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
                 lastResult = s.toString();
+                if (s.skippedDetailedGCDocsCount > 0) {
+                    LOGGER.warn("Version Garbage Collector's DetailedGC skipped {} documents due to error,"
+                            + " see logs for more details", s.skippedDetailedGCDocsCount);
+                }
             } catch (Exception e) {
                 lastResult = e;
                 LOGGER.warn("Error occurred while executing the Version Garbage Collector", e);
