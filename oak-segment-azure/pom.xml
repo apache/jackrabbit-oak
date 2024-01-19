@@ -54,11 +54,78 @@
                             org.apache.jackrabbit.oak.segment.azure.util,
                             com.microsoft.azure.storage,
                             com.microsoft.azure.storage.core,
-                            com.microsoft.azure.storage.blob
+                            com.microsoft.azure.storage.blob,
+                            com.azure.identity.broker.implementation,
+                            com.azure.xml,
+                            com.fasterxml.jackson.annotation,
+                            com.fasterxml.jackson.dataformat.xml,
+                            com.fasterxml.jackson.datatype.jsr310,
+                            com.fasterxml.jackson.datatype.jsr310.deser,
+                            com.fasterxml.jackson.datatype.jsr310.deser.key,
+                            com.fasterxml.jackson.datatype.jsr310.ser,
+                            com.fasterxml.jackson.datatype.jsr310.ser.key,
+                            com.fasterxml.jackson.datatype.jsr310.util,
+                            com.microsoft.aad.msal4j,
+                            com.microsoft.aad.msal4jextensions,
+                            com.microsoft.aad.msal4jextensions.persistence,
+                            com.microsoft.aad.msal4jextensions.persistence.linux,
+                            com.microsoft.aad.msal4jextensions.persistence.mac,
+                            com.nimbusds.common.contenttype,
+                            com.nimbusds.jose,
+                            com.nimbusds.jose.crypto,
+                            com.nimbusds.jose.crypto.impl,
+                            com.nimbusds.jose.crypto.opts,
+                            com.nimbusds.jose.crypto.utils,
+                            com.nimbusds.jose.jca,
+                            com.nimbusds.jose.jwk,
+                            com.nimbusds.jose.jwk.gen,
+                            com.nimbusds.jose.util,
+                            com.nimbusds.jose.shaded.gson,
+                            com.nimbusds.jose.shaded.gson.internal,
+                            com.nimbusds.jose.shaded.gson.annotations,
+                            com.nimbusds.jose.shaded.gson.internal.bind,
+                            com.nimbusds.jose.shaded.gson.internal.bind.util,
+                            com.nimbusds.jose.shaded.gson.internal.reflect,
+                            com.nimbusds.jose.shaded.gson.internal.sql,
+                            com.nimbusds.jose.shaded.gson.reflect,
+                            com.nimbusds.jose.shaded.gson.stream,
+                            com.nimbusds.jwt,
+                            com.nimbusds.jwt.util,
+                            com.nimbusds.oauth2.sdk,
+                            com.nimbusds.oauth2.sdk.auth,
+                            com.nimbusds.oauth2.sdk.assertions.jwt,
+                            com.nimbusds.jose.proc,
+                            com.nimbusds.jose.crypto.factories,
+                            com.nimbusds.jose.jwk.source,
+                            com.nimbusds.jose.produce,
+                            com.nimbusds.jose.util.cache,
+                            com.nimbusds.jose.util.events,
+                            com.nimbusds.jose.util.health,
+                            com.nimbusds.jwt.proc,
+                            com.nimbusds.oauth2.sdk.assertions,
+                            com.nimbusds.oauth2.sdk.ciba,
+                            com.nimbusds.langtag,
+                            com.nimbusds.oauth2.sdk.device,
+                            com.nimbusds.oauth2.sdk.dpop,
+                            com.nimbusds.oauth2.sdk.http,
+                            com.nimbusds.oauth2.sdk.id,
+                            com.nimbusds.oauth2.sdk.jarm,
+                            com.nimbusds.oauth2.sdk.as,
+                            com.nimbusds.oauth2.sdk.client,
+                            com.nimbusds.oauth2.sdk.pkce,
+                            com.nimbusds.oauth2.sdk.token,
+                            com.nimbusds.oauth2.sdk.tokenexchange,
+                            com.nimbusds.oauth2.sdk.util,
+                            com.nimbusds.openid.connect.sdk
                         </Export-Package>
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core,
+                            azure-core,
+                            <!-- TODO: this part needs cleanup for the following 3 dependencies -->
+                            azure-identity,
+                            azure-json,
+                            jackson-databind,
                             guava,
                             jsr305
                         </Embed-Dependency>
@@ -156,6 +223,18 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
         </dependency>
 
         <!-- Azure Guava dependency -->

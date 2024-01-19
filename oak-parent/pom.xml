@@ -726,6 +726,16 @@
         <artifactId>azure-identity</artifactId>
         <version>1.11.1</version>
       </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-core</artifactId>
+        <version>1.45.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-json</artifactId>
+        <version>1.0.1</version>
+      </dependency>
 
       <!-- Pax Exam Integration Test Dependencies -->
       <dependency>
