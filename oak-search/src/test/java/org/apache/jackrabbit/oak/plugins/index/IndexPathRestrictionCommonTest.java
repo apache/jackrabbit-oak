@@ -87,6 +87,23 @@ public abstract class IndexPathRestrictionCommonTest {
     }
 
     @Test
+    public void restrictedPathOnLargeDataset() throws Exception {
+        setupTestData(evaluatePathRestrictionsInIndex);
+
+        // create a significant number of nodes under /a
+        NodeBuilder aRootBuilder = rootBuilder.child("a");
+        for (int i = 0; i < 1000; i++) {
+            aRootBuilder.child("a" + i).child("j:c").setProperty("foo", "bar");
+        }
+        commit();
+
+        FilterImpl f = createFilter(root, NT_BASE);
+        f.restrictProperty("j:c/foo", Operator.EQUAL, PropertyValues.newString("bar"));
+        f.restrictPath("/test", Filter.PathRestriction.DIRECT_CHILDREN);
+        validateResult(f, ImmutableSet.of("/test/a"), null);
+    }
+
+    @Test
     public void pathTransformationWithNoPathRestriction() throws Exception {
         setupTestData(evaluatePathRestrictionsInIndex);
         FilterImpl f;
@@ -576,14 +593,16 @@ public abstract class IndexPathRestrictionCommonTest {
                 while (cursor.hasNext()) {
                     paths.add(cursor.next().getPath());
                 }
-                assertEquals("Expected number log entries for post path filtering", expectedPathMapForPostPathFilterLogEntries.size(), customLogs.getLogs().size());
+                if (expectedPathMapForPostPathFilterLogEntries != null) {
+                    assertEquals("Expected number log entries for post path filtering", expectedPathMapForPostPathFilterLogEntries.size(), customLogs.getLogs().size());
 
-                List<String> expectedLogEntries = expectedPathMapForPostPathFilterLogEntries.keySet()
-                        .stream()
-                        .map(path -> getExpectedLogEntryForPostPathFiltering(path, expectedPathMapForPostPathFilterLogEntries.get(path)))
-                        .collect(Collectors.toList());
+                    List<String> expectedLogEntries = expectedPathMapForPostPathFilterLogEntries.keySet()
+                            .stream()
+                            .map(path -> getExpectedLogEntryForPostPathFiltering(path, expectedPathMapForPostPathFilterLogEntries.get(path)))
+                            .collect(Collectors.toList());
 
-                assertEquals("Expected log entries for post path filtering", expectedLogEntries.toString(), customLogs.getLogs().toString());
+                    assertEquals("Expected log entries for post path filtering", expectedLogEntries.toString(), customLogs.getLogs().toString());
+                }
                 assertEquals(f.toString(), expected, paths);
             } finally {
                 customLogs.finished();

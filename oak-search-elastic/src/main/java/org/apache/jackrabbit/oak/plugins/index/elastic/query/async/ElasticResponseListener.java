@@ -68,8 +68,9 @@ public interface ElasticResponseListener {
         /**
          * This method is called for each {@link Hit} retrieved
          * @param searchHit a search result
+         * @return true if the search hit was successfully processed, false otherwise
          */
-        void on(Hit<ObjectNode> searchHit);
+        boolean on(Hit<ObjectNode> searchHit);
     }
 
     /**
