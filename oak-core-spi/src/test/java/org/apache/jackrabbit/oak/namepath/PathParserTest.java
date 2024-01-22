@@ -95,9 +95,6 @@ public class PathParserTest {
     private static final ParserCallbackResult CALLBACKRESULT_ROOT = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_ROOT, null, 0);
     private static final ParserCallbackResult CALLBACKRESULT_CURRENT = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_CURRENT, null, 0);
     private static final ParserCallbackResult CALLBACKRESULT_PARENT = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_PARENT, null, 0);
-    private static final ParserCallbackResult CALLBACKRESULT_ERROR_ANY = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_ERROR, null, 0);
-    private static final ParserCallbackResult CALLBACKRESULT_NAME_ANY = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_NAME, null, 0);
-
     private static ParserCallbackResult CALLBACKRESULT_NAME(String name) {
         return new ParserCallbackResult(ParserCallbackResultType.CALLBACK_NAME, name, 0);
     }
@@ -167,7 +164,7 @@ public class PathParserTest {
                 CALLBACKRESULT_CURRENT,
                 CALLBACKRESULT_PARENT,
                 CALLBACKRESULT_NAME("c", 1),
-                CALLBACKRESULT_ERROR("'" + path + "' is not a valid path. ']' not a valid name character.")
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
 
         assertFalse(JcrPathParser.validate(path));
@@ -195,7 +192,7 @@ public class PathParserTest {
     public void testUnexpectedOpeningSquareBracket() throws RepositoryException {
         String path = "[";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName('['))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -204,7 +201,7 @@ public class PathParserTest {
         path = "/[";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName('['))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -213,7 +210,7 @@ public class PathParserTest {
         path = "./[";
         listener = new TestListener(
                 CALLBACKRESULT_CURRENT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName('['))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -222,7 +219,7 @@ public class PathParserTest {
         path = "../[";
         listener = new TestListener(
                 CALLBACKRESULT_PARENT,
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName('['))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -230,7 +227,7 @@ public class PathParserTest {
 
         path = ".[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName('['))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -238,7 +235,7 @@ public class PathParserTest {
 
         path = "..[";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName('['))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -246,7 +243,7 @@ public class PathParserTest {
 
         path = "{[}";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName('['))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -280,7 +277,7 @@ public class PathParserTest {
     public void testUnxepectedClosingSquareBracket() throws RepositoryException {
         String path = "]";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorInvalidCharacterInName(path, ']'))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -289,7 +286,7 @@ public class PathParserTest {
         path = "/]";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR(errorInvalidCharacterInName(path, ']'))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -298,7 +295,7 @@ public class PathParserTest {
         path = ".]";
         listener = new TestListener(
                 //TODO improve error message?
-                CALLBACKRESULT_ERROR(errorInvalidCharacterInName(path, ']'))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -307,7 +304,7 @@ public class PathParserTest {
         path = "..]";
         listener = new TestListener(
                 //TODO improve error message?
-                CALLBACKRESULT_ERROR(errorInvalidCharacterInName(path, ']'))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -315,7 +312,7 @@ public class PathParserTest {
 
         path = "{]}";
         listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorInvalidCharacterInName(path, ']'))
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         assertFalse(JcrPathParser.validate(path));
         assertFalse(JcrPathParser.parse(path, listener));
@@ -353,13 +350,8 @@ public class PathParserTest {
         listener.evaluate();
     }
 
-    //TODO replace with #errorInvalidCharacterInName() to make error messages consistent?
-    private static String errorCharacterNotAllowedInName(char c) {
-        return "'" + c + "' not allowed in name";
-    }
-
-    private static String errorInvalidCharacterInName(String path, char c) {
-        return "'" + path + "' is not a valid path. ']' not a valid name character.";
+    private static String errorCharacterNotAllowedInName(String path, char c) {
+        return "'" + path + "' is not a valid path. ']' not allowed in name.";
     }
 
     private static String errorClosingQuareBracketExpected(String path) {

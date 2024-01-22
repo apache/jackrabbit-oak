@@ -97,14 +97,14 @@ public final class JcrPathParser {
                         // eof path element
                         if (name == null) {
                             if (wasSlash) {
-                                listener.error('\'' + jcrPath + "' is not a valid path: " +
+                                listener.error('\'' + jcrPath + "' is not a valid path. " +
                                         "Trailing slashes not allowed in prefixes and names.");
                                 return false;
                             }
                             name = jcrPath.substring(lastPos, pos - 1);
                         }
 
-                        if (!JcrNameParser.parse(name, listener, index)) {
+                        if (!JcrNameParser.parse(name, listener, index, "'\\'' + jcrPath + \"' is not a valid path. \"")) {
                             return false;
                         }
                         state = STATE_PREFIX_START;
@@ -125,8 +125,7 @@ public final class JcrPathParser {
                         state = STATE_PREFIX_START;
                     } else if (state != STATE_URI
                             && !(state == STATE_PREFIX_START && c == EOF)) { // ignore trailing slash
-                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                                "' not a valid name character.");
+                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c + "' not allowed in name.");
                         return false;
                     } else if (state == STATE_URI && c == EOF) {
                         // we reached EOF without finding the closing curly brace '}'
@@ -152,11 +151,11 @@ public final class JcrPathParser {
                 case ':':
                     if (state == STATE_PREFIX_START) {
                         listener.error('\'' + jcrPath + "' is not a valid path. Prefix " +
-                                "must not be empty");
+                                "must not be empty.");
                         return false;
                     } else if (state == STATE_PREFIX) {
                         if (wasSlash) {
-                            listener.error('\'' + jcrPath + "' is not a valid path: " +
+                            listener.error('\'' + jcrPath + "' is not a valid path. " +
                                     "Trailing slashes not allowed in prefixes and names.");
                             return false;
                         }
@@ -164,7 +163,7 @@ public final class JcrPathParser {
                         // don't reset the lastPos/pos since prefix+name are passed together to the NameResolver
                     } else if (state != STATE_URI) {
                         listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                                "' not valid name character");
+                                "' not valid name character.");
                         return false;
                     }
                     break;
@@ -199,16 +198,14 @@ public final class JcrPathParser {
                         }
                         state = STATE_INDEX_END;
                     } else {
-                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                                "' not a valid name character.");
+                        listener.error('\'' + jcrPath + "' is not a valid path. '" + c + "' not allowed in name.");
                         return false;
                     }
                     break;
 
                 case '*':
                 case '|':
-                    listener.error('\'' + jcrPath + "' is not a valid path. '" + c +
-                            "' not a valid name character.");
+                    listener.error('\'' + jcrPath + "' is not a valid path. '" + c + "' not allowed in name.");
                     return false;
                 case '{':
                     if (state == STATE_PREFIX_START && lastPos == pos-1) {

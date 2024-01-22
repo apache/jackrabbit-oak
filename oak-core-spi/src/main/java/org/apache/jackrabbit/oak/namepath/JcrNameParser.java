@@ -77,14 +77,28 @@ public final class JcrNameParser {
      * @return whether parsing was successful
      */
     public static boolean parse(String jcrName, Listener listener, int index) {
+        return parse(jcrName, listener, index, "");
+    }
+
+    /**
+     * Parse the specified jcr name and inform the specified {@code listener}
+     * about the result or any error that may occur during parsing.
+     *
+     * @param jcrName The jcr name to be parsed.
+     * @param listener The listener to be informed about success or failure.
+     * @param index index, or {@code 0} when not specified
+     * @param errorMessagePrefix Prefix for generated error messages
+     * @return whether parsing was successful
+     */
+    static boolean parse(String jcrName, Listener listener, int index, String errorMessagePrefix) {
         // trivial check
         int len = jcrName == null ? 0 : jcrName.length();
         if (len == 0) {
-            listener.error("Empty name");
+            listener.error(errorMessagePrefix + "Empty name.");
             return false;
         }
         if (".".equals(jcrName) || "..".equals(jcrName)) {
-            listener.error("Illegal name:" + jcrName);
+            listener.error(errorMessagePrefix + "Illegal name:" + jcrName);
             return false;
         }
 
@@ -97,29 +111,29 @@ public final class JcrNameParser {
             char c = jcrName.charAt(i);
             if (c == ':') {
                 if (state == STATE_PREFIX_START) {
-                    listener.error("Prefix must not be empty");
+                    listener.error(errorMessagePrefix + "Prefix must not be empty.");
                     return false;
                 } else if (state == STATE_PREFIX) {
                     prefix = jcrName.substring(0, i);
                     if (!XMLChar.isValidNCName(prefix)) {
-                        listener.error("Invalid name prefix: "+ prefix);
+                        listener.error(errorMessagePrefix + "Invalid name prefix: "+ prefix);
                         return false;
                     }
                     state = STATE_NAME_START;
                 } else if (state == STATE_URI) {
                     // ignore -> validation of uri later on.
                 } else {
-                    listener.error("'" + c + "' not allowed in name");
+                    listener.error(errorMessagePrefix + "'" + c + "' not allowed in name.");
                     return false;
                 }
             } else if (c == '[' || c == ']' || c == '*' || c == '|') {
-                listener.error("'" + c + "' not allowed in name");
+                listener.error(errorMessagePrefix + "'" + c + "' not allowed in name.");
                 return false;
             } else if (c == '/') {
                 if (state == STATE_URI_START) {
                     state = STATE_URI;
                 } else if (state != STATE_URI) {
-                    listener.error("'" + c + "' not allowed in name");
+                    listener.error(errorMessagePrefix + "'" + c + "' not allowed in name.");
                     return false;
                 }
             } else if (c == '{') {
@@ -154,7 +168,7 @@ public final class JcrNameParser {
                         state = STATE_NAME;
                         nameStart = 0;
                     } else {
-                        listener.error("The URI prefix of the name " + jcrName + " is " +
+                        listener.error(errorMessagePrefix + "The URI prefix of the name " + jcrName + " is " +
                                 "neither a valid URI nor a valid part of a local name.");
                         return false;
                     }
@@ -179,12 +193,12 @@ public final class JcrNameParser {
         // take care of qualified jcrNames starting with '{' that are not having
         // a terminating '}' -> make sure there are no illegal characters present.
         if (state == STATE_URI && (jcrName.indexOf(':') > -1 || jcrName.indexOf('/') > -1)) {
-            listener.error("Local name may not contain ':' nor '/'");
+            listener.error(errorMessagePrefix + "Local name may not contain ':' nor '/'.");
             return false;
         }
 
         if (nameStart == len || state == STATE_NAME_START) {
-            listener.error("Local name must not be empty");
+            listener.error(errorMessagePrefix + "Local name must not be empty.");
             return false;
         }
 
