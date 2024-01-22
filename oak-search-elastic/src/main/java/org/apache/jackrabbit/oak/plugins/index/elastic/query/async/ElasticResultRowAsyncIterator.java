@@ -340,7 +340,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
                 LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.size(), scannedRows);
 
-                Set<SearchHitListener> listenersWithHits = new HashSet<>();
+                Set<SearchHitListener> listenersWithHits = new HashSet<>(searchHitListeners.size());
 
                 for (Hit<ObjectNode> hit : searchHits) {
                     for (SearchHitListener l : searchHitListeners) {
@@ -351,7 +351,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 }
                 // if any listener has not processed any hit, it means we need to load more data since there could be
                 // listeners waiting for some results before triggering a new scan
-                boolean areAllListenersProcessed = listenersWithHits.containsAll(searchHitListeners);
+                boolean areAllListenersProcessed = listenersWithHits.size() == searchHitListeners.size();
 
                 if (!anyDataLeft.get()) {
                     LOG.trace("No data left: closing scanner, notifying listeners");
