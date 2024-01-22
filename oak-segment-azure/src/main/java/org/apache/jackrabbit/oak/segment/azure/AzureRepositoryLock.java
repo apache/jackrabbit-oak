@@ -17,7 +17,9 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.AccessCondition;
+import com.microsoft.azure.storage.Constants;
 import com.microsoft.azure.storage.RetryNoRetry;
+import com.microsoft.azure.storage.StorageErrorCode;
 import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.BlobRequestOptions;
@@ -28,6 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -137,11 +140,14 @@ public class AzureRepositoryLock implements RepositoryLock {
             } catch (StorageException e) {
                 timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
 
-                if (e.getErrorCode().equals(StorageErrorCodeStrings.OPERATION_TIMED_OUT)) {
-                    if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
-                        writeAccessController.disableWriting();
-                    }
-                    log.warn("Could not renew the lease due to the operation timeout. Retry in progress ...", e);
+                if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
+                    writeAccessController.disableWriting();
+                }
+
+                if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT, StorageErrorCode.SERVICE_INTERNAL_ERROR, StorageErrorCodeStrings.SERVER_BUSY, StorageErrorCodeStrings.INTERNAL_ERROR).contains(e.getErrorCode())) {
+                    log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
+                } else if (e.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
+                    log.warn("Client side error. Retry in progress ...", e);
                 } else {
                     log.error("Can't renew the lease", e);
                     shutdownHook.run();
