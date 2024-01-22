@@ -319,8 +319,11 @@ public class DocumentNodeStoreSweepTest {
         ns2.runBackgroundOperations();
         ns4.runBackgroundOperations();
 
+        // at this point /parent/foo still exists on 4
         assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
         {
+            // but with an update on /parent/bar on 2, _lastRev updates,
+            // hence /parent/foo's rolled-back change on 4 now becomes visible
             NodeBuilder b2 = ns2.getRoot().builder();
             b2.child("parent").child("bar").setProperty("z", "v");
             merge(ns2, b2);
