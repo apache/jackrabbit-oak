@@ -70,7 +70,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
     private static final FulltextResultRow POISON_PILL =
             new FulltextResultRow("___OAK_POISON_PILL___", 0d, Collections.emptyMap(), null, null);
 
-    private final BlockingQueue<FulltextResultRow> queue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<FulltextResultRow> queue;
 
     private final ElasticIndexNode indexNode;
     private final IndexPlan indexPlan;
@@ -97,6 +97,9 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         this.rowInclusionPredicate = rowInclusionPredicate;
         this.metricHandler = metricHandler;
         this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(indexNode.getConnection(), elasticResponseHandler);
+        // set the queue size to the limit of the query. This is to avoid to load too many results in memory in case the
+        // consumer is slow to process them
+        this.queue = new LinkedBlockingQueue<>((int) indexPlan.getFilter().getQueryLimits().getLimitReads());
         this.elasticQueryScanner = initScanner();
     }
 
