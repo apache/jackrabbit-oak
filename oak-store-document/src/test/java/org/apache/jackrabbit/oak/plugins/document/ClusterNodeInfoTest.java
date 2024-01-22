@@ -57,7 +57,7 @@ public class ClusterNodeInfoTest {
     private TestStore store;
     private FailureHandler handler = new FailureHandler();
     private boolean invisible;
-    private long reuseAfterRecoverMillis = ClusterNodeInfo.DEFAULT_REUSE_AFTER_RECOVER_MILLIS;
+    private long reuseAfterRecoverMillis = ClusterNodeInfo.DEFAULT_REUSE_AFTER_RECOVERY_MILLIS;
 
     public ClusterNodeInfoTest(boolean invisible) {
         this.invisible = invisible;
@@ -416,7 +416,7 @@ public class ClusterNodeInfoTest {
         op.set(ClusterNodeInfo.REV_RECOVERY_LOCK, "NONE");
         op.set(ClusterNodeInfo.STATE, null);
         op.set(ClusterNodeInfo.LEASE_END_KEY, null);
-        op.set(ClusterNodeInfo.RECOVER_TIME_KEY, null);
+        op.set(ClusterNodeInfo.RECOVERY_TIME_KEY, null);
         assertNotNull(store.findAndUpdate(Collection.CLUSTER_NODES, op));
 
         // should be able to acquire it
