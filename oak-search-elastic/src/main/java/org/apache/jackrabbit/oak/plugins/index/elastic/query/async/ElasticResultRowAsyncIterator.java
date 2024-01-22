@@ -340,7 +340,8 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
                 LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.size(), scannedRows);
 
-                Set<SearchHitListener> listenersWithHits = new HashSet<>(searchHitListeners.size());
+                Set<SearchHitListener> listenersWithHits =
+                        new HashSet<>((int) Math.ceil(searchHitListeners.size() / 0.75 + 1), 0.75f);
 
                 for (Hit<ObjectNode> hit : searchHits) {
                     for (SearchHitListener l : searchHitListeners) {
