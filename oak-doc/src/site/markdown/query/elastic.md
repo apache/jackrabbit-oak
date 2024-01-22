@@ -33,9 +33,8 @@ however there are differences:
 * Indexes are NOT automatically built when needed: 
   They can be built by setting the `reindex` property to `true` or by using the `oak-run` tool.
   We recommend to build them using the `oak-run` tool.
-* `evaluatePathRestrictions` is only checked at query time (to keep the compatibility with Lucene). The parent paths are
-  always indexed. Changing this flag won't require a reindex then. It's strongly suggested to enable it. This control
-  might be removed in the future.
+* `evaluatePathRestrictions` cannot be disabled. The parent paths are always indexed. Queries with path restrictions are 
+  evaluated at index level when possible, otherwise they are evaluated at repository level.
 * `codec` is ignored.
 * `compatVersion` is ignored.
 * `useIfExists` is ignored.
