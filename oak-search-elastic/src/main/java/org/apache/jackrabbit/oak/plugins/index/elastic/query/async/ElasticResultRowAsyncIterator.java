@@ -42,10 +42,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -339,24 +337,23 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
                 LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.size(), scannedRows);
 
-                Map<SearchHitListener, Boolean> hitsRecord = searchHitListeners.stream()
-                        .collect(HashMap::new, (m, v) -> m.put(v, Boolean.FALSE), HashMap::putAll);
+                Set<SearchHitListener> listenersWithHits = new HashSet<>();
 
                 for (Hit<ObjectNode> hit : searchHits) {
                     for (SearchHitListener l : searchHitListeners) {
-                        boolean anyHitProcessed = hitsRecord.get(l);
-                        boolean processed = l.on(hit);
-                        hitsRecord.put(l, anyHitProcessed || processed);
+                        if (l.on(hit)) {
+                            listenersWithHits.add(l);
+                        }
                     }
                 }
                 // if any listener has not processed any hit, it means we need to load more data since there could be
                 // listeners waiting for some results before triggering a new scan
-                boolean isAnyValueProcessed = hitsRecord.entrySet().stream().allMatch(Map.Entry::getValue);
+                boolean areAllListenersProcessed = listenersWithHits.containsAll(searchHitListeners);
 
                 if (!anyDataLeft.get()) {
                     LOG.trace("No data left: closing scanner, notifying listeners");
                     close();
-                } else if (fullScan || !isAnyValueProcessed) {
+                } else if (fullScan || !areAllListenersProcessed) {
                     scan();
                 }
             } else {
