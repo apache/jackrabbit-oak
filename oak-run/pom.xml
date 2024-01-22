@@ -34,7 +34,7 @@
     <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
-      + 75 MB Azure Identity client library for Java (OAK-10604)
+      + 78 MB Azure Identity client library for Java (OAK-10604)
       + 60 MB Groovy 2.5 (OAK-10066)
       + 56 MB MongoDB Java driver 3.12.7 (OAK-9357)
       + 55 MB Add support for segment persistent cache (OAK-7744)
@@ -48,7 +48,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>75040000</max.jar.size>
+    <max.jar.size>78050000</max.jar.size>
   </properties>
 
   <build>

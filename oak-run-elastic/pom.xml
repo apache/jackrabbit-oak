@@ -38,9 +38,9 @@
         121 MB : add Elasticsearch Java client along with RHLC: the latter can be removed when the code can be fully migrated to use the new client
         125 MB : shaded Guava
         85 MB : remove Elasticsearch RHLC
-        100.5 MB: Azure Identity client library for Java (OAK-10604)
+        103.5 MB: Azure Identity client library for Java (OAK-10604)
         -->
-        <max.jar.size>100500000</max.jar.size>
+        <max.jar.size>103500000</max.jar.size>
                       
     </properties>
 
