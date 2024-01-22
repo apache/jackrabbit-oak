@@ -48,7 +48,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>78050000</max.jar.size>
+    <max.jar.size>78100000</max.jar.size>
   </properties>
 
   <build>
