@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -340,19 +341,19 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
                 LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.size(), scannedRows);
 
-                Set<SearchHitListener> listenersWithHits =
-                        new HashSet<>((int) Math.ceil(searchHitListeners.size() / 0.75 + 1), 0.75f);
+                BitSet listenersWithHits = new BitSet(searchHitListeners.size());
 
                 for (Hit<ObjectNode> hit : searchHits) {
-                    for (SearchHitListener l : searchHitListeners) {
+                    for (int index = 0; index < searchHitListeners.size(); index++) {
+                        SearchHitListener l = searchHitListeners.get(index);
                         if (l.on(hit)) {
-                            listenersWithHits.add(l);
+                            listenersWithHits.set(index);
                         }
                     }
                 }
                 // if any listener has not processed any hit, it means we need to load more data since there could be
                 // listeners waiting for some results before triggering a new scan
-                boolean areAllListenersProcessed = listenersWithHits.size() == searchHitListeners.size();
+                boolean areAllListenersProcessed = listenersWithHits.cardinality() == searchHitListeners.size();
 
                 if (!anyDataLeft.get()) {
                     LOG.trace("No data left: closing scanner, notifying listeners");
