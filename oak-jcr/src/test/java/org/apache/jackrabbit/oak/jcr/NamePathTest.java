@@ -220,7 +220,6 @@ public class NamePathTest {
     }
 
     @Test
-    @Ignore("OAK-10544")
     public void testPrefixRemapping() throws NamespaceException, RepositoryException {
         Random r = new Random();
         int i1 = r.nextInt();
@@ -261,9 +260,6 @@ public class NamePathTest {
             assertTrue("remapped name must contain colon:" + remappedName, colon > 0);
             String remappedPrefix = remappedName.substring(0, colon);
             assertNotEquals("prefix after mapping must be different", prefix, remappedPrefix);
-
-            // OAK-10544: adding the line below makes the test pass
-            // session.getNamespacePrefix(uri1);
 
             assertEquals("remapped prefix need to map to original URI " + uri1, uri1, session.getNamespaceURI(remappedPrefix));
         } finally {
