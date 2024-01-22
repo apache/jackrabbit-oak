@@ -104,7 +104,7 @@ public final class JcrPathParser {
                             name = jcrPath.substring(lastPos, pos - 1);
                         }
 
-                        if (!JcrNameParser.parse(name, listener, index, "'\\'' + jcrPath + \"' is not a valid path. \"")) {
+                        if (!JcrNameParser.parse(name, listener, index, "'" + jcrPath + "' is not a valid path. ")) {
                             return false;
                         }
                         state = STATE_PREFIX_START;

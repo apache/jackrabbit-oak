@@ -351,7 +351,7 @@ public class PathParserTest {
     }
 
     private static String errorCharacterNotAllowedInName(String path, char c) {
-        return "'" + path + "' is not a valid path. ']' not allowed in name.";
+        return "'" + path + "' is not a valid path. '" + c + "' not allowed in name.";
     }
 
     private static String errorClosingQuareBracketExpected(String path) {
