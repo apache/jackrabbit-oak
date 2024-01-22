@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.ClusterNodeState.ACTIVE;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.LEASE_END_KEY;
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RECOVER_TIME_KEY;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.REV_RECOVERY_BY;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.REV_RECOVERY_LOCK;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.RUNTIME_ID_KEY;
@@ -104,6 +105,7 @@ class RecoveryLock {
                 update.set(STATE, null);
                 update.set(LEASE_END_KEY, null);
                 update.set(RUNTIME_ID_KEY, null);
+                update.set(RECOVER_TIME_KEY, clock.getTime());
             } else {
                 // make sure lease is expired
                 update.set(LEASE_END_KEY, clock.getTime() - 1);
