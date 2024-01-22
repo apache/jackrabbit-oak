@@ -69,6 +69,21 @@ import static org.apache.jackrabbit.oak.segment.azure.Configuration.PID;
     String blobEndpoint() default "";
 
     @AttributeDefinition(
+            name = "Azure Service Principal ID (optional)",
+            description = "Azure Service Principal ID for Azure Storage authentication")
+    String clientId() default "";
+
+    @AttributeDefinition(
+            name = "Azure Service Principal Password (optional)",
+            description = "Azure Service Principal Password for Azure Storage authentication")
+    String clientSecret() default "";
+
+    @AttributeDefinition(
+            name = "Azure Active Directory ID (optional)",
+            description = "Azure Active Directory ID for Azure Storage authentication")
+    String tenantId() default "";
+
+    @AttributeDefinition(
             name = "Role",
             description = "The role of this persistence. It should be unique and may be used to filter " +
                     "services in order to create services composed of multiple persistence instances. " +
