@@ -305,6 +305,7 @@ public class DocumentNodeStoreSweepTest {
         assertTrue(breakpoint1.tryAcquire(1, 30, TimeUnit.SECONDS));
 
         // then continue with the regular collision on 4
+        // this will now put the rolled-back collision change into 4's cache.
         merge(ns4, collisionBuilder4);
 
         // check at this point though, /parent/foo is still there:
@@ -320,6 +321,7 @@ public class DocumentNodeStoreSweepTest {
         ns4.runBackgroundOperations();
 
         // at this point /parent/foo still exists on 4
+        // (due to lastRev on 2 not yet being updated)
         assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
         {
             // but with an update on /parent/bar on 2, _lastRev updates,
