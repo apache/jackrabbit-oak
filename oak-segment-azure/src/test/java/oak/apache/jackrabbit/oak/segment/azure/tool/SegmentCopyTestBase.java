@@ -18,7 +18,11 @@
  */
 package oak.apache.jackrabbit.oak.segment.azure.tool;
 
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.*;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.CREATE;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newFileStore;
 import static org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.newSegmentNodeStorePersistence;
 import static org.junit.Assert.assertEquals;
@@ -50,7 +54,12 @@ import org.apache.jackrabbit.oak.segment.azure.tool.SegmentCopy;
 import org.apache.jackrabbit.oak.segment.azure.tool.ToolUtils.SegmentStoreType;
 import org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.CompactorType;
 import org.apache.jackrabbit.oak.segment.file.FileStore;
-import org.apache.jackrabbit.oak.segment.spi.monitor.*;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitor;
+import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.ManifestFile;
