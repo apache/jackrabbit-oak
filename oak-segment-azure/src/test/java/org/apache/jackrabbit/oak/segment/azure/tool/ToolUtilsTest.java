@@ -18,6 +18,11 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.Appender;
+import ch.qos.logback.core.read.ListAppender;
 import com.microsoft.azure.storage.StorageCredentials;
 import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
@@ -32,9 +37,11 @@ import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
 import org.apache.jackrabbit.oak.segment.azure.util.Environment;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
+import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
 import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
@@ -67,14 +74,20 @@ public class ToolUtilsTest {
     public void createCloudBlobDirectoryWithAccessKey() {
         environment.setVariable(AZURE_SECRET_KEY, AzuriteDockerRule.ACCOUNT_KEY);
 
+        final ListAppender<ILoggingEvent> logAppender = subscribeAppender();
+
         StorageCredentialsAccountAndKey credentials = expectCredentials(
             StorageCredentialsAccountAndKey.class, 
             () -> ToolUtils.createCloudBlobDirectory(DEFAULT_SEGMENT_STORE_PATH, environment),
             DEFAULT_CONTAINER_URL
         );
-        
+
+        assertEquals("AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.", logAppender.list.get(0).getFormattedMessage());
+        assertEquals(Level.WARN, logAppender.list.get(0).getLevel());
+
         assertEquals(DEFAULT_ACCOUNT_NAME, credentials.getAccountName());
         assertEquals(AzuriteDockerRule.ACCOUNT_KEY, credentials.exportBase64EncodedKey());
+        unsubscribe(logAppender);
     }
 
     @Test
@@ -136,6 +149,22 @@ public class ToolUtilsTest {
             );
             return credentialsCaptor.getValue();
         }
+    }
+
+    private ListAppender<ILoggingEvent> subscribeAppender() {
+        ListAppender<ILoggingEvent> appender = new ListAppender<ILoggingEvent>();
+        appender.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
+        appender.setName("asynclogcollector");
+        appender.start();
+        ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(
+                ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).addAppender(appender);
+        return appender;
+
+    }
+
+    private void unsubscribe(@NotNull final Appender<ILoggingEvent> appender) {
+        ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(
+                ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).detachAppender(appender);
     }
 
     static class TestEnvironment extends Environment {

@@ -50,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 public final class AzureUtilities {
     public static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
-
     public static final String AZURE_SECRET_KEY = "AZURE_SECRET_KEY";
     public static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
     public static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
