@@ -72,6 +72,8 @@ public class SessionNamespaces extends LocalNameMapper {
                     "Prefix is not a valid XML NCName: " + prefix);
         }
 
+        String previouslyMappedUri = getOakURIOrNull(prefix);
+
         // remove the possible existing mapping for the given prefix
         local.remove(prefix);
 
@@ -86,6 +88,11 @@ public class SessionNamespaces extends LocalNameMapper {
 
         // add the new mapping
         local.put(prefix, uri);
+
+        // make sure the previously mapped URI has a prefix
+        if (previouslyMappedUri != null) {
+            getNamespacePrefix(previouslyMappedUri);
+        }
     }
 
     /**
