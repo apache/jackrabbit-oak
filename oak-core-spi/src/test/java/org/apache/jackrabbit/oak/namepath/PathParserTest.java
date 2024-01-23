@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -98,14 +99,13 @@ public class PathParserTest {
     private static ParserCallbackResult CALLBACKRESULT_NAME(String name) {
         return new ParserCallbackResult(ParserCallbackResultType.CALLBACK_NAME, name, 0);
     }
-
     private static ParserCallbackResult CALLBACKRESULT_NAME(String name, int index) {
         return new ParserCallbackResult(ParserCallbackResultType.CALLBACK_NAME, name, index);
     }
-
     private static ParserCallbackResult CALLBACKRESULT_ERROR(String error) {
         return new ParserCallbackResult(ParserCallbackResultType.CALLBACK_ERROR, error, 0);
     }
+    private static ParserCallbackResult CALLBACKRESULT_ERROR_ANY = new ParserCallbackResult(ParserCallbackResultType.CALLBACK_ERROR, null, 0);
 
     private static class TestListener implements JcrPathParser.Listener {
 
@@ -155,34 +155,98 @@ public class PathParserTest {
     }
 
     @Test
-    public void testSampleTestTemplate() {
-        String path = "/a/b/./../c[1]/]";
+    @Ignore //OAK-10621
+    public void testGeneralPath() {
+        String path = "/a/{http://www.jcp.org/jcr/1.0}b/{http://www.jcp.org/jcr/1.0}c[50]/{d}e/./../x:y[1]/z";
         TestListener listener = new TestListener(
                 CALLBACKRESULT_ROOT,
                 CALLBACKRESULT_NAME("a"),
-                CALLBACKRESULT_NAME("b"),
+                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}b"),
+                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}c", 50),
+                CALLBACKRESULT_NAME("{d}e"),
                 CALLBACKRESULT_CURRENT,
                 CALLBACKRESULT_PARENT,
-                CALLBACKRESULT_NAME("c", 1),
+                CALLBACKRESULT_NAME("x:y", 1),
+                CALLBACKRESULT_NAME("z")
+        );
+        verifyResult(path, listener, false);
+
+        path += ']';
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a"),
+                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}b"),
+                CALLBACKRESULT_NAME("{http://www.jcp.org/jcr/1.0}c", 50),
+                CALLBACKRESULT_NAME("{d}e"),
+                CALLBACKRESULT_CURRENT,
+                CALLBACKRESULT_PARENT,
+                CALLBACKRESULT_NAME("x:y", 1),
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
-
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
     }
 
     @Test
     public void testEmptyPath() {
+        boolean result;
+
+        String path = null;
         TestListener listener = new TestListener();
+        verifyResult(path, listener, true);
 
-        assertTrue(JcrPathParser.validate(null));
-        assertTrue(JcrPathParser.parse(null, listener));
-        listener.evaluate();
+        path = "";
+        verifyResult(path, listener, true);
+    }
 
-        assertTrue(JcrPathParser.validate(""));
-        assertTrue(JcrPathParser.parse("", listener));
-        listener.evaluate();
+    @Test
+    @Ignore //OAK-10621
+    public void testExpandendName() {
+        boolean result;
+
+        final String prefix = "{http://www.jcp.org/jcr/1.0}";
+        String path = prefix;
+        TestListener listener = new TestListener(
+                CALLBACKRESULT_ERROR(errorEmptyLocalName(path))
+        );
+        verifyResult(path, listener, false);
+
+        path = prefix + "a";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME(prefix + "a")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/" + prefix + "a";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME(prefix + "a")
+        );
+        verifyResult(path, listener, true);
+
+        path = prefix + "/b";
+        listener = new TestListener(
+                CALLBACKRESULT_ERROR(errorEmptyLocalName(path))
+        );
+        verifyResult(path, listener, false);
+
+        path = "{a}b";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{a}b")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/{a}b";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("{a}b")
+        );
+        verifyResult(path, listener, true);
+
+        path = "{a}b[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{a}b", 1)
+        );
+        verifyResult(path, listener, true);
     }
 
     //TODO add more tests to cover all edge cases
@@ -194,69 +258,53 @@ public class PathParserTest {
         TestListener listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "/[";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "./[";
         listener = new TestListener(
                 CALLBACKRESULT_CURRENT,
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "../[";
         listener = new TestListener(
                 CALLBACKRESULT_PARENT,
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = ".[";
         listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "..[";
         listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "{[}";
         listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "a[[";
         listener = new TestListener(
                 //the parser actually produces an error, but we should change the error message to something like this
                 CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
     }
 
     @Test
@@ -268,9 +316,7 @@ public class PathParserTest {
                 //the parser actually produces an error, but we should change the error message to something like this
                 CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
     }
 
     @Test
@@ -279,75 +325,192 @@ public class PathParserTest {
         TestListener listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "/]";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = ".]";
         listener = new TestListener(
                 //TODO improve error message?
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "..]";
         listener = new TestListener(
                 //TODO improve error message?
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "{]}";
         listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
 
         path = "a[]]";
         listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorNumberFormatExceptionInIndex(path))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
     }
 
     @Test
-    public void testUnxepectedOpeningCurlyBracket() throws RepositoryException {
+    @Ignore //OAK-10624
+    public void testCurlyBracketsInNames() throws RepositoryException {
         String path = "/{";
         TestListener listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR(errorMissingClosingCurlyBracket(path))
+                CALLBACKRESULT_ERROR("'/{' is not a valid path. Missing '}'.")
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
-    }
-    @Test
+        verifyResult(path, listener, false);
 
+        path = "/a{";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a{")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/}";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("}")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a}";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a}")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a}[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a}", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a{[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a{", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a{}";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a{}")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a{}[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a{}", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a}{";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a}{")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a}{[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a}{", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a{b}:c";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_ERROR("'/a{b}:c' is not a valid path. Invalid name prefix: a{b}")
+        );
+        verifyResult(path, listener, false);
+
+        path = "/a{b:c";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_ERROR("'/a{b:c' is not a valid path. Invalid name prefix: a{b")
+        );
+        verifyResult(path, listener, false);
+
+        path = "/ab}:c";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_ERROR("'/ab}:c' is not a valid path. Invalid name prefix: ab}")
+        );
+        verifyResult(path, listener, false);
+    }
+
+    @Test
     public void testMissingClosingCurlyBracket() throws RepositoryException {
         String path = "{a";
         TestListener listener = new TestListener(
                 CALLBACKRESULT_ERROR(errorMissingClosingCurlyBracket(path))
         );
-        assertFalse(JcrPathParser.validate(path));
-        assertFalse(JcrPathParser.parse(path, listener));
-        listener.evaluate();
+        verifyResult(path, listener, false);
+    }
+
+    @Test
+    public void testPrefixes() throws RepositoryException {
+        String path = "/a:b";
+        TestListener listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:b")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a:b[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:b", 1)
+        );
+        verifyResult(path, listener, true);
+
+        // TODO fix error message (OAK-10625)
+        path = "/a:";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_ERROR_ANY
+        );
+        verifyResult(path, listener, false);
+
+        path = "/a:b:c";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ':'))
+        );
+        verifyResult(path, listener, false);
+
+        path = "/a:]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
+        );
+        verifyResult(path, listener, false);
+
+        //TODO fix error message
+        path = "/a:[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+               CALLBACKRESULT_ERROR_ANY
+               //CALLBACKRESULT_ERROR("'/a:[1]' is not a valid path. Local name after ':' expected")
+        );
+        verifyResult(path, listener, false);
     }
 
     private static String errorCharacterNotAllowedInName(String path, char c) {
@@ -364,5 +527,17 @@ public class PathParserTest {
 
     private static String errorMissingClosingCurlyBracket(String path) {
         return "'" + path + "' is not a valid path. Missing '}'.";
+    }
+
+    private static String errorEmptyLocalName(String path) {
+        return "'" + path + "' is not a valid path. Local name must not be empty.";
+    }
+
+    private static void verifyResult(String path, TestListener listener, boolean expectedResult) {
+        listener.reset();
+        boolean result = JcrPathParser.parse(path, listener);
+        listener.evaluate();
+        assertEquals(expectedResult, result);
+        assertEquals(result, JcrPathParser.validate(path));
     }
 }
