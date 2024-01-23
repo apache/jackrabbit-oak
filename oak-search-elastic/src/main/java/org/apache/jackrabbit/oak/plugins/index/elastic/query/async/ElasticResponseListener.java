@@ -20,17 +20,18 @@ import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
+import org.osgi.annotation.versioning.ProviderType;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
 /**
  * Generic listener of Elastic response
  */
+@ProviderType
 public interface ElasticResponseListener {
 
-    Set<String> DEFAULT_SOURCE_FIELDS = Collections.singleton(FieldNames.PATH);
+    Set<String> DEFAULT_SOURCE_FIELDS = Set.of(FieldNames.PATH);
 
     /**
      * Returns the source fields this listener is interested on

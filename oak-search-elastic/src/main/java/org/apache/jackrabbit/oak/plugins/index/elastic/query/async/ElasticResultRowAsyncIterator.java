@@ -41,15 +41,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -71,7 +71,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
     private static final FulltextResultRow POISON_PILL =
             new FulltextResultRow("___OAK_POISON_PILL___", 0d, Collections.emptyMap(), null, null);
 
-    private final BlockingQueue<FulltextResultRow> queue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<FulltextResultRow> queue;
 
     private final ElasticIndexNode indexNode;
     private final IndexPlan indexPlan;
@@ -98,6 +98,9 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
         this.rowInclusionPredicate = rowInclusionPredicate;
         this.metricHandler = metricHandler;
         this.elasticFacetProvider = elasticRequestHandler.getAsyncFacetProvider(indexNode.getConnection(), elasticResponseHandler);
+        // set the queue size to the limit of the query. This is to avoid to load too many results in memory in case the
+        // consumer is slow to process them
+        this.queue = new LinkedBlockingQueue<>((int) indexPlan.getFilter().getQueryLimits().getLimitReads());
         this.elasticQueryScanner = initScanner();
     }
 
@@ -110,7 +113,7 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
                 elasticQueryScanner.scan();
             }
             try {
-                nextRow = queue.take();
+                nextRow = queue.poll(indexNode.getDefinition().queryTimeoutMs, TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();  // restore interrupt status
                 throw new IllegalStateException("Error reading next result from Elastic", e);
@@ -338,24 +341,24 @@ public class ElasticResultRowAsyncIterator implements ElasticQueryIterator, Elas
 
                 LOG.trace("Emitting {} search hits, for a total of {} scanned results", searchHits.size(), scannedRows);
 
-                Map<SearchHitListener, Boolean> hitsRecord = searchHitListeners.stream()
-                        .collect(HashMap::new, (m, v) -> m.put(v, Boolean.FALSE), HashMap::putAll);
+                BitSet listenersWithHits = new BitSet(searchHitListeners.size());
 
                 for (Hit<ObjectNode> hit : searchHits) {
-                    for (SearchHitListener l : searchHitListeners) {
-                        boolean anyHitProcessed = hitsRecord.get(l);
-                        boolean processed = l.on(hit);
-                        hitsRecord.put(l, anyHitProcessed || processed);
+                    for (int index = 0; index < searchHitListeners.size(); index++) {
+                        SearchHitListener l = searchHitListeners.get(index);
+                        if (l.on(hit)) {
+                            listenersWithHits.set(index);
+                        }
                     }
                 }
                 // if any listener has not processed any hit, it means we need to load more data since there could be
                 // listeners waiting for some results before triggering a new scan
-                boolean isAnyValueProcessed = hitsRecord.entrySet().stream().allMatch(Map.Entry::getValue);
+                boolean areAllListenersProcessed = listenersWithHits.cardinality() == searchHitListeners.size();
 
                 if (!anyDataLeft.get()) {
                     LOG.trace("No data left: closing scanner, notifying listeners");
                     close();
-                } else if (fullScan || !isAnyValueProcessed) {
+                } else if (fullScan || !areAllListenersProcessed) {
                     scan();
                 }
             } else {
