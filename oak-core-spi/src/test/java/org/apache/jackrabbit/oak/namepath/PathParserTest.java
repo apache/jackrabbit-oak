@@ -252,7 +252,6 @@ public class PathParserTest {
     //TODO add more tests to cover all edge cases
 
     @Test
-    @Ignore  //OAK-10611
     public void testUnexpectedOpeningSquareBracket() throws RepositoryException {
         String path = "[";
         TestListener listener = new TestListener(
@@ -301,20 +300,21 @@ public class PathParserTest {
 
         path = "a[[";
         listener = new TestListener(
+                CALLBACKRESULT_ERROR_ANY
                 //the parser actually produces an error, but we should change the error message to something like this
-                CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
+                //CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
         );
         verifyResult(path, listener, false);
     }
 
     @Test
-    @Ignore  //OAK-10611
     public void testMissingClosingSquareBracket() throws RepositoryException {
         String path = "/a[";
         TestListener listener = new TestListener(
                 CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_ERROR_ANY
                 //the parser actually produces an error, but we should change the error message to something like this
-                CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
+                //CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
         );
         verifyResult(path, listener, false);
     }
