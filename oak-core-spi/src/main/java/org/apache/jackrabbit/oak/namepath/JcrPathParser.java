@@ -200,18 +200,6 @@ public final class JcrPathParser {
                     }
                     break;
 
-                case '[':
-                    if (state == STATE_PREFIX || state == STATE_NAME) {
-                        if (wasSlash) {
-                            pathAwareListener.error("Trailing slashes not allowed in prefixes and names.");
-                            return false;
-                        }
-                        state = STATE_INDEX;
-                        name = jcrPath.substring(lastPos, pos - 1);
-                        lastPos = pos;
-                    }
-                    break;
-
                 case ']':
                     if (state == STATE_INDEX) {
                         try {
@@ -253,6 +241,19 @@ public final class JcrPathParser {
                         state = STATE_URI_END;
                     }
                     break;
+
+                case '[':
+                    if (state == STATE_PREFIX || state == STATE_NAME) {
+                        if (wasSlash) {
+                            pathAwareListener.error("Trailing slashes not allowed in prefixes and names.");
+                            return false;
+                        }
+                        state = STATE_INDEX;
+                        name = jcrPath.substring(lastPos, pos - 1);
+                        lastPos = pos;
+                        break;
+                    }
+                    // intentionally no break, so we get the default treatment for all other states
 
                 default:
                     if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {
