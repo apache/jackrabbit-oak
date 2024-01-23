@@ -249,10 +249,7 @@ public class PathParserTest {
         verifyResult(path, listener, true);
     }
 
-    //TODO add more tests to cover all edge cases
-
     @Test
-    @Ignore  //OAK-10611
     public void testUnexpectedOpeningSquareBracket() throws RepositoryException {
         String path = "[";
         TestListener listener = new TestListener(
@@ -301,20 +298,23 @@ public class PathParserTest {
 
         path = "a[[";
         listener = new TestListener(
-                //the parser actually produces an error, but we should change the error message to something like this
-                CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
+                //TODO OAK-10616
+                //the parser actually produces an error, but we should change the error message to something like
+                //CALLBACKRESULT_ERROR(errorClosingSquareBracketExpected(path))
+                CALLBACKRESULT_ERROR_ANY
         );
         verifyResult(path, listener, false);
     }
 
     @Test
-    @Ignore  //OAK-10611
     public void testMissingClosingSquareBracket() throws RepositoryException {
         String path = "/a[";
         TestListener listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-                //the parser actually produces an error, but we should change the error message to something like this
-                CALLBACKRESULT_ERROR(errorClosingQuareBracketExpected(path))
+                //TODO OAK-10616
+                //the parser actually produces an error, but we should change the error message to something like
+                //CALLBACKRESULT_ERROR(errorClosingSquareBracketExpected(path))
+                CALLBACKRESULT_ERROR_ANY
         );
         verifyResult(path, listener, false);
     }
@@ -336,14 +336,12 @@ public class PathParserTest {
 
         path = ".]";
         listener = new TestListener(
-                //TODO improve error message?
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
 
         path = "..]";
         listener = new TestListener(
-                //TODO improve error message?
                 CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path, ']'))
         );
         verifyResult(path, listener, false);
@@ -481,10 +479,11 @@ public class PathParserTest {
         );
         verifyResult(path, listener, true);
 
-        // TODO fix error message (OAK-10625)
         path = "/a:";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
+                //TODO OAK-10616
+                //the parser actually produces an error, but the error message contains an EOF.
                 CALLBACKRESULT_ERROR_ANY
         );
         verifyResult(path, listener, false);
@@ -503,12 +502,12 @@ public class PathParserTest {
         );
         verifyResult(path, listener, false);
 
-        //TODO fix error message
         path = "/a:[1]";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
-               CALLBACKRESULT_ERROR_ANY
-               //CALLBACKRESULT_ERROR("'/a:[1]' is not a valid path. Local name after ':' expected")
+                //TODO OAK-10616
+                //the parser actually produces an error, but the error message is misleading
+               CALLBACKRESULT_ERROR("'/a:[1]' is not a valid path. ']' not allowed in name.")
         );
         verifyResult(path, listener, false);
     }
