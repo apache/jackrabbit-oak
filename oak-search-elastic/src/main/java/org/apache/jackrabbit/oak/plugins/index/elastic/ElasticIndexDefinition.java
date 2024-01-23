@@ -59,6 +59,9 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public static final String QUERY_FETCH_SIZES = "queryFetchSizes";
     public static final Long[] QUERY_FETCH_SIZES_DEFAULT = new Long[]{10L, 100L, 1000L};
 
+    public static final String QUERY_TIMEOUT_MS = "queryTimeoutMs";
+    public static final long QUERY_TIMEOUT_MS_DEFAULT = 60000;
+
     public static final String TRACK_TOTAL_HITS = "trackTotalHits";
     public static final Integer TRACK_TOTAL_HITS_DEFAULT = 10000;
 
@@ -138,6 +141,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
     public final int numberOfShards;
     public final int numberOfReplicas;
     public final int[] queryFetchSizes;
+    public final long queryTimeoutMs;
     public final Integer trackTotalHits;
     public final String dynamicMapping;
     public final boolean failOnError;
@@ -162,6 +166,7 @@ public class ElasticIndexDefinition extends IndexDefinition {
         this.similarityTagsBoost = getOptionalValue(defn, SIMILARITY_TAGS_BOOST, SIMILARITY_TAGS_BOOST_DEFAULT);
         this.queryFetchSizes = Arrays.stream(getOptionalValues(defn, QUERY_FETCH_SIZES, Type.LONGS, Long.class, QUERY_FETCH_SIZES_DEFAULT))
                 .mapToInt(Long::intValue).toArray();
+        this.queryTimeoutMs = getOptionalValue(defn, QUERY_TIMEOUT_MS, QUERY_TIMEOUT_MS_DEFAULT);
         this.trackTotalHits = getOptionalValue(defn, TRACK_TOTAL_HITS, TRACK_TOTAL_HITS_DEFAULT);
         this.dynamicMapping = getOptionalValue(defn, DYNAMIC_MAPPING, DYNAMIC_MAPPING_DEFAULT);
         this.failOnError = getOptionalValue(defn, FAIL_ON_ERROR,

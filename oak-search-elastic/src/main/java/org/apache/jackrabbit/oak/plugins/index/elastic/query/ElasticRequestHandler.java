@@ -596,49 +596,47 @@ public class ElasticRequestHandler {
             nodeTypeConstraints.ifPresent(queries::add);
         }
 
-        if (elasticIndexDefinition.evaluatePathRestrictions()) {
-            String path = FulltextIndex.getPathRestriction(plan);
-            switch (filter.getPathRestriction()) {
-                case ALL_CHILDREN:
-                    if (!"/".equals(path)) {
-                        queries.add(newAncestorQuery(path));
+        String path = FulltextIndex.getPathRestriction(plan);
+        switch (filter.getPathRestriction()) {
+            case ALL_CHILDREN:
+                if (!"/".equals(path)) {
+                    queries.add(newAncestorQuery(path));
+                }
+                break;
+            case DIRECT_CHILDREN:
+                queries.add(Query.of(q -> q.bool(b -> b.must(newAncestorQuery(path)).must(newDepthQuery(path, planResult)))));
+                break;
+            case EXACT:
+                // For transformed paths, we can only add path restriction if absolute path to property can be deduced
+                if (planResult.isPathTransformed()) {
+                    String parentPathSegment = planResult.getParentPathSegment();
+                    if (!any.test(PathUtils.elements(parentPathSegment), "*")) {
+                        queries.add(newPathQuery(path + parentPathSegment));
                     }
-                    break;
-                case DIRECT_CHILDREN:
-                    queries.add(Query.of(q -> q.bool(b -> b.must(newAncestorQuery(path)).must(newDepthQuery(path, planResult)))));
-                    break;
-                case EXACT:
+                } else {
+                    queries.add(newPathQuery(path));
+                }
+                break;
+            case PARENT:
+                if (PathUtils.denotesRoot(path)) {
+                    // there's no parent of the root node
+                    // we add a path that can not possibly occur because there
+                    // is no way to say "match no documents" in Lucene
+                    queries.add(newPathQuery("///"));
+                } else {
                     // For transformed paths, we can only add path restriction if absolute path to property can be deduced
                     if (planResult.isPathTransformed()) {
                         String parentPathSegment = planResult.getParentPathSegment();
                         if (!any.test(PathUtils.elements(parentPathSegment), "*")) {
-                            queries.add(newPathQuery(path + parentPathSegment));
+                            queries.add(newPathQuery(PathUtils.getParentPath(path) + parentPathSegment));
                         }
                     } else {
-                        queries.add(newPathQuery(path));
+                        queries.add(newPathQuery(PathUtils.getParentPath(path)));
                     }
-                    break;
-                case PARENT:
-                    if (PathUtils.denotesRoot(path)) {
-                        // there's no parent of the root node
-                        // we add a path that can not possibly occur because there
-                        // is no way to say "match no documents" in Lucene
-                        queries.add(newPathQuery("///"));
-                    } else {
-                        // For transformed paths, we can only add path restriction if absolute path to property can be deduced
-                        if (planResult.isPathTransformed()) {
-                            String parentPathSegment = planResult.getParentPathSegment();
-                            if (!any.test(PathUtils.elements(parentPathSegment), "*")) {
-                                queries.add(newPathQuery(PathUtils.getParentPath(path) + parentPathSegment));
-                            }
-                        } else {
-                            queries.add(newPathQuery(PathUtils.getParentPath(path)));
-                        }
-                    }
-                    break;
-                case NO_RESTRICTION:
-                    break;
-            }
+                }
+                break;
+            case NO_RESTRICTION:
+                break;
         }
 
         for (Filter.PropertyRestriction pr : filter.getPropertyRestrictions()) {
