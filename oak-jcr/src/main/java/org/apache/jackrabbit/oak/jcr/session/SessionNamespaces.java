@@ -90,6 +90,8 @@ public class SessionNamespaces extends LocalNameMapper {
         local.put(prefix, uri);
 
         // make sure the previously mapped URI has a prefix
+        // (getNamespacePrefix has the side effect of generating
+        // a new prefix if none was found, and adding that to the local mapping)
         if (previouslyMappedUri != null) {
             getNamespacePrefix(previouslyMappedUri);
         }
