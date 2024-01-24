@@ -354,7 +354,6 @@ public class PathParserTest {
     }
 
     @Test
-    @Ignore //OAK-10624
     public void testCurlyBracketsInNames() throws RepositoryException {
         String path = "{a";
         TestListener listener = new TestListener(

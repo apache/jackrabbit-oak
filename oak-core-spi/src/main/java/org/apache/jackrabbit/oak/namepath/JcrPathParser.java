@@ -228,8 +228,8 @@ public final class JcrPathParser {
                     if (state == STATE_PREFIX_START && lastPos == pos-1) {
                         // '{' marks the start of a uri enclosed in an expanded name
                         // instead of the usual namespace prefix, if it is
-                        // located at the beginning of a new segment.
-                        state = STATE_URI;
+                        // located at the beginning of a new segment and a '}' will follow.
+                        state = jcrPath.indexOf('}', pos) == -1 ? STATE_NAME : STATE_URI;
                     } else if (state == STATE_NAME_START || state == STATE_DOT || state == STATE_DOTDOT) {
                         // otherwise it's part of the local name
                         state = STATE_NAME;
@@ -239,6 +239,13 @@ public final class JcrPathParser {
                 case '}':
                     if (state == STATE_URI) {
                         state = STATE_URI_END;
+                    } else if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {
+                        state = STATE_PREFIX;
+                    } else if (state == STATE_NAME_START) {
+                        state = STATE_NAME;
+                    } else if (state == STATE_INDEX_END) {
+                        pathAwareListener.error("'" + c + "' not valid after index. '/' expected.");
+                        return false;
                     }
                     break;
 
@@ -251,9 +258,16 @@ public final class JcrPathParser {
                         state = STATE_INDEX;
                         name = jcrPath.substring(lastPos, pos - 1);
                         lastPos = pos;
-                        break;
                     }
-                    // intentionally no break, so we get the default treatment for all other states
+                    else if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {
+                        state = STATE_PREFIX;
+                    } else if (state == STATE_NAME_START) {
+                        state = STATE_NAME;
+                    } else if (state == STATE_INDEX_END) {
+                        pathAwareListener.error("'" + c + "' not valid after index. '/' expected.");
+                        return false;
+                    }
+                    break;
 
                 default:
                     if (state == STATE_PREFIX_START || state == STATE_DOT || state == STATE_DOTDOT) {
