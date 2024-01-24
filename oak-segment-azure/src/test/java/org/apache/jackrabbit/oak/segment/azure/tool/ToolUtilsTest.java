@@ -30,7 +30,9 @@ import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
@@ -52,6 +54,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeNotNull;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -67,6 +70,7 @@ public class ToolUtilsTest {
     private static final String DEFAULT_REPO_DIR = "repository";
     private static final String DEFAULT_CONTAINER_URL = String.format(CONTAINER_URL_FORMAT, DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME);
     private static final String DEFAULT_SEGMENT_STORE_PATH = String.format(SEGMENT_STORE_PATH_FORMAT, DEFAULT_ACCOUNT_NAME, DEFAULT_CONTAINER_NAME, DEFAULT_REPO_DIR);
+    public static final String AZURE_SECRET_KEY_WARNING = "AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.";
 
     private final TestEnvironment environment = new TestEnvironment();
 
@@ -82,7 +86,7 @@ public class ToolUtilsTest {
             DEFAULT_CONTAINER_URL
         );
 
-        assertEquals("AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.", logAppender.list.get(0).getFormattedMessage());
+        assertTrue(checkLogContainsMessage(AZURE_SECRET_KEY_WARNING, logAppender.list.stream().map(ILoggingEvent::getFormattedMessage).collect(Collectors.toList())));
         assertEquals(Level.WARN, logAppender.list.get(0).getLevel());
 
         assertEquals(DEFAULT_ACCOUNT_NAME, credentials.getAccountName());
@@ -151,6 +155,16 @@ public class ToolUtilsTest {
         }
     }
 
+    private boolean checkLogContainsMessage(String toCheck, List<String> messages) {
+        for (String message : messages) {
+            if (message.equals(toCheck)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private ListAppender<ILoggingEvent> subscribeAppender() {
         ListAppender<ILoggingEvent> appender = new ListAppender<ILoggingEvent>();
         appender.setContext((LoggerContext) LoggerFactory.getILoggerFactory());
@@ -159,7 +173,6 @@ public class ToolUtilsTest {
         ((LoggerContext) LoggerFactory.getILoggerFactory()).getLogger(
                 ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME).addAppender(appender);
         return appender;
-
     }
 
     private void unsubscribe(@NotNull final Appender<ILoggingEvent> appender) {
