@@ -290,12 +290,6 @@ public class PathParserTest {
         );
         verifyResult(path, listener, false);
 
-        path = "{[}";
-        listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorCharacterNotAllowedInName(path,'['))
-        );
-        verifyResult(path, listener, false);
-
         path = "a[[";
         listener = new TestListener(
                 //TODO OAK-10616
@@ -562,6 +556,28 @@ public class PathParserTest {
                 CALLBACKRESULT_NAME("a:}{", 1)
         );
         verifyResult(path, listener, true);
+
+        path = "{a}";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{a}")
+        );
+        verifyResult(path, listener, true);
+
+        path = "{[}";
+        listener = new TestListener(
+                //TODO OAK-10616
+                //the error message is could be improved (Empty local name is not allowed).
+                CALLBACKRESULT_ERROR("'{[}' is not a valid path. '[' not allowed in name.")
+        );
+        verifyResult(path, listener, false);
+
+        path = "{[}/a";
+        listener = new TestListener(
+                //TODO OAK-10616
+                //the error message is could be improved (Empty local name is not allowed).
+                CALLBACKRESULT_ERROR("'{[}/a' is not a valid path. '[' not allowed in name.")
+        );
+        verifyResult(path, listener, false);
     }
 
     @Test
@@ -586,6 +602,15 @@ public class PathParserTest {
                 //TODO OAK-10616
                 //the parser actually produces an error, but the error message contains an EOF.
                 CALLBACKRESULT_ERROR_ANY
+        );
+        verifyResult(path, listener, false);
+
+        path = "/a:/b";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                //TODO OAK-10616
+                //the error message is could be improved (Empty local name is not allowed).
+                CALLBACKRESULT_ERROR("'/a:/b' is not a valid path. '/' not allowed in name.")
         );
         verifyResult(path, listener, false);
 
