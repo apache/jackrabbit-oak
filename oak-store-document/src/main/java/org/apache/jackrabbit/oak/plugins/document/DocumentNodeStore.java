@@ -559,7 +559,7 @@ public final class DocumentNodeStore
     /**
      * Contains journal entry revisions (branch commit style) that were created
      * as a result of a rollback and are meant to trigger an invalidation in
-     * peer cluster nodes. This list is typically empty or small. It is empties
+     * peer cluster nodes. This list is typically empty or small. It is emptied
      * upon each backgroundWrite. It is used to avoid duplicate journal entries
      * that would otherwise be created as a result of merge (normal plus exclusive) retries
      */
