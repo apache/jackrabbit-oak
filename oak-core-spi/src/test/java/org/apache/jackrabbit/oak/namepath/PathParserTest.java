@@ -362,12 +362,11 @@ public class PathParserTest {
     @Test
     @Ignore //OAK-10624
     public void testCurlyBracketsInNames() throws RepositoryException {
-        String path = "/{";
+        String path = "{a";
         TestListener listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_ERROR("'/{' is not a valid path. Missing '}'.")
+                CALLBACKRESULT_NAME("{a")
         );
-        verifyResult(path, listener, false);
+        verifyResult(path, listener, true);
 
         path = "/a{";
         listener = new TestListener(
@@ -376,10 +375,72 @@ public class PathParserTest {
         );
         verifyResult(path, listener, true);
 
+        path = "{a[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{a", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a{[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a{", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/{/a";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("{"),
+                CALLBACKRESULT_NAME("a")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/{[1]/a";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("{", 1),
+                CALLBACKRESULT_NAME("a")
+        );
+        verifyResult(path, listener, true);
+
+        path = "{";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{")
+        );
+        verifyResult(path, listener, true);
+
+        path = "{[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_NAME("{", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/{";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("{")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/{[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("{", 1)
+        );
+        verifyResult(path, listener, true);
+
         path = "/}";
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
                 CALLBACKRESULT_NAME("}")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/}[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("}", 1)
         );
         verifyResult(path, listener, true);
 
@@ -394,13 +455,6 @@ public class PathParserTest {
         listener = new TestListener(
                 CALLBACKRESULT_ROOT,
                 CALLBACKRESULT_NAME("a}", 1)
-        );
-        verifyResult(path, listener, true);
-
-        path = "/a{[1]";
-        listener = new TestListener(
-                CALLBACKRESULT_ROOT,
-                CALLBACKRESULT_NAME("a{", 1)
         );
         verifyResult(path, listener, true);
 
@@ -452,15 +506,62 @@ public class PathParserTest {
                 CALLBACKRESULT_ERROR("'/ab}:c' is not a valid path. Invalid name prefix: ab}")
         );
         verifyResult(path, listener, false);
-    }
 
-    @Test
-    public void testMissingClosingCurlyBracket() throws RepositoryException {
-        String path = "{a";
-        TestListener listener = new TestListener(
-                CALLBACKRESULT_ERROR(errorMissingClosingCurlyBracket(path))
+        path = "/a:{";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:{")
         );
-        verifyResult(path, listener, false);
+        verifyResult(path, listener, true);
+
+        path = "/a:}";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:}")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a:{}";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:{}")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a:}{";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:}{")
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a:{[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:{", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a:}[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:}", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a:{}[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:{}", 1)
+        );
+        verifyResult(path, listener, true);
+
+        path = "/a:}{[1]";
+        listener = new TestListener(
+                CALLBACKRESULT_ROOT,
+                CALLBACKRESULT_NAME("a:}{", 1)
+        );
+        verifyResult(path, listener, true);
     }
 
     @Test
