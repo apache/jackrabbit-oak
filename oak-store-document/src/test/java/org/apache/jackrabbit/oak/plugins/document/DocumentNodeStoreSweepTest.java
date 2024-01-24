@@ -42,7 +42,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -209,8 +208,33 @@ public class DocumentNodeStoreSweepTest {
      * </ul>
      */
     @Test
-    @Ignore(value = "OAK-10595")
-    public void cachingUncommittedBeforeCollisionRollback() throws Exception {
+    public void cachingUncommittedBeforeCollisionRollback_withPause() throws Exception {
+        doCachingUncommittedBeforeCollisionRollback(false, false);
+    }
+
+    /**
+     * Same as {@link #cachingUncommittedBeforeCollisionRollback_withPause()},
+     * except with a crash instead of a pause (of clusterId 2).
+     * This variant should test whether recovery correctly causes cache
+     * invalidation on clusterId 4 as well.
+     */
+    @Test
+    public void cachingUncommittedBeforeCollisionRollback_crashBeforeRollback() throws Exception {
+        doCachingUncommittedBeforeCollisionRollback(true, false);
+    }
+
+    /**
+     * Same as {@link #cachingUncommittedBeforeCollisionRollback_crashBeforeRollback()},
+     * except it crashes later, after the rollback was applied.
+     */
+    @Test
+    public void cachingUncommittedBeforeCollisionRollback_crashAfterRollback() throws Exception {
+        doCachingUncommittedBeforeCollisionRollback(true, true);
+    }
+
+    public void doCachingUncommittedBeforeCollisionRollback(
+            final boolean crashInsteadOfContinue,
+            final boolean crashAfterRollback) throws Exception {
         // two nodes part of the game:
         // 2 : the main one that starts to do a subtree deletion
         // 4 : a peer one that gets in between the above and causes a collision.
@@ -234,6 +258,9 @@ public class DocumentNodeStoreSweepTest {
                 breakpoint1.release();
                 try {
                     breakpoint2.tryAcquire(1, 30, TimeUnit.MINUTES);
+                    if (crashInsteadOfContinue && !crashAfterRollback) {
+                        throw new RuntimeException("crashInsteadOfContinue");
+                    }
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -245,7 +272,7 @@ public class DocumentNodeStoreSweepTest {
         mf = pausableMongoDocumentStore("2:/parent/foo",
                 breakOnceInThread);
         DocumentStore store1 = mf.createDocumentStore(4);
-        DocumentStore store2 = mf.createDocumentStore(2);
+        FailingDocumentStore store2 = new FailingDocumentStore(mf.createDocumentStore(2));
         ns = builderProvider.newBuilder().setDocumentStore(store1)
                 // use lenient mode because tests use a virtual clock
                 .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(4).clock(clock)
@@ -267,17 +294,18 @@ public class DocumentNodeStoreSweepTest {
         ns2.runBackgroundOperations();
 
         final Semaphore successOn2 = new Semaphore(0);
+        final DocumentNodeStore finalNs2 = ns2;
         Runnable codeOn2 = new Runnable() {
 
             @Override
             public void run() {
                 try {
                     // now delete but intercept the _revisions update
-                    NodeBuilder builder = ns2.getRoot().builder();
+                    NodeBuilder builder = finalNs2.getRoot().builder();
                     assertTrue(builder.child("parent").child("foo").remove());
                     assertTrue(builder.child("parent").child("bar").remove());
                     breakInThread.set(Thread.currentThread());
-                    merge(ns2, builder);
+                    merge(finalNs2, builder);
                     fail("supposed to fail");
                 } catch (CommitFailedException e) {
                     // supposed to fail
@@ -311,9 +339,20 @@ public class DocumentNodeStoreSweepTest {
         // check at this point though, /parent/foo is still there:
         assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
 
-        // release things and go ahead
-        breakpoint2.release();
-        assertTrue(successOn2.tryAcquire(5, TimeUnit.SECONDS));
+        if (crashInsteadOfContinue && !crashAfterRollback) {
+            store2.fail().after(0).eternally();
+            breakpoint2.release();
+            assertTrue(successOn2.tryAcquire(5, TimeUnit.SECONDS));
+        } else if (crashInsteadOfContinue) {
+            store2.fail().on(Collection.NODES).after(3).eternally();
+            breakpoint2.release();
+            assertTrue(successOn2.tryAcquire(5, TimeUnit.SECONDS));
+            store2.fail().after(0).eternally();
+        } else {
+            // release things and go ahead
+            breakpoint2.release();
+            assertTrue(successOn2.tryAcquire(5, TimeUnit.SECONDS));
+        }
 
         // some bg ops...
         ns4.runBackgroundOperations();
@@ -323,13 +362,34 @@ public class DocumentNodeStoreSweepTest {
         // at this point /parent/foo still exists on 4
         // (due to lastRev on 2 not yet being updated)
         assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+        if (crashInsteadOfContinue) {
+            try {
+                ns2.dispose();
+            } catch(DocumentStoreException dse) {
+                // ok
+            }
+            // start up a fresh ns2 for the below change, to update lastrev
+            for(int seconds=0; seconds < 1800; seconds+=20) {
+                clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(1));
+                ns4.runBackgroundOperations();
+            }
+            assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+            store2 = new FailingDocumentStore(mf.createDocumentStore(2));
+            ns2 = builderProvider.newBuilder().setDocumentStore(store2)
+                    // use lenient mode because tests use a virtual clock
+                    .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(2).clock(clock)
+                    .setAsyncDelay(0).getNodeStore();
+            assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+        }
         {
             // but with an update on /parent/bar on 2, _lastRev updates,
             // hence /parent/foo's rolled-back change on 4 now becomes visible
             NodeBuilder b2 = ns2.getRoot().builder();
             b2.child("parent").child("bar").setProperty("z", "v");
             merge(ns2, b2);
+            assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
             ns2.runBackgroundOperations();
+            assertTrue(ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
         }
         ns4.runBackgroundOperations();
 
