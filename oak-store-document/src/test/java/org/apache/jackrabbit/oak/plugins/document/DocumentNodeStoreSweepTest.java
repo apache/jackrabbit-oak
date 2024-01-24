@@ -187,7 +187,7 @@ public class DocumentNodeStoreSweepTest {
      * on /parent/bar (using revision r123456789b-0-4). This update notices
      * the changes from 2 and leaves a corresponding collision marker (on 0:/
      * with _collisions.r123456789a-0-2=r123456789b-0-4)</li>
-     * <li>beforre clusterId 4 proceeds, it happens to force a read from
+     * <li>before clusterId 4 proceeds, it happens to force a read from
      * 2:/parent/foo from mongo - this is achieved as a result of
      * another /parent/foo</li>
      * <li>the result of the above is clusterId 4 having a state of 2:/parent/foo
@@ -212,9 +212,9 @@ public class DocumentNodeStoreSweepTest {
     @Ignore(value = "OAK-10595")
     public void cachingUncommittedBeforeCollisionRollback() throws Exception {
         // two nodes part of the game:
-        // 1 : the main one that starts to do a subtree deletion
-        // 2 : a peer one that gets in between the above and causes a collision
-        // as a result 1 manages to read 2's rolled back (uncommitted) state as
+        // 2 : the main one that starts to do a subtree deletion
+        // 4 : a peer one that gets in between the above and causes a collision.
+        // as a result 4 manages to read 2's rolled back (uncommitted) state as
         // committed
 
         ns.dispose();
