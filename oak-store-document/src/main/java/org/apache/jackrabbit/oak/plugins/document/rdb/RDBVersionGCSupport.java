@@ -16,23 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static java.util.Comparator.comparing;
-import static java.util.List.of;
-import static java.util.Optional.empty;
-import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
-import static java.util.stream.Stream.concat;
-import static java.util.stream.StreamSupport.stream;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
-import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
-import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
-import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
-import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.EMPTY_KEY_PATTERN;
-import static org.apache.jackrabbit.oak.plugins.document.util.CloseableIterable.wrap;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.closeIfCloseable;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -41,14 +25,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
-import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -101,61 +82,6 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             return getIterator(RDBDocumentStore.EMPTY_KEY_PATTERN, conditions);
         } else {
             return store.queryAsIterable(Collection.NODES, null, null, RDBDocumentStore.EMPTY_KEY_PATTERN, conditions, Integer.MAX_VALUE, null);
-        }
-    }
-
-    /**
-     * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range and are greater than given @{@link NodeDocument#ID}.
-     * <p>
-     * The two passed modified timestamps are in milliseconds
-     * since the epoch and the implementation will convert them to seconds at
-     * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
-     * then perform the comparison.
-     * <p/>
-     *
-     * @param fromModified the lower bound modified timestamp (inclusive)
-     * @param toModified   the upper bound modified timestamp (exclusive)
-     * @param limit        the limit of documents to return
-     * @param fromId       the lower bound {@link NodeDocument#ID}
-     * @return matching documents.
-     */
-    @Override
-    public Iterable<NodeDocument> getModifiedDocs(final long fromModified, final long toModified, final int limit,
-                                                  final String fromId) {
-        List<QueryCondition> conditions = of(new QueryCondition(MODIFIED_IN_SECS, "<", getModifiedInSecs(toModified)),
-                new QueryCondition(MODIFIED_IN_SECS, ">=", getModifiedInSecs(fromModified)),
-                new QueryCondition(ID, ">", of(fromId)));
-
-        final List<QueryCondition> c2 = of(new QueryCondition(MODIFIED_IN_SECS, "<", getModifiedInSecs(toModified)),
-                new QueryCondition(MODIFIED_IN_SECS, ">", getModifiedInSecs(fromModified)));
-
-        if (MODE == 1) {
-            final Iterable<NodeDocument> itr1 = getIterator(EMPTY_KEY_PATTERN, c1);
-            if (size(itr1) >= limit) {
-                return itr1;
-            }
-            final Iterable<NodeDocument> itr2 = getIterator(EMPTY_KEY_PATTERN, c2);
-
-            final Stream<NodeDocument> s1 = stream(itr1.spliterator(), false);
-            final Stream<NodeDocument> s2 = stream(itr2.spliterator(), false);
-            return wrap(concat(s1, s2).sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)).limit(limit).collect(toList()), () -> {
-                closeIfCloseable(itr1);
-                closeIfCloseable(itr2);
-            });
-        } else {
-            final Iterable<NodeDocument> itr1 = store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, c1, limit, of(MODIFIED_IN_SECS, ID));
-            if (size(itr1) >= limit) {
-                return itr1;
-            }
-            final Iterable<NodeDocument> itr2 = store.queryAsIterable(NODES, null, null, EMPTY_KEY_PATTERN, c2, limit, of(MODIFIED_IN_SECS, ID));
-
-            final Stream<NodeDocument> s1 = stream(itr1.spliterator(), false);
-            final Stream<NodeDocument> s2 = stream(itr2.spliterator(), false);
-            return wrap(concat(s1, s2).sorted((o1, o2) -> comparing(NodeDocument::getModified).thenComparing(Document::getId).compare(o1, o2)).limit(limit).collect(toList()), () -> {
-                closeIfCloseable(itr1);
-                closeIfCloseable(itr2);
-            });
         }
     }
 
@@ -311,28 +237,6 @@ public class RDBVersionGCSupport extends VersionGCSupport {
             LOG.debug("getOldestDeletedOnceTimestamp() -> none found, return current time");
             return clock.getTime();
         }
-    }
-
-    /**
-     * Retrieve the time of the oldest modified document.
-     *
-     * @param clock System Clock
-     * @return the timestamp of the oldest modified document.
-     */
-    @Override
-    public Optional<NodeDocument> getOldestModifiedDoc(Clock clock) {
-
-        LOG.info("getOldestModifiedDoc() <- start");
-        Iterable<NodeDocument> modifiedDocs = null;
-        try {
-            modifiedDocs = getModifiedDocs(0L, clock.getTime(), 1, MIN_ID_VALUE);
-            return modifiedDocs.iterator().hasNext() ? ofNullable(modifiedDocs.iterator().next()) : empty();
-        } catch (DocumentStoreException ex) {
-            LOG.error("getOldestModifiedDoc()", ex);
-        } finally {
-            closeIfCloseable(modifiedDocs);
-        }
-        return empty();
     }
 
     @Override

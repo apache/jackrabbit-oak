@@ -786,14 +786,6 @@ public class VersionGarbageCollector {
                             fromModifiedMs = fromModifiedMs + SECONDS.toMillis(5);
                             foundDoc = true; // to run while loop again
                         }
-                        // if we didn't find any document i.e. either we are already at last document
-                        // of current timeStamp or there is no document for this timeStamp
-                        // we need to reset fromId & increment fromModified and check again
-                        if (!foundDoc && !Objects.equals(fromId, MIN_ID_VALUE)) {
-                            fromId = MIN_ID_VALUE;
-                            fromModified = fromModified + SECONDS.toMillis(5);
-                            foundDoc = true; // to run while loop again
-                        }
                     }
                     phases.stop(GCPhase.DETAILED_GC);
                 }
