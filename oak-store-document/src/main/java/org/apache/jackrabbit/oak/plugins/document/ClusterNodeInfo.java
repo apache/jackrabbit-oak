@@ -238,7 +238,7 @@ public class ClusterNodeInfo {
     private static final int DEFAULT_REUSE_AFTER_RECOVERY_SECS = SystemPropertySupplier.create("oak.documentMK.reuseDelayAfterRecoverySecs", -1)
             .loggingTo(LOG).validateWith(value -> value >= -1)
             .formatSetMessage((name, value) -> String.format("Reuse delay after recovery set to (secs): %ss (using system property %s)", name, value)).get();
-    public static final int DEFAULT_REUSE_AFTER_RECOVERY_MILLIS = 1000 * DEFAULT_REUSE_AFTER_RECOVERY_SECS;
+    static final int DEFAULT_REUSE_AFTER_RECOVERY_MILLIS = 1000 * DEFAULT_REUSE_AFTER_RECOVERY_SECS;
 
     /**
      * The Oak version.
