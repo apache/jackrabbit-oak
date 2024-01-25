@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.rdb;
 
-import static java.util.List.of;
-import static java.util.stream.Collectors.joining;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore.CHAR2OCTETRATIO;
@@ -88,7 +86,7 @@ public class RDBDocumentStoreJDBC {
     private final int queryHitsLimit, queryTimeLimit;
 
     private static final Long INITIALMODCOUNT = Long.valueOf(1);
-    
+
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
         this.ser = ser;
@@ -461,7 +459,7 @@ public class RDBDocumentStoreJDBC {
                             + excludeKeyPatterns + ", conditions=" + conditions + ", limit=" + limit)
                     : null);
             stmt = prepareQuery(connection, tmd, fields, minId,
-                    maxId, excludeKeyPatterns, conditions, limit, of("ID"));
+                    maxId, excludeKeyPatterns, conditions, limit, "ID");
             rs = stmt.executeQuery();
             while (rs.next() && result.size() < limit) {
                 int field = 1;
@@ -556,7 +554,7 @@ public class RDBDocumentStoreJDBC {
 
     @NotNull
     public Iterator<RDBRow> queryAsIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
-            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, List<String> sortBy) throws SQLException {
+                                            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
         return new ResultSetIterator(ch, tmd, minId, maxId, excludeKeyPatterns, conditions, limit, sortBy);
     }
 
@@ -575,7 +573,7 @@ public class RDBDocumentStoreJDBC {
         private long pstart;
 
         public ResultSetIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
-                List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, List<String> sortBy) throws SQLException {
+                                 List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
             long start = System.currentTimeMillis();
             try {
                 this.ch = ch;
@@ -697,7 +695,7 @@ public class RDBDocumentStoreJDBC {
 
     @NotNull
     private PreparedStatement prepareQuery(Connection connection, RDBTableMetaData tmd, String columns, String minId, String maxId,
-            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, List<String> sortBy) throws SQLException {
+                                           List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
 
         StringBuilder selectClause = new StringBuilder();
 
@@ -716,8 +714,8 @@ public class RDBDocumentStoreJDBC {
             query.append(" where ").append(whereClause);
         }
 
-        if (sortBy != null && !sortBy.isEmpty()) {
-            query.append(" order by ").append(sortBy.stream().map(INDEXED_PROP_MAPPING::get).collect(joining(", ")));
+        if (sortBy != null) {
+            query.append(" order by ID");
         }
 
         if (limit != Integer.MAX_VALUE) {
@@ -914,7 +912,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     public boolean update(Connection connection, RDBTableMetaData tmd, String id, Long modified, Number hasBinary,
-            Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data) throws SQLException {
+                          Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data) throws SQLException {
 
         StringBuilder t = new StringBuilder();
         t.append("update " + tmd.getName() + " set ");
@@ -968,7 +966,6 @@ public class RDBDocumentStoreJDBC {
         tmp.put(NodeDocument.SD_TYPE, "SDTYPE");
         tmp.put(NodeDocument.SD_MAX_REV_TIME_IN_SECS, "SDMAXREVTIME");
         tmp.put(RDBDocumentStore.VERSIONPROP, "VERSION");
-        tmp.put(NodeDocument.ID, "ID");
         INDEXED_PROP_MAPPING = Collections.unmodifiableMap(tmp);
     }
 

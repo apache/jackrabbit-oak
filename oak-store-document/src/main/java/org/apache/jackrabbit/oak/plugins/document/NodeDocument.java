@@ -1662,16 +1662,12 @@ public final class NodeDocument extends Document {
 
     /**
      * Returns name of all the properties on this document
-<<<<<<< HEAD
      * <p>
      * Note: property names returned are escaped
      *
      * @return Set of all property names (escaped)
      * @see Utils#unescapePropertyName(String)
      * @see Utils#escapePropertyName(String)
-=======
-     * @return Set of all property names
->>>>>>> 710308b51a (OAK-10199 : override getModifiedDocs() for RDB and added unit cases for deletedProps)
      */
     @NotNull
     Set<String> getPropertyNames() {
