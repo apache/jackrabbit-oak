@@ -79,6 +79,7 @@ public class ClusterNodeInfoTest {
     @After
     public void after() {
         ClusterNodeInfo.resetClockToDefault();
+        ClusterNodeInfo.resetRecoveryDelayMillisToDefault();
     }
 
     @Test
@@ -730,6 +731,31 @@ public class ClusterNodeInfoTest {
         // wait until after recover + reuseAfterRecoverMillis
         clock.waitUntil(info.getLeaseEndTime() + reuseAfterRecoverMillis);
         assertEquals(1, newClusterNodeInfo(1).getId());
+    }
+      
+    @Test
+    public void recoveryNeededNoDelay() throws Exception {
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        String key = String.valueOf(info.getId());
+        ClusterNodeInfoDocument doc = store.find(Collection.CLUSTER_NODES, key);
+        assertFalse(doc.isRecoveryNeeded(clock.getTime()));
+        clock.waitUntil(info.getLeaseEndTime() + 1);
+        assertTrue(doc.isRecoveryNeeded(clock.getTime()));
+    }
+
+    @Test
+    public void recoveryNeededWithDelay() throws Exception {
+        ClusterNodeInfo.setRecoveryDelayMillis(60000);
+        ClusterNodeInfo info = newClusterNodeInfo(1);
+        String key = String.valueOf(info.getId());
+        ClusterNodeInfoDocument doc = store.find(Collection.CLUSTER_NODES, key);
+        assertFalse(doc.isRecoveryNeeded(clock.getTime()));
+        clock.waitUntil(info.getLeaseEndTime() + 59999);
+        assertFalse(doc.isRecoveryNeeded(clock.getTime()));
+        clock.waitUntil(info.getLeaseEndTime() + 1);
+        assertFalse(doc.isRecoveryNeeded(clock.getTime()));
+        clock.waitUntil(info.getLeaseEndTime() + 1);
+        assertTrue(doc.isRecoveryNeeded(clock.getTime()));
     }
 
     private void assertLeaseFailure() throws Exception {

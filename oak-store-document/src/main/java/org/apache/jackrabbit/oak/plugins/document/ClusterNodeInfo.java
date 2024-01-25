@@ -240,6 +240,15 @@ public class ClusterNodeInfo {
             .formatSetMessage((name, value) -> String.format("Reuse delay after recovery set to (secs): %ss (using system property %s)", name, value)).get();
     static final int DEFAULT_REUSE_AFTER_RECOVERY_MILLIS = 1000 * DEFAULT_REUSE_AFTER_RECOVERY_SECS;
 
+    /** OAK-10281 : seconds to delay a recovery after a lease timeout */
+    private static final int DEFAULT_RECOVERY_DELAY_SECS = SystemPropertySupplier.create("oak.documentMK.recoveryDelaySecs", 0)
+            .loggingTo(LOG).validateWith(value -> value >= 0)
+            .formatSetMessage((name, value) -> String.format("recovery delay set to (secs): %ss (using system property %s)", name, value)).get();
+    private static final long DEFAULT_RECOVERY_DELAY_MILLIS = 1000L * (long)DEFAULT_RECOVERY_DELAY_SECS;
+
+    // kept non-final for testing purpose
+    static long recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
+
     /**
      * The Oak version.
      */
@@ -1226,6 +1235,20 @@ public class ClusterNodeInfo {
      */
     static void resetClockToDefault() {
         clock = Clock.SIMPLE;
+    }
+
+    static long getRecoveryDelayMillis() {
+        return recoveryDelayMillis;
+    }
+
+    /** <b>only used for testing</b> **/
+    static void setRecoveryDelayMillis(long recoveryDelayMillis) {
+        ClusterNodeInfo.recoveryDelayMillis = recoveryDelayMillis;
+    }
+
+    /** <b>only used for testing</b> **/
+    static void resetRecoveryDelayMillisToDefault() {
+        recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
     }
 
     private static long getProcessId() {

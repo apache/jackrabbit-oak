@@ -220,7 +220,6 @@ public class NamePathTest {
     }
 
     @Test
-    @Ignore("OAK-10544")
     public void testPrefixRemapping() throws NamespaceException, RepositoryException {
         Random r = new Random();
         int i1 = r.nextInt();

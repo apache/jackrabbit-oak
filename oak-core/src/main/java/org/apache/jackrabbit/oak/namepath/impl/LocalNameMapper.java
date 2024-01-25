@@ -24,6 +24,8 @@ import java.util.Map;
 import org.apache.jackrabbit.oak.api.Root;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Name mapper with local namespace mappings.
@@ -31,6 +33,8 @@ import org.jetbrains.annotations.Nullable;
 public class LocalNameMapper extends GlobalNameMapper {
 
     protected final Map<String, String> local;
+
+    private static final Logger log = LoggerFactory.getLogger(LocalNameMapper.class);
 
     public LocalNameMapper(Root root, Map<String, String> local) {
         super(root);
@@ -81,6 +85,8 @@ public class LocalNameMapper extends GlobalNameMapper {
                     for (int i = 2; true; i++) {
                         String jcrPrefix = oakPrefix + i;
                         if (!local.containsKey(jcrPrefix)) {
+                            log.warn("no prefix found for namespace name '" + uri + "', using unmapped temporary prefix '"
+                                    + jcrPrefix + "' for now (see OAK-10544)");
                             return jcrPrefix + oakName.substring(colon);
                         }
                     }

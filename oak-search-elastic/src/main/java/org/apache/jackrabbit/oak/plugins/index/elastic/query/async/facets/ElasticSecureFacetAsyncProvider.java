@@ -71,7 +71,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
     }
 
     @Override
-    public void on(Hit<ObjectNode> searchHit) {
+    public boolean on(Hit<ObjectNode> searchHit) {
         final String path = elasticResponseHandler.getPath(searchHit);
         if (path != null && isAccessible.test(path)) {
             for (String field: facetFields) {
@@ -90,6 +90,7 @@ class ElasticSecureFacetAsyncProvider implements ElasticFacetProvider, ElasticRe
                 }
             }
         }
+        return true;
     }
 
     @Override
