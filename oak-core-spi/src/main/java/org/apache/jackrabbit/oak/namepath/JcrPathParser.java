@@ -246,7 +246,7 @@ public final class JcrPathParser {
                     } else if (state == STATE_NAME_START || state == STATE_PREFIX) {
                         state = STATE_NAME;
                     } else if (state == STATE_INDEX_END) {
-                        pathAwareListener.error("'" + c + "' not valid after index. '/' expected.
+                        pathAwareListener.error("'" + c + "' not valid after index. '/' expected.");
                         return false;
                     }
                     break;
