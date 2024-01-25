@@ -21,19 +21,14 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Maps;
-
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
-import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MongoFixture;
+import org.apache.jackrabbit.oak.plugins.document.PausableDocumentStore.PauseCallback;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.prefetch.CountingMongoDatabase;
-import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -92,80 +87,6 @@ public class DocumentNodeStoreSweepTest {
     public static void resetClock() {
         Revision.resetClockToDefault();
         ClusterNodeInfo.resetClockToDefault();
-    }
-
-    interface UpdateCallback {
-        /**
-         * @return true to continue going via this UpdateHandler, false to stop using
-         *         this UpdateHandler
-         */
-        boolean handleUpdate(UpdateOp op);
-    }
-
-    /** limited purpose MongoFixture that allows to pause after a specific update */
-    MongoFixture pausableMongoDocumentStore(final String targetId,
-            final UpdateCallback updateHandler) {
-        return new MongoFixture() {
-            @Override
-            public DocumentStore createDocumentStore(Builder builder) {
-                try {
-                    MongoConnection connection = MongoUtils.getConnection();
-                    CountingMongoDatabase db = new CountingMongoDatabase(
-                            connection.getDatabase());
-                    return new MongoDocumentStore(connection.getMongoClient(), db,
-                            builder) {
-                        volatile boolean done;
-
-                        @Override
-                        public <T extends Document> T findAndUpdate(
-                                Collection<T> collection, UpdateOp update) {
-                            try {
-                                return super.findAndUpdate(collection, update);
-                            } finally {
-                                updateHandler(targetId, updateHandler, update);
-                            }
-                        }
-
-                        private void updateHandler(final String targetId,
-                                final UpdateCallback updateHandler, UpdateOp update) {
-                            if (done) {
-                                return;
-                            }
-                            if (update.getId().equals(targetId)) {
-                                if (!updateHandler.handleUpdate(update)) {
-                                    done = true;
-                                    return;
-                                }
-                            }
-                        }
-
-                        @Override
-                        public <T extends Document> T createOrUpdate(
-                                Collection<T> collection, UpdateOp update) {
-                            try {
-                                return super.createOrUpdate(collection, update);
-                            } finally {
-                                updateHandler(targetId, updateHandler, update);
-                            }
-                        }
-
-                        @Override
-                        public <T extends Document> List<T> createOrUpdate(
-                                Collection<T> collection, List<UpdateOp> updateOps) {
-                            try {
-                                return super.createOrUpdate(collection, updateOps);
-                            } finally {
-                                for (UpdateOp update : updateOps) {
-                                    updateHandler(targetId, updateHandler, update);
-                                }
-                            }
-                        }
-                    };
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        };
     }
 
     /**
@@ -246,15 +167,10 @@ public class DocumentNodeStoreSweepTest {
         final Semaphore breakpoint1 = new Semaphore(0);
         final Semaphore breakpoint2 = new Semaphore(0);
 
-        final AtomicReference<Thread> breakInThread = new AtomicReference<Thread>();
-        UpdateCallback breakOnceInThread = new UpdateCallback() {
+        PauseCallback breakOnceInThread = new PauseCallback() {
 
             @Override
-            public boolean handleUpdate(UpdateOp update) {
-                final Thread localThread = breakInThread.get();
-                if (localThread == null || !localThread.equals(Thread.currentThread())) {
-                    return true;
-                }
+            public PauseCallback handlePause(List<UpdateOp> remainingOps) {
                 breakpoint1.release();
                 try {
                     breakpoint2.tryAcquire(1, 30, TimeUnit.MINUTES);
@@ -264,15 +180,17 @@ public class DocumentNodeStoreSweepTest {
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                return false;
+                return null;
             }
 
         };
 
-        mf = pausableMongoDocumentStore("2:/parent/foo",
-                breakOnceInThread);
+        mf = new MongoFixture();
         DocumentStore store1 = mf.createDocumentStore(4);
-        FailingDocumentStore store2 = new FailingDocumentStore(mf.createDocumentStore(2));
+        final PausableDocumentStore pausableStore2 = new PausableDocumentStore(mf.createDocumentStore(2));
+        pausableStore2.pauseWith(breakOnceInThread).on(Collection.NODES)
+                .on("2:/parent/foo").after(1).afterOp().eternally();
+        FailingDocumentStore store2 = new FailingDocumentStore(pausableStore2);
         ns = builderProvider.newBuilder().setDocumentStore(store1)
                 // use lenient mode because tests use a virtual clock
                 .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(4).clock(clock)
@@ -304,7 +222,6 @@ public class DocumentNodeStoreSweepTest {
                     NodeBuilder builder = finalNs2.getRoot().builder();
                     assertTrue(builder.child("parent").child("foo").remove());
                     assertTrue(builder.child("parent").child("bar").remove());
-                    breakInThread.set(Thread.currentThread());
                     merge(finalNs2, builder);
                     fail("supposed to fail");
                 } catch (CommitFailedException e) {
