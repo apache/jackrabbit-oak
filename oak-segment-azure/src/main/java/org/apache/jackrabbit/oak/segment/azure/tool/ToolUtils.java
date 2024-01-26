@@ -18,7 +18,16 @@
  */
 package org.apache.jackrabbit.oak.segment.azure.tool;
 
-import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.*;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_SECRET_KEY;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.storageCredentialAccessTokenFrom;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_SHARED_ACCESS_SIGNATURE;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
 import static org.apache.jackrabbit.oak.segment.compaction.SegmentGCOptions.defaultGCOptions;
 
 import java.io.File;
@@ -29,6 +38,7 @@ import java.text.MessageFormat;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.azure.AzurePersistence;
 import org.apache.jackrabbit.oak.segment.azure.AzureUtilities;
@@ -54,12 +64,14 @@ import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for common stuff pertaining to tooling.
  */
 public class ToolUtils {
-
+    private static final Logger log = LoggerFactory.getLogger(ToolUtils.class);
     private static final Environment ENVIRONMENT = new Environment();
 
     private ToolUtils() {
@@ -170,7 +182,7 @@ public class ToolUtils {
         if (config.containsKey(KEY_SHARED_ACCESS_SIGNATURE)) {
             credentials = new StorageCredentialsSharedAccessSignature(config.get(KEY_SHARED_ACCESS_SIGNATURE));
         } else {
-            credentials = getStorageCredentialsAccountAndKey(accountName, environment);
+            credentials = getStorageCredentialsFromAccountAndEnv(accountName, environment);
         }
 
         String uri = config.get(KEY_STORAGE_URI);
@@ -185,8 +197,23 @@ public class ToolUtils {
     }
 
     @NotNull
-    private static StorageCredentials getStorageCredentialsAccountAndKey(String accountName, Environment environment) {
-        String key = environment.getVariable("AZURE_SECRET_KEY");
+    private static StorageCredentials getStorageCredentialsFromAccountAndEnv(String accountName, Environment environment) {
+        String clientId = environment.getVariable(AZURE_CLIENT_ID);
+        String clientSecret = environment.getVariable(AZURE_CLIENT_SECRET);
+        String tenantId = environment.getVariable(AZURE_TENANT_ID);
+
+        if (!StringUtils.isAnyBlank(clientId, clientSecret, tenantId)) {
+            try {
+                return storageCredentialAccessTokenFrom(accountName, clientId, clientSecret, tenantId);
+            } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {
+                throw new IllegalArgumentException(
+                        "Could not connect to the Azure Storage. Please verify if AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables are correctly set!");
+            }
+        } else {
+            log.warn("AZURE_CLIENT_ID, AZURE_CLIENT_SECRET and AZURE_TENANT_ID environment variables empty or missing. Switching to authentication with AZURE_SECRET_KEY.");
+        }
+
+        String key = environment.getVariable(AZURE_SECRET_KEY);
         try {
             return new StorageCredentialsAccountAndKey(accountName, key);
         } catch (IllegalArgumentException | StringIndexOutOfBoundsException e) {

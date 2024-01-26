@@ -40,6 +40,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.osgi.util.converter.Converters;
 
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
+
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.CREATE;
 import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
@@ -65,11 +70,6 @@ public class AzureSegmentStoreServiceTest {
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
     private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
 
-    private static final String AZURE_ACCOUNT_NAME = "AZURE_ACCOUNT_NAME";
-    private static final String AZURE_TENANT_ID = "AZURE_TENANT_ID";
-    private static final String AZURE_CLIENT_ID = "AZURE_CLIENT_ID";
-    private static final String AZURE_CLIENT_SECRET = "AZURE_CLIENT_SECRET";
-    
     private CloudBlobContainer container;
     
     @Before

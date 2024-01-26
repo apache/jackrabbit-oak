@@ -688,7 +688,7 @@ Besides the local storage in TAR files (previously known as TarMK), support for 
 
 **Connection Instructions**:
 
-* **Microsoft Azure** The `cloud-prefix` for MS Azure is `az`, therefore a valid connection argument would be `az:https://myaccount.blob.core.windows.net/container/repository`, where the part after `:` is the Azure URL identifier for the _repository_ directory inside the specified _container_ of the _myaccount_ Azure storage account. The last missing piece is the secret key which will be supplied as an environment variable, i.e. `AZURE_SECRET_KEY`.
+* **Microsoft Azure** The `cloud-prefix` for MS Azure is `az`, therefore a valid connection argument would be `az:https://myaccount.blob.core.windows.net/container/repository`, where the part after `:` is the Azure URL identifier for the _repository_ directory inside the specified _container_ of the _myaccount_ Azure storage account. Default authentication to Microsoft Entra ID with service principal credentials supplied via `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_TENANT_ID` environment variables will be attempted first. If the former environment variables are not provided, default authentication with secret key provided as `AZURE_SECRET_KEY` will be attempted.
 
 * **Amazon AWS** The `cloud-prefix` for Amazon AWS is `aws`, therefore a valid connection argument would be `aws:bucket;root_directory;journal_table;lock_table` where the part after `:` defines the _root_directory_ inside the specified _bucket_ in S3 and the _journal_table_ and _lock_table_ tables within DynamoDB services. The other portion to connect to AWS is the credentials which will be supplied by placing a credentials file with ~/.aws folder.
 
