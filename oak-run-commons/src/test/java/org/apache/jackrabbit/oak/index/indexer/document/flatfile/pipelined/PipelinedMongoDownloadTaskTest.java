@@ -294,20 +294,20 @@ public class PipelinedMongoDownloadTaskTest {
 
     @Test
     public void createCustomExcludeEntriesFilter() {
-        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(null));
-        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(""));
+        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(null, true));
+        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("", true));
 
         Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expectedBson = Filters.nor(
                 Filters.regex(NodeDocument.ID, p),
                 Filters.and(
                         Filters.regex(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:h.*$")),
-                        Filters.regex(NodeDocument.PATH, p)
+                        Filters.in(NodeDocument.PATH, p)
                 )
         );
 
 
-        var actualBson = PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("^[0-9]{1,3}:/a/b.*$");
+        var actualBson = PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("^[0-9]{1,3}:/a/b.*$", true);
 
         assertBsonEquals(expectedBson, actualBson);
     }
@@ -318,7 +318,8 @@ public class PipelinedMongoDownloadTaskTest {
         assertNull(
                 PipelinedMongoDownloadTask.computeMongoQueryFilter(
                         MongoFilterPaths.DOWNLOAD_ALL,
-                        null
+                        null,
+                        true
                 )
         );
     }
@@ -328,7 +329,8 @@ public class PipelinedMongoDownloadTaskTest {
         // Path filter but no exclude filter
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/parent"), List.of()),
-                null
+                null,
+                true
         );
         var expected = Filters.or(
                 Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$")),
@@ -344,7 +346,8 @@ public class PipelinedMongoDownloadTaskTest {
     public void computeMongoQueryFilterNoPathFilterWithExcludeFilter() {
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 MongoFilterPaths.DOWNLOAD_ALL,
-                "^[0-9]{1,3}:/a/b.*$"
+                "^[0-9]{1,3}:/a/b.*$",
+                true
         );
         Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         assertBsonEquals(
@@ -352,7 +355,7 @@ public class PipelinedMongoDownloadTaskTest {
                         Filters.regex(NodeDocument.ID, p),
                         Filters.and(
                                 Filters.regex(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:h.*$")),
-                                Filters.regex(NodeDocument.PATH, p)
+                                Filters.in(NodeDocument.PATH, p)
                         )
                 ),
                 actual
@@ -363,7 +366,8 @@ public class PipelinedMongoDownloadTaskTest {
     public void computeMongoQueryFilterWithPathFilterWithExcludeFilter() {
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/parent"), List.of()),
-                "^[0-9]{1,3}:/a/b.*$"
+                "^[0-9]{1,3}:/a/b.*$",
+                true
         );
 
         Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
@@ -373,7 +377,7 @@ public class PipelinedMongoDownloadTaskTest {
                                 Filters.regex(NodeDocument.ID, p),
                                 Filters.and(
                                         Filters.regex(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:h.*$")),
-                                        Filters.regex(NodeDocument.PATH, p)
+                                        Filters.in(NodeDocument.PATH, p)
                                 )
                         ),
                         Filters.or(
@@ -382,6 +386,28 @@ public class PipelinedMongoDownloadTaskTest {
                                         Filters.regex(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:h.*$")),
                                         Filters.in(NodeDocument.PATH, Pattern.compile(Pattern.quote("/parent/") + ".*$"))
                                 )
+                        ));
+        assertBsonEquals(expected, actual);
+    }
+
+    @Test
+    public void computeMongoQueryFilterWithPathFilterWithExcludeFilterAndNaturalOrderTraversal() {
+        var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
+                new MongoFilterPaths(List.of("/parent"), List.of()),
+                "^[0-9]{1,3}:/a/b.*$",
+                false
+        );
+
+        Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
+        var expected =
+                Filters.and(
+                        Filters.nor(
+                                Filters.regex(NodeDocument.ID, p),
+                                Filters.in(NodeDocument.PATH, p)
+                        ),
+                        Filters.or(
+                                Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$")),
+                                Filters.in(NodeDocument.PATH, Pattern.compile(Pattern.quote("/parent/") + ".*$"))
                         ));
         assertBsonEquals(expected, actual);
     }
