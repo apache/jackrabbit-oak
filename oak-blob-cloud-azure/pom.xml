@@ -38,10 +38,11 @@
                 <configuration>
                     <instructions combine.self="override">
                         <Import-Package>
-                          !com.google.*,
-                          !org.checkerframework.*,
-                          !android.os,
-                          *
+                            !com.fasterxml.jackson.core.*,
+                            !com.google.*,
+                            !org.checkerframework.*,
+                            !android.os,
+                            *
                         </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
@@ -51,6 +52,8 @@
                             azure-storage,
                             azure-keyvault-core,
                             guava,
+                            jsr305,
+                            jackson-core
                             jsr305
                         </Embed-Dependency>
                         <!-- needed to override value from oak-parent; can be removed when OAK-6741 is resolved -->
@@ -154,6 +157,11 @@
             <groupId>com.google.code.findbugs</groupId>
             <artifactId>jsr305</artifactId>
             <version>3.0.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
         </dependency>
 
         <!-- Test dependencies -->

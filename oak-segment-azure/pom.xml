@@ -58,6 +58,7 @@
                             com.nimbusds.secevent.sdk*;resolution:=optional,
                             com.sun.jna*;resolution:=optional,
                             !org.apache.jackrabbit.oak.segment*,
+                            !com.fasterxml.jackson.core.*,
                             !com.google.*,
                             !android.os,
                             !org.checkerframework.*,
@@ -84,6 +85,7 @@
                             azure-identity-broker,
                             azure-json,
                             azure-xml,
+                            jackson-core,
                             guava,
                             jsr305
                         </Embed-Dependency>
@@ -197,6 +199,10 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.azure</groupId>
