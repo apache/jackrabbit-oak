@@ -57,7 +57,7 @@ public class ClusterNodeInfoTest {
     private TestStore store;
     private FailureHandler handler = new FailureHandler();
     private boolean invisible;
-    private long reuseAfterRecoverMillis = ClusterNodeInfo.DEFAULT_REUSE_AFTER_RECOVERY_MILLIS;
+    private long reuseAfterRecoverMillis = ClusterNodeInfo.DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
 
     public ClusterNodeInfoTest(boolean invisible) {
         this.invisible = invisible;

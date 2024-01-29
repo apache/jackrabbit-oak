@@ -234,11 +234,8 @@ public class ClusterNodeInfo {
     /** OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure **/
     private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
-    /** OAK-10622 : seconds to prevent reuse of clusterId if it crashed and thus required a recover */
-    private static final int DEFAULT_REUSE_AFTER_RECOVERY_SECS = SystemPropertySupplier.create("oak.documentMK.reuseDelayAfterRecoverySecs", -1)
-            .loggingTo(LOG).validateWith(value -> value >= -1)
-            .formatSetMessage((name, value) -> String.format("Reuse delay after recovery set to (secs): %ss (using system property %s)", name, value)).get();
-    static final int DEFAULT_REUSE_AFTER_RECOVERY_MILLIS = 1000 * DEFAULT_REUSE_AFTER_RECOVERY_SECS;
+    /** OAK-10622 : millis to prevent reuse of clusterId if it crashed and thus required a recover */
+    static final int DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS = 0;
 
     /** OAK-10281 : seconds to delay a recovery after a lease timeout */
     private static final int DEFAULT_RECOVERY_DELAY_SECS = SystemPropertySupplier.create("oak.documentMK.recoveryDelaySecs", 0)
@@ -478,7 +475,7 @@ public class ClusterNodeInfo {
                                               int configuredClusterId,
                                               boolean invisible) {
         return getInstance(store, recoveryHandler, machineId, instanceId, configuredClusterId,
-                invisible, DEFAULT_REUSE_AFTER_RECOVERY_MILLIS);
+                invisible, DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS);
     }
 
     /**
