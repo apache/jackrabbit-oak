@@ -14,14 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.lucene;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.index.IndexAggregation2CommonTest;
-import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
@@ -29,36 +28,36 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Rule;
-import org.junit.rules.TemporaryFolder;
+import org.junit.ClassRule;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.junit.Assert.fail;
 
-public class LuceneIndexAggregation2Test extends IndexAggregation2CommonTest {
+public class ElasticIndexAggregation2Test extends IndexAggregation2CommonTest {
 
-    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder(new File("target"));
+    @ClassRule
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
+            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+
+
+    private final ElasticTestRepositoryBuilder builder;
+
+    public ElasticIndexAggregation2Test() {
+        this.indexOptions = new ElasticIndexOptions();
+        this.builder = new ElasticTestRepositoryBuilder(elasticRule);
+        this.repositoryOptionsUtil = builder.build();
+    }
 
     @Override
     protected ContentRepository createRepository() {
-        indexOptions = new LuceneIndexOptions();
-        repositoryOptionsUtil = new LuceneTestRepositoryBuilder(executorService, temporaryFolder).build();
-        LuceneIndexProvider provider = new LuceneIndexProvider();
+        indexOptions = new ElasticIndexOptions();
 
         return new Oak()
                 .with(new InitialContent() {
@@ -99,10 +98,13 @@ public class LuceneIndexAggregation2Test extends IndexAggregation2CommonTest {
                     }
 
                 })
-                .with(new OpenSecurityProvider())
-                .with(((QueryIndexProvider) provider.with(getNodeAggregator())))
-                .with((Observer) provider).with(new LuceneIndexEditorProvider())
+                .with(builder.getSecurityProvider())
+                .with(builder.indexTracker)
+                .with(builder.getEditorProvider())
+                .with(builder.getIndexProvider())
+                .with(builder.getIndexEditorProvider())
+                .with(builder.getQueryIndexProvider())
+                .with(builder.getQueryEngineSettings())
                 .createContentRepository();
     }
-
 }

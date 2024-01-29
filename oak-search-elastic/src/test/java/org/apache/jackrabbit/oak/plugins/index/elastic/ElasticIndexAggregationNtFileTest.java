@@ -67,8 +67,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
                 // registering additional node types for wider testing
                 InputStream stream = null;
                 try {
-                    stream = ElasticIndexAggregationNtFileTest.class
-                            .getResourceAsStream("test_nodetypes.cnd");
+                    stream = Thread.currentThread().getContextClassLoader().getResource("test_nodetypes.cnd").openStream();
                     NodeState base = builder.getNodeState();
                     NodeStore store = new MemoryNodeStore(base);
 

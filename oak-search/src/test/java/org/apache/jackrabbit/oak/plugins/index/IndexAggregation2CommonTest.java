@@ -29,6 +29,7 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -39,6 +40,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
@@ -51,12 +53,13 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
-    private static final Logger LOG = LoggerFactory.getLogger(IndexAggregation2CommonTest.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(IndexAggregation2CommonTest.class);
 
     private static final String NT_TEST_PAGE = "test:Page";
     private static final String NT_TEST_PAGECONTENT = "test:PageContent";
@@ -178,7 +181,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", expected));
         setTraversalEnabled(true);
     }
 
@@ -219,7 +222,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", expected));
         setTraversalEnabled(true);
     }
 
@@ -247,13 +250,13 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         expected.add("/content/tagged");
         root.commit();
 
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", expected));
 
         //Update the reaggregated node and with that parent should be get updated
         Tree originalContent = TreeUtil.getTree(root.getTree("/"), "/content/tagged/jcr:content/renditions/original/jcr:content");
         originalContent.setProperty(PropertyStates.createProperty("jcr:data", "kiwi jumps".getBytes()));
         root.commit();
-        assertQuery(statement, "xpath", Collections.<String>emptyList());
+        assertEventually(() -> assertQuery(statement, "xpath", Collections.<String>emptyList()));
         setTraversalEnabled(true);
     }
 
@@ -273,7 +276,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         root.commit();
 
         expected.add("/content/pages");
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", expected));
     }
 
     @Ignore("OAK-6597")
@@ -384,5 +387,24 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         node.setProperty(JCR_PRIMARYTYPE, NT_TEST_PAGECONTENT, NAME);
 
         return node;
+    }
+
+    /**
+     * convenience method for printing on logs the currently registered node types.
+     */
+    protected static void printNodeTypes(NodeBuilder builder) {
+        if (LOG.isDebugEnabled()) {
+            NodeBuilder namespace = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
+            List<String> nodes = Lists.newArrayList(namespace.getChildNodeNames());
+            Collections.sort(nodes);
+            for (String node : nodes) {
+                LOG.debug(node);
+            }
+        }
+    }
+
+    protected void assertEventually(Runnable r) {
+        TestUtil.assertEventually(r,
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

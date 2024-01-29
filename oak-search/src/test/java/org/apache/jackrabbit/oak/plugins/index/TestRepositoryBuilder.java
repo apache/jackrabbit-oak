@@ -143,4 +143,28 @@ public abstract class TestRepositoryBuilder {
     public void setQueryEngineSettings(QueryEngineSettings queryEngineSettings) {
         this.queryEngineSettings = queryEngineSettings;
     }
+
+    public IndexEditorProvider getEditorProvider() {
+        return editorProvider;
+    }
+
+    public QueryIndexProvider getIndexProvider() {
+        return indexProvider;
+    }
+
+    public SecurityProvider getSecurityProvider() {
+        return securityProvider;
+    }
+
+    public IndexEditorProvider getIndexEditorProvider() {
+        return indexEditorProvider;
+    }
+
+    public QueryIndexProvider getQueryIndexProvider() {
+        return queryIndexProvider;
+    }
+
+    public QueryEngineSettings getQueryEngineSettings() {
+        return queryEngineSettings;
+    }
 }

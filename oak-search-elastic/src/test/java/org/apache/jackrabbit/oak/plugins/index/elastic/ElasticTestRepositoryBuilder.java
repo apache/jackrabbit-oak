@@ -39,8 +39,8 @@ import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvid
 
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
 
-    private final ElasticConnection esConnection;
-    private final ElasticIndexTracker indexTracker;
+    protected final ElasticConnection esConnection;
+    protected final ElasticIndexTracker indexTracker;
     private final int asyncIndexingTimeInSeconds = 1;
 
     public ElasticTestRepositoryBuilder(ElasticConnectionRule elasticRule) {
@@ -77,7 +77,8 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
         return new MemoryNodeStore(InitialContentHelper.INITIAL_CONTENT);
     }
 
-    private IndexEditorProvider getIndexEditorProvider() {
+    @Override
+    public IndexEditorProvider getIndexEditorProvider() {
         return new ElasticIndexEditorProvider(indexTracker, esConnection,
                 new ExtractedTextCache(10 * FileUtils.ONE_MB, 100));
     }
