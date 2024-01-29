@@ -34,7 +34,8 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import java.util.List;
+
 import static org.apache.jackrabbit.oak.plugins.index.CompositeIndexEditorProvider.compose;
 
 public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
@@ -49,7 +50,7 @@ public class ElasticTestRepositoryBuilder extends TestRepositoryBuilder {
         this.indexTracker = new ElasticIndexTracker(esConnection, new ElasticMetricHandler(StatisticsProvider.NOOP));
         this.editorProvider = getIndexEditorProvider();
         this.indexProvider = new ElasticIndexProvider(indexTracker);
-        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(newArrayList(
+        this.asyncIndexUpdate = new AsyncIndexUpdate("async", nodeStore, compose(List.of(
                 editorProvider,
                 new NodeCounterEditorProvider()
         )));

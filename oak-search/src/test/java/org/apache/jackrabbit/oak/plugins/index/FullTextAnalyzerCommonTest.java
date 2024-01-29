@@ -598,6 +598,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             assertQuery("select * from [nt:base] where CONTAINS(*, 'ck')", List.of("/content/bar"));
         });
     }
+
     @Test
     public void fulltextSearchWithEdgeNGram() throws Exception {
         setup(List.of("foo"), idx -> {

@@ -112,17 +112,13 @@ class ElasticIndexHelper {
                                         .searchAnalyzer("keyword")
                                         .searchQuoteAnalyzer("keyword")))
                 .properties(FieldNames.PATH_DEPTH,
-                        b1 -> b1.integer(
-                                b2 -> b2.docValues(false)))
+                        b1 -> b1.integer(b2 -> b2.docValues(false)))
                 .properties(FieldNames.FULLTEXT,
-                        b1 -> b1.text(
-                                b2 -> b2.analyzer("oak_analyzer")))
+                        b1 -> b1.text(b2 -> b2.analyzer("oak_analyzer")))
                 .properties(ElasticIndexDefinition.DYNAMIC_BOOST_FULLTEXT,
-                        b1 -> b1.text(
-                                b2 -> b2.analyzer("oak_analyzer")))
+                        b1 -> b1.text(b2 -> b2.analyzer("oak_analyzer")))
                 .properties(FieldNames.SPELLCHECK,
-                        b1 -> b1.text(
-                                b2 -> b2.analyzer("trigram")))
+                        b1 -> b1.text(b2 -> b2.analyzer("trigram")))
                 .properties(FieldNames.SUGGEST,
                         b1 -> b1.nested(
                                 // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
