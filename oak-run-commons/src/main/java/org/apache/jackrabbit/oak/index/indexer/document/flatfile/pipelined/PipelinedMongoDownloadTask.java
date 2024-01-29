@@ -136,7 +136,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private final static BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
-    private final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h.*$");
+    final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h.*$");
 
     private static final String THREAD_NAME = "mongo-dump";
 
@@ -213,7 +213,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             }
             String quotedPath = Pattern.quote(path);
             idPatterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
-            pathPatterns.add(Pattern.compile(quotedPath + ".*$"));
+            pathPatterns.add(Pattern.compile( "^" + quotedPath + ".*$"));
         }
 
         Bson pathFilter = createPathFilter(pathPatterns, queryUsesIndexTraversal);
@@ -221,14 +221,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     private static Bson createPathFilter(List<Pattern> pattern, boolean queryUsesIndexTraversal) {
-        // For the case of long path document, the _id does not contain the path of the document, so we need to check
-        // the _path field. When doing an index scan, it may be more efficient to check that the _id starts is in the format
-        // of a long path id (that is, numeric prefix followed by ":h") first, before checking the _path field. The _id
+        // If a document has a long path, the _id is replaced by a hash and the path is stored in an additional _path field.
+        // When doing an index scan, it may be more efficient to check that the _id is in the format of a long path id
+        // (that is, numeric prefix followed by ":h") first, before checking the _path field. The _id
         // is available from the index while the _path field is only available on the document itself, so checking the
-        // _path will force an expensive retrieval of the full document. It is not guranteed that Mongo will implement
-        // this optimization, but it is worth trying.
-        // If the query is doing a simple column scan, then Mongo already has to retrieve the full document, so we can
-        // check the _path directly, which simplified a bit the query.
+        // _path will force an expensive retrieval of the full document. It is not guaranteed that Mongo will implement
+        // this optimization, but it is adding this additional check to allow MongoDB to apply this optimization.
+        // If the query does a column scan, then Mongo retrieves the full document from the column store, so we can
+        // check the _path directly, which simplifies a bit the query.
         if (queryUsesIndexTraversal) {
             return Filters.and(
                     Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN),
