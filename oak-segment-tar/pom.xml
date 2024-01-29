@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.jackrabbit</groupId>
         <artifactId>oak-parent</artifactId>
-        <version>1.59-SNAPSHOT</version>
+        <version>1.61-SNAPSHOT</version>
         <relativePath>../oak-parent/pom.xml</relativePath>
     </parent>
 
@@ -33,7 +33,7 @@
     <name>Oak Segment Tar</name>
 
     <properties>
-        <netty.version>4.1.96.Final</netty.version>
+        <netty.version>4.1.104.Final</netty.version>
         <concurrentlinkedhashmap.version>1.4.2</concurrentlinkedhashmap.version>
     </properties>
 

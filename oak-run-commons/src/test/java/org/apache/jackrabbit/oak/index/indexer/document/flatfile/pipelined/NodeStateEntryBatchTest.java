@@ -20,8 +20,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.junit.Test;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
@@ -48,43 +46,46 @@ public class NodeStateEntryBatchTest {
     @Test
     public void testMaximumBufferSize() {
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
-        batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE - 4 - 2]); // Needs 4 bytes for the length and 2 for the key
+        int keySize = "a".getBytes(StandardCharsets.UTF_8).length;
+        batch.addEntry("a", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE - 4 - 4 - keySize]); // Needs 4 bytes for the length of the path and of the entry data
         assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[NodeStateEntryBatch.MIN_BUFFER_SIZE]));
 
-        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntries());
+        assertEquals(NodeStateEntryBatch.MIN_BUFFER_SIZE, batch.sizeOfEntriesBytes());
         assertEquals(1, batch.numberOfEntries());
         assertThrows(NodeStateEntryBatch.BufferFullException.class, () -> batch.addEntry("b", new byte[1]));
     }
 
     @Test
-    public void flipAndResetBuffer() throws IOException {
-        int sizeOfEntry = NodeStateEntryBatch.MIN_BUFFER_SIZE-4;
-        String key = "a";
-        int jsonNodeLength = sizeOfEntry-2; // minus key and pipe characters
-
+    public void flipAndResetBuffer() {
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
-        byte[] jsonNodeBytes = new byte[jsonNodeLength];
-        for (int i = 0; i < jsonNodeLength; i++) {
+        int expectedBytesWrittenToBuffer = NodeStateEntryBatch.MIN_BUFFER_SIZE;
+
+        String key = "a";
+        int keyLength = "a".getBytes(StandardCharsets.UTF_8).length;
+        byte[] jsonNodeBytes = new byte[batch.capacity()-4-4-keyLength];
+        for (int i = 0; i < jsonNodeBytes.length; i++) {
             jsonNodeBytes[i] = (byte) (i % 127);
         }
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        baos.write("a|".getBytes(StandardCharsets.UTF_8));
-        baos.write(jsonNodeBytes);
-        byte[] expectedContents = baos.toByteArray();
-        int size = batch.addEntry(key, jsonNodeBytes);
-        assertEquals(size, sizeOfEntry);
-        assertEquals(batch.getBuffer().position(), sizeOfEntry + 4);
+
+        int bytesWrittenToBuffer = batch.addEntry(key, jsonNodeBytes);
+        assertEquals(bytesWrittenToBuffer, expectedBytesWrittenToBuffer);
+        assertEquals(batch.getBuffer().position(), expectedBytesWrittenToBuffer);
 
         batch.flip();
 
         ByteBuffer buffer = batch.getBuffer();
         assertEquals(buffer.position(), 0);
-        assertEquals(buffer.remaining(), sizeOfEntry + 4);
-        assertEquals(sizeOfEntry, buffer.getInt());
-        byte[] entryData = new byte[sizeOfEntry];
-        buffer.get(entryData);
-        assertEquals(buffer.position(), sizeOfEntry + 4);
-        assertArrayEquals(expectedContents, entryData);
+        assertEquals(buffer.remaining(), expectedBytesWrittenToBuffer);
+        assertEquals(keyLength, buffer.getInt());
+        byte[] keyBytes = new byte[keyLength];
+        buffer.get(keyBytes);
+        assertEquals(key, new String(keyBytes, StandardCharsets.UTF_8));
+
+        int jsonLength = buffer.getInt();
+        byte[] jsonBytes = new byte[jsonLength];
+        buffer.get(jsonBytes);
+        assertEquals(buffer.position(), expectedBytesWrittenToBuffer);
+        assertArrayEquals(jsonNodeBytes, jsonBytes);
 
         batch.reset();
 

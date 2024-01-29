@@ -88,14 +88,12 @@ public class IndexStoreUtils {
         return new BufferedWriter(new OutputStreamWriter(algorithm.getOutputStream(out)));
     }
 
-    public static BufferedOutputStream createOutputStream(File file, Compression algorithm) throws IOException {
-        OutputStream out = new FileOutputStream(file);
-        return new BufferedOutputStream(algorithm.getOutputStream(out));
-    }
-
-    public static BufferedOutputStream createOutputStream(Path file, Compression algorithm) throws IOException {
-        OutputStream out = Files.newOutputStream(file);
-        return new BufferedOutputStream(algorithm.getOutputStream(out));
+    public static OutputStream createOutputStream(Path file, Compression algorithm) throws IOException {
+        // The output streams created by LZ4 and GZIP buffer their input, so we should not wrap then again.
+        // However, the implementation of the compression streams may make small writes to the underlying stream,
+        // so we buffer the FileOutputStream
+        OutputStream out = new BufferedOutputStream(Files.newOutputStream(file));
+        return algorithm.getOutputStream(out);
     }
 
     public static long sizeOf(List<File> sortedFiles) {

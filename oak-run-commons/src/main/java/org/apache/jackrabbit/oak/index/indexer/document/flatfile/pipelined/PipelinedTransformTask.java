@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
+import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.index.indexer.document.NodeStateEntry;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
@@ -88,6 +89,7 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
     private final TransformStageStatistics statistics;
     private final int threadId = threadIdGenerator.getAndIncrement();
     private long totalEnqueueDelayMillis = 0;
+    private long totalEmptyBatchQueueWaitTimeMillis = 0;
 
     public PipelinedTransformTask(MongoDocumentStore mongoStore,
                                   DocumentNodeStore documentNodeStore,
@@ -132,16 +134,20 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                 NodeDocument[] nodeDocumentBatch = mongoDocQueue.take();
                 totalDocumentQueueWaitTimeMillis += docQueueWaitStopwatch.elapsed(TimeUnit.MILLISECONDS);
                 if (nodeDocumentBatch == SENTINEL_MONGO_DOCUMENT) {
-                    String totalDocumentQueueWaitPercentage = String.format("%1.2f", (100.0 * totalDocumentQueueWaitTimeMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
-                    String totalEnqueueDelayPercentage = String.format("%1.2f", (100.0 * totalEnqueueDelayMillis) / taskStartWatch.elapsed(TimeUnit.MILLISECONDS));
+                    long totalDurationMillis = taskStartWatch.elapsed(TimeUnit.MILLISECONDS);
+                    String totalDocumentQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalDocumentQueueWaitTimeMillis, totalDurationMillis);
+                    String totalEnqueueDelayPercentage = PipelinedUtils.formatAsPercentage(totalEnqueueDelayMillis, totalDurationMillis);
+                    String totalEmptyBatchQueueWaitPercentage = PipelinedUtils.formatAsPercentage(totalEmptyBatchQueueWaitTimeMillis, totalDurationMillis);
                     String metrics = MetricsFormatter.newBuilder()
                             .add("duration", FormattingUtils.formatToSeconds(taskStartWatch))
-                            .add("durationSeconds", taskStartWatch.elapsed(TimeUnit.SECONDS))
+                            .add("durationSeconds", totalDurationMillis / 1000)
                             .add("nodeStateEntriesGenerated", totalEntryCount)
                             .add("enqueueDelayMillis", totalEnqueueDelayMillis)
                             .add("enqueueDelayPercentage", totalEnqueueDelayPercentage)
                             .add("documentQueueWaitMillis", totalDocumentQueueWaitTimeMillis)
                             .add("documentQueueWaitPercentage", totalDocumentQueueWaitPercentage)
+                            .add("totalEmptyBatchQueueWaitTimeMillis", totalEmptyBatchQueueWaitTimeMillis)
+                            .add("totalEmptyBatchQueueWaitPercentage", totalEmptyBatchQueueWaitPercentage)
                             .build();
                     LOG.info("[TASK:{}:END] Metrics: {}", threadName.toUpperCase(Locale.ROOT), metrics);
                     //Save the last batch
@@ -150,12 +156,12 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                     return new Result(threadId, totalEntryCount);
                 } else {
                     for (NodeDocument nodeDoc : nodeDocumentBatch) {
-                        statistics.incrementMongoDocumentsProcessed();
+                        statistics.incrementMongoDocumentsTraversed();
                         mongoObjectsProcessed++;
                         if (mongoObjectsProcessed % 50000 == 0) {
                             LOG.info("Mongo objects: {}, total entries: {}, current batch: {}, Size: {}/{} MB",
                                     mongoObjectsProcessed, totalEntryCount, nseBatch.numberOfEntries(),
-                                    nseBatch.sizeOfEntries() / FileUtils.ONE_MB,
+                                    nseBatch.sizeOfEntriesBytes() / FileUtils.ONE_MB,
                                     nseBatch.capacity() / FileUtils.ONE_MB
                             );
                         }
@@ -182,11 +188,14 @@ class PipelinedTransformTask implements Callable<PipelinedTransformTask.Result> 
                                             entrySize = nseBatch.addEntry(path, jsonBytes);
                                         } catch (NodeStateEntryBatch.BufferFullException e) {
                                             LOG.info("Buffer full, passing buffer to sort task. Total entries: {}, entries in buffer {}, buffer size: {}",
-                                                    totalEntryCount, nseBatch.numberOfEntries(), nseBatch.sizeOfEntries());
+                                                    totalEntryCount, nseBatch.numberOfEntries(), IOUtils.humanReadableByteCountBin(nseBatch.sizeOfEntriesBytes()));
                                             nseBatch.flip();
                                             tryEnqueue(nseBatch);
                                             // Get an empty buffer
+                                            Stopwatch emptyBatchesQueueStopwatch = Stopwatch.createStarted();
                                             nseBatch = emptyBatchesQueue.take();
+                                            totalEmptyBatchQueueWaitTimeMillis += emptyBatchesQueueStopwatch.elapsed(TimeUnit.MILLISECONDS);
+
                                             // Now it must fit, otherwise it means that the buffer is smaller than a single
                                             // entry, which is an error.
                                             entrySize = nseBatch.addEntry(path, jsonBytes);

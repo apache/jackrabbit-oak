@@ -20,13 +20,15 @@ package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 
-import redis.embedded.RedisExecProvider;
 import redis.embedded.RedisServer;
+import redis.embedded.core.ExecutableProviderBuilder;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -40,27 +42,30 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
+
+    private static final String REDIS_HOST = "127.0.0.1";
 
     private RedisServer redisServer;
     private IOMonitorAdapter ioMonitorAdapter;
 
     @Before
     public void setUp() throws Exception {
-        Path redisTempExecutable = RedisExecProvider.defaultProvider().get().toPath();
+        Path redisTempExecutable = new ExecutableProviderBuilder().addProvidedVersions().build().get().toPath();
         Path redisTargetExecutable = new File("target", redisTempExecutable.getFileName().toString()).toPath();
         Files.copy(redisTempExecutable, redisTargetExecutable, StandardCopyOption.REPLACE_EXISTING);
-        RedisExecProvider execProvider = mock(RedisExecProvider.class);
-        when(execProvider.get()).thenReturn(redisTargetExecutable.toFile());
-        redisServer = RedisServer.builder().setting("maxmemory 768mb").redisExecProvider(execProvider).build();
-        redisServer.start();
+        redisServer = RedisServer.newRedisServer().setting("maxmemory 768mb").bind(REDIS_HOST).executableProvider(redisTargetExecutable::toFile).build();
+        try {
+            redisServer.start();
+        } catch (IOException e) {
+            Assume.assumeNoException(e);
+        }
         int port = redisServer.ports().get(0);
         ioMonitorAdapter = mock(IOMonitorAdapter.class);
 
         persistentCache = new PersistentRedisCache(
-                "localhost",
+                REDIS_HOST,
                 port,
                 -1,
                 10000,
@@ -74,7 +79,7 @@ public class PersistentRedisCacheTest extends AbstractPersistentCacheTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws IOException {
         redisServer.stop();
     }
 

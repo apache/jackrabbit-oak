@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
@@ -167,7 +168,11 @@ public class AzureSegmentArchiveWriterTest {
 
     @NotNull
     private SegmentArchiveWriter createSegmentArchiveWriter() throws URISyntaxException, IOException {
-        SegmentArchiveManager manager = new AzurePersistence(container.getDirectoryReference("oak")).createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
+        WriteAccessController writeAccessController = new WriteAccessController();
+        writeAccessController.enableWriting();
+        AzurePersistence azurePersistence = new AzurePersistence(container.getDirectoryReference("oak"));/**/
+        azurePersistence.setWriteAccessController(writeAccessController);
+        SegmentArchiveManager manager = azurePersistence.createArchiveManager(false, false, new IOMonitorAdapter(), new FileStoreMonitorAdapter(), new RemoteStoreMonitorAdapter());
         SegmentArchiveWriter writer = manager.create("data00000a.tar");
         return writer;
     }

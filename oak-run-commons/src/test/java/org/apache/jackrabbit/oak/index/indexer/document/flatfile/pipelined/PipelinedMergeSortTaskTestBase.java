@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Rule;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
@@ -56,11 +57,10 @@ public class PipelinedMergeSortTaskTestBase {
     protected List<NodeStateHolder> sortAsNodeStateEntries(List<String> ffsLines) {
         Comparator<NodeStateHolder> comparatorBinary = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         NodeStateHolderFactory nodeFactory = new NodeStateHolderFactory();
-        List<NodeStateHolder> nodesOrdered = ffsLines.stream()
+        return ffsLines.stream()
                 .map(ffsLine -> nodeFactory.apply(ffsLine.getBytes(FLATFILESTORE_CHARSET)))
                 .sorted(comparatorBinary)
                 .collect(Collectors.toList());
-        return nodesOrdered;
     }
 
 
@@ -108,7 +108,12 @@ public class PipelinedMergeSortTaskTestBase {
         Path sortRoot = sortFolder.getRoot().toPath();
         // +1 for the Sentinel.
         ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(files.length + 1);
-        PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(sortRoot, pathComparator, algorithm, sortedFilesQueue);
+        PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(
+                sortRoot,
+                pathComparator,
+                algorithm,
+                sortedFilesQueue,
+                StatisticsProvider.NOOP);
         // Enqueue all the files that are to be merged
         for (Path file : files) {
             sortedFilesQueue.put(file);

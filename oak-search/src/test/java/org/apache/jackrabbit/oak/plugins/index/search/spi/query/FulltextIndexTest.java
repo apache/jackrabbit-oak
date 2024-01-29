@@ -59,6 +59,19 @@ public class FulltextIndexTest {
         assertEquals("jcr:primaryType", field);
     }
 
+    @Test
+    public void testConvertParseFacetField() {
+        assertEquals("rep:facet(text)",
+                FulltextIndex.convertFacetFieldNameToColumnName(
+                        "text"));
+        assertEquals("rep:facet(jcr:title)",
+                FulltextIndex.convertFacetFieldNameToColumnName(
+                        "jcr:title"));
+        assertEquals("rep:facet(jcr:primaryType)",
+                FulltextIndex.convertFacetFieldNameToColumnName(
+                        "jcr:primaryType"));
+    }
+
     /**
      * Test that we can read the rows first, and then read the data from the rows.
      */

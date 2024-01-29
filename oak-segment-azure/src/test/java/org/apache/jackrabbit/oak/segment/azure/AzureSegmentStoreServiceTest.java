@@ -23,22 +23,43 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Set;
 import java.util.stream.StreamSupport;
 
 import org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage.AzuriteDockerRule;
+import org.apache.jackrabbit.oak.segment.azure.util.Environment;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.osgi.util.converter.Converters;
 
-import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.*;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_ACCOUNT_NAME;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_ID;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_CLIENT_SECRET;
+import static org.apache.jackrabbit.oak.segment.azure.AzureUtilities.AZURE_TENANT_ID;
+
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.ADD;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.CREATE;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.LIST;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.READ;
+import static com.microsoft.azure.storage.blob.SharedAccessBlobPermissions.WRITE;
 import static java.util.stream.Collectors.toSet;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNotNull;
 
 public class AzureSegmentStoreServiceTest {
-    
+    private static final Environment ENVIRONMENT = new Environment();
+
     @ClassRule
     public static AzuriteDockerRule azurite = new AzuriteDockerRule();
 
@@ -48,7 +69,7 @@ public class AzureSegmentStoreServiceTest {
     private static final EnumSet<SharedAccessBlobPermissions> READ_ONLY = EnumSet.of(READ, LIST);
     private static final EnumSet<SharedAccessBlobPermissions> READ_WRITE = EnumSet.of(READ, LIST, CREATE, WRITE, ADD);
     private static final ImmutableSet<String> BLOBS = ImmutableSet.of("blob1", "blob2");
-    
+
     private CloudBlobContainer container;
     
     @Before
@@ -122,6 +143,29 @@ public class AzureSegmentStoreServiceTest {
     }
 
     @Test
+    public void connectWithServicePrincipal() throws Exception {
+        // Note: make sure blob1.txt and blob2.txt are uploaded to
+        // AZURE_ACCOUNT_NAME/oak before running this test
+
+        assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME));
+        assumeNotNull(ENVIRONMENT.getVariable(AZURE_TENANT_ID));
+        assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_ID));
+        assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_SECRET));
+
+        AzureSegmentStoreService azureSegmentStoreService = new AzureSegmentStoreService();
+        String accountName = ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME);
+        String tenantId = ENVIRONMENT.getVariable(AZURE_TENANT_ID);
+        String clientId = ENVIRONMENT.getVariable(AZURE_CLIENT_ID);
+        String clientSecret = ENVIRONMENT.getVariable(AZURE_CLIENT_SECRET);
+        azureSegmentStoreService.activate(context.componentContext(), getConfigurationWithServicePrincipal(accountName, clientId, clientSecret, tenantId));
+
+        SegmentNodeStorePersistence persistence = context.getService(SegmentNodeStorePersistence.class);
+        assertNotNull(persistence);
+        assertWriteAccessGranted(persistence);
+        assertReadAccessGranted(persistence, concat(BLOBS, "test"));
+    }
+
+    @Test
     public void deactivate() throws Exception {
         AzureSegmentStoreService azureSegmentStoreService = new AzureSegmentStoreService();
         azureSegmentStoreService.activate(context.componentContext(), getConfigurationWithAccessKey(AzuriteDockerRule.ACCOUNT_KEY));
@@ -149,6 +193,7 @@ public class AzureSegmentStoreServiceTest {
         Set<String> actualBlobNames = StreamSupport.stream(container.listBlobs().spliterator(), false)
             .map(blob -> blob.getUri().getPath())
             .map(path -> path.substring(path.lastIndexOf('/') + 1))
+            .filter(name -> name.equals("test.txt") || name.startsWith("blob"))
             .collect(toSet());
         Set<String> expectedBlobNames = expectedBlobs.stream().map(name -> name + ".txt").collect(toSet());
 
@@ -202,11 +247,11 @@ public class AzureSegmentStoreServiceTest {
     }
 
     private static Configuration getConfigurationWithSharedAccessSignature(String sasToken) {
-        return getConfiguration(sasToken, null, null);
+        return getConfiguration(sasToken, AzuriteDockerRule.ACCOUNT_NAME, null, null, null, null, null);
     }
 
     private static Configuration getConfigurationWithAccessKey(String accessKey) {
-        return getConfiguration(null, accessKey, null);
+        return getConfiguration(null, AzuriteDockerRule.ACCOUNT_NAME, accessKey, null,  null, null, null);
     }
 
     private static Configuration getConfigurationWithConfigurationURL(String accessKey) {
@@ -214,17 +259,24 @@ public class AzureSegmentStoreServiceTest {
             + "BlobEndpoint=" + azurite.getBlobEndpoint() + ';'
             + "AccountName=" + AzuriteDockerRule.ACCOUNT_NAME + ';'
             + "AccountKey=" + accessKey + ';';
-        return getConfiguration(null, null, connectionString);
+        return getConfiguration(null, AzuriteDockerRule.ACCOUNT_NAME, null, connectionString, null, null, null);
+    }
+
+    private static Configuration getConfigurationWithServicePrincipal(String accountName, String clientId, String clientSecret, String tenantId) {
+        return getConfiguration(null, accountName, null, null, clientId, clientSecret, tenantId);
     }
 
     @NotNull
-    private static Configuration getConfiguration(String sasToken, String accessKey, String connectionURL) {
+    private static Configuration getConfiguration(String sasToken, String accountName, String accessKey, String connectionURL, String clientId, String clientSecret, String tenantId) {
         return Converters.standardConverter()
                 .convert(new HashMap<Object, Object>() {{
-                    put("accountName", AzuriteDockerRule.ACCOUNT_NAME);
+                    put("accountName", accountName);
                     put("accessKey", accessKey);
                     put("connectionURL", connectionURL);
                     put("sharedAccessSignature", sasToken);
+                    put("clientId", clientId);
+                    put("clientSecret", clientSecret);
+                    put("tenantId", tenantId);
                     put("blobEndpoint", azurite.getBlobEndpoint());
                 }})
                 .to(Configuration.class);

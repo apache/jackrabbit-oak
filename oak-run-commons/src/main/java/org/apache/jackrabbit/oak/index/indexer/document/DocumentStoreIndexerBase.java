@@ -27,17 +27,13 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.IndexHelper;
 import org.apache.jackrabbit.oak.index.IndexerSupport;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.DefaultMemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileNodeStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFileStore;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.MemoryManager;
 import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalStoreBuilder;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
-import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeState;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
-import org.apache.jackrabbit.oak.plugins.document.mongo.DocumentStoreSplitter;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.mongo.TraversingRange;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -45,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.MetricRateEstimator;
@@ -81,6 +78,11 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.FlatFile
 import static org.apache.jackrabbit.oak.plugins.index.IndexConstants.TYPE_PROPERTY_NAME;
 
 public abstract class DocumentStoreIndexerBase implements Closeable {
+    public static final String INDEXER_METRICS_PREFIX = "oak_indexer_";
+    public static final String METRIC_INDEXING_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "indexing_duration_seconds";
+    public static final String METRIC_MERGE_NODE_STORE_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "merge_node_store_duration_seconds";
+    public static final String METRIC_FULL_INDEX_CREATION_DURATION_SECONDS = INDEXER_METRICS_PREFIX + "full_index_creation_duration_seconds";
+
     private final Logger log = LoggerFactory.getLogger(getClass());
     private final Logger traversalLog = LoggerFactory.getLogger(DocumentStoreIndexerBase.class.getName() + ".traversal");
     protected final Closer closer = Closer.create();
@@ -154,15 +156,11 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         DocumentNodeState rootDocumentState = (DocumentNodeState) checkpointedState;
         DocumentNodeStore nodeStore = (DocumentNodeStore) indexHelper.getNodeStore();
 
-        DocumentStoreSplitter splitter = new DocumentStoreSplitter(getMongoDocumentStore());
-        List<Long> lastModifiedBreakPoints = splitter.split(Collection.NODES, 0L, 10);
         FlatFileNodeStoreBuilder builder = null;
         int backOffTimeInMillis = 5000;
-        MemoryManager memoryManager = new DefaultMemoryManager();
         while (storeList.isEmpty() && executionCount <= MAX_DOWNLOAD_ATTEMPTS) {
             try {
-                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir(), memoryManager)
-                        .withLastModifiedBreakPoints(lastModifiedBreakPoints)
+                builder = new FlatFileNodeStoreBuilder(indexHelper.getWorkDir())
                         .withBlobStore(indexHelper.getGCBlobStore())
                         .withPreferredPathElements((preferredPathElements != null) ? preferredPathElements : indexer.getRelativeIndexedNodeNames())
                         .addExistingDataDumpDir(indexerSupport.getExistingDataDumpDir())
@@ -174,7 +172,8 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withMongoDatabase(getMongoDatabase())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog))
-                        .withCheckpoint(indexerSupport.getCheckpoint());
+                        .withCheckpoint(indexerSupport.getCheckpoint())
+                        .withStatisticsProvider(indexHelper.getStatisticsProvider());
 
                 for (File dir : previousDownloadDirs) {
                     builder.addExistingDataDumpDir(dir);
@@ -298,25 +297,32 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
         progressReporter.reindexingTraversalEnd();
         progressReporter.logReport();
-        log.info("Completed the indexing in {}", indexerWatch);
+        long indexingDurationSeconds = indexerWatch.elapsed(TimeUnit.SECONDS);
+        log.info("Completed the indexing in {}", FormattingUtils.formatToSeconds(indexingDurationSeconds));
         log.info("[TASK:INDEXING:END] Metrics: {}", MetricsFormatter.newBuilder()
-                .add("duration", FormattingUtils.formatToSeconds(indexerWatch))
-                .add("durationSeconds", indexerWatch.elapsed(TimeUnit.SECONDS))
+                .add("duration", FormattingUtils.formatToSeconds(indexingDurationSeconds))
+                .add("durationSeconds", indexingDurationSeconds)
                 .build());
+        MetricsUtils.setCounterOnce(indexHelper.getStatisticsProvider(), METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
 
         log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
         Stopwatch mergeNodeStoreWatch = Stopwatch.createStarted();
         copyOnWriteStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        long mergeNodeStoreDurationSeconds = mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS);
         log.info("[TASK:MERGE_NODE_STORE:END] Metrics: {}", MetricsFormatter.newBuilder()
-                .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreWatch))
-                .add("durationSeconds", mergeNodeStoreWatch.elapsed(TimeUnit.SECONDS))
+                .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds))
+                .add("durationSeconds", mergeNodeStoreDurationSeconds)
                 .build());
+        MetricsUtils.setCounterOnce(indexHelper.getStatisticsProvider(), METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
 
         indexerSupport.postIndexWork(copyOnWriteStore);
+
+        long fullIndexCreationDurationSeconds = indexJobWatch.elapsed(TimeUnit.SECONDS);
         log.info("[TASK:FULL_INDEX_CREATION:END] Metrics {}", MetricsFormatter.newBuilder()
-                .add("duration", FormattingUtils.formatToSeconds(indexJobWatch))
-                .add("durationSeconds", indexJobWatch.elapsed(TimeUnit.SECONDS))
+                .add("duration", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds))
+                .add("durationSeconds", fullIndexCreationDurationSeconds)
                 .build());
+        MetricsUtils.setCounterOnce(indexHelper.getStatisticsProvider(), METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
     }
 
     private void indexParallel(List<FlatFileStore> storeList, CompositeIndexer indexer, IndexingProgressReporter progressReporter)

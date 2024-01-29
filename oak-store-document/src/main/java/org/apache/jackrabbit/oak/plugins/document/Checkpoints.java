@@ -146,8 +146,13 @@ class Checkpoints {
         }
 
         if (op.hasChanges()) {
-            store.findAndUpdate(Collection.SETTINGS, op);
-            LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
+            try {
+                store.findAndUpdate(Collection.SETTINGS, op);
+                LOG.debug("Purged {} expired checkpoints", op.getChanges().size());
+            } catch (UnsupportedOperationException uoe) {
+                LOG.info("getOldestRevisionToKeep : could not clean up expired checkpoints"
+                        + " due to exception : " + uoe, uoe);
+            }
         }
 
         return lastAliveRevision;

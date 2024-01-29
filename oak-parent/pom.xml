@@ -30,7 +30,7 @@
   <groupId>org.apache.jackrabbit</groupId>
   <artifactId>oak-parent</artifactId>
   <name>Oak Parent POM</name>
-  <version>1.59-SNAPSHOT</version>
+  <version>1.61-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <properties>
@@ -45,7 +45,7 @@
     <project.reporting.outputEncoding>
       ${project.build.sourceEncoding}
     </project.reporting.outputEncoding>
-    <jackrabbit.version>2.20.13</jackrabbit.version>
+    <jackrabbit.version>2.20.14</jackrabbit.version>
     <mongo.host>127.0.0.1</mongo.host>
     <mongo.port>27017</mongo.port>
     <mongo.db>MongoMKDB</mongo.db>
@@ -62,15 +62,15 @@
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.15.2</jackson.version>
+    <jackson.version>2.16.1</jackson.version>
     <testcontainers.version>1.19.0</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>2.5.22</groovy.version>
-
-    <java.version>11</java.version>
-    <maven.compiler.release>${java.version}</maven.compiler.release>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
-    <minimalJavaBuildVersion>${java.version}</minimalJavaBuildVersion>
+    <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
+    <javaTargetVersion>11</javaTargetVersion>
+    <maven.compiler.release>${javaTargetVersion}</maven.compiler.release>
+    <maven.compiler.target>${javaTargetVersion}</maven.compiler.target>
+    <minimalJavaBuildVersion>${javaTargetVersion}</minimalJavaBuildVersion>
     
    <!-- specifies on which fixture to run the integration testing tests. 
       override in profiles or provide from command line to change behaviour. Provide 
@@ -721,6 +721,31 @@
         <artifactId>azure-keyvault-core</artifactId>
         <version>1.2.6</version>
       </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-identity</artifactId>
+        <version>1.11.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-identity-broker</artifactId>
+        <version>1.0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-core</artifactId>
+        <version>1.45.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-json</artifactId>
+        <version>1.0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.azure</groupId>
+        <artifactId>azure-xml</artifactId>
+        <version>1.0.0-beta.2</version>
+      </dependency>
 
       <!-- Pax Exam Integration Test Dependencies -->
       <dependency>
@@ -781,6 +806,12 @@
         <groupId>javax.inject</groupId>
         <artifactId>javax.inject</artifactId>
         <version>1</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.github.stefanbirkner</groupId>
+        <artifactId>system-rules</artifactId>
+        <version>1.19.0</version>
         <scope>test</scope>
       </dependency>
     </dependencies>

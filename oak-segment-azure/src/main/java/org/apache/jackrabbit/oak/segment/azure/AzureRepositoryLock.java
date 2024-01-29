@@ -17,14 +17,20 @@
 package org.apache.jackrabbit.oak.segment.azure;
 
 import com.microsoft.azure.storage.AccessCondition;
+import com.microsoft.azure.storage.Constants;
+import com.microsoft.azure.storage.RetryNoRetry;
+import com.microsoft.azure.storage.StorageErrorCode;
 import com.microsoft.azure.storage.StorageErrorCodeStrings;
 import com.microsoft.azure.storage.StorageException;
+import com.microsoft.azure.storage.blob.BlobRequestOptions;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import org.apache.jackrabbit.oak.segment.remote.WriteAccessController;
 import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -34,8 +40,16 @@ public class AzureRepositoryLock implements RepositoryLock {
     private static final Logger log = LoggerFactory.getLogger(AzureRepositoryLock.class);
 
     private static final int TIMEOUT_SEC = Integer.getInteger("oak.segment.azure.lock.timeout", 0);
+    private static final Integer LEASE_RENEWAL_TIMEOUT_MS = 5000;
 
-    private static int INTERVAL = 60;
+    public static final String LEASE_DURATION_PROP = "oak.segment.azure.lock.leaseDurationInSec";
+    private final int leaseDuration = Integer.getInteger(LEASE_DURATION_PROP, 60);
+
+    public static final String RENEWAL_INTERVAL_PROP = "oak.segment.azure.lock.leaseRenewalIntervalInSec";
+    private final int renewalInterval = Integer.getInteger(RENEWAL_INTERVAL_PROP, 5);
+
+    public static final String TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP = "oak.segment.azure.lock.blockWritesAfterInSec";
+    private final int timeToWaitBeforeWriteBlock = Integer.getInteger(TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, 20);
 
     private final Runnable shutdownHook;
 
@@ -45,19 +59,27 @@ public class AzureRepositoryLock implements RepositoryLock {
 
     private final int timeoutSec;
 
+    private WriteAccessController writeAccessController;
+
     private String leaseId;
 
     private volatile boolean doUpdate;
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook) {
-        this(blob, shutdownHook, TIMEOUT_SEC);
+    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController) {
+        this(blob, shutdownHook, writeAccessController, TIMEOUT_SEC);
     }
 
-    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, int timeoutSec) {
+    public AzureRepositoryLock(CloudBlockBlob blob, Runnable shutdownHook, WriteAccessController writeAccessController, int timeoutSec) {
         this.shutdownHook = shutdownHook;
         this.blob = blob;
         this.executor = Executors.newSingleThreadExecutor();
         this.timeoutSec = timeoutSec;
+        this.writeAccessController = writeAccessController;
+
+        if (leaseDuration < timeToWaitBeforeWriteBlock || timeToWaitBeforeWriteBlock < renewalInterval) {
+            throw new IllegalStateException(String.format("The value of %s must be greater than %s and the value of %s must be greater than %s",
+                    LEASE_DURATION_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, RENEWAL_INTERVAL_PROP));
+        }
     }
 
     public AzureRepositoryLock lock() throws IOException {
@@ -66,7 +88,13 @@ public class AzureRepositoryLock implements RepositoryLock {
         do {
             try {
                 blob.openOutputStream().close();
-                leaseId = blob.acquireLease(INTERVAL, null);
+
+                log.info("{} = {}", LEASE_DURATION_PROP, leaseDuration);
+                log.info("{} = {}", RENEWAL_INTERVAL_PROP, renewalInterval);
+                log.info("{} = {}", TIME_TO_WAIT_BEFORE_WRITE_BLOCK_PROP, timeToWaitBeforeWriteBlock);
+
+                leaseId = blob.acquireLease(leaseDuration, null);
+                writeAccessController.enableWriting();
                 log.info("Acquired lease {}", leaseId);
             } catch (StorageException | IOException e) {
                 if (ex == null) {
@@ -97,15 +125,29 @@ public class AzureRepositoryLock implements RepositoryLock {
         doUpdate = true;
         long lastUpdate = 0;
         while (doUpdate) {
+            long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
             try {
-                long timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
-                if (timeSinceLastUpdate > INTERVAL / 2) {
-                    blob.renewLease(AccessCondition.generateLeaseCondition(leaseId));
+                if (timeSinceLastUpdate > renewalInterval) {
+
+                    BlobRequestOptions requestOptions = new BlobRequestOptions();
+                    requestOptions.setMaximumExecutionTimeInMs(LEASE_RENEWAL_TIMEOUT_MS);
+                    requestOptions.setRetryPolicyFactory(new RetryNoRetry());
+                    blob.renewLease(AccessCondition.generateLeaseCondition(leaseId), requestOptions, null);
+
+                    writeAccessController.enableWriting();
                     lastUpdate = System.currentTimeMillis();
                 }
             } catch (StorageException e) {
-                if (e.getErrorCode().equals(StorageErrorCodeStrings.OPERATION_TIMED_OUT)) {
-                    log.warn("Could not renew the lease due to the operation timeout. Retry in progress ...", e);
+                timeSinceLastUpdate = (System.currentTimeMillis() - lastUpdate) / 1000;
+
+                if (timeSinceLastUpdate > timeToWaitBeforeWriteBlock) {
+                    writeAccessController.disableWriting();
+                }
+
+                if (Set.of(StorageErrorCodeStrings.OPERATION_TIMED_OUT, StorageErrorCode.SERVICE_INTERNAL_ERROR, StorageErrorCodeStrings.SERVER_BUSY, StorageErrorCodeStrings.INTERNAL_ERROR).contains(e.getErrorCode())) {
+                    log.warn("Could not renew the lease due to the operation timeout or service unavailability. Retry in progress ...", e);
+                } else if (e.getHttpStatusCode() == Constants.HeaderConstants.HTTP_UNUSED_306) {
+                    log.warn("Client side error. Retry in progress ...", e);
                 } else {
                     log.error("Can't renew the lease", e);
                     shutdownHook.run();

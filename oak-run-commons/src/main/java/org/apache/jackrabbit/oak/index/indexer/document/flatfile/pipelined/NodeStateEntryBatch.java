@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 
 public class NodeStateEntryBatch {
 
@@ -35,7 +34,6 @@ public class NodeStateEntryBatch {
         }
     }
 
-    public static final byte DELIMITER = '|';
     // Must be large enough to hold a full node state entry
     static final int MIN_BUFFER_SIZE = 256 * 1024;
 
@@ -51,49 +49,46 @@ public class NodeStateEntryBatch {
     }
 
     private final ByteBuffer buffer;
-    private final ArrayList<SortKey> sortBuffer;
     private final int maxEntries;
+    private int numberOfEntries = 0;
+    private int sizeOfEntriesBytes = 0;
 
     public NodeStateEntryBatch(ByteBuffer buffer, int maxEntries) {
         this.buffer = buffer;
         this.maxEntries = maxEntries;
-        this.sortBuffer = new ArrayList<>(maxEntries);
     }
 
-    public ArrayList<SortKey> getSortBuffer() {
-        return sortBuffer;
+    public int addEntry(String path, byte[] entryData) throws BufferFullException {
+        if (numberOfEntries == maxEntries) {
+            throw new BufferFullException("Sort buffer size is full, reached max entries: " + numberOfEntries);
+        }
+        int bufferPos = buffer.position();
+        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+        int totalSize = 4 + pathBytes.length + 4 + entryData.length;
+        try {
+            // Each nse is written as: "len(path)|path|len(json)|json"
+            buffer.putInt(pathBytes.length);
+            buffer.put(pathBytes);
+            buffer.putInt(entryData.length);
+            buffer.put(entryData);
+            numberOfEntries++;
+            sizeOfEntriesBytes += totalSize;
+            return totalSize;
+        } catch (BufferOverflowException e) {
+            buffer.position(bufferPos);
+            throw new BufferFullException("while adding entry " + path + " of size: " + totalSize, e);
+        }
     }
 
     public ByteBuffer getBuffer() {
         return buffer;
     }
 
-    public int addEntry(String path, byte[] entryData) throws BufferFullException {
-        if (numberOfEntries() == maxEntries) {
-            throw new BufferFullException("Sort buffer size is full, reached max entries: " + sortBuffer.size());
-        }
-        int bufferPos = buffer.position();
-        byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
-        int entrySize = pathBytes.length + 1 + entryData.length;
-        try {
-            buffer.putInt(entrySize);
-            buffer.put(pathBytes);
-            buffer.put(DELIMITER);
-            buffer.put(entryData);
-            String[] key = SortKey.genSortKeyPathElements(path);
-            sortBuffer.add(new SortKey(key, bufferPos));
-            return entrySize;
-        } catch (BufferOverflowException e) {
-            buffer.position(bufferPos);
-            throw new BufferFullException("Buffer full while adding entry: " + path + " size: " + entrySize, e);
-        }
-    }
-
     public boolean isAtMaxEntries() {
-        if (sortBuffer.size() > maxEntries) {
-            throw new AssertionError("Sort buffer size exceeded max entries: " + sortBuffer.size() + " > " + maxEntries);
+        if (numberOfEntries > maxEntries) {
+            throw new AssertionError("Sort buffer size exceeded max entries: " + numberOfEntries + " > " + maxEntries);
         }
-        return sortBuffer.size() == maxEntries;
+        return numberOfEntries == maxEntries;
     }
 
     public void flip() {
@@ -102,15 +97,16 @@ public class NodeStateEntryBatch {
 
     public void reset() {
         buffer.clear();
-        sortBuffer.clear();
+        numberOfEntries = 0;
+        sizeOfEntriesBytes = 0;
     }
 
-    public int sizeOfEntries() {
-        return buffer.position();
+    public int sizeOfEntriesBytes() {
+        return sizeOfEntriesBytes;
     }
 
     public int numberOfEntries() {
-        return sortBuffer.size();
+        return numberOfEntries;
     }
 
     public int capacity() {

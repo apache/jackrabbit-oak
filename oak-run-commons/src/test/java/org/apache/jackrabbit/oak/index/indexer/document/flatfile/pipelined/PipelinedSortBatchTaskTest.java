@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -75,6 +76,7 @@ public class PipelinedSortBatchTaskTest {
     @Test
     public void emptyBatch() throws Exception {
         NodeStateEntryBatch batch = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
+        batch.flip();
 
         TestResult testResult = runTest(batch);
 
@@ -93,6 +95,7 @@ public class PipelinedSortBatchTaskTest {
         addEntry(batch, "/a0/b1", "{\"key\":5}");
         addEntry(batch, "/a0/b0/c1", "{\"key\":4}");
         addEntry(batch, "/a0/b0/c0", "{\"key\":3}");
+        batch.flip();
 
         TestResult testResult = runTest(batch);
 
@@ -119,11 +122,13 @@ public class PipelinedSortBatchTaskTest {
         addEntry(batch1, "/a0/b0", "{\"key\":2}");
         addEntry(batch1, "/a0", "{\"key\":1}");
         addEntry(batch1, "/a1/b0", "{\"key\":6}");
+        batch1.flip();
 
         NodeStateEntryBatch batch2 = NodeStateEntryBatch.createNodeStateEntryBatch(NodeStateEntryBatch.MIN_BUFFER_SIZE, 10);
         addEntry(batch2, "/a0/b1", "{\"key\":5}");
         addEntry(batch2, "/a0/b0/c1", "{\"key\":4}");
         addEntry(batch2, "/a0/b0/c0", "{\"key\":3}");
+        batch2.flip();
 
         TestResult testResult = runTest(batch1, batch2);
 
@@ -165,8 +170,8 @@ public class PipelinedSortBatchTaskTest {
         nonEmptyBatchesQueue.put(PipelinedStrategy.SENTINEL_NSE_BUFFER);
 
         PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                sortRoot, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue
-        );
+                sortRoot, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue,
+                StatisticsProvider.NOOP);
         PipelinedSortBatchTask.Result taskResult = sortTask.call();
         LOG.info("Result: {}", taskResult.getTotalEntries());
         LOG.info("Empty batches: {}", emptyBatchesQueue.size());
