@@ -46,11 +46,8 @@ import org.apache.jackrabbit.oak.spi.security.SecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
 
 /**
  * RepositoryManager constructs the Repository instance and registers it with OSGi Service Registry.
