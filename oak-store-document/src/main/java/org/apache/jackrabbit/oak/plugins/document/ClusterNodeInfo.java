@@ -229,6 +229,15 @@ public class ClusterNodeInfo {
     /** OAK-3399 : max number of times we're doing a 1sec retry loop just before declaring lease failure **/
     private static final int MAX_RETRY_SLEEPS_BEFORE_LEASE_FAILURE = 5;
 
+    /** OAK-10281 : seconds to delay a recovery after a lease timeout */
+    private static final int DEFAULT_RECOVERY_DELAY_SECS = SystemPropertySupplier.create("oak.documentMK.recoveryDelaySecs", 0)
+            .loggingTo(LOG).validateWith(value -> value >= 0)
+            .formatSetMessage((name, value) -> String.format("recovery delay set to (secs): %ss (using system property %s)", name, value)).get();
+    private static final long DEFAULT_RECOVERY_DELAY_MILLIS = 1000L * (long)DEFAULT_RECOVERY_DELAY_SECS;
+
+    // kept non-final for testing purpose
+    static long recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
+
     /**
      * The Oak version.
      */
@@ -1178,6 +1187,20 @@ public class ClusterNodeInfo {
      */
     static void resetClockToDefault() {
         clock = Clock.SIMPLE;
+    }
+
+    static long getRecoveryDelayMillis() {
+        return recoveryDelayMillis;
+    }
+
+    /** <b>only used for testing</b> **/
+    static void setRecoveryDelayMillis(long recoveryDelayMillis) {
+        ClusterNodeInfo.recoveryDelayMillis = recoveryDelayMillis;
+    }
+
+    /** <b>only used for testing</b> **/
+    static void resetRecoveryDelayMillisToDefault() {
+        recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
     }
 
     private static long getProcessId() {
