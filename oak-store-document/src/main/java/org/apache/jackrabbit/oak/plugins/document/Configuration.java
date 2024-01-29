@@ -23,6 +23,7 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
 
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
 import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_SEGMENT_COUNT;
@@ -289,4 +290,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "a change that is not yet visible. Default: " + DEFAULT_SUSPEND_TIMEOUT +
                     " (milliseconds).")
     long suspendTimeoutMillis() default DEFAULT_SUSPEND_TIMEOUT;
+
+    @AttributeDefinition(
+            name = "Recovery delay",
+            description = "Delay (in milliseconds) before a recovery is done, " +
+                    "0 or negative for no delay. Default: " + DEFAULT_RECOVERY_DELAY_MILLIS +
+                    " (milliseconds).")
+    long recoveryDelayMillis() default DEFAULT_RECOVERY_DELAY_MILLIS;
 }

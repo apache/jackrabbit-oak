@@ -302,9 +302,9 @@ public class DocumentNodeStoreService {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
-                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, recoveryDelayMillis={}",
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
-                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs());
+                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(), config.recoveryDelayMillis());
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
@@ -520,6 +520,9 @@ public class DocumentNodeStoreService {
         if (isThrottlingEnabled(builder)) {
             builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
+
+        // initialize the (global) recoveryDelayMillis
+        ClusterNodeInfo.setRecoveryDelayMillis(builder.getRecoveryDelayMillis());
     }
 
     private boolean isWrappingCustomBlobStore() {
