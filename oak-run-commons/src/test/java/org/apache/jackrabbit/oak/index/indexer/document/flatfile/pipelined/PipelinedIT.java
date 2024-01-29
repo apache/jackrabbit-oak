@@ -60,9 +60,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -322,39 +324,107 @@ public class PipelinedIT {
         testSuccessfulDownload(pathPredicate, pathFilters, expected);
     }
 
+
     @Test
-    public void createFFSCustomExcludePathsRegex() throws Exception {
-        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*");
+    public void createFFSCustomExcludePathsRegexRetryOnConnectionErrors() throws Exception {
         Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        testPipelinedStrategy(Map.of(
+                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true",
+                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false"
+                ),
+                this::buildNodeStoreForExcludedRegexTest,
+                pathPredicate,
+                null,
+                excludedPathsRegexTestExpected);
+    }
 
-        Backend rwStore = createNodeStore(false);
+    @Test
+    public void createFFSCustomExcludePathsRegexNoRetryOnConnectionError() throws Exception {
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        testPipelinedStrategy(Map.of(
+                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false",
+                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "false"
+                ),
+                this::buildNodeStoreForExcludedRegexTest,
+                pathPredicate,
+                null,
+                excludedPathsRegexTestExpected);
+    }
 
-        // Create content
-        var rwNodeStore = rwStore.documentNodeStore;
+    @Test
+    public void createFFSCustomExcludePathsRegexRetryOnConnectionErrorsRegexFiltering() throws Exception {
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        testPipelinedStrategy(Map.of(
+                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true",
+                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true"
+                ),
+                this::buildNodeStoreForExcludedRegexTest,
+                pathPredicate,
+                List.of(contentDamPathFilter),
+                excludedPathsRegexTestExpected);
+    }
+
+    @Test
+    public void createFFSCustomExcludePathsRegexNoRetryOnConnectionErrorRegexFiltering() throws Exception {
+        Predicate<String> pathPredicate = s -> contentDamPathFilter.filter(s) != PathFilter.Result.EXCLUDE;
+        testPipelinedStrategy(Map.of(
+                        // Filter all nodes ending in /metadata.xml or having a path section with ".*.jpg"
+                        OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, "/metadata.xml$|/.*.jpg/.*",
+                        OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false",
+                        OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true"
+                ),
+                this::buildNodeStoreForExcludedRegexTest,
+                pathPredicate,
+                List.of(contentDamPathFilter),
+                excludedPathsRegexTestExpected);
+    }
+
+    private void buildNodeStoreForExcludedRegexTest(DocumentNodeStore rwNodeStore) {
         @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
         @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
         contentDamBuilder.child("a.jpg").child("jcr:content").child("metadata.xml");
         contentDamBuilder.child("a.jpg").child("jcr:content").child("metadata.text");
         contentDamBuilder.child("image_a.png").child("jcr:content").child("metadata.text");
         contentDamBuilder.child("image_a.png").child("jcr:content").child("metadata.xml");
-        rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        try {
+            rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        } catch (CommitFailedException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    private final List<String> excludedPathsRegexTestExpected = List.of(
+            "/|{}",
+            "/content|{}",
+            "/content/dam|{}",
+            "/content/dam/a.jpg|{}",
+            "/content/dam/image_a.png|{}",
+            "/content/dam/image_a.png/jcr:content|{}",
+            "/content/dam/image_a.png/jcr:content/metadata.text|{}"
+    );
+
+    private void testPipelinedStrategy(Map<String, String> settings,
+                                       Consumer<DocumentNodeStore> contentBuilder,
+                                       Predicate<String> pathPredicate,
+                                       List<PathFilter> pathFilters,
+                                       List<String> expected) throws IOException {
+        settings.forEach(System::setProperty);
+
+        Backend rwStore = createNodeStore(false);
+        var rwNodeStore = rwStore.documentNodeStore;
+        contentBuilder.accept(rwNodeStore);
         Backend roStore = createNodeStore(true);
-        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, null);
 
+        PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
         File file = pipelinedStrategy.createSortedStoreFile();
 
         assertTrue(file.exists());
-        var expected = List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/a.jpg|{}",
-                "/content/dam/image_a.png|{}",
-                "/content/dam/image_a.png/jcr:content|{}",
-                "/content/dam/image_a.png/jcr:content/metadata.text|{}"
-        );
         assertEquals(expected, Files.readAllLines(file.toPath()));
         assertMetrics();
     }
