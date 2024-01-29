@@ -18,11 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import com.google.common.collect.Maps;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.SortedMap;
@@ -251,7 +251,7 @@ public class DocumentRevisionCleanupHelper {
      * @return
      */
     public Map<Integer, Revision> getSweepRev() {
-        Map<Integer, Revision> map = Maps.newHashMap();
+        Map<Integer, Revision> map = new HashMap<>();
         Map<Revision, String> valueMap = (SortedMap<Revision, String>) rootDoc.get("_sweepRev");
         for (Map.Entry<Revision, String> e : valueMap.entrySet()) {
             int clusterId = e.getKey().getClusterId();

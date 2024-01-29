@@ -895,7 +895,7 @@ public class VersionGarbageCollector {
 
             collectDeletedProperties(doc, phases, op);
             collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-            collectOldRevisions(doc, phases, op);
+            collectOldRevisions(doc, phases, op, toModifiedMs);
             // only add if there are changes for this doc
             if (op.hasChanges()) {
                 garbageDocsCount++;
@@ -1002,6 +1002,28 @@ public class VersionGarbageCollector {
                 deletedPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
             }
             phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
+        }
+
+         private void collectOldRevisions(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp,
+                                         final long toModifiedMs) {
+            if (phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
+                // Identify the revisions that can be removed
+                final Set<Revision> oldRevisions = doc.getLocalRevisions().keySet().stream()
+                        .filter(rev -> isRevisionOlderThan(rev, toModifiedMs))
+                        .collect(toSet());
+
+                if (oldRevisions.isEmpty()) {
+                    phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
+                    return;
+                }
+
+
+
+
+
+
+                phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
+            }
         }
 
         /**
@@ -1138,15 +1160,6 @@ public class VersionGarbageCollector {
                     updateOp.removeMapEntry(propName, unmergedBCRevision);
                 }
             }
-        }
-
-        private void collectOldRevisions(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
-
-            if (phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
-                // TODO add old rev collection logic
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
-            }
-
         }
 
         int getGarbageCount() {
