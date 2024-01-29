@@ -105,9 +105,6 @@ public class RepositoryManager {
     @Reference(target = "(type=reference)")
     private IndexEditorProvider referenceIndex;
 
-    @Reference(name = "org.apache.jackrabbit.oak.stats.StatisticsProvider")
-    private StatisticsProvider statisticsProvider;
-
     private static final String OBSERVATION_QUEUE_LENGTH = "oak.observation.queue-length";
 
     private static final String COMMIT_RATE_LIMIT = "oak.observation.limit-commit-rate";
