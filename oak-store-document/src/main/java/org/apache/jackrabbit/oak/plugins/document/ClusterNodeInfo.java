@@ -240,12 +240,6 @@ public class ClusterNodeInfo {
     /** OAK-10281 : default millis to delay a recovery after a lease timeout */
     static final long DEFAULT_RECOVERY_DELAY_MILLIS = 0;
 
-    /** OAK-10281 : seconds to delay a recovery after a lease timeout */
-    private static final int DEFAULT_RECOVERY_DELAY_SECS = SystemPropertySupplier.create("oak.documentMK.recoveryDelaySecs", 0)
-            .loggingTo(LOG).validateWith(value -> value >= 0)
-            .formatSetMessage((name, value) -> String.format("recovery delay set to (secs): %ss (using system property %s)", name, value)).get();
-    private static final long DEFAULT_RECOVERY_DELAY_MILLIS = 1000L * (long)DEFAULT_RECOVERY_DELAY_SECS;
-
     /**
      * Actual millis to delay a recovery after a lease timeout.
      * <p>
