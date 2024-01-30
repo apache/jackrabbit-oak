@@ -470,6 +470,7 @@ public class DocumentNodeStoreService {
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
+                setRecoveryDelayMillis(config.recoveryDelayMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
