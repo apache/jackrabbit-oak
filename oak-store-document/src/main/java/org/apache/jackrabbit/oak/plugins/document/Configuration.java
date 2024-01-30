@@ -25,6 +25,7 @@ import org.osgi.service.metatype.annotations.Option;
 
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.CommitQueue.DEFAULT_SUSPEND_TIMEOUT;
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.Configuration.PID;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_SEGMENT_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_CACHE_STACK_MOVE_DISTANCE;
@@ -297,4 +298,11 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     "0 or negative for no delay. Default: " + DEFAULT_RECOVERY_DELAY_MILLIS +
                     " (milliseconds).")
     long recoveryDelayMillis() default DEFAULT_RECOVERY_DELAY_MILLIS;
+
+    @AttributeDefinition(
+            name = "ClusterId reuse delay after recovery",
+            description = "Minimal delay (in milliseconds) before a clusterId " +
+                    "can be reused after a recovery, 0 or negative for no delay. Default: " + DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS +
+                    " (milliseconds).")
+    long clusterIdReuseDelayAfterRecoveryMillis() default DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
 }

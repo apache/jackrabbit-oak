@@ -118,6 +118,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private DiffCache diffCache;
     private int clusterId  = Integer.getInteger("oak.documentMK.clusterId", 0);
     private int asyncDelay = 1000;
+    private long clusterIdReuseDelayAfterRecovery = ClusterNodeInfo.DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
     private boolean timing;
     private boolean logging;
     private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
@@ -423,6 +424,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public int getAsyncDelay() {
         return asyncDelay;
+    }
+
+    public T setClusterIdReuseDelayAfterRecovery(long clusterIdReuseDelayAfterRecovery) {
+        this.clusterIdReuseDelayAfterRecovery = clusterIdReuseDelayAfterRecovery;
+        return thisBuilder();
+    }
+
+    public long getClusterIdReuseDelayAfterRecovery() {
+        return clusterIdReuseDelayAfterRecovery;
     }
 
     public Weigher<CacheValue, CacheValue> getWeigher() {
