@@ -71,9 +71,10 @@ public class DocumentNodeStoreHelper {
         System.out.println("Collected in " + sw.stop());
     }
 
-    public static VersionGarbageCollector createVersionGC(
-            DocumentNodeStore nodeStore, VersionGCSupport gcSupport, boolean detailedGCEnabled, boolean isDetailedGCDryRun) {
-        return new VersionGarbageCollector(nodeStore, gcSupport, detailedGCEnabled, isDetailedGCDryRun);
+    public static VersionGarbageCollector createVersionGC(DocumentNodeStore nodeStore, VersionGCSupport gcSupport,
+                                                          boolean detailedGCEnabled, boolean isDetailedGCDryRun,
+                                                          boolean embeddedVerification) {
+        return new VersionGarbageCollector(nodeStore, gcSupport, detailedGCEnabled, isDetailedGCDryRun, embeddedVerification);
     }
 
     private static Iterable<BlobReferences> scan(DocumentNodeStore store,

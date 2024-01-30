@@ -185,6 +185,33 @@ public class RevisionsCommandTest {
     }
 
     @Test
+    public void embeddedVerification() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        assertTrue(output.contains("EmbeddedVerification is enabled : true"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithoutEmbeddedVerification() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "false"));
+        assertTrue(output.contains("EmbeddedVerification is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithEmbeddedVerification() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "true"));
+        assertTrue(output.contains("EmbeddedVerification is enabled : true"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
     public void sweep() throws Exception {
         int clusterId = ns.getClusterId();
         String output = captureSystemErr(new Sweep(clusterId));

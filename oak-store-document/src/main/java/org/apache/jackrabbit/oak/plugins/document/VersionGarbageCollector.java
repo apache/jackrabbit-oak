@@ -153,13 +153,14 @@ public class VersionGarbageCollector {
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
                             final boolean detailedGCEnabled,
-                            final boolean isDetailedGCDryRun) {
+                            final boolean isDetailedGCDryRun,
+                            final boolean embeddedVerification) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
         this.detailedGCEnabled = detailedGCEnabled;
         this.isDetailedGCDryRun = isDetailedGCDryRun;
-        this.embeddedVerification = true; //TODO: make this "configurable"
+        this.embeddedVerification = embeddedVerification; //TODO: make this "configurable" for actual detailedGC
         this.options = new VersionGCOptions();
     }
 
@@ -1294,8 +1295,7 @@ public class VersionGarbageCollector {
             if (oldNS == null && newNS == null) {
                 // both don't exist - fine, that's considered equal
                 return true;
-            } else if ((oldNS == null && newNS != null)
-                    || (oldNS != null && newNS == null)) {
+            } else if (oldNS == null || newNS == null) {
                 // failure : one is deleted/missing, the other not
                 log.error("removeGarbage.verify : failure in DetailedGC"
                         + " with id : {}, oldNS exists : {}, newNS exists: {}, update: {}",

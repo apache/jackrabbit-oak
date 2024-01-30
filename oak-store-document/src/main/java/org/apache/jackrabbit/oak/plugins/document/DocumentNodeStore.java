@@ -642,7 +642,7 @@ public final class DocumentNodeStore
         this.branches = new UnmergedBranches();
         this.asyncDelay = builder.getAsyncDelay();
         this.versionGarbageCollector = new VersionGarbageCollector(
-                this, builder.createVersionGCSupport(), isDetailedGCEnabled(builder), false);
+                this, builder.createVersionGCSupport(), isDetailedGCEnabled(builder), false, false);
         this.versionGarbageCollector.setStatisticsProvider(builder.getStatisticsProvider());
         this.versionGarbageCollector.setGCMonitor(builder.getGCMonitor());
         this.journalGarbageCollector = new JournalGarbageCollector(
