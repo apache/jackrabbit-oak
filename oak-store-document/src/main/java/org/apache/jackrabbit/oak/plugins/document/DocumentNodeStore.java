@@ -606,7 +606,8 @@ public final class DocumentNodeStore
         } else {
             clusterNodeInfo = ClusterNodeInfo.getInstance(nonLeaseCheckingStore,
                     new RecoveryHandlerImpl(nonLeaseCheckingStore, clock, lastRevSeeker),
-                    null, null, cid, builder.isClusterInvisible());
+                    null, null, cid, builder.isClusterInvisible(),
+                    builder.getClusterIdReuseDelayAfterRecovery());
             checkRevisionAge(nonLeaseCheckingStore, clusterNodeInfo, clock);
         }
         this.clusterId = clusterNodeInfo.getId();

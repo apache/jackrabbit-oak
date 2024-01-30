@@ -302,9 +302,11 @@ public class DocumentNodeStoreService {
                 // Take care around not logging the uri directly as it
                 // might contain passwords
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
-                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}",
+                                "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
+                                "clusterIdReuseDelayAfterRecoveryMillis={}",
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
-                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs());
+                        journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
+                        config.clusterIdReuseDelayAfterRecoveryMillis());
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
@@ -467,6 +469,7 @@ public class DocumentNodeStoreService {
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
+                setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
