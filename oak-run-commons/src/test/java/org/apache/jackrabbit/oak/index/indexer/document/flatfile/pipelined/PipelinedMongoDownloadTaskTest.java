@@ -31,6 +31,7 @@ import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.index.importer.ConsoleIndexingReporter;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.bson.BsonDocument;
@@ -120,9 +121,9 @@ public class PipelinedMongoDownloadTaskTest {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         try {
             try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, executor)) {
+                ConsoleIndexingReporter reporter = new ConsoleIndexingReporter(metricStatisticsProvider);
                 PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoDatabase, mongoDocumentStore,
-                        batchMaxMemorySize, batchMaxElements, queue, null,
-                        metricStatisticsProvider);
+                        batchMaxMemorySize, batchMaxElements, queue, null, reporter);
 
                 // Execute
                 PipelinedMongoDownloadTask.Result result = task.call();
@@ -138,7 +139,8 @@ public class PipelinedMongoDownloadTaskTest {
                 assertEquals(metricNames, Set.of(
                         PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                         PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS,
-                        PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL
+                        PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL,
+                        PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES
                 ));
             }
         } finally {

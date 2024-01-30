@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.plugins.index.importer.ConsoleIndexingReporter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Rule;
 import org.junit.Test;
@@ -169,9 +170,9 @@ public class PipelinedSortBatchTaskTest {
         }
         nonEmptyBatchesQueue.put(PipelinedStrategy.SENTINEL_NSE_BUFFER);
 
+        ConsoleIndexingReporter reporter = new ConsoleIndexingReporter();
         PipelinedSortBatchTask sortTask = new PipelinedSortBatchTask(
-                sortRoot, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue,
-                StatisticsProvider.NOOP);
+                sortRoot, pathComparator, algorithm, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, reporter);
         PipelinedSortBatchTask.Result taskResult = sortTask.call();
         LOG.info("Result: {}", taskResult.getTotalEntries());
         LOG.info("Empty batches: {}", emptyBatchesQueue.size());

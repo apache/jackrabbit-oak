@@ -39,9 +39,8 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexingReporter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.BsonDocument;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -146,6 +145,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      * @param mongoFilterPaths          The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
      *                                  (see {@link MongoFilterPaths} for details)
      * @param customExcludeEntriesRegex Documents with paths matching this regex are excluded from download
+     * @param queryUsesIndexTraversal   Whether the query will use an index to traverse the documents.
      * @return The filter to be used in the Mongo query, or null if no filter is required
      */
     static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex, boolean queryUsesIndexTraversal) {
@@ -203,7 +203,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         //      field with the path of the document.
         // We use the $in operator with a regular expression to match the paths.
         //  https://www.mongodb.com/docs/manual/reference/operator/query/in/#use-the--in-operator-with-a-regular-expression
-
         ArrayList<Pattern> pathPatterns = new ArrayList<>();
         ArrayList<Pattern> idPatterns = new ArrayList<>();
 
@@ -213,7 +212,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             }
             String quotedPath = Pattern.quote(path);
             idPatterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
-            pathPatterns.add(Pattern.compile( "^" + quotedPath + ".*$"));
+            pathPatterns.add(Pattern.compile("^" + quotedPath + ".*$"));
         }
 
         Bson pathFilter = createPathFilter(pathPatterns, queryUsesIndexTraversal);
@@ -278,14 +277,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final ReadPreference readPreference;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final int maxBatchSizeBytes;
-    private final StatisticsProvider statisticsProvider;
+    private final IndexingReporter reporter;
     private final MongoRegexPathFilterFactory regexPathFilterFactory;
     private final String customExcludeEntriesRegex;
 
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
-    private long documentsRead = 0;
-    private long totalDataDownloadedBytes = 0;
+    private long documentsDownloadedTotal = 0;
+    private long documentsDownloadedTotalBytes = 0;
     private long nextLastModified = 0;
     private String lastIdDownloaded = null;
 
@@ -295,8 +294,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       int maxBatchNumberOfDocuments,
                                       BlockingQueue<NodeDocument[]> queue,
                                       List<PathFilter> pathFilters,
-                                      StatisticsProvider statisticsProvider) {
-        this.statisticsProvider = statisticsProvider;
+                                      IndexingReporter reporter) {
+        this.reporter = reporter;
         NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
         CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
                 CodecRegistries.fromProviders(nodeDocumentCodecProvider),
@@ -316,20 +315,29 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS);
         Preconditions.checkArgument(retryDuringSeconds > 0,
                 "Property " + OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS + " must be > 0. Was: " + retryDuringSeconds);
+        this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CONNECTION_RETRY_SECONDS, String.valueOf(retryDuringSeconds));
+
         this.retryOnConnectionErrors = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS,
                 DEFAULT_OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS);
+        this.reporter.addConfig(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, String.valueOf(retryOnConnectionErrors));
+
         this.regexPathFiltering = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
+        this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, String.valueOf(regexPathFiltering));
+
         int regexPathFilteringMaxNumberOfPaths = ConfigHelper.getSystemPropertyAsInt(
                 OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS);
+        this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS, String.valueOf(regexPathFilteringMaxNumberOfPaths));
         this.regexPathFilterFactory = new MongoRegexPathFilterFactory(regexPathFilteringMaxNumberOfPaths);
+
         this.customExcludeEntriesRegex = ConfigHelper.getSystemPropertyAsString(
-                PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
-                PipelinedMongoDownloadTask.DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
+                DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX
         );
+        this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, customExcludeEntriesRegex);
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
@@ -360,26 +368,22 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             String metrics = MetricsFormatter.newBuilder()
                     .add("duration", FormattingUtils.formatToSeconds(downloadStartWatch))
                     .add("durationSeconds", durationMillis / 1000)
-                    .add("documentsDownloaded", documentsRead)
-                    .add("dataDownloadedBytes", totalDataDownloadedBytes)
-                    .add("dataDownloaded", IOUtils.humanReadableByteCountBin(totalDataDownloadedBytes))
+                    .add("documentsDownloaded", documentsDownloadedTotal)
+                    .add("documentsDownloadedTotalBytes", documentsDownloadedTotalBytes)
+                    .add("dataDownloaded", IOUtils.humanReadableByteCountBin(documentsDownloadedTotalBytes))
                     .add("enqueueingDelayMillis", totalEnqueueWaitTimeMillis)
                     .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
                     .build();
-            MetricsUtils.setCounterOnce(statisticsProvider,
-                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS,
-                    durationMillis / 1000
-            );
-            MetricsUtils.setCounterOnce(statisticsProvider,
-                    PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL,
-                    documentsRead
-            );
-            MetricsUtils.setCounterOnce(statisticsProvider,
-                    PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+            reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS, durationMillis / 1000);
+            reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL, documentsDownloadedTotal);
+            reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                     PipelinedUtils.toPercentage(totalEnqueueWaitTimeMillis, durationMillis)
             );
+            reporter.addMetricByteSize(PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
+                    documentsDownloadedTotalBytes);
             LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
-            return new Result(documentsRead);
+            reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
+            return new Result(documentsDownloadedTotal);
         } catch (InterruptedException t) {
             LOG.warn("Thread interrupted", t);
             throw t;
@@ -392,11 +396,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     }
 
     private void reportProgress(String id) {
-        if (this.documentsRead % 10000 == 0) {
-            double rate = ((double) this.documentsRead) / downloadStartWatch.elapsed(TimeUnit.SECONDS);
+        if (this.documentsDownloadedTotal % 10000 == 0) {
+            double rate = ((double) this.documentsDownloadedTotal) / downloadStartWatch.elapsed(TimeUnit.SECONDS);
             String formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr", rate, rate * 3600);
             LOG.info("Dumping from NSET Traversed #{} {} [{}] (Elapsed {})",
-                    this.documentsRead, id, formattedRate, FormattingUtils.formatToSeconds(downloadStartWatch));
+                    this.documentsDownloadedTotal, id, formattedRate, FormattingUtils.formatToSeconds(downloadStartWatch));
         }
         traversalLog.trace(id);
     }
@@ -552,14 +556,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         this.nextLastModified = next.getModified();
                     }
                     this.lastIdDownloaded = id;
-                    this.documentsRead++;
+                    this.documentsDownloadedTotal++;
                     reportProgress(id);
 
                     batch[nextIndex] = next;
                     nextIndex++;
                     int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);
                     batchSize += docSize;
-                    totalDataDownloadedBytes += docSize;
+                    documentsDownloadedTotalBytes += docSize;
                     if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
                         LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
                         tryEnqueueCopy(batch, nextIndex);

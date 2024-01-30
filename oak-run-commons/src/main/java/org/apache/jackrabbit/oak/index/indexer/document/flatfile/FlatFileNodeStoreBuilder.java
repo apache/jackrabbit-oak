@@ -33,13 +33,13 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUti
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,7 +101,7 @@ public class FlatFileNodeStoreBuilder {
     private MongoDatabase mongoDatabase = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
-    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+    private IndexingReporter indexingReporter = IndexingReporter.NOOP;
 
     public enum SortStrategyType {
         /**
@@ -180,8 +180,8 @@ public class FlatFileNodeStoreBuilder {
         return this;
     }
 
-    public FlatFileNodeStoreBuilder withStatisticsProvider(StatisticsProvider statisticsProvider) {
-        this.statisticsProvider = statisticsProvider;
+    public FlatFileNodeStoreBuilder withIndexingReporter(IndexingReporter reporter) {
+        this.indexingReporter = reporter;
         return this;
     }
 
@@ -313,8 +313,10 @@ public class FlatFileNodeStoreBuilder {
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
+                List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+                indexingReporter.setIndexNames(indexNames);
                 return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint, statisticsProvider);
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint, indexingReporter);
 
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);

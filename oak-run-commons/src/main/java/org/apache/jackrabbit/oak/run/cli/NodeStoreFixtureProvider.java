@@ -31,6 +31,8 @@ import com.codahale.metrics.MetricRegistry;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.plugins.index.importer.ConsoleIndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
@@ -62,6 +64,7 @@ public class NodeStoreFixtureProvider {
 
         StatisticsProvider statisticsProvider = createStatsProvider(options, wb, closer);
         wb.register(StatisticsProvider.class, statisticsProvider, emptyMap());
+        wb.register(IndexingReporter.class, new ConsoleIndexingReporter(statisticsProvider), emptyMap());
 
         NodeStore store;
         if (commonOpts.isMemory()) {

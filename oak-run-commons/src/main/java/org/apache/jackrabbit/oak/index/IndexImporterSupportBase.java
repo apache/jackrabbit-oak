@@ -40,7 +40,12 @@ public abstract class IndexImporterSupportBase {
     }
 
     public void importIndex(File importDir) throws IOException, CommitFailedException {
-        IndexImporter importer = new IndexImporter(nodeStore, importDir, createIndexEditorProvider(), createLock(), indexHelper.getStatisticsProvider());
+        IndexImporter importer = new IndexImporter(
+                nodeStore,
+                importDir,
+                createIndexEditorProvider(),
+                createLock(),
+                indexHelper.getIndexReporter());
         addImportProviders(importer);
         importer.importIndex();
     }

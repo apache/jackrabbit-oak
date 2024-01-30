@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.importer.ConsoleIndexingReporter;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -95,6 +96,7 @@ public class PipelinedIT {
 
 
     private MetricStatisticsProvider statsProvider;
+    private ConsoleIndexingReporter indexingReporter;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -122,6 +124,7 @@ public class PipelinedIT {
             c.getDatabase().drop();
         }
         statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
+        indexingReporter = new ConsoleIndexingReporter(statsProvider);
     }
 
     @After
@@ -132,6 +135,7 @@ public class PipelinedIT {
         }
         statsProvider.close();
         statsProvider = null;
+        indexingReporter = null;
     }
 
     @Test
@@ -457,6 +461,7 @@ public class PipelinedIT {
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL,
@@ -605,6 +610,7 @@ public class PipelinedIT {
     private PipelinedStrategy createStrategy(Backend backend, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
         Set<String> preferredPathElements = Set.of();
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
+        indexingReporter.setIndexNames(List.of("testIndex"));
         return new PipelinedStrategy(
                 backend.mongoDocumentStore,
                 backend.mongoDatabase,
@@ -617,7 +623,7 @@ public class PipelinedIT {
                 pathPredicate,
                 pathFilters,
                 null,
-                statsProvider);
+                indexingReporter);
     }
 
     private void createContent(NodeStore rwNodeStore) throws CommitFailedException {

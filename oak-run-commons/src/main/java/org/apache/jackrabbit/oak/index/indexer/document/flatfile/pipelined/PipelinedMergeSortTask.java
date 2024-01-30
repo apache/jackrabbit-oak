@@ -27,8 +27,7 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSortByteArray;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexingReporter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,7 +151,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     private final Comparator<NodeStateHolder> comparator;
     private final Compression algorithm;
     private final BlockingQueue<Path> sortedFilesQueue;
-    private final StatisticsProvider statisticsProvider;
+    private final IndexingReporter reporter;
     private final PriorityQueue<PathAndSize> sortedFiles = new PriorityQueue<>();
     private final AtomicBoolean stopEagerMerging = new AtomicBoolean(false);
     private final int mergeTriggerThreshold;
@@ -167,32 +166,37 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                                   PathElementComparator pathComparator,
                                   Compression algorithm,
                                   BlockingQueue<Path> sortedFilesQueue,
-                                  StatisticsProvider statisticsProvider) {
+                                  IndexingReporter reporter) {
         this.storeDir = storeDir;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.algorithm = algorithm;
         this.sortedFilesQueue = sortedFilesQueue;
-        this.statisticsProvider = statisticsProvider;
+        this.reporter = reporter;
 
         this.mergeTriggerThreshold = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD);
         Preconditions.checkArgument(mergeTriggerThreshold >= 16,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD + ": " + mergeTriggerThreshold + ". Must be >= 16");
+        reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, mergeTriggerThreshold);
 
         this.minFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE);
         Preconditions.checkArgument(minFilesToMerge >= 2,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + ": " + minFilesToMerge + ". Must be >= 2");
+        reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE, minFilesToMerge);
 
         this.maxFilesToMerge = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE);
         Preconditions.checkArgument(maxFilesToMerge >= minFilesToMerge,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE + ": " + maxFilesToMerge + ". Must be >= " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MIN_FILES_TO_MERGE + " (" + minFilesToMerge + ")");
+        reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_FILES_TO_MERGE, maxFilesToMerge);
 
         this.maxSizeToMergeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB);
         Preconditions.checkArgument(maxSizeToMergeMB >= 1,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB + ": " + maxSizeToMergeMB + ". Must be >= 1");
+        reporter.addConfig(OAK_INDEXER_PIPELINED_EAGER_MERGE_MAX_SIZE_TO_MERGE_MB, maxSizeToMergeMB);
 
         this.externalMergeReadBufferSize = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE, DEFAULT_OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE);
         Preconditions.checkArgument(externalMergeReadBufferSize >= FileUtils.ONE_KB,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE + ": " + externalMergeReadBufferSize + ". Must be >= 1 KB");
+        reporter.addConfig(OAK_INDEXER_PIPELINED_EXTERNAL_MERGE_READ_BUFFER_SIZE, externalMergeReadBufferSize);
     }
 
     @Override
@@ -227,16 +231,12 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                             .build();
 
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
-                    MetricsUtils.setCounterOnce(statisticsProvider,
-                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
-                    MetricsUtils.setCounterOnce(statisticsProvider,
-                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
-                    MetricsUtils.setCounterOnce(statisticsProvider,
-                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, eagerMergeRuns);
-                    MetricsUtils.setCounterOnce(statisticsProvider,
-                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, sortedFiles.size());
-                    MetricsUtils.setCounterOnce(statisticsProvider,
-                            PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, ffsSizeBytes);
+                    reporter.addTiming("Merge sort", FormattingUtils.formatToSeconds(w));
+                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
+                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
+                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, eagerMergeRuns);
+                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, sortedFiles.size());
+                    reporter.addMetricByteSize(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, ffsSizeBytes);
                     return new Result(flatFileStore, intermediateFilesCount, sortedFiles.size(), eagerMergeRuns);
 
                 } else {
