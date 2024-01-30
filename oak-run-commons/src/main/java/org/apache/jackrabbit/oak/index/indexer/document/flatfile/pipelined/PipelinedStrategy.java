@@ -534,7 +534,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         .build());
                 indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
 
-                LOG.info("INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
+                LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } finally {
