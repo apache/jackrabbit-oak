@@ -19,7 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
-import org.apache.jackrabbit.oak.plugins.index.importer.ConsoleIndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

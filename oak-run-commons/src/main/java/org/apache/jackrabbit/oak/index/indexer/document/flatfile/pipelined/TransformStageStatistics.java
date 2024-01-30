@@ -20,7 +20,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.importer.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

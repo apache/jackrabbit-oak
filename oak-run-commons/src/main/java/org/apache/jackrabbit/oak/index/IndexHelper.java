@@ -39,7 +39,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexInfoService;
 import org.apache.jackrabbit.oak.plugins.index.IndexInfoServiceImpl;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathService;
 import org.apache.jackrabbit.oak.plugins.index.IndexPathServiceImpl;
-import org.apache.jackrabbit.oak.plugins.index.importer.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexDefinitionPrinter;
 import org.apache.jackrabbit.oak.plugins.index.inventory.IndexPrinter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.importer;
+package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.List;
 
@@ -38,13 +38,6 @@ public interface IndexingReporter {
         public void addMetric(String name, long value) {
         }
 
-        /**
-         * Similar to {@link #addMetric(String, long)} but size should be logged in a human-friendly format, that is,
-         * something like
-         *  <pre>
-         *    foo.bar    123456789 (123 MiB)
-         *  </<pre>
-         */
         @Override
         public void addMetricByteSize(String name, long value) {
         }
@@ -63,6 +56,13 @@ public interface IndexingReporter {
 
     void addMetric(String name, long value);
 
+    /**
+     * Similar to {@link #addMetric(String, long)} but size should be logged in a human-friendly format, that is,
+     * something like
+     * <pre>
+     *    foo.bar    123456789 (123 MiB)
+     *  </<pre>
+     */
     void addMetricByteSize(String name, long value);
 
     String generateReport();

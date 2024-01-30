@@ -27,7 +27,7 @@ import org.apache.jackrabbit.oak.commons.sort.ExternalSortByteArray;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
-import org.apache.jackrabbit.oak.plugins.index.importer.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
