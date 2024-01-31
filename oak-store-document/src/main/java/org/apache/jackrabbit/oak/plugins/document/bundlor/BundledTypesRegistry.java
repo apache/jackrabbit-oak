@@ -23,12 +23,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
-import org.apache.jackrabbit.guava.common.collect.Maps;
-import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.guava.Collect;
 import org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants;
 import org.apache.jackrabbit.oak.spi.state.ChildNodeEntry;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -44,11 +42,11 @@ public class BundledTypesRegistry {
     private final Map<String, DocumentBundlor> bundlors;
 
     public BundledTypesRegistry(Map<String, DocumentBundlor> bundlors) {
-        this.bundlors = ImmutableMap.copyOf(bundlors);
+        this.bundlors = Collect.immutableMapCopyOf(bundlors);
     }
 
     public static BundledTypesRegistry from(NodeState configParentState){
-        Map<String, DocumentBundlor> bundlors = Maps.newHashMap();
+        Map<String, DocumentBundlor> bundlors = Collect.newHashMap();
         for (ChildNodeEntry e : configParentState.getChildNodeEntries()){
             NodeState config = e.getNodeState();
             if (config.getBoolean(DocumentBundlor.PROP_DISABLED)){
@@ -141,7 +139,7 @@ public class BundledTypesRegistry {
         public static class TypeBuilder {
             private final BundledTypesRegistryBuilder parent;
             private final NodeBuilder typeBuilder;
-            private final Set<String> patterns = Sets.newHashSet();
+            private final Set<String> patterns = Collect.newHashSet();
 
             private TypeBuilder(BundledTypesRegistryBuilder parent, NodeBuilder typeBuilder) {
                 this.parent = parent;
