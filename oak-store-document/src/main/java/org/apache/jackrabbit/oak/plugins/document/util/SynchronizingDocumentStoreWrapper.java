@@ -42,6 +42,11 @@ public class SynchronizingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public long getRecoveryDelayMillis() {
+        return store.getRecoveryDelayMillis();
+    }
+
+    @Override
     public synchronized <T extends Document> T find(final Collection<T> collection, final String key) {
         return store.find(collection, key);
     }

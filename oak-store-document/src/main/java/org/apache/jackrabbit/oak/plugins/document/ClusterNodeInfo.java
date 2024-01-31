@@ -241,13 +241,6 @@ public class ClusterNodeInfo {
     static final long DEFAULT_RECOVERY_DELAY_MILLIS = 0;
 
     /**
-     * Actual millis to delay a recovery after a lease timeout.
-     * <p>
-     * Initialized by DocumentNodeStore constructor.
-     */
-    static long recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
-
-    /**
      * The Oak version.
      */
     private static final String OAK_VERSION = getModuleVersion();
@@ -1233,19 +1226,6 @@ public class ClusterNodeInfo {
      */
     static void resetClockToDefault() {
         clock = Clock.SIMPLE;
-    }
-
-    static long getRecoveryDelayMillis() {
-        return recoveryDelayMillis;
-    }
-
-    static void setRecoveryDelayMillis(long recoveryDelayMillis) {
-        ClusterNodeInfo.recoveryDelayMillis = recoveryDelayMillis;
-    }
-
-    /** <b>only used for testing</b> **/
-    static void resetRecoveryDelayMillisToDefault() {
-        recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
     }
 
     private static long getProcessId() {

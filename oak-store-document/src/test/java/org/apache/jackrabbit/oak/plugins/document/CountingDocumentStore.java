@@ -78,6 +78,11 @@ public class CountingDocumentStore implements DocumentStore {
     }
 
     @Override
+    public long getRecoveryDelayMillis() {
+        return delegate.getRecoveryDelayMillis();
+    }
+
+    @Override
     public <T extends Document> T find(Collection<T> collection, String key) {
         getStats(collection).numFindCalls++;
         if (printStacks) {

@@ -77,7 +77,6 @@ public class DocumentNodeStoreServiceTest {
     public void tearDown() throws Exception {
         MockOsgi.deactivate(service, context.bundleContext());
         MongoUtils.dropCollections(MongoUtils.DB);
-        ClusterNodeInfo.resetRecoveryDelayMillisToDefault();
     }
 
     @Test
@@ -363,7 +362,7 @@ public class DocumentNodeStoreServiceTest {
         MockOsgi.activate(service, context.bundleContext());
 
         DocumentNodeStore dns = context.getService(DocumentNodeStore.class);
-        assertEquals(recoveryDelayMillis, ClusterNodeInfo.getRecoveryDelayMillis());
+        assertEquals(recoveryDelayMillis, dns.getDocumentStore().getRecoveryDelayMillis());
     }
 
     @NotNull
