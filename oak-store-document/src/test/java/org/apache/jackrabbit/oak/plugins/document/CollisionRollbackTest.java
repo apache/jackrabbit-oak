@@ -20,6 +20,8 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.merge;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.List;
@@ -31,6 +33,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.document.PausableDocumentStore.PauseCallback;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -199,14 +202,19 @@ public class CollisionRollbackTest {
         pausableStore2.pauseWith(breakOnceInThread).on(Collection.NODES)
                 .on("2:/parent/foo").after(1).afterOp().eternally();
         FailingDocumentStore store2 = new FailingDocumentStore(pausableStore2);
+
         ns = builderProvider.newBuilder().setDocumentStore(store1)
                 // use lenient mode because tests use a virtual clock
                 .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(clusterId4).clock(clock)
+                // cancelInvalidation on this nodestore doesn't have any effect in the test
+                .setCancelInvalidationFeature(createFeature(true))
                 .setAsyncDelay(0).getNodeStore();
         DocumentNodeStore ns4 = ns;
         DocumentNodeStore ns2 = builderProvider.newBuilder().setDocumentStore(store2)
                 // use lenient mode because tests use a virtual clock
                 .setLeaseCheckMode(LeaseCheckMode.LENIENT).setClusterId(2).clock(clock)
+                // cancelInvalidation on this nodestore is what fixes the test
+                .setCancelInvalidationFeature(createFeature(true))
                 .setAsyncDelay(0).getNodeStore();
 
         {
@@ -324,6 +332,12 @@ public class CollisionRollbackTest {
         // 2) plus it now resolves to commitValue "c" since it is now passed
         // the sweep revision (since we did another commit/bg just few lines above)
         assertTrue("/parent/foo should exist", ns4.getRoot().getChildNode("parent").hasChildNode("foo"));
+    }
+
+    private static Feature createFeature(boolean enabled) {
+        Feature cancelInvalidation = mock(Feature.class);
+        when(cancelInvalidation.isEnabled()).thenReturn(enabled);
+        return cancelInvalidation;
     }
 
     private DocumentNodeStore createDocumentNodeStore(int clusterId) {

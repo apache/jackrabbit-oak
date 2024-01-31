@@ -569,6 +569,10 @@ public final class DocumentNodeStore
 
     private final Feature prefetchFeature;
 
+    private final Feature cancelInvalidationFeature;
+
+    private Boolean cancelInvalidationLogged;
+
     private CacheWarming cacheWarming;
 
     public DocumentNodeStore(DocumentNodeStoreBuilder<?> builder) {
@@ -642,6 +646,7 @@ public final class DocumentNodeStore
         }
 
         this.prefetchFeature = builder.getPrefetchFeature();
+        this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
         this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
@@ -1171,6 +1176,19 @@ public final class DocumentNodeStore
     }
 
     void invalidatePathsOnCancel(Commit c) {
+        final boolean cancelInvalidationEnabled = (cancelInvalidationFeature != null
+                && cancelInvalidationFeature.isEnabled());
+        if (cancelInvalidationLogged == null
+                || (cancelInvalidationLogged.booleanValue() != cancelInvalidationEnabled)) {
+            // log at info at first use and when toggle changes, for observability
+            LOG.info("invalidatePathsOnCancel : cancelInvalidationEnabled = {}",
+                    cancelInvalidationEnabled);
+            // thread holds the merge lock at this point, no synchronization needed
+            cancelInvalidationLogged = cancelInvalidationEnabled;
+        }
+        if (!cancelInvalidationEnabled) {
+            return;
+        }
         Iterable<Path> pathsToInvalidate = c.getModifiedPaths();
         if (!pathsToInvalidate.iterator().hasNext()) {
             // nothing to do

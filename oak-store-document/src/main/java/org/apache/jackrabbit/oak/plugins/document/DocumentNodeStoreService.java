@@ -181,6 +181,11 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
 
+    /**
+     * Feature toggle name to enable invalidation on cancel (due to a merge collision)
+     */
+    private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
+
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
     public static final String PROP_REV_RECOVERY_INTERVAL = "lastRevRecoveryJobIntervalInSecs";
@@ -216,6 +221,7 @@ public class DocumentNodeStoreService {
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
+    private Feature cancelInvalidationFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -250,6 +256,7 @@ public class DocumentNodeStoreService {
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
         prefetchFeature = Feature.newFeature(FT_NAME_PREFETCH, whiteboard);
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
+        cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -465,6 +472,7 @@ public class DocumentNodeStoreService {
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setPrefetchFeature(prefetchFeature).
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
+                setCancelInvalidationFeature(cancelInvalidationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
@@ -609,6 +617,10 @@ public class DocumentNodeStoreService {
 
         if (docStoreThrottlingFeature != null) {
             docStoreThrottlingFeature.close();
+        }
+
+        if (cancelInvalidationFeature != null) {
+            cancelInvalidationFeature.close();
         }
 
         unregisterNodeStore();
