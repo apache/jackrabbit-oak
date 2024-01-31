@@ -54,7 +54,7 @@ public abstract class Collection<T extends Document> {
                 @Override
                 @NotNull
                 public ClusterNodeInfoDocument newDocument(DocumentStore store) {
-                    return new ClusterNodeInfoDocument();
+                    return new ClusterNodeInfoDocument(store);
                 }
             };
 

@@ -52,6 +52,12 @@ public class ClusterNodeInfoDocument extends Document {
      */
     private final long created = Revision.getCurrentTimestamp();
 
+    private final long recoveryDelayMillis;
+
+    public ClusterNodeInfoDocument(DocumentStore store) {
+        this.recoveryDelayMillis = store.getRecoveryDelayMillis();
+    }
+
     /**
      * @return the timestamp when this document was created.
      */
@@ -108,7 +114,7 @@ public class ClusterNodeInfoDocument extends Document {
      */
     public boolean isRecoveryNeeded(long currentTimeMillis) {
         return isActive() &&
-                (currentTimeMillis - getLeaseEndTime() > ClusterNodeInfo.getRecoveryDelayMillis() ||
+                (currentTimeMillis - getLeaseEndTime() > recoveryDelayMillis ||
                         isBeingRecovered());
     }
 

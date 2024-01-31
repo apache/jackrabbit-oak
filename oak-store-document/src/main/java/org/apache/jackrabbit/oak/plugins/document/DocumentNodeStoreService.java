@@ -524,9 +524,6 @@ public class DocumentNodeStoreService {
         if (isThrottlingEnabled(builder)) {
             builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
-
-        // initialize the (global) recoveryDelayMillis
-        ClusterNodeInfo.setRecoveryDelayMillis(builder.getRecoveryDelayMillis());
     }
 
     private boolean isWrappingCustomBlobStore() {

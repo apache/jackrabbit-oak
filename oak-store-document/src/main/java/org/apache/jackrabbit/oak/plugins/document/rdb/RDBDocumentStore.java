@@ -64,6 +64,7 @@ import javax.sql.DataSource;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
 import org.apache.jackrabbit.oak.commons.properties.SystemPropertySupplier;
+import org.apache.jackrabbit.oak.plugins.document.BaseDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
@@ -248,7 +249,7 @@ import org.apache.jackrabbit.guava.common.collect.Sets;
  * "deletedOnce", and "_modified". Attempts to use a different indexed property
  * will cause a {@link DocumentStoreException}.
  */
-public class RDBDocumentStore implements DocumentStore {
+public class RDBDocumentStore extends BaseDocumentStore {
 
     /**
      * Creates a {@linkplain RDBDocumentStore} instance using the provided

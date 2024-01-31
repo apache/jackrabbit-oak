@@ -52,6 +52,11 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
         this.clusterNodeInfo = clusterNodeInfo;
     }
 
+    @Override
+    public long getRecoveryDelayMillis() {
+        return delegate.getRecoveryDelayMillis();
+    }
+
     private final void performLeaseCheck() {
         if (clusterNodeInfo != null) {
             clusterNodeInfo.performLeaseCheck();

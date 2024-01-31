@@ -60,6 +60,7 @@ import com.mongodb.client.model.CreateCollectionOptions;
 import org.apache.jackrabbit.guava.common.util.concurrent.UncheckedExecutionException;
 import org.apache.jackrabbit.oak.cache.CacheStats;
 import org.apache.jackrabbit.oak.cache.CacheValue;
+import org.apache.jackrabbit.oak.plugins.document.BaseDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -144,7 +145,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottling
 /**
  * A document store that uses MongoDB as the backend.
  */
-public class MongoDocumentStore implements DocumentStore {
+public class MongoDocumentStore extends BaseDocumentStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongoDocumentStore.class);
     private static final PerfLogger PERFLOG = new PerfLogger(

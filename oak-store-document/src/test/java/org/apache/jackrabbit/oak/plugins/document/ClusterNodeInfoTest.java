@@ -79,7 +79,6 @@ public class ClusterNodeInfoTest {
     @After
     public void after() {
         ClusterNodeInfo.resetClockToDefault();
-        ClusterNodeInfo.resetRecoveryDelayMillisToDefault();
     }
 
     @Test
@@ -745,7 +744,7 @@ public class ClusterNodeInfoTest {
 
     @Test
     public void recoveryNeededWithDelay() throws Exception {
-        ClusterNodeInfo.setRecoveryDelayMillis(60000);
+        setRecoveryDelayMillis(store, 60000);
         ClusterNodeInfo info = newClusterNodeInfo(1);
         String key = String.valueOf(info.getId());
         ClusterNodeInfoDocument doc = store.find(Collection.CLUSTER_NODES, key);
@@ -756,6 +755,12 @@ public class ClusterNodeInfoTest {
         assertFalse(doc.isRecoveryNeeded(clock.getTime()));
         clock.waitUntil(info.getLeaseEndTime() + 1);
         assertTrue(doc.isRecoveryNeeded(clock.getTime()));
+    }
+
+    private void setRecoveryDelayMillis(DocumentStore s, int rdm) {
+        assertTrue(s instanceof BaseDocumentStore);
+        BaseDocumentStore bds = (BaseDocumentStore) s;
+        bds.setRecoveryDelayMillis(rdm);
     }
 
     private void assertLeaseFailure() throws Exception {
@@ -852,7 +857,7 @@ public class ClusterNodeInfoTest {
             T doc = super.findAndUpdate(collection, update);
             maybeThrow(failAfterUpdate, "update failed after");
             if (getFindAndUpdateShouldAlterReturnDocument()) {
-                ClusterNodeInfoDocument cdoc = new ClusterNodeInfoDocument();
+                ClusterNodeInfoDocument cdoc = new ClusterNodeInfoDocument(this);
                 cdoc.data.putAll(getMapAlterReturnDocument());
                 cdoc.seal();
                 return (T)cdoc;
@@ -868,7 +873,7 @@ public class ClusterNodeInfoTest {
             maybeThrow(failFind, "find failed");
             T doc = super.find(collection, key);
             if (getFindShouldAlterReturnDocument()) {
-                ClusterNodeInfoDocument cdoc = new ClusterNodeInfoDocument();
+                ClusterNodeInfoDocument cdoc = new ClusterNodeInfoDocument(this);
                 doc.deepCopy(cdoc);
                 cdoc.data.putAll(getMapAlterReturnDocument());
                 cdoc.seal();

@@ -111,6 +111,11 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public long getRecoveryDelayMillis() {
+        return base.getRecoveryDelayMillis();
+    }
+
+    @Override
     @Nullable
     public <T extends Document> T find(Collection<T> collection, String key) {
         try {

@@ -36,6 +36,11 @@ public class DocumentStoreWrapper implements DocumentStore {
     }
 
     @Override
+    public long getRecoveryDelayMillis() {
+        return store.getRecoveryDelayMillis();
+    }
+
+    @Override
     public <T extends Document> T find(Collection<T> collection, String key) {
         return store.find(collection, key);
     }

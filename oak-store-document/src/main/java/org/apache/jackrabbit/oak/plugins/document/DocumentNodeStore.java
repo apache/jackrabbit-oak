@@ -576,6 +576,10 @@ public final class DocumentNodeStore
             this.simpleRevisionCounter = new AtomicInteger(0);
         }
         DocumentStore s = builder.getDocumentStore();
+        if (s instanceof BaseDocumentStore) {
+            BaseDocumentStore bds = (BaseDocumentStore) s;
+            bds.setRecoveryDelayMillis(builder.getRecoveryDelayMillis());
+        }
         checkServerTimeDifference(s);
         if (builder.getTiming()) {
             s = new TimingDocumentStoreWrapper(s);

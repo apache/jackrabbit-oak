@@ -30,6 +30,7 @@ import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.ImmutableMap;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.cache.CacheStats;
+import org.apache.jackrabbit.oak.plugins.document.BaseDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
@@ -58,7 +59,7 @@ import static org.apache.jackrabbit.oak.plugins.document.UpdateUtils.checkCondit
  * Emulates a MongoDB store (possibly consisting of multiple shards and
  * replicas).
  */
-public class MemoryDocumentStore implements DocumentStore {
+public class MemoryDocumentStore extends BaseDocumentStore {
 
     /**
      * The 'nodes' collection.

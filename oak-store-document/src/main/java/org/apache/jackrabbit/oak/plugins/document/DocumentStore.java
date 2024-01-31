@@ -571,4 +571,6 @@ public interface DocumentStore {
                                                        final @NotNull List<UpdateOp> updateOps) throws DocumentStoreException {
         return updateOps.stream().map(op -> findAndUpdate(collection, op)).collect(toList());
     }
+
+    long getRecoveryDelayMillis();
 }
