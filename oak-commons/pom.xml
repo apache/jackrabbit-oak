@@ -49,6 +49,7 @@
               org.apache.jackrabbit.oak.commons,
               org.apache.jackrabbit.oak.commons.cache,
               org.apache.jackrabbit.oak.commons.concurrent,
+              org.apache.jackrabbit.oak.commons.guava,
               org.apache.jackrabbit.oak.commons.io,
               org.apache.jackrabbit.oak.commons.json,
               org.apache.jackrabbit.oak.commons.sort,
@@ -134,6 +135,6 @@
       <artifactId>lz4-java</artifactId>
       <version>1.8.0</version>
       <scope>test</scope>
-    </dependency>    
+    </dependency>
   </dependencies>
 </project>
