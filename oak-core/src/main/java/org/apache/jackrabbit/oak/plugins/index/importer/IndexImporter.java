@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.importer.AsyncIndexerLock.LockToken;
 import org.apache.jackrabbit.oak.plugins.index.upgrade.IndexDisabler;
 import org.apache.jackrabbit.oak.spi.commit.EditorDiff;
@@ -41,6 +42,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,15 +88,22 @@ public class IndexImporter {
     static final int RETRIES = Integer.getInteger("oak.index.import.retries", 5);
     public static final String INDEX_IMPORT_STATE_KEY = "indexImportState";
     private final Set<String> indexPathsToUpdate;
+    private final StatisticsProvider statisticsProvider;
     private final IndexingReporter indexingReporter;
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
                          AsyncIndexerLock indexerLock) throws IOException {
-        this(nodeStore, indexDir, indexEditorProvider, indexerLock, IndexingReporter.NOOP);
+        this(nodeStore, indexDir, indexEditorProvider, indexerLock, StatisticsProvider.NOOP, IndexingReporter.NOOP);
     }
 
     public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
-                         AsyncIndexerLock indexerLock, IndexingReporter indexingReporter) throws IOException {
+                         AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider) throws IOException {
+        this(nodeStore, indexDir, indexEditorProvider, indexerLock, statisticsProvider, IndexingReporter.NOOP);
+    }
+
+    public IndexImporter(NodeStore nodeStore, File indexDir, IndexEditorProvider indexEditorProvider,
+                         AsyncIndexerLock indexerLock, StatisticsProvider statisticsProvider, IndexingReporter indexingReporter) throws IOException {
+        this.statisticsProvider = statisticsProvider;
         this.indexingReporter = indexingReporter;
         checkArgument(indexDir.exists() && indexDir.isDirectory(), "Path [%s] does not point " +
                 "to existing directory", indexDir.getAbsolutePath());
@@ -490,6 +499,9 @@ public class IndexImporter {
                                 .build()
                 );
 
+                MetricsUtils.setCounterOnce(statisticsProvider,
+                        "oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",
+                        durationSeconds);
                 indexingReporter.addTiming("oak_indexer_import_" + indexImportPhaseName.toLowerCase(),
                         FormattingUtils.formatToSeconds(durationSeconds));
                 indexingReporter.addMetric("oak_indexer_import_" + indexImportPhaseName.toLowerCase() + "_duration_seconds",

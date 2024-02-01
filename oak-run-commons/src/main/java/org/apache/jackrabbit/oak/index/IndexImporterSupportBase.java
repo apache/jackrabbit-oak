@@ -45,6 +45,7 @@ public abstract class IndexImporterSupportBase {
                 importDir,
                 createIndexEditorProvider(),
                 createLock(),
+                indexHelper.getStatisticsProvider(),
                 indexHelper.getIndexReporter());
         addImportProviders(importer);
         importer.importIndex();
