@@ -40,6 +40,7 @@ import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -101,6 +102,7 @@ public class FlatFileNodeStoreBuilder {
     private MongoDatabase mongoDatabase = null;
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
+    private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
 
     public enum SortStrategyType {
@@ -177,6 +179,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withMongoDatabase(MongoDatabase mongoDatabase) {
         this.mongoDatabase = mongoDatabase;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withStatisticsProvider(StatisticsProvider statisticsProvider) {
+        this.statisticsProvider = statisticsProvider;
         return this;
     }
 
@@ -316,7 +323,8 @@ public class FlatFileNodeStoreBuilder {
                 List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
                 indexingReporter.setIndexNames(indexNames);
                 return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint, indexingReporter);
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
+                        statisticsProvider, indexingReporter);
 
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);

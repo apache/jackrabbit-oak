@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.OakVersion;
 import org.apache.jackrabbit.oak.commons.IOUtils;
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.ZonedDateTime;
@@ -39,24 +38,17 @@ public class ConsoleIndexingReporter implements IndexingReporter {
     private final Map<String, String> timings = new LinkedHashMap<>();
     // Print configuration in alphabetical order
     private final Map<String, String> metrics = new TreeMap<>();
-    private final StatisticsProvider statisticsProvider;
     private final List<String> envVariablesToLog;
     private List<String> indexes = List.of();
 
     public ConsoleIndexingReporter() {
-        this(StatisticsProvider.NOOP, List.of());
-    }
-
-    public ConsoleIndexingReporter(@NotNull StatisticsProvider statisticsProvider) {
-        this(statisticsProvider, List.of());
+        this(List.of());
     }
 
     /**
-     * @param statisticsProvider Any metrics added to this IndexingReporter are also added to this statistics provider.
      * @param envVariablesToLog  These environment variables and their values will be included in the final report.
      */
-    public ConsoleIndexingReporter(@NotNull StatisticsProvider statisticsProvider, @NotNull List<String> envVariablesToLog) {
-        this.statisticsProvider = statisticsProvider;
+    public ConsoleIndexingReporter(@NotNull List<String> envVariablesToLog) {
         this.envVariablesToLog = List.copyOf(envVariablesToLog);
     }
 
@@ -73,12 +65,10 @@ public class ConsoleIndexingReporter implements IndexingReporter {
     }
 
     public void addMetric(String name, long value) {
-        MetricsUtils.setCounterOnce(statisticsProvider, name, value);
         metrics.put(name, String.valueOf(value));
     }
 
     public void addMetricByteSize(String name, long value) {
-        MetricsUtils.setCounterOnce(statisticsProvider, name, value);
         String v = String.valueOf(value);
         if (value >= FileUtils.ONE_KB) {
             v += " (" + IOUtils.humanReadableByteCountBin(value) + ")";

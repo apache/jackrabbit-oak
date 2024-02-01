@@ -64,7 +64,7 @@ public class NodeStoreFixtureProvider {
 
         StatisticsProvider statisticsProvider = createStatsProvider(options, wb, closer);
         wb.register(StatisticsProvider.class, statisticsProvider, emptyMap());
-        wb.register(IndexingReporter.class, new ConsoleIndexingReporter(statisticsProvider), emptyMap());
+        wb.register(IndexingReporter.class, new ConsoleIndexingReporter(), emptyMap());
 
         NodeStore store;
         if (commonOpts.isMemory()) {

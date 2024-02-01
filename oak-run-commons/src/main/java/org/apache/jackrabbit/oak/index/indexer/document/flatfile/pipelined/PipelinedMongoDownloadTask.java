@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.bson.BsonDocument;
 import org.bson.codecs.configuration.CodecRegistries;
 import org.bson.codecs.configuration.CodecRegistry;
@@ -277,6 +278,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final ReadPreference readPreference;
     private final Stopwatch downloadStartWatch = Stopwatch.createUnstarted();
     private final int maxBatchSizeBytes;
+    private final StatisticsProvider statisticsProvider;
     private final IndexingReporter reporter;
     private final MongoRegexPathFilterFactory regexPathFilterFactory;
     private final String customExcludeEntriesRegex;
@@ -294,7 +296,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                                       int maxBatchNumberOfDocuments,
                                       BlockingQueue<NodeDocument[]> queue,
                                       List<PathFilter> pathFilters,
+                                      StatisticsProvider statisticsProvider,
                                       IndexingReporter reporter) {
+        this.statisticsProvider = statisticsProvider;
         this.reporter = reporter;
         NodeDocumentCodecProvider nodeDocumentCodecProvider = new NodeDocumentCodecProvider(mongoDocStore, Collection.NODES);
         CodecRegistry nodeDocumentCodecRegistry = CodecRegistries.fromRegistries(
@@ -374,12 +378,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .add("enqueueingDelayMillis", totalEnqueueWaitTimeMillis)
                     .add("enqueueingDelayPercentage", enqueueingDelayPercentage)
                     .build();
-            reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS, durationMillis / 1000);
-            reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL, documentsDownloadedTotal);
-            reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+            PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS, durationMillis / 1000);
+            PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL, documentsDownloadedTotal);
+            PipelinedUtils.addMetric(statisticsProvider, reporter,  PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                     PipelinedUtils.toPercentage(totalEnqueueWaitTimeMillis, durationMillis)
             );
-            reporter.addMetricByteSize(PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
+            PipelinedUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
                     documentsDownloadedTotalBytes);
             LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
             reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));

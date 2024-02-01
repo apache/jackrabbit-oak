@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.junit.Test;
 
 import java.util.List;
@@ -65,7 +64,7 @@ public class ConsoleIndexingReporterTest {
                 "  metric4: 123456789 (117.74 MiB)\n" +
                 "  metric5: 1234567890123456 (1.10 PiB)";
 
-        ConsoleIndexingReporter consoleIndexingReporter = new ConsoleIndexingReporter(StatisticsProvider.NOOP, List.of("ENV_VAR1", "ENV_VAR2"));
+        ConsoleIndexingReporter consoleIndexingReporter = new ConsoleIndexingReporter(List.of("ENV_VAR1", "ENV_VAR2"));
 
         consoleIndexingReporter.setIndexNames(List.of("index1", "index2"));
 

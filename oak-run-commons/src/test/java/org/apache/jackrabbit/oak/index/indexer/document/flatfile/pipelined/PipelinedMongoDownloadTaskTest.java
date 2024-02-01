@@ -121,9 +121,10 @@ public class PipelinedMongoDownloadTaskTest {
         ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
         try {
             try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, executor)) {
-                ConsoleIndexingReporter reporter = new ConsoleIndexingReporter(metricStatisticsProvider);
+                ConsoleIndexingReporter reporter = new ConsoleIndexingReporter();
                 PipelinedMongoDownloadTask task = new PipelinedMongoDownloadTask(mongoDatabase, mongoDocumentStore,
-                        batchMaxMemorySize, batchMaxElements, queue, null, reporter);
+                        batchMaxMemorySize, batchMaxElements, queue, null,
+                        metricStatisticsProvider, reporter);
 
                 // Execute
                 PipelinedMongoDownloadTask.Result result = task.call();

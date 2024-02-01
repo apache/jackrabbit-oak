@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUti
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -151,6 +152,7 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
     private final Comparator<NodeStateHolder> comparator;
     private final Compression algorithm;
     private final BlockingQueue<Path> sortedFilesQueue;
+    private final StatisticsProvider statisticsProvider;
     private final IndexingReporter reporter;
     private final PriorityQueue<PathAndSize> sortedFiles = new PriorityQueue<>();
     private final AtomicBoolean stopEagerMerging = new AtomicBoolean(false);
@@ -166,11 +168,13 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
                                   PathElementComparator pathComparator,
                                   Compression algorithm,
                                   BlockingQueue<Path> sortedFilesQueue,
+                                  StatisticsProvider statisticsProvider,
                                   IndexingReporter reporter) {
         this.storeDir = storeDir;
         this.comparator = (e1, e2) -> pathComparator.compare(e1.getPathElements(), e2.getPathElements());
         this.algorithm = algorithm;
         this.sortedFilesQueue = sortedFilesQueue;
+        this.statisticsProvider = statisticsProvider;
         this.reporter = reporter;
 
         this.mergeTriggerThreshold = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD, DEFAULT_OAK_INDEXER_PIPELINED_EAGER_MERGE_TRIGGER_THRESHOLD);
@@ -232,11 +236,11 @@ public class PipelinedMergeSortTask implements Callable<PipelinedMergeSortTask.R
 
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
                     reporter.addTiming("Merge sort", FormattingUtils.formatToSeconds(w));
-                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
-                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
-                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, eagerMergeRuns);
-                    reporter.addMetric(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, sortedFiles.size());
-                    reporter.addMetricByteSize(PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, ffsSizeBytes);
+                    PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_DURATION_SECONDS, durationSeconds);
+                    PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_INTERMEDIATE_FILES_TOTAL, intermediateFilesCount);
+                    PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_EAGER_MERGES_RUNS_TOTAL, eagerMergeRuns);
+                    PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FINAL_MERGE_FILES_COUNT_TOTAL, sortedFiles.size());
+                    PipelinedUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MERGE_SORT_FLAT_FILE_STORE_SIZE_BYTES, ffsSizeBytes);
                     return new Result(flatFileStore, intermediateFilesCount, sortedFiles.size(), eagerMergeRuns);
 
                 } else {

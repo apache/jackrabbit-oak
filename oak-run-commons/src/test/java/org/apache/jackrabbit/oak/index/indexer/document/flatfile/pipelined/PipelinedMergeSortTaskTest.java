@@ -108,11 +108,12 @@ public class PipelinedMergeSortTaskTest extends PipelinedMergeSortTaskTestBase {
         // +1 for the Sentinel.
         ArrayBlockingQueue<Path> sortedFilesQueue = new ArrayBlockingQueue<>(files.length + 1);
         try (MetricStatisticsProvider metricStatisticsProvider = new MetricStatisticsProvider(null, metricsExecutor)) {
-            ConsoleIndexingReporter reporter = new ConsoleIndexingReporter(metricStatisticsProvider);
+            ConsoleIndexingReporter reporter = new ConsoleIndexingReporter();
             PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(sortRoot,
                     pathComparator,
                     algorithm,
                     sortedFilesQueue,
+                    metricStatisticsProvider,
                     reporter);
             // Enqueue all the files that are to be merged
             for (Path file : files) {

@@ -404,7 +404,7 @@ public class DocumentStoreIndexerIT extends LuceneAbstractIndexCommandTest {
         try {
             MetricStatisticsProvider metricsStatisticsProvider = new MetricStatisticsProvider(null, executor);
             wb.register(StatisticsProvider.class, metricsStatisticsProvider, emptyMap());
-            wb.register(IndexingReporter.class, new ConsoleIndexingReporter(metricsStatisticsProvider), emptyMap());
+            wb.register(IndexingReporter.class, new ConsoleIndexingReporter(), emptyMap());
             Registration c1Registration = wb.register(MongoDatabase.class, mongoConnection.getDatabase(), emptyMap());
 
             configureIndex(store);

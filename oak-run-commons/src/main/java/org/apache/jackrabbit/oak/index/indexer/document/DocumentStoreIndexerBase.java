@@ -180,6 +180,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog))
                         .withCheckpoint(indexerSupport.getCheckpoint())
+                        .withStatisticsProvider(indexHelper.getStatisticsProvider())
                         .withIndexingReporter(reporter);
 
                 for (File dir : previousDownloadDirs) {
@@ -337,6 +338,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds))
                 .add("durationSeconds", fullIndexCreationDurationSeconds)
                 .build());
+
         indexingReporter.addMetric(METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
         indexingReporter.addTiming("Total time", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds));
     }

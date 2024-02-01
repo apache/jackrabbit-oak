@@ -124,7 +124,7 @@ public class PipelinedIT {
             c.getDatabase().drop();
         }
         statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
-        indexingReporter = new ConsoleIndexingReporter(statsProvider);
+        indexingReporter = new ConsoleIndexingReporter();
     }
 
     @After
@@ -623,6 +623,7 @@ public class PipelinedIT {
                 pathPredicate,
                 pathFilters,
                 null,
+                statsProvider,
                 indexingReporter);
     }
 

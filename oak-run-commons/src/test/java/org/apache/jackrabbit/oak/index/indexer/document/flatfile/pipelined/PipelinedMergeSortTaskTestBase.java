@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.jackrabbit.oak.commons.Compression;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
 import org.junit.Rule;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
@@ -114,6 +115,7 @@ public class PipelinedMergeSortTaskTestBase {
                 pathComparator,
                 algorithm,
                 sortedFilesQueue,
+                StatisticsProvider.NOOP,
                 reporter);
         // Enqueue all the files that are to be merged
         for (Path file : files) {

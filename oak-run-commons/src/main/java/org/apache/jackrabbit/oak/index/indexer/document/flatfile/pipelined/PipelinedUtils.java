@@ -19,6 +19,9 @@
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 
 import java.util.Locale;
 
@@ -61,5 +64,15 @@ public class PipelinedUtils {
         } else {
             return (int) Math.round((100.0 * numerator) / denominator);
         }
+    }
+
+    public static void addMetric(StatisticsProvider statisticsProvider, IndexingReporter reporter, String name, long value) {
+        MetricsUtils.setCounterOnce(statisticsProvider, name, value);
+        reporter.addMetric(name, value);
+    }
+
+    public static void addMetricByteSize(StatisticsProvider statisticsProvider, IndexingReporter reporter, String name, long value) {
+        MetricsUtils.setCounterOnce(statisticsProvider, name, value);
+        reporter.addMetricByteSize(name, value);
     }
 }
