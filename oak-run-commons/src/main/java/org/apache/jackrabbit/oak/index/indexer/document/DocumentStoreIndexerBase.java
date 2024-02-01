@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.IndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.plugins.index.NodeTraversalCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.progress.IndexingProgressReporter;
@@ -88,6 +89,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
     protected final Closer closer = Closer.create();
     protected final IndexHelper indexHelper;
     private final IndexingReporter indexingReporter;
+    private final StatisticsProvider statisticsProvider;
     protected List<NodeStateIndexerProvider> indexerProviders;
     protected final IndexerSupport indexerSupport;
     private static final int MAX_DOWNLOAD_ATTEMPTS = Integer.parseInt(System.getProperty("oak.indexer.maxDownloadRetries", "5")) + 1;
@@ -96,6 +98,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         this.indexHelper = indexHelper;
         this.indexerSupport = indexerSupport;
         this.indexingReporter = indexHelper.getIndexReporter();
+        this.statisticsProvider = indexHelper.getStatisticsProvider();
     }
 
     protected void setProviders() throws IOException {
@@ -317,7 +320,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(indexingDurationSeconds))
                 .add("durationSeconds", indexingDurationSeconds)
                 .build());
-        indexingReporter.addMetric(METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_INDEXING_DURATION_SECONDS, indexingDurationSeconds);
         indexingReporter.addTiming("Build Lucene Index", FormattingUtils.formatToSeconds(indexingDurationSeconds));
 
         log.info("[TASK:MERGE_NODE_STORE:START] Starting merge node store");
@@ -328,7 +331,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("duration", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds))
                 .add("durationSeconds", mergeNodeStoreDurationSeconds)
                 .build());
-        indexingReporter.addMetric(METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_MERGE_NODE_STORE_DURATION_SECONDS, mergeNodeStoreDurationSeconds);
         indexingReporter.addTiming("Merge node store", FormattingUtils.formatToSeconds(mergeNodeStoreDurationSeconds));
 
         indexerSupport.postIndexWork(copyOnWriteStore);
@@ -339,7 +342,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                 .add("durationSeconds", fullIndexCreationDurationSeconds)
                 .build());
 
-        indexingReporter.addMetric(METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
+        MetricsUtils.addMetric(statisticsProvider, indexingReporter, METRIC_FULL_INDEX_CREATION_DURATION_SECONDS, fullIndexCreationDurationSeconds);
         indexingReporter.addTiming("Total time", FormattingUtils.formatToSeconds(fullIndexCreationDurationSeconds));
     }
 

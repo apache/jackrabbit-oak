@@ -24,6 +24,7 @@ import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,13 +127,13 @@ class PipelinedSortBatchTask implements Callable<PipelinedSortBatchTask.Result> 
                             .add("totalTimeSeconds", totalTimeMillis / 1000)
                             .build();
                     LOG.info("[TASK:{}:END] Metrics: {}", THREAD_NAME.toUpperCase(Locale.ROOT), metrics);
-                    PipelinedUtils.addMetric(statisticsProvider, reporter,
+                    MetricsUtils.addMetric(statisticsProvider, reporter,
                             PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_CREATE_SORT_ARRAY_PERCENTAGE,
                             PipelinedUtils.toPercentage(timeCreatingSortArrayMillis, totalTimeMillis));
-                    PipelinedUtils.addMetric(statisticsProvider, reporter,
+                    MetricsUtils.addMetric(statisticsProvider, reporter,
                             PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_SORT_ARRAY_PERCENTAGE,
                             PipelinedUtils.toPercentage(timeSortingMillis, totalTimeMillis));
-                    PipelinedUtils.addMetric(statisticsProvider, reporter,
+                    MetricsUtils.addMetric(statisticsProvider, reporter,
                             PipelinedMetrics.OAK_INDEXER_PIPELINED_SORT_BATCH_PHASE_WRITE_TO_DISK_PERCENTAGE,
                             PipelinedUtils.toPercentage(timeWritingMillis, totalTimeMillis));
                     return new Result(entriesProcessed);

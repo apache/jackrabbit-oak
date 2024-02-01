@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.MetricsUtils;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,19 +149,19 @@ public class TransformStageStatistics {
         int documentsAcceptedPercentage = PipelinedUtils.toPercentageAsInt(documentsAcceptedTotal, mongoDocumentsTraversedSum);
         int entriesAcceptedPercentage = PipelinedUtils.toPercentageAsInt(entriesAcceptedSum, entriesAcceptedSum + entriesRejectedSum);
 
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL, mongoDocumentsTraversedSum);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL, documentsRejectedSplitSum);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE_TOTAL, documentsRejectedEmptyNodeStateSum);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL, documentsAcceptedTotal);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_TOTAL, documentsRejectedTotal);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_PERCENTAGE, documentsAcceptedPercentage);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED_TOTAL, entriesTraversed);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL, entriesAcceptedSum);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_PERCENTAGE, entriesAcceptedPercentage);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_TOTAL, entriesRejectedSum);
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS_TOTAL, entriesRejectedHiddenPaths.sum());
-        PipelinedUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED_TOTAL, entriesRejectedPathFiltered.sum());
-        PipelinedUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_BYTES, entriesAcceptedTotalSizeSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL, mongoDocumentsTraversedSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL, documentsRejectedSplitSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_EMPTY_NODE_STATE_TOTAL, documentsRejectedEmptyNodeStateSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL, documentsAcceptedTotal);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_TOTAL, documentsRejectedTotal);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_PERCENTAGE, documentsAcceptedPercentage);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_TRAVERSED_TOTAL, entriesTraversed);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_TOTAL, entriesAcceptedSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_ACCEPTED_PERCENTAGE, entriesAcceptedPercentage);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_TOTAL, entriesRejectedSum);
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_HIDDEN_PATHS_TOTAL, entriesRejectedHiddenPaths.sum());
+        MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_ENTRIES_REJECTED_PATH_FILTERED_TOTAL, entriesRejectedPathFiltered.sum());
+        MetricsUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_EXTRACTED_ENTRIES_TOTAL_BYTES, entriesAcceptedTotalSizeSum);
     }
 
     public String formatStats() {
