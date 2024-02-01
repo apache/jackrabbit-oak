@@ -1209,7 +1209,7 @@ public final class DocumentNodeStore
         }
         try {
             // create the invalidation journal entry (branch commit style)
-            invalidatePaths0(pathsToInvalidate, "rollback invalidation", "");
+            createInvalidationJournalEntries(pathsToInvalidate, "rollback invalidation", "");
             // but also, already push it now, not waiting for backgroundWrite
             // reason being that otherwise it might get lost on a crash,
             // in which case the peers still would have uncommitted revisions
@@ -2705,11 +2705,11 @@ public final class DocumentNodeStore
             // nothing to do
             return;
         }
-        invalidatePaths0(pathsToInvalidate, "split",
+        createInvalidationJournalEntries(pathsToInvalidate, "split",
                 " Will be retried with next background split operation.");
     }
 
-    private void invalidatePaths0(@NotNull Iterable<Path> pathsToInvalidate, String type,
+    private void createInvalidationJournalEntries(@NotNull Iterable<Path> pathsToInvalidate, String type,
             String errorSuffixMsg) {
         // create journal entry for cache invalidation
         JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
