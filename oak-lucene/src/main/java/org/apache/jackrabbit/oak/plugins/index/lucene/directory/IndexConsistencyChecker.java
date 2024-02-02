@@ -55,6 +55,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.IOContext;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -216,7 +217,8 @@ public class IndexConsistencyChecker {
      *                    then the files would be removed otherwise whatever files have been copied
      *                    would be left as is
      */
-    public IndexConsistencyChecker(NodeState rootState, String indexPath, File workDirRoot) {
+    public IndexConsistencyChecker(@NotNull NodeState rootState, @NotNull String indexPath,
+        @NotNull File workDirRoot) {
         this.rootState = checkNotNull(rootState);
         this.indexPath = checkNotNull(indexPath);
         this.workDirRoot = checkNotNull(workDirRoot);
@@ -300,7 +302,7 @@ public class IndexConsistencyChecker {
                                      File workDir, String dirName, Closer closer) throws IOException {
         File idxDir = createWorkDir(workDir, dirName);
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);
-        Directory targetDir = FSDirectory.open(idxDir);
+        Directory targetDir = FSDirectory.open(idxDir.toPath());
 
         closer.register(sourceDir);
         closer.register(targetDir);
@@ -309,7 +311,7 @@ public class IndexConsistencyChecker {
         for (String file : sourceDir.listAll()) {
             log.debug("[{}][{}] Checking {}", indexPath, dirName, file);
             try {
-                sourceDir.copy(targetDir, file, file, IOContext.DEFAULT);
+                targetDir.copyFrom(sourceDir, file, file, IOContext.DEFAULT);
             } catch (FileNotFoundException ignore){
                 dirStatus.missingFiles.add(file);
                 clean = false;

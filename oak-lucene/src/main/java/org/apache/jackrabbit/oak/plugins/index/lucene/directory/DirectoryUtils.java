@@ -21,6 +21,8 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.NoSuchFileException;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
@@ -39,7 +41,7 @@ public class DirectoryUtils {
         try{
             //Check for file presence otherwise internally it results in
             //an exception to be created
-            if (dir.fileExists(fileName)) {
+            if (fileExists(dir, fileName)) {
                 return dir.fileLength(fileName);
             }
         } catch (Exception ignore){
@@ -54,6 +56,7 @@ public class DirectoryUtils {
             return -1;
         }
         String[] files = directory.listAll();
+
         if (files == null) {
             return totalFileSize;
         }
@@ -87,11 +90,9 @@ public class DirectoryUtils {
 
     public static int getNumDocs(Directory dir) throws IOException {
         int count = 0;
-        SegmentInfos sis = new SegmentInfos();
-        sis.read(dir);
 
-        for (SegmentCommitInfo sci : sis) {
-            count += sci.info.getDocCount() - sci.getDelCount();
+        for (SegmentCommitInfo sci : SegmentInfos.readLatestCommit(dir)) {
+            count += sci.info.maxDoc() - sci.getDelCount();
         }
 
         return count;
@@ -107,5 +108,9 @@ public class DirectoryUtils {
     static void writeMeta(File indexDir, IndexMeta meta) throws IOException {
         File readMe = new File(indexDir, INDEX_METADATA_FILE_NAME);
         meta.writeTo(readMe);
+    }
+
+    public static boolean fileExists(Directory d, String fileName) throws IOException {
+        return Arrays.asList(d.listAll()).contains(fileName);
     }
 }

@@ -238,7 +238,7 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
         setup(List.of("foo"), idx -> {
             Tree anl = idx.addChild(FulltextIndexConstants.ANALYZERS).addChild(FulltextIndexConstants.ANL_DEFAULT);
             anl.setProperty(FulltextIndexConstants.ANL_CLASS, "org.apache.lucene.analysis.en.EnglishAnalyzer");
-            anl.setProperty("luceneMatchVersion", "LUCENE_47");
+            anl.setProperty("luceneMatchVersion", "LUCENE_55"); // TODO: is this the correct version?
             anl.addChild("stopwords").addChild(JCR_CONTENT).setProperty(JCR_DATA, "dog");
         });
 
@@ -344,7 +344,6 @@ public abstract class FullTextAnalyzerCommonTest extends AbstractQueryTest {
             addFilter(filters, "LowerCase");
             Tree stopFilter = addFilter(filters, "Stop");
             stopFilter.setProperty("format", "snowball");
-            stopFilter.setProperty("enablePositionIncrements", "true");
             stopFilter.setProperty("ignoreCase", "true");
             stopFilter.setProperty("words", "stopwords-snowball.txt");
             stopFilter.addChild("stopwords-snowball.txt").addChild(JcrConstants.JCR_CONTENT)

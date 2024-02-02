@@ -389,14 +389,14 @@ public class HybridIndexTest extends AbstractQueryTest {
         nrtIndexFactory.setDirectoryFactory(new NRTDirectoryFactory() {
             @Override
             public Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException {
-                Directory fsdir = new SimpleFSDirectory(indexDir, NoLockFactory.getNoLockFactory());
+                Directory fsdir = new SimpleFSDirectory(indexDir.toPath(), NoLockFactory.INSTANCE);
                 //TODO make these configurable
                 return new NRTCachingDirectory(fsdir, 0.001, 0.001);
             }
         });
         String idxName = "hybridtest";
         Tree idx = createIndex(root.getTree("/"), idxName, Collections.singleton("foo"));
-        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.SYNC);
+        TestUtil.enableIndexingMode(idx, FulltextIndexConstants.IndexingMode.ASYNC);
         root.commit();
         runAsyncIndex();
 

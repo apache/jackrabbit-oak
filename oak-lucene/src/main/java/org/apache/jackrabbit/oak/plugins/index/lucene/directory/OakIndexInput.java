@@ -21,6 +21,7 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.BufferedIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.WeakIdentityMap;
 
@@ -60,6 +61,15 @@ class OakIndexInput extends IndexInput {
     }
 
     @Override
+    public IndexInput slice(String sliceDescription, long offset, long length) {
+        if (offset < 0 || length < 0 || offset + length > this.length()) {
+            throw new IllegalArgumentException("slice() " + sliceDescription + " out of bounds: "  + this);
+        }
+
+        return BufferedIndexInput.wrap(sliceDescription, this, offset, length);
+    }
+
+    @Override
     public void readBytes(byte[] b, int o, int n) throws IOException {
         checkNotClosed();
         file.readBytes(b, o, n);
@@ -92,9 +102,8 @@ class OakIndexInput extends IndexInput {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         file.close();
-
         if (clones != null) {
             for (Iterator<OakIndexInput> it = clones.keyIterator(); it.hasNext();) {
                 final OakIndexInput clone = it.next();

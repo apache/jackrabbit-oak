@@ -84,7 +84,7 @@ public class MoreLikeThisHelper {
                     TopDocs top = searcher.search(q, 1);
                     if (top.totalHits == 0) {
                         mlt.setFieldNames(fields);
-                        moreLikeThisQuery = mlt.like(new StringReader(text), mlt.getFieldNames()[0]);
+                        moreLikeThisQuery = mlt.like(mlt.getFieldNames()[0], new StringReader(text));
                     } else{
                         ScoreDoc d = top.scoreDocs[0];
                         Document doc = reader.document(d.doc);
@@ -100,7 +100,7 @@ public class MoreLikeThisHelper {
                     }
                 } else {
                     mlt.setFieldNames(fields);
-                    moreLikeThisQuery = mlt.like(new StringReader(text), mlt.getFieldNames()[0]);
+                    moreLikeThisQuery = mlt.like(mlt.getFieldNames()[0], new StringReader(text));
                 }
             }
             return moreLikeThisQuery;

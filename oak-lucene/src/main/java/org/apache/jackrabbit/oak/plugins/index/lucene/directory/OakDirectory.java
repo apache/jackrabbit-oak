@@ -124,7 +124,7 @@ public class OakDirectory extends Directory {
                         @NotNull ActiveDeletedBlobCollectorFactory.BlobDeletionCallback blobDeletionCallback,
                         boolean streamingWriteEnabled) {
 
-        this.lockFactory = NoLockFactory.getNoLockFactory();
+        this.lockFactory = NoLockFactory.INSTANCE;
         this.builder = builder;
         this.dataNodeName = dataNodeName;
         this.directoryBuilder = readOnly ? builder.getChildNode(dataNodeName) : builder.child(dataNodeName);
@@ -141,11 +141,6 @@ public class OakDirectory extends Directory {
     @Override
     public String[] listAll() throws IOException {
         return fileNames.toArray(new String[fileNames.size()]);
-    }
-
-    @Override
-    public boolean fileExists(String name) throws IOException {
-        return fileNames.contains(name);
     }
 
     @Override
@@ -190,11 +185,8 @@ public class OakDirectory extends Directory {
             String msg = String.format("[%s] %s", indexName, name);
             throw new FileNotFoundException(msg);
         }
-        OakIndexInput input = new OakIndexInput(name, file, indexName, blobFactory);
-        try {
+        try (OakIndexInput input = new OakIndexInput(name, file, indexName, blobFactory)) {
             return input.length();
-        } finally {
-            input.close();
         }
     }
 
@@ -240,18 +232,32 @@ public class OakDirectory extends Directory {
     }
 
     @Override
-    public Lock makeLock(String name) {
-        return lockFactory.makeLock(name);
-    }
-
-    @Override
-    public void clearLock(String name) throws IOException {
-        lockFactory.clearLock(name);
+    public Lock obtainLock(String s) {
+        return NoLockFactory.INSTANCE.obtainLock(this, s);
     }
 
     @Override
     public void sync(Collection<String> names) throws IOException {
         // ?
+    }
+
+    @Override
+    public void renameFile(String source, String dest) throws IOException {
+        checkArgument(!readOnly, "Read only directory");
+        NodeBuilder file = directoryBuilder.getChildNode(source);
+        if (file.exists()) {
+            NodeBuilder destFile = directoryBuilder.setChildNode(dest, EMPTY_NODE);
+            for (PropertyState p : file.getProperties()) {
+                destFile.setProperty(p);
+            }
+            file.remove();
+            fileNames.remove(source);
+            fileNames.add(dest);
+            markDirty();
+        } else {
+            String msg = String.format("[%s] %s", indexName, source);
+            throw new FileNotFoundException(msg);
+        }
     }
 
     @Override
@@ -265,16 +271,6 @@ public class OakDirectory extends Directory {
                 }
             }
         }
-    }
-
-    @Override
-    public void setLockFactory(LockFactory lockFactory) throws IOException {
-        this.lockFactory = lockFactory;
-    }
-
-    @Override
-    public LockFactory getLockFactory() {
-        return lockFactory;
     }
 
     @Override

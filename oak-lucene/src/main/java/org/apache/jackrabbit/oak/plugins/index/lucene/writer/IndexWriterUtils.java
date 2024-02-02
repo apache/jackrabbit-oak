@@ -70,16 +70,13 @@ public class IndexWriterUtils {
                 analyzers.put(FieldNames.SUGGEST, SuggestHelper.getAnalyzer());
             }
             Analyzer analyzer = new PerFieldAnalyzerWrapper(definitionAnalyzer, analyzers);
-            IndexWriterConfig config = new IndexWriterConfig(VERSION, analyzer);
+            IndexWriterConfig config = new IndexWriterConfig(analyzer);
             if (remoteDir) {
                 config.setMergeScheduler(new SerialMergeScheduler());
             } else {
                 ConcurrentMergeScheduler concurrentMergeScheduler = new ConcurrentMergeScheduler();
                 concurrentMergeScheduler.setMaxMergesAndThreads(INDEX_WRITER_MAX_MERGE, INDEX_WRITER_MAX_THREAD);
                 config.setMergeScheduler(concurrentMergeScheduler);
-            }
-            if (definition.getCodec() != null) {
-                config.setCodec(definition.getCodec());
             }
             config.setRAMBufferSizeMB(writerConfig.getRamBufferSizeMB());
             config.setMaxBufferedDeleteTerms(writerConfig.getMaxBufferedDeleteTerms());

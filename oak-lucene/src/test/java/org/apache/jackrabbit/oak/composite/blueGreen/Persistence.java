@@ -357,7 +357,6 @@ public class Persistence {
             if (!index.hasChildNode(indexName)) {
                 Set<String> INCLUDE_PROPS = ImmutableSet.of("test");
                 IndexDefinitionBuilder indexBuilder = new LuceneIndexDefinitionBuilder(index.child(indexName))
-                        .codec("Lucene46")
                         .excludedPaths("/libs");
                 indexBuilder.async(FULLTEXT_ASYNC, IndexConstants.INDEXING_MODE_NRT);
                 indexBuilder.aggregateRule("nt:file", "jcr:content");

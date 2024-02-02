@@ -31,7 +31,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.RAMDirectory;
-import org.apache.lucene.util.Version;
 import org.junit.Test;
 
 import static org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils.getSimQuery;
@@ -53,7 +52,7 @@ public class LSHAnalyzerTest {
         for (String text : texts) {
             LSHAnalyzer analyzer = new LSHAnalyzer();
             Directory directory = new RAMDirectory();
-            IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+            IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(analyzer));
             DirectoryReader reader = null;
             try {
                 Document document = new Document();
@@ -77,7 +76,7 @@ public class LSHAnalyzerTest {
     public void testBinaryFVIndexAndSearch() throws Exception {
       LSHAnalyzer analyzer = new LSHAnalyzer();
       Directory directory = new RAMDirectory();
-      IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_47, analyzer));
+      IndexWriter writer = new IndexWriter(directory, new IndexWriterConfig(analyzer));
       DirectoryReader reader = null;
       try {
           List<Double> values = new LinkedList<>();

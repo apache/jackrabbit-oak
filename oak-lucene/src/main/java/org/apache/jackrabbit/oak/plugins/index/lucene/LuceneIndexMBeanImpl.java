@@ -441,9 +441,9 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
                 log.info("Dumping Lucene directory content for [{}] to [{}]", sourcePath, destPath);
                 Directory source = getDirectory(getPrimaryReader(indexNode.getPrimaryReaders()));
                 checkNotNull(source, "IndexSearcher not backed by DirectoryReader");
-                Directory dest = FSDirectory.open(new File(destPath));
+                Directory dest = FSDirectory.open(new File(destPath).toPath());
                 for (String file : source.listAll()) {
-                    source.copy(dest, file, file, IOContext.DEFAULT);
+                    dest.copyFrom(source, file, file, IOContext.DEFAULT);
                 }
             }
         } finally {
@@ -497,7 +497,7 @@ public class LuceneIndexMBeanImpl extends AnnotatedStandardMBean implements Luce
         if (terms == null) {
             return result;
         }
-        TermsEnum iterator = terms.iterator(null);
+        TermsEnum iterator = terms.iterator();
         BytesRef byteRef = null;
         class Entry implements Comparable<Entry> {
             String term;

@@ -19,7 +19,10 @@
 
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
-import org.apache.jackrabbit.guava.common.collect.Sets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.Set;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -47,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 import static org.apache.jackrabbit.guava.common.util.concurrent.MoreExecutors.newDirectExecutorService;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.CopyOnReadDirectory.DELETE_MARGIN_MILLIS_NAME;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.fileExists;
 import static org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants.INDEX_DATA_CHILD_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -112,9 +116,10 @@ public class IndexCopierCleanupTest {
     @Test
     public void basicOperationSameNodeIndexing() throws Exception {
         Directory cow = copier.getCoWDir();
+        // this creates a file locally named "a" that gets copied to the remote.
         writeFile(cow, "a");
         cow.close();
-
+        assertTrue(fileExists(remote, "a"));
         Directory cor1 = copier.getCoRDir();
 
         cow = copier.getCoWDir();
@@ -122,6 +127,7 @@ public class IndexCopierCleanupTest {
         writeFile(cow, "b");
         cow.close();
 
+        assertFalse(fileExists(remote, "a"));
         Directory cor2 = copier.getCoRDir();
         cor1.close();
 
@@ -200,11 +206,11 @@ public class IndexCopierCleanupTest {
         // Step 3
         Directory cor1 = copier.getCoRDir(remoteSnapshowCow1);
         // local listing
-        assertEquals(Sets.newHashSet("a", "b", "c", "d"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+        assertEquals(Set.of("a", "b", "c", "d"),
+            Set.of(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
         // reader listing
-        assertEquals(Sets.newHashSet("a", "b"),
-                Sets.newHashSet(cor1.listAll()));
+        assertEquals(Set.of("a", "b"),
+            Set.of(cor1.listAll()));
 
         // Step 4
         cow2.close();
@@ -221,18 +227,18 @@ public class IndexCopierCleanupTest {
         // Step 6
         Directory cor2 = copier.getCoRDir(remoteSnapshotCow2);
         // local listing
-        assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+        assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
+            Set.of(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
         // reader listing
-        assertEquals(Sets.newHashSet("c", "d"),
-                Sets.newHashSet(cor2.listAll()));
+        assertEquals(Set.of("c", "d"),
+            Set.of(cor2.listAll()));
 
         // Step 7
         cor1.close();
 
         // nothing should get deleted as CoR1 sees "a", "b" and everything else is newer
-        assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+        assertEquals(Set.of("a", "b", "c", "d", "e", "f"),
+            Set.of(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
     }
 
     @Test
@@ -280,7 +286,6 @@ public class IndexCopierCleanupTest {
         // actually, everything would've worked for 'failedWriter', but we restore 'remote' to old state
         // to fake failed remote update
         remote = oldRemote;
-
         assertTrue(existsLocally("a"));
 
         // Create some files that get sent to remote
@@ -319,6 +324,7 @@ public class IndexCopierCleanupTest {
 
         // "oldStray" is newer than "b"
         // hence, doesn't get removed yet
+        assertTrue(existsLocally("b"));
         assertTrue(existsLocally("oldStray"));
 
         // "c" gets created locally
@@ -329,7 +335,6 @@ public class IndexCopierCleanupTest {
         writeFile(strayDir, "newStray");
 
         copier.getCoRDir().close();
-
         assertFalse(existsLocally("oldStray"));
         assertTrue(existsLocally("newStray"));
     }
@@ -348,13 +353,15 @@ public class IndexCopierCleanupTest {
 
         copier.getCoRDir().close();
 
-        assertEquals(Sets.newHashSet("within-margin", "a"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+        assertEquals(Set.of("within-margin", "a"),
+            Set.of(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
     }
 
     @Test
     public void remoteOnlyFilesDontAvoidDeletion() throws Exception {
         writeFile(remote, "a");
+        // TODO: cleanup all the tests that use IndexCopier.REMOTE_ONLY. It's no longer relevant
+        // in lucene >= 5
         for (String name : IndexCopier.REMOTE_ONLY) {
             writeFile(remote, name);
         }
@@ -363,12 +370,15 @@ public class IndexCopierCleanupTest {
         // get files to get locally copied
         copier.getCoRDir().close();
 
+        assertTrue(existsLocally("a"));
+        assertFalse(existsLocally("b"));
+
         remote.deleteFile("a");
         writeFile(remote, "b");
         remote.close();
 
+        assertFalse(fileExists(remote, "a"));
         assertTrue(existsLocally("a"));
-
         copier.getCoRDir().close();
 
         assertFalse(existsLocally("a"));
@@ -445,7 +455,8 @@ public class IndexCopierCleanupTest {
     }
 
     private boolean existsLocally(String fileName) {
-        return new File(localFSDir, fileName).exists();
+        Path file = localFSDir.toPath().resolve(fileName);
+        return Files.exists(file);
     }
 
     private void writeFile(Directory dir, String name) throws IOException {
@@ -463,7 +474,7 @@ public class IndexCopierCleanupTest {
         final File baseFSDir;
 
         RAMIndexCopier(File baseFSDir, Executor executor, File indexRootDir,
-                       boolean prefetchEnabled) throws IOException {
+            boolean prefetchEnabled) throws IOException {
             super(executor, indexRootDir, prefetchEnabled);
             this.baseFSDir = baseFSDir;
         }
@@ -475,8 +486,8 @@ public class IndexCopierCleanupTest {
 
         @Override
         protected Directory createLocalDirForIndexWriter(LuceneIndexDefinition definition, String dirName,
-                                                         boolean reindexMode,
-                                                         COWDirectoryTracker cowDirectoryTracker) throws IOException {
+            boolean reindexMode,
+            COWDirectoryTracker cowDirectoryTracker) throws IOException {
             return new DelayCopyingSimpleFSDirectory(baseFSDir);
         }
 
@@ -495,7 +506,7 @@ public class IndexCopierCleanupTest {
 
     private static class DelayCopyingSimpleFSDirectory extends SimpleFSDirectory {
         DelayCopyingSimpleFSDirectory(File dir) throws IOException {
-            super(dir);
+            super(dir.toPath());
         }
 
         static void updateLastModified(Directory dir, String name) throws IOException {
@@ -516,8 +527,8 @@ public class IndexCopierCleanupTest {
 
         void updateLastModified(String name) throws IOException {
             try {
-                updateLastModified(directory, name);
-
+                // TODO: is it even a good idea to do this before CLOCK.waitUntil?
+                updateLastModified(directory.toFile(), name);
                 CLOCK.waitUntil(CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
             } catch (InterruptedException ie) {
                 // ignored
@@ -531,6 +542,12 @@ public class IndexCopierCleanupTest {
                 throw new IOException("Failed to update last modified for " + name);
             }
         }
+
+        @Override
+        public void copyFrom(Directory from, String src, String dest, IOContext context) throws IOException {
+            super.copyFrom(from, src, dest, context);
+            this.updateLastModified(dest);
+        }
     }
 
     private static class CloseSafeRemoteRAMDirectory extends RAMDirectory {
@@ -543,26 +560,21 @@ public class IndexCopierCleanupTest {
         }
 
         CloseSafeRemoteRAMDirectory(CloseSafeRemoteRAMDirectory that) throws IOException {
-            super(that, IOContext.READ);
+            // The super constructor no longer takes a Directory param in lucene 5
+            // so we need to copy the files manually
+            for (String name : that.listAll()) {
+                this.copyFrom(that, name, name, IOContext.READ);
+            }
             this.closer = that.closer;
             closer.register(this::close0);
         }
 
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public void copy(Directory to, String src, String dest, IOContext context) throws IOException {
-            super.copy(to, src, dest, context);
-
-            if (to instanceof DelayCopyingSimpleFSDirectory) {
-                ((DelayCopyingSimpleFSDirectory)to).updateLastModified(dest);
-            }
-        }
-
         CloseSafeRemoteRAMDirectory snapshot() throws IOException {
             return new CloseSafeRemoteRAMDirectory(this);
+        }
+
+        @Override
+        public void close() {
         }
 
         private void close0() {

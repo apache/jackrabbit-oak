@@ -121,7 +121,7 @@ public final class LocalIndexFile {
         }
 
         if (dir instanceof FSDirectory){
-            return ((FSDirectory) dir).getDirectory();
+            return ((FSDirectory) dir).getDirectory().toFile();
         }
 
         return null;

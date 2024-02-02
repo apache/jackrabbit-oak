@@ -24,6 +24,7 @@ import static org.apache.commons.io.FileUtils.ONE_GB;
 import static org.apache.commons.io.FileUtils.ONE_MB;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.oak.InitialContentHelper.INITIAL_CONTENT;
+import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.DirectoryUtils.fileExists;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_BLOB_SIZE;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNIQUE_KEY;
 import static org.apache.jackrabbit.oak.plugins.index.lucene.directory.OakDirectory.PROP_UNSAFE_FOR_ACTIVE_DELETION;
@@ -203,7 +204,7 @@ abstract public class OakDirectoryTestBase {
         o.writeBytes(data, data.length);
         o.close();
 
-        assertTrue(dir.fileExists("test"));
+        assertTrue(fileExists(dir, "test"));
         assertEquals(fileSize, dir.fileLength("test"));
 
         IndexInput i = dir.openInput("test", IOContext.DEFAULT);
@@ -439,6 +440,7 @@ abstract public class OakDirectoryTestBase {
         IndexOutput o = dir.createOutput("test1.txt", IOContext.DEFAULT);
         try{
             o.writeBytes(randomBytes(blobSize + 10), blobSize + 10);
+            o.close();
             fail();
         } catch (IOException e){
             assertThat(e.getMessage(), containsString(indexPath));

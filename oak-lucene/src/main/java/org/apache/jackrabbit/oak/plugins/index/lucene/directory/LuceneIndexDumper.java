@@ -88,13 +88,13 @@ public class LuceneIndexDumper {
         meta.addDirectoryMapping(dirName, idxDir.getName());
 
         Directory sourceDir = new OakDirectory(new ReadOnlyBuilder(idx), dirName, defn, true);
-        Directory targetDir = FSDirectory.open(idxDir);
+        Directory targetDir = FSDirectory.open(idxDir.toPath());
 
         closer.register(sourceDir);
         closer.register(targetDir);
 
         for (String file : sourceDir.listAll()) {
-            sourceDir.copy(targetDir, file, file, IOContext.DEFAULT);
+            targetDir.copyFrom(sourceDir, file, file, IOContext.DEFAULT);
             size += sourceDir.fileLength(file);
         }
     }

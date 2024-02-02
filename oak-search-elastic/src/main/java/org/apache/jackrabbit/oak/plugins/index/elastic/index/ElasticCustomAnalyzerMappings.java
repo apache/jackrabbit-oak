@@ -53,10 +53,8 @@ public class ElasticCustomAnalyzerMappings {
     static {
         UNSUPPORTED_LUCENE_PARAMETERS = Map.of(
                 CommonGramsFilterFactory.class, List.of("query_mode"),
-                AbstractWordsFileFilterFactory.class, List.of("enablePositionIncrements"),
                 SynonymFilterFactory.class, List.of("lenient"),
                 EdgeNGramFilterFactory.class, List.of("preserveOriginal"),
-                LengthFilterFactory.class, List.of("enablePositionIncrements"),
                 NGramFilterFactory.class, List.of("keepShortTerm", "preserveOriginal")
         );
     }
@@ -255,7 +253,7 @@ public class ElasticCustomAnalyzerMappings {
         });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(AbstractWordsFileFilterFactory.class, luceneParams -> {
-            luceneParams.remove("enablePositionIncrements");
+//            luceneParams.remove("enablePositionIncrements");
             return reKey.apply(luceneParams, Map.of("words", "stopwords", "ignoreCase", "ignore_case"));
         });
     }

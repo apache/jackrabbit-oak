@@ -324,7 +324,7 @@ public class FulltextIndexPlanner {
                 plan.setSortOrder(sortOrder);
             }
 
-            if (facetFields.size() > 0) {
+            if (!facetFields.isEmpty()) {
                 plan.setAttribute(ATTR_FACET_FIELDS, facetFields);
             }
 

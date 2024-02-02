@@ -41,6 +41,7 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.lucene.document.*;
 import org.apache.lucene.facet.FacetsConfig;
 import org.apache.lucene.facet.sortedset.SortedSetDocValuesFacetField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.Nullable;
@@ -128,7 +129,8 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         } else if (tag == Type.BOOLEAN.tag()) {
             f = new StringField(pname, property.getValue(Type.BOOLEAN, i).toString(), Field.Store.NO);
         } else {
-            f = new StringField(pname, property.getValue(Type.STRING, i), Field.Store.NO);
+            f = new StringField(pname, getTruncatedBytesRef(pname, property.getValue(Type.STRING, i), this.path,
+                    STRING_PROPERTY_MAX_LENGTH).utf8ToString(), Field.Store.NO);
         }
 
         doc.add(f);
@@ -178,14 +180,14 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
                 getFacetsConfig().setMultiValued(pname, true);
                 Iterable<String> values = property.getValue(Type.STRINGS);
                 for (String value : values) {
-                    if (value != null && value.length() > 0) {
+                    if (value != null && !value.isEmpty()) {
                         doc.add(new SortedSetDocValuesFacetField(pname, value));
                     }
                 }
                 fieldAdded = true;
             } else if (tag == Type.STRING.tag()) {
                 String value = property.getValue(Type.STRING);
-                if (value.length() > 0) {
+                if (!value.isEmpty()) {
                     doc.add(new SortedSetDocValuesFacetField(pname, value));
                     fieldAdded = true;
                 }
@@ -416,7 +418,7 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
         }
         boolean added = false;
         for (String token : tokens) {
-            if (token.length() > 0) {
+            if (!token.isEmpty()) {
                 AugmentedField f = new AugmentedField(parent + "/" + token.toLowerCase(), confidence);
                 if (doc.getField(f.name()) == null) {
                     doc.add(f);
@@ -446,11 +448,10 @@ public class LuceneDocumentMaker extends FulltextDocumentMaker<Document> {
     private static class AugmentedField extends Field {
         private static final FieldType ft = new FieldType();
         static {
-            ft.setIndexed(true);
             ft.setStored(false);
             ft.setTokenized(false);
             ft.setOmitNorms(false);
-            ft.setIndexOptions(org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_ONLY);
+            ft.setIndexOptions(IndexOptions.DOCS);
             ft.freeze();
         }
 

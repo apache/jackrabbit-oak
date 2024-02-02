@@ -172,8 +172,9 @@ class OakStreamingIndexFile implements OakIndexFile, AutoCloseable {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         IOUtils.closeQuietly(blobInputStream);
+        this.flush();
         this.blob = null;
     }
 

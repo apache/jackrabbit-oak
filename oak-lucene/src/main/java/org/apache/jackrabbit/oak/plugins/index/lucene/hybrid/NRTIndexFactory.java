@@ -158,7 +158,7 @@ public class NRTIndexFactory implements Closeable{
 
         @Override
         public Directory createNRTDir(IndexDefinition definition, File indexDir) throws IOException {
-            Directory fsdir = FSDirectory.open(indexDir);
+            Directory fsdir = FSDirectory.open(indexDir.toPath());
             //TODO make these configurable
             return new NRTCachingDirectory(fsdir, 1, 1);
         }

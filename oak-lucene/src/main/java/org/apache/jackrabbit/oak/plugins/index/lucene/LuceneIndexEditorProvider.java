@@ -16,6 +16,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.lucene;
 
+import java.nio.file.Path;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -315,7 +316,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         private static final Logger LOG = LoggerFactory.getLogger(COWDirectoryCleanupCallback.class);
 
         private List<CopyOnWriteDirectory> openedCoWDirectories = Lists.newArrayList();
-        private List<File> reindexingLocalDirectories = Lists.newArrayList();
+        private List<Path> reindexingLocalDirectories = Lists.newArrayList();
 
 
         @Override
@@ -330,8 +331,8 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
                     }
                 }
 
-                for (File f : reindexingLocalDirectories) {
-                    if ( ! FileUtils.deleteQuietly(f)) {
+                for (Path f : reindexingLocalDirectories) {
+                    if ( ! FileUtils.deleteQuietly(f.toFile())) {
                         LOG.warn("Failed to delete {}", f);
                     }
                 }
@@ -344,7 +345,7 @@ public class LuceneIndexEditorProvider implements IndexEditorProvider {
         }
 
         @Override
-        public void registerReindexingLocalDirectory(@NotNull File dir) {
+        public void registerReindexingLocalDirectory(@NotNull Path dir) {
             reindexingLocalDirectories.add(dir);
         }
     }

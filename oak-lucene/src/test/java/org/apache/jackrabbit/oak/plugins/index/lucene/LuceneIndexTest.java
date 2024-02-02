@@ -59,6 +59,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -111,6 +112,7 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 import org.hamcrest.core.IsCollectionContaining;
 import org.jetbrains.annotations.NotNull;
@@ -318,7 +320,6 @@ public class LuceneIndexTest {
 
         tracker = new IndexTracker();
         tracker.update(indexed);
-
         //Perform query and get hold of cursor
         AdvancedQueryIndex queryIndex = new LucenePropertyIndex(tracker);
         FilterImpl filter = createFilter(NT_BASE);
@@ -352,7 +353,7 @@ public class LuceneIndexTest {
         // would have already picked up 50 docs which would not be considered
         //deleted by QE for the revision at which query was triggered
         //So just checking for >
-        List<String> resultPaths = Lists.newArrayList();
+        List<String> resultPaths = new ArrayList<>();
         while(cursor.hasNext()){
             resultPaths.add(cursor.next().getPath());
         }
@@ -367,10 +368,11 @@ public class LuceneIndexTest {
         IndexWriter writer = new IndexWriter(dir, getIndexWriterConfig(definition, true));
         writer.forceMergeDeletes();
         writer.close();
+        dir.close();
     }
 
     public int getDeletedDocCount(NodeBuilder idx, LuceneIndexDefinition definition) throws IOException {
-        Directory  dir = new DefaultDirectoryFactory(null, null).newInstance(definition, idx, FulltextIndexConstants.INDEX_DATA_CHILD_NAME, false);
+        Directory dir = new DefaultDirectoryFactory(null, null).newInstance(definition, idx, FulltextIndexConstants.INDEX_DATA_CHILD_NAME, false);
         IndexReader reader = DirectoryReader.open(dir);
         int numDeletes = reader.numDeletedDocs();
         reader.close();

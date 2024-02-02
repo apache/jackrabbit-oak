@@ -61,7 +61,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
         this.decoder = decoder;
         this.nodeTypes = nodeTypes;
         this.minScore = minScore;
-        this.qp = new SimpleQueryParser(new OakAnalyzer(Version.LUCENE_47), FieldNames.FULLTEXT);
+        this.qp = new SimpleQueryParser(new OakAnalyzer(Version.LATEST), FieldNames.FULLTEXT);
     }
 
     @Override
@@ -101,7 +101,7 @@ public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider 
         } catch (Exception e) {
             log.error("could not translate query", e);
         }
-        return query.clauses().size() > 0 ? query : null;
+        return !query.clauses().isEmpty() ? query : null;
     }
 
     private void addTranslations(BooleanQuery query, List<StructuredTranslation> structuredTranslations) {

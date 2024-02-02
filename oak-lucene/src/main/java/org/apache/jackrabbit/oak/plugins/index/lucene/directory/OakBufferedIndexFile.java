@@ -211,7 +211,8 @@ class OakBufferedIndexFile implements OakIndexFile {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
+        this.flush();
         this.blob = null;
         this.data = null;
     }
