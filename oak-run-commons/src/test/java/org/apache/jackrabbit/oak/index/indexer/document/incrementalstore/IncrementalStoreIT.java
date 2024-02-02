@@ -42,6 +42,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -311,7 +312,8 @@ public class IncrementalStoreIT {
                 pathPredicate,
                 pathFilters,
                 checkpoint,
-                StatisticsProvider.NOOP);
+                StatisticsProvider.NOOP,
+                IndexingReporter.NOOP);
     }
 
     private IncrementalFlatFileStoreStrategy createIncrementalStrategy(Backend backend,

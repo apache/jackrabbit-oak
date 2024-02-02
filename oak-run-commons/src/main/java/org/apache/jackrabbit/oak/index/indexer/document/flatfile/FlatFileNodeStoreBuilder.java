@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUti
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.query.NodeStateNodeTypeInfoProvider;
@@ -102,6 +103,7 @@ public class FlatFileNodeStoreBuilder {
     private Set<IndexDefinition> indexDefinitions = null;
     private String checkpoint;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
+    private IndexingReporter indexingReporter = IndexingReporter.NOOP;
 
     public enum SortStrategyType {
         /**
@@ -182,6 +184,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withStatisticsProvider(StatisticsProvider statisticsProvider) {
         this.statisticsProvider = statisticsProvider;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withIndexingReporter(IndexingReporter reporter) {
+        this.indexingReporter = reporter;
         return this;
     }
 
@@ -313,8 +320,11 @@ public class FlatFileNodeStoreBuilder {
             case PIPELINED:
                 log.info("Using PipelinedStrategy");
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
+                List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
+                indexingReporter.setIndexNames(indexNames);
                 return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
-                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint, statisticsProvider);
+                        preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
+                        statisticsProvider, indexingReporter);
 
         }
         throw new IllegalStateException("Not a valid sort strategy value " + sortStrategyType);
