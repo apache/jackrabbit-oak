@@ -121,7 +121,7 @@ class ElasticIndexHelper {
                         b1 -> b1.text(b2 -> b2.analyzer("trigram")))
                 .properties(FieldNames.SUGGEST,
                         b1 -> b1.nested(
-                                // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/faster-prefix-queries.html
+                                // TODO: evaluate https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-search-speed.html#faster-prefix-queries
                                 b2 -> b2.properties(SUGGEST_NESTED_VALUE,
                                         b3 -> b3.text(
                                                 b4 -> b4.analyzer("oak_analyzer")
