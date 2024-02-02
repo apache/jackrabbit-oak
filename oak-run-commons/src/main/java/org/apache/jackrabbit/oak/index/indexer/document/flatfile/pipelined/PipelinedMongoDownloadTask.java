@@ -151,21 +151,22 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      * @return The filter to be used in the Mongo query, or null if no filter is required
      */
     static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex, boolean queryUsesIndexTraversal) {
-        var filters = new ArrayList<Bson>(4);
-        if (mongoFilterPaths != MongoFilterPaths.DOWNLOAD_ALL) {
-            filters.add(descendantsFilter(mongoFilterPaths.included, queryUsesIndexTraversal));
-            if (!mongoFilterPaths.excluded.isEmpty()) {
-                // The Mongo filter returned here will download the top level path of each excluded subtree, which in theory
-                // should be excluded. That is, if the tree /a/b/c is excluded, the filter will download /a/b/c but none of
-                // its descendants.
-                // This is done because excluding also the top level path would add extra complexity to the filter and
-                // would not have any measurable impact on performance because it only downloads a few extra documents, one
-                // for each excluded subtree. The transform stage will anyway filter out these paths.
-                Bson excludedFilter = descendantsFilter(mongoFilterPaths.excluded, queryUsesIndexTraversal);
-                if (excludedFilter != null) {
-                    filters.add(Filters.nor(excludedFilter));
-                }
-            }
+        var filters = new ArrayList<Bson>();
+
+        Bson includedFilter = descendantsFilter(mongoFilterPaths.included, queryUsesIndexTraversal);
+        if (includedFilter != null) {
+            filters.add(includedFilter);
+        }
+
+        // The Mongo filter returned here will download the top level path of each excluded subtree, which in theory
+        // should be excluded. That is, if the tree /a/b/c is excluded, the filter will download /a/b/c but none of
+        // its descendants.
+        // This is done because excluding also the top level path would add extra complexity to the filter and
+        // would not have any measurable impact on performance because it only downloads a few extra documents, one
+        // for each excluded subtree. The transform stage will anyway filter out these paths.
+        Bson excludedFilter = descendantsFilter(mongoFilterPaths.excluded, queryUsesIndexTraversal);
+        if (excludedFilter != null) {
+            filters.add(Filters.nor(excludedFilter));
         }
 
         // Custom regex filter to exclude paths
@@ -173,6 +174,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (customExcludedPathsFilter != null) {
             filters.add(customExcludedPathsFilter);
         }
+
         if (filters.isEmpty()) {
             return null;
         } else if (filters.size() == 1) {
@@ -198,6 +200,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (paths.isEmpty()) {
             return null;
         }
+        if (paths.size() == 1 && paths.get(0).equals("/")) {
+            return null;
+        }
+
         // The filter for descendants of a list of paths is a series of or conditions. For each path, we have to build
         // two conditions in two different fields of the documents:
         // _ _id   - for non-long paths - In this case, the _id is of the form "2:/foo/bar"
