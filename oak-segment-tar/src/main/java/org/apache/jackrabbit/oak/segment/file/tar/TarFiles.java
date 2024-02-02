@@ -369,6 +369,10 @@ public class TarFiles implements Closeable {
      */
     private final CounterStats segmentCount;
 
+    private final boolean readOnly;
+
+    private final TarRecovery tarRecovery;
+
     private static int getSegmentCount(TarReader reader) {
         return reader.getEntries().length;
     }
@@ -378,7 +382,11 @@ public class TarFiles implements Closeable {
         archiveManager = builder.buildArchiveManager();
         readerCount = builder.readerCountStats;
         segmentCount = builder.segmentCountStats;
+        readOnly = builder.readOnly;
+        tarRecovery = builder.tarRecovery;
+    }
 
+    public void init() throws IOException {
         Map<Integer, Map<Character, String>> map = collectFiles(archiveManager);
         Integer[] indices = map.keySet().toArray(new Integer[map.size()]);
         Arrays.sort(indices);
@@ -390,16 +398,16 @@ public class TarFiles implements Closeable {
 
         for (Integer index : indices) {
             TarReader r;
-            if (builder.readOnly) {
-                r = TarReader.openRO(map.get(index), builder.tarRecovery, archiveManager);
+            if (readOnly) {
+                r = TarReader.openRO(map.get(index), tarRecovery, archiveManager);
             } else {
-                r = TarReader.open(map.get(index), builder.tarRecovery, archiveManager);
+                r = TarReader.open(map.get(index), tarRecovery, archiveManager);
             }
             segmentCount.inc(getSegmentCount(r));
             readers = new Node(r, readers);
             readerCount.inc();
         }
-        if (builder.readOnly) {
+        if (readOnly) {
             return;
         }
         int writeNumber = 0;
