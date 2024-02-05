@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -41,8 +40,8 @@ import org.junit.Test;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
@@ -67,8 +66,7 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
                 // registering additional node types for wider testing
                 InputStream stream = null;
                 try {
-                    stream = ElasticIndexAggregationNtFileTest.class
-                            .getResourceAsStream("test_nodetypes.cnd");
+                    stream = Thread.currentThread().getContextClassLoader().getResource("test_nodetypes.cnd").openStream();
                     NodeState base = builder.getNodeState();
                     NodeStore store = new MemoryNodeStore(base);
 
@@ -102,11 +100,9 @@ public class ElasticIndexAggregationNtFileTest extends ElasticAbstractQueryTest 
     private static void printNodeTypes(NodeBuilder builder) {
         if (LOG.isDebugEnabled()) {
             NodeBuilder namespace = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
-            List<String> nodes = Lists.newArrayList(namespace.getChildNodeNames());
-            Collections.sort(nodes);
-            for (String node : nodes) {
-                LOG.debug(node);
-            }
+            StreamSupport.stream(namespace.getChildNodeNames().spliterator(), false)
+                    .sorted()
+                    .forEach(LOG::debug);
         }
     }
 
