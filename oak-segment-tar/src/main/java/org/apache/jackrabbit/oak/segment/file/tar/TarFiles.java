@@ -136,6 +136,8 @@ public class TarFiles implements Closeable {
 
         private CounterStats segmentCountStats = NoopStats.INSTANCE;
 
+        private boolean initialisedReaders = true;
+
         private Builder() {
             // Prevent external instantiation.
         }
@@ -198,6 +200,11 @@ public class TarFiles implements Closeable {
 
         public Builder withSegmentCountStats(CounterStats segmentCountStats) {
             this.segmentCountStats = segmentCountStats;
+            return this;
+        }
+
+        public Builder withInitialisedReaders(boolean initialisedReaders) {
+            this.initialisedReaders = initialisedReaders;
             return this;
         }
 
@@ -384,6 +391,10 @@ public class TarFiles implements Closeable {
         segmentCount = builder.segmentCountStats;
         readOnly = builder.readOnly;
         tarRecovery = builder.tarRecovery;
+
+        if (builder.initialisedReaders) {
+            init();
+        }
     }
 
     public void init() throws IOException {

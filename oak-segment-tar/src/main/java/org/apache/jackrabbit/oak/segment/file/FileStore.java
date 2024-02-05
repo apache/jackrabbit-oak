@@ -169,10 +169,12 @@ public class FileStore extends AbstractFileStore {
                 .withMaxFileSize(builder.getMaxFileSize() * MB)
                 .withPersistence(builder.getPersistence())
                 .withReaderCountStats(readerCountStats)
-                .withSegmentCountStats(segmentCountStats);
+                .withSegmentCountStats(segmentCountStats)
+                .withInitialisedReaders(false);
 
         this.tarFiles = tarFilesBuilder.build();
         this.tarFiles.init();
+
         long size = this.tarFiles.size();
         this.stats.init(size);
 

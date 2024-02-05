@@ -166,12 +166,15 @@ public class FileStoreTest {
         builder.setProperty("foo", "bar");
 
         Blob blob = builder.createBlob(new ZeroStream(100));
-        builder.setProperty("binaryProperty", blob);
+
 
         segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         fileStore.flush();
 
         // create another segment
+
+        builder.setProperty("binaryProperty", blob);
+
         builder.setProperty("foo1", "bar1");
         segmentNodeStore.merge(builder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         fileStore.flush();
