@@ -556,9 +556,22 @@ public final class DocumentNodeStore
      */
     private final Set<Revision> inDoubtTrunkCommits = Sets.newConcurrentHashSet();
 
+    /**
+     * Contains journal entry revisions (branch commit style) that were created
+     * as a result of a rollback and are meant to trigger an invalidation in
+     * peer cluster nodes. This list is typically empty or small. It is emptied
+     * upon each backgroundWrite. It is used to avoid duplicate journal entries
+     * that would otherwise be created as a result of merge (normal plus exclusive) retries
+     */
+    private final Set<String> pendingRollbackInvalidations = Sets.newConcurrentHashSet();
+
     private final Predicate<Path> nodeCachePredicate;
 
     private final Feature prefetchFeature;
+
+    private final Feature cancelInvalidationFeature;
+
+    private Boolean cancelInvalidationLogged;
 
     private CacheWarming cacheWarming;
 
@@ -634,6 +647,7 @@ public final class DocumentNodeStore
         }
 
         this.prefetchFeature = builder.getPrefetchFeature();
+        this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
         this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
@@ -1136,6 +1150,7 @@ public final class DocumentNodeStore
     }
 
     void canceled(Commit c) {
+        invalidatePathsOnCancel(c);
         if (commitQueue.contains(c.getRevision())) {
             try {
                 commitQueue.canceled(c.getRevision());
@@ -1158,6 +1173,56 @@ public final class DocumentNodeStore
                     backgroundOperationLock.readLock().unlock();
                 }
             }
+        }
+    }
+
+    void invalidatePathsOnCancel(Commit c) {
+        final boolean cancelInvalidationEnabled = (cancelInvalidationFeature != null
+                && cancelInvalidationFeature.isEnabled());
+        if (cancelInvalidationLogged == null
+                || (cancelInvalidationLogged.booleanValue() != cancelInvalidationEnabled)) {
+            // log at info at first use and when toggle changes, for observability
+            LOG.info("invalidatePathsOnCancel : cancelInvalidationEnabled = {}",
+                    cancelInvalidationEnabled);
+            // thread holds the merge lock at this point, no synchronization needed
+            cancelInvalidationLogged = cancelInvalidationEnabled;
+        }
+        if (!cancelInvalidationEnabled) {
+            return;
+        }
+        Iterable<Path> pathsToInvalidate = c.getModifiedPaths();
+        if (!pathsToInvalidate.iterator().hasNext()) {
+            // nothing to do
+            return;
+        }
+        if (changes != null) {
+            // first check if a new journal entry is needed at all
+            for (String pri : pendingRollbackInvalidations) {
+                JournalEntry je = store.find(JOURNAL, pri);
+                if (je == null) {
+                    // quite unexpected
+                    continue;
+                }
+                if (je.containsModified(pathsToInvalidate)) {
+                    return;
+                }
+            }
+        }
+        try {
+            // create the invalidation journal entry (branch commit style)
+            createInvalidationJournalEntries(pathsToInvalidate, "rollback invalidation", "");
+            // but also, already push it now, not waiting for backgroundWrite
+            // reason being that otherwise it might get lost on a crash,
+            // in which case the peers still would have uncommitted revisions
+            // in their nodesCache which might become "committed" on a
+            // subsequent fresh parent lastRev change of a future
+            // incarnation of this clusterId.
+            // thanks to pendingRollbackInvalidations however, this expensive
+            // journal entry push is only done once per collision (within
+            // a backgroundWrite cycle)
+            pushJournalEntry(Revision.newRevision(clusterId));
+        } catch(DocumentStoreException e) {
+            LOG.error("invalidatePathsOnCancel: " + e.getMessage());
         }
     }
 
@@ -2641,6 +2706,12 @@ public final class DocumentNodeStore
             // nothing to do
             return;
         }
+        createInvalidationJournalEntries(pathsToInvalidate, "split",
+                " Will be retried with next background split operation.");
+    }
+
+    private void createInvalidationJournalEntries(@NotNull Iterable<Path> pathsToInvalidate, String type,
+            String errorSuffixMsg) {
         // create journal entry for cache invalidation
         JournalEntry entry = JOURNAL.newDocument(getDocumentStore());
         entry.modified(pathsToInvalidate);
@@ -2648,13 +2719,12 @@ public final class DocumentNodeStore
         UpdateOp journalOp = entry.asUpdateOp(r);
         if (store.create(JOURNAL, singletonList(journalOp))) {
             changes.invalidate(singletonList(r));
-            LOG.debug("Journal entry {} created for split of document(s) {}",
-                    journalOp.getId(), pathsToInvalidate);
+            LOG.debug("Journal entry {} created for {} of document(s) {}",
+                    journalOp.getId(), type, pathsToInvalidate);
         } else {
             String msg = "Unable to create journal entry " +
                     journalOp.getId() + " for document invalidation. " +
-                    "Will be retried with next background split " +
-                    "operation.";
+                    errorSuffixMsg;
             throw new DocumentStoreException(msg);
         }
     }
@@ -2711,6 +2781,7 @@ public final class DocumentNodeStore
         }, new UnsavedModifications.Snapshot() {
             @Override
             public void acquiring(Revision mostRecent) {
+                pendingRollbackInvalidations.clear();
                 pushJournalEntry(mostRecent);
             }
         }, backgroundOperationLock.writeLock());
