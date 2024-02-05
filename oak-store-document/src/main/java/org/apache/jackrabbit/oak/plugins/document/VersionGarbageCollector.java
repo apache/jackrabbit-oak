@@ -160,7 +160,7 @@ public class VersionGarbageCollector {
         this.ds = gcSupport.getDocumentStore();
         this.detailedGCEnabled = detailedGCEnabled;
         this.isDetailedGCDryRun = isDetailedGCDryRun;
-        this.embeddedVerification = embeddedVerification; //TODO: make this "configurable" for actual detailedGC
+        this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
     }
 
