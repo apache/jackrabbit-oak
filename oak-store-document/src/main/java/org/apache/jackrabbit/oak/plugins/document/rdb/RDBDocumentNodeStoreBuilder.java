@@ -138,4 +138,26 @@ public class RDBDocumentNodeStoreBuilder
     public Feature getDocStoreDetailedGCFeature() {
         return null;
     }
+
+    @Override
+    public boolean isEmbeddedVerificationEnabled() {
+        return false;
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setEmbeddedVerificationEnabled(boolean b) {
+        // embeddedVerification is non supported for RDB since detailedGC is not.
+        return thisBuilder();
+    }
+
+    @Override
+    public RDBDocumentNodeStoreBuilder setDocStoreEmbeddedVerificationFeature(@Nullable Feature getDocStoreEmbeddedVerification) {
+        return thisBuilder();
+    }
+
+    @Override
+    @Nullable
+    public Feature getDocStoreEmbeddedVerificationFeature() {
+        return null;
+    }
 }

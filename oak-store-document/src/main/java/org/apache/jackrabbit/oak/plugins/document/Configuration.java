@@ -35,6 +35,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_DETAILED_GC_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 
 @ObjectClassDefinition(
@@ -314,4 +315,13 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
                     ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.detailedGCEnabled'")
     boolean detailedGCEnabled() default DEFAULT_DETAILED_GC_ENABLED;
+
+    @AttributeDefinition(
+            name = "Document Node Store Embedded Verification for Detailed GC",
+            description = "Boolean value indicating whether Embedded Verification (i.e. verify the document after " +
+                    "applying changes in memory before any database calls) for Detailed GC should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_EMBEDDED_VERIFICATION_ENABLED +
+                    ". Note that this value can be overridden via framework " +
+                    "property 'oak.documentstore.embeddedVerificationEnabled'")
+    boolean embeddedVerificationEnabled() default DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 }

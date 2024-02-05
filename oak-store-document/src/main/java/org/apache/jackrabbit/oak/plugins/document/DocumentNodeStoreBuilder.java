@@ -130,6 +130,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
     private Feature docStoreDetailedGCFeature;
+    private Feature docStoreEmbeddedVerificationFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
     private int nodeCachePercentage = DEFAULT_NODE_CACHE_PERCENTAGE;
@@ -169,6 +170,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
     private boolean detailedGCEnabled;
+    private boolean embeddedVerificationEnabled;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
@@ -301,6 +303,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.detailedGCEnabled;
     }
 
+    public T setEmbeddedVerificationEnabled(boolean b) {
+        this.embeddedVerificationEnabled = b;
+        return thisBuilder();
+    }
+
+    public boolean isEmbeddedVerificationEnabled() {
+        return this.embeddedVerificationEnabled;
+    }
+
 
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
@@ -358,6 +369,16 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public Feature getDocStoreDetailedGCFeature() {
         return docStoreDetailedGCFeature;
+    }
+
+    public T setDocStoreEmbeddedVerificationFeature(@Nullable Feature getDocStoreEmbeddedVerification) {
+        this.docStoreEmbeddedVerificationFeature = getDocStoreEmbeddedVerification;
+        return thisBuilder();
+    }
+
+    @Nullable
+    public Feature getDocStoreEmbeddedVerificationFeature() {
+        return docStoreEmbeddedVerificationFeature;
     }
 
     public T setLeaseFailureHandler(LeaseFailureHandler leaseFailureHandler) {

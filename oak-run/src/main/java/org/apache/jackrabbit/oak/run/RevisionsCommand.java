@@ -62,6 +62,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isDetailedGCEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
@@ -261,6 +262,9 @@ public class RevisionsCommand implements Command {
         if (options.isDetailedGCEnabled()) {
             builder.setDetailedGCEnabled(true);
         }
+        if (options.isEmbeddedVerificationEnabled()) {
+            builder.setEmbeddedVerificationEnabled(true);
+        }
         // set it read-only before the DocumentNodeStore is created
         // this prevents the DocumentNodeStore from writing a new
         // clusterId to the clusterNodes and nodes collections
@@ -271,7 +275,7 @@ public class RevisionsCommand implements Command {
         System.out.println("DryRun is enabled : " + options.isDryRun());
         System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isDetailedGCEnabled(builder),
-                options.isDryRun(), options.isEmbeddedVerificationEnabled());
+                options.isDryRun(), isEmbeddedVerificationEnabled(builder));
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());

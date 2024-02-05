@@ -999,6 +999,17 @@ public class Utils {
     }
 
     /**
+     * Check whether embedded verification for detailed GC mode is enabled or not for document store.
+     *
+     * @param builder instance for DocumentNodeStoreBuilder
+     * @return true if embedded verification is enabled else false
+     */
+    public static boolean isEmbeddedVerificationEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreEmbeddedVerificationFeature = builder.getDocStoreEmbeddedVerificationFeature();
+        return builder.isEmbeddedVerificationEnabled() || (docStoreEmbeddedVerificationFeature != null && docStoreEmbeddedVerificationFeature.isEnabled());
+    }
+
+    /**
      * Returns true if all the revisions in the {@code a} greater or equals
      * to their counterparts in {@code b}. If {@code b} contains revisions
      * for cluster nodes that are not present in {@code a}, return false.

@@ -139,6 +139,7 @@ public class DocumentNodeStoreService {
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
     static final boolean DEFAULT_DETAILED_GC_ENABLED = false;
+    static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
     static final String DEFAULT_JOURNAL_CACHE = "diff-cache";
@@ -191,7 +192,12 @@ public class DocumentNodeStoreService {
     /**
      * Feature toggle name to enable detailed GC for Mongo Document Store
      */
-    private static final String FT_NAME_DEATILED_GC = "FT_DETAILED_GC_OAK-10199";
+    private static final String FT_NAME_DETAILED_GC = "FT_DETAILED_GC_OAK-10199";
+
+    /**
+     * Feature toggle name to enable embedded verification for detailed GC mode for Mongo Document Store
+     */
+    private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
 
     // property name constants - values can come from framework properties or OSGi config
     public static final String CUSTOM_BLOB_STORE = "customBlobStore";
@@ -231,6 +237,7 @@ public class DocumentNodeStoreService {
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
     private Feature docStoreDetailedGCFeature;
+    private Feature docStoreEmbeddedVerificationFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
     private long deactivationTimestamp = 0;
@@ -267,7 +274,7 @@ public class DocumentNodeStoreService {
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
         noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
-        docStoreDetailedGCFeature = Feature.newFeature(FT_NAME_DEATILED_GC, whiteboard);
+        docStoreDetailedGCFeature = Feature.newFeature(FT_NAME_DETAILED_GC, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -488,8 +495,10 @@ public class DocumentNodeStoreService {
                 setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setDocStoreDetailedGCFeature(docStoreDetailedGCFeature).
+                setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setDetailedGCEnabled(config.detailedGCEnabled()).
+                setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
                 setRecoveryDelayMillis(config.recoveryDelayMillis()).
@@ -642,6 +651,14 @@ public class DocumentNodeStoreService {
 
         if (cancelInvalidationFeature != null) {
             cancelInvalidationFeature.close();
+        }
+
+        if (docStoreDetailedGCFeature != null) {
+            docStoreDetailedGCFeature.close();
+        }
+
+        if (docStoreEmbeddedVerificationFeature != null) {
+            docStoreEmbeddedVerificationFeature.close();
         }
 
         unregisterNodeStore();
