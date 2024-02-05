@@ -20,11 +20,15 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import org.junit.Test;
 
+import java.text.DecimalFormatSymbols;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
 public class ConsoleIndexingReporterTest {
+
+    private static char DELIM = new DecimalFormatSymbols().getDecimalSeparator();
+
     @Test
     public void emptyReport() {
         String expected = "Indexes: \n" +
@@ -39,7 +43,7 @@ public class ConsoleIndexingReporterTest {
                 "Metrics:\n";
 
         ConsoleIndexingReporter consoleIndexingReporter = new ConsoleIndexingReporter();
-        var report = consoleIndexingReporter.generateReport();
+        String report = consoleIndexingReporter.generateReport();
         report = replaceDate(report);
         assertEquals(expected, report);
     }
@@ -60,9 +64,9 @@ public class ConsoleIndexingReporterTest {
                 "Metrics:\n" +
                 "  metric1: 1\n" +
                 "  metric2: 123\n" +
-                "  metric3: 123456 (120.56 KiB)\n" +
-                "  metric4: 123456789 (117.74 MiB)\n" +
-                "  metric5: 1234567890123456 (1.10 PiB)";
+                "  metric3: 123456 (120" + DELIM + "56 KiB)\n" +
+                "  metric4: 123456789 (117" + DELIM +"74 MiB)\n" +
+                "  metric5: 1234567890123456 (1" + DELIM + "10 PiB)";
 
         ConsoleIndexingReporter consoleIndexingReporter = new ConsoleIndexingReporter(List.of("ENV_VAR1", "ENV_VAR2"));
 
@@ -79,7 +83,7 @@ public class ConsoleIndexingReporterTest {
 
         consoleIndexingReporter.addTiming("stage1", "10:23");
 
-        var report = consoleIndexingReporter.generateReport();
+        String report = consoleIndexingReporter.generateReport();
 
         report = replaceDate(report);
         report = replaceVariable(report, "ENV_VAR1");
