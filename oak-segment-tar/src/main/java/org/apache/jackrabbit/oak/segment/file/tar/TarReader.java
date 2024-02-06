@@ -181,12 +181,11 @@ public class TarReader implements Closeable {
         log.info("Regenerating tar file {}", file);
 
         try (TarWriter writer = new TarWriter(archiveManager, file)) {
+            Map<SegmentId, Segment> segmentMap = new HashMap<>(entries.size());
+
             for (Entry<UUID, byte[]> entry : entries.entrySet()) {
                 try {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
-
-                        private Map<SegmentId, Segment> segmentMap = new HashMap<>(entries.size());
-
                         @Override
                         public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
                             writer.writeEntry(msb, lsb, data, offset, size, generation);
