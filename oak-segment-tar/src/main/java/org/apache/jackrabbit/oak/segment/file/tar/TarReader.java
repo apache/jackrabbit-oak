@@ -208,6 +208,11 @@ public class TarReader implements Closeable {
                         public void addSegment(Segment segment) {
                             segmentMap.put(segment.getSegmentId(), segment);
                         }
+
+                        @Override
+                        public Map<SegmentId, Segment> getRecoveredSegments() {
+                            return segmentMap;
+                        }
                     });
                 } catch (IOException e) {
                     throw new IOException(String.format("Unable to recover entry %s for file %s", entry.getKey(), file), e);

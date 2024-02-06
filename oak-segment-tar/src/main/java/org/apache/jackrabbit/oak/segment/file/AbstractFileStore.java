@@ -252,7 +252,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         final UUID id = segment.getSegmentId().asUUID();
         segment.forEachRecord((number, type, offset) -> {
             if (type == RecordType.BLOB_ID) {
-                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number, w));
+                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number, w.getRecoveredSegments()));
             }
         });
     }
