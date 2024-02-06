@@ -170,7 +170,7 @@ public class FileStore extends AbstractFileStore {
                 .withPersistence(builder.getPersistence())
                 .withReaderCountStats(readerCountStats)
                 .withSegmentCountStats(segmentCountStats)
-                .withInitialisedReaders(false);
+                .withInitialisedReadersAndWriters(false);
 
         this.tarFiles = tarFilesBuilder.build();
         this.tarFiles.init();

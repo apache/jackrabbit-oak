@@ -49,6 +49,7 @@ import java.util.regex.Pattern;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
 
+import org.apache.jackrabbit.oak.api.IllegalRepositoryStateException;
 import org.apache.jackrabbit.oak.commons.Buffer;
 import org.apache.jackrabbit.oak.segment.file.FileReaper;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitor;
@@ -136,7 +137,7 @@ public class TarFiles implements Closeable {
 
         private CounterStats segmentCountStats = NoopStats.INSTANCE;
 
-        private boolean initialisedReaders = true;
+        private boolean initialiseReadersAndWriters = true;
 
         private Builder() {
             // Prevent external instantiation.
@@ -203,8 +204,8 @@ public class TarFiles implements Closeable {
             return this;
         }
 
-        public Builder withInitialisedReaders(boolean initialisedReaders) {
-            this.initialisedReaders = initialisedReaders;
+        public Builder withInitialisedReadersAndWriters(boolean initialiseReadersAndWriters) {
+            this.initialiseReadersAndWriters = initialiseReadersAndWriters;
             return this;
         }
 
@@ -380,6 +381,11 @@ public class TarFiles implements Closeable {
 
     private final TarRecovery tarRecovery;
 
+    /**
+     * If {@code true}, the readers and writers are initialised.
+     */
+    private boolean initialised;
+
     private static int getSegmentCount(TarReader reader) {
         return reader.getEntries().length;
     }
@@ -392,7 +398,7 @@ public class TarFiles implements Closeable {
         readOnly = builder.readOnly;
         tarRecovery = builder.tarRecovery;
 
-        if (builder.initialisedReaders) {
+        if (builder.initialiseReadersAndWriters) {
             init();
         }
     }
@@ -418,14 +424,21 @@ public class TarFiles implements Closeable {
             readers = new Node(r, readers);
             readerCount.inc();
         }
-        if (readOnly) {
-            return;
+        if (!readOnly) {
+            int writeNumber = 0;
+            if (indices.length > 0) {
+                writeNumber = indices[indices.length - 1] + 1;
+            }
+            writer = new TarWriter(archiveManager, writeNumber, segmentCount);
         }
-        int writeNumber = 0;
-        if (indices.length > 0) {
-            writeNumber = indices[indices.length - 1] + 1;
+
+        initialised = true;
+    }
+
+    private void checkInitialised() {
+        if (!initialised) {
+            throw new IllegalRepositoryStateException("TarFiles not initialised");
         }
-        writer = new TarWriter(archiveManager, writeNumber, segmentCount);
     }
 
     @Override
@@ -549,6 +562,7 @@ public class TarFiles implements Closeable {
     }
 
     public void flush() throws IOException {
+        checkInitialised();
         lock.readLock().lock();
         try {
             writer.flush();
@@ -611,6 +625,7 @@ public class TarFiles implements Closeable {
     }
 
     public void writeSegment(UUID id, byte[] buffer, int offset, int length, GCGeneration generation, Set<UUID> references, Set<String> binaryReferences) throws IOException {
+        checkInitialised();
         lock.writeLock().lock();
         try {
             long size = writer.writeEntry(
@@ -662,6 +677,7 @@ public class TarFiles implements Closeable {
     }
 
     void newWriter() throws IOException {
+        checkInitialised();
         lock.writeLock().lock();
         try {
             internalNewWriter();
@@ -671,6 +687,7 @@ public class TarFiles implements Closeable {
     }
 
     public CleanupResult cleanup(CleanupContext context) throws IOException {
+        checkInitialised();
         CleanupResult result = new CleanupResult();
         result.removableFiles = new ArrayList<>();
         result.reclaimedSegmentIds = new HashSet<>();
@@ -822,6 +839,7 @@ public class TarFiles implements Closeable {
     }
 
     public void collectBlobReferences(Consumer<String> collector, Predicate<GCGeneration> reclaim) throws IOException {
+        checkInitialised();
         Node head;
         lock.writeLock().lock();
         try {
@@ -908,6 +926,7 @@ public class TarFiles implements Closeable {
     }
 
     public FileReaper createFileReaper() {
+        checkInitialised();
         return new FileReaper(archiveManager);
     }
 }
