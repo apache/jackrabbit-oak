@@ -61,6 +61,18 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
+    public void embeddedVerificationEnabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertFalse(builder.isEmbeddedVerificationEnabled());
+    }
+
+    @Test
+    public void embeddedVerificationFeatureToggleEnabled() {
+        MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
+        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
+    }
+
+    @Test
     public void collectionCompressionDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
         assertNull(builder.getCollectionCompressionType());

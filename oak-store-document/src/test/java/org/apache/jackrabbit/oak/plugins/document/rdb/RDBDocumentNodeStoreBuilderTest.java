@@ -75,4 +75,20 @@ public class RDBDocumentNodeStoreBuilderTest {
         builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
         assertNull(builder.getDocStoreDetailedGCFeature());
     }
+
+    @Test
+    public void embeddedVerificationDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setEmbeddedVerificationEnabled(true);
+        assertFalse(builder.isEmbeddedVerificationEnabled());
+    }
+
+    @Test
+    public void embeddedVerificationFeatureToggleDisabled() {
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        Feature embeddedVerificationFeature = mock(Feature.class);
+        when(embeddedVerificationFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreEmbeddedVerificationFeature(embeddedVerificationFeature);
+        assertNull(builder.getDocStoreEmbeddedVerificationFeature());
+    }
 }
