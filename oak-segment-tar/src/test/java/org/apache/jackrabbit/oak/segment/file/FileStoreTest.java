@@ -44,8 +44,6 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -60,8 +58,6 @@ import static org.junit.Assert.*;
 
 public class FileStoreTest {
     private  static final String FAILED_TO_WRITE_ON_CLOSE = "Failed to write to the archive on closing";
-
-    private static Logger LOG = LoggerFactory.getLogger(FileStoreTest.class);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder(new File("target"));
