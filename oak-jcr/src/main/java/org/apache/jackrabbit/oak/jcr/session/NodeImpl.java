@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
@@ -976,7 +977,8 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), getMixinTypeNames(tree), oakName);
+                Supplier<Iterable<String>> mixinTypes = () -> getMixinTypeNames(tree);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), mixinTypes , oakName);
             }
         });
     }
