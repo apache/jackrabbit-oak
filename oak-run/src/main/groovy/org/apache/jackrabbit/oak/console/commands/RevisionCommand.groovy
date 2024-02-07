@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.console.commands
 import groovy.transform.CompileStatic
 import org.apache.jackrabbit.oak.console.ConsoleSession
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore
-import org.apache.jackrabbit.oak.plugins.document.DocumentRevisionCleanupHelper
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore
+import org.apache.jackrabbit.oak.plugins.document.NodeDocumentRevisionCleaner
 import org.apache.jackrabbit.oak.plugins.document.Revision
 import org.apache.jackrabbit.oak.spi.state.NodeStore
 import org.codehaus.groovy.tools.shell.CommandSupport
@@ -56,7 +56,7 @@ class RevisionCommand extends CommandSupport {
     private static boolean capResults = true
     private static boolean showPropertiesUse = false
 
-    private DocumentRevisionCleanupHelper cleanupHelper;
+    private NodeDocumentRevisionCleaner cleanupHelper;
 
     RevisionCommand(Groovysh shell) {
         super(shell, COMMAND_NAME, 'rev')
@@ -105,9 +105,9 @@ class RevisionCommand extends CommandSupport {
      */
     void list() {
         int count = 0
-        NavigableMap<Revision, String> allRevisions = cleanupHelper.getAllRevisions();
+        SortedMap<Revision, String> allRevisions = cleanupHelper.getAllRevisions();
 
-        for (Map.Entry<Revision, String> revisionEntry : order == ORDER_ASC ? allRevisions.entrySet() : allRevisions.descendingMap().entrySet()) {
+        for (Map.Entry<Revision, String> revisionEntry : allRevisions.entrySet()) {
             Revision revision = revisionEntry.getKey()
             String value = revisionEntry.getValue()
             io.out.println(revision.toReadableString() + " " + value)
@@ -172,7 +172,7 @@ class RevisionCommand extends CommandSupport {
     void cleanup(int numberToCleanup, int clusterToCleanup) {
          io.out.println("This will delete the following revisions and the property values permanently:")
         SortedMap<Integer, TreeSet<Revision>> candidateRevisionsToClean = cleanupHelper.getCandidateRevisionsToClean()
-        SortedMap<Revision, TreeSet<String>> propertiesModifiedByRevision = cleanupHelper.getPropertiesModifiedByRevision()
+        SortedMap<Revision, TreeSet<String>> propertiesModifiedByRevision = null;//cleanupHelper.getPropertiesModifiedByRevision()
         TreeSet<Revision> revisions = candidateRevisionsToClean.get(clusterToCleanup)
         if (revisions != null) {
             int count = 0
@@ -223,9 +223,10 @@ class RevisionCommand extends CommandSupport {
         DocumentStore documentStore = nodeStore.getDocumentStore()
         DocumentNodeStore documentNodeStore = (DocumentNodeStore) nodeStore
 
-        cleanupHelper = new DocumentRevisionCleanupHelper(documentStore, documentNodeStore, session.getWorkingPath())
 
-        cleanupHelper.initializeCleanupProcess()
+        //cleanupHelper = new NodeDocumentRevisionCleaner(documentStore, documentNodeStore, session.get)
+
+        //cleanupHelper.initializeCleanupProcess()
 
         SortedMap<Revision, String> allRevisions = cleanupHelper.getAllRevisions()
         TreeMap<Integer, Integer> revisionsByClusterId = allRevisions.keySet().groupBy { it.clusterId }
@@ -233,7 +234,7 @@ class RevisionCommand extends CommandSupport {
                     [clusterId, revisions.size()]
                 } as TreeMap<Integer, Integer>
 
-        io.out.println("=== Last Revision by clusterId ===")
+        /*io.out.println("=== Last Revision by clusterId ===")
         for (Map.Entry<Integer, Revision> entry : cleanupHelper.getLastRev()) {
             io.out.printf("  [%d] -> %s%n", entry.key, entry.value.toReadableString())
         }
@@ -243,7 +244,7 @@ class RevisionCommand extends CommandSupport {
         for (Map.Entry<Integer, Revision> entry : cleanupHelper.getSweepRev()) {
             io.out.printf("  [%d] -> %s%n", entry.key, entry.value.toReadableString())
         }
-        io.out.println()
+        io.out.println()*/
 
         io.out.println("=== Total Revisions by clusterId ===")
         for (Map.Entry<Integer, Integer> entry : revisionsByClusterId) {

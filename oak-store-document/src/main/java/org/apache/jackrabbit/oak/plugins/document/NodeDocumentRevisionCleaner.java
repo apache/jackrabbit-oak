@@ -22,150 +22,80 @@ import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.NavigableMap;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
-
-import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 
 public class NodeDocumentRevisionCleaner {
 
     private final DocumentStore documentStore;
     private final DocumentNodeStore documentNodeStore;
     private final NodeDocument workingDocument;
-
-    protected RevisionClassifierUtility revisionClassifier;
-    protected RevisionCleanerUtility revisionCleaner;
+    private final RevisionPropertiesClassifier revisionClassifier;
+    private final RevisionCleanerUtility revisionCleaner;
 
     /**
-     * Constructor for DocumentRevisionCleanupHelper.
+     * Constructor for NodeDocumentRevisionCleaner.
      * @param documentStore The DocumentStore instance. Must be writable to perform cleanup.
      * @param documentNodeStore The DocumentNodeStore instance.
-     * @param path The path of the document to clean up.
+     * @param workingDocument The document to clean up.
      */
-    public NodeDocumentRevisionCleaner(DocumentStore documentStore, DocumentNodeStore documentNodeStore, String path) {
-        String id = Utils.getIdFromPath(path);
-        this.workingDocument = documentStore.find(NODES, id);
+    public NodeDocumentRevisionCleaner(DocumentStore documentStore, DocumentNodeStore documentNodeStore,
+                                       NodeDocument workingDocument) {
+        this.workingDocument = workingDocument;
         this.documentStore = documentStore;
         this.documentNodeStore = documentNodeStore;
 
-        revisionClassifier = new RevisionClassifierUtility(workingDocument);
+        revisionClassifier = new RevisionPropertiesClassifier(workingDocument);
         revisionCleaner = new RevisionCleanerUtility(revisionClassifier);
     }
 
     /**
-     * Performs the full revision cleanup process for the given document for a clusterId.
+     * Collects cleanable old revisions for the given document.
      */
-    public void initializeCleanupProcess() {
-        revisionClassifier.identifyRevisionsToClean();
-        revisionCleaner.markRevisionsNewerThanThresholdToPreserve(24, ChronoUnit.HOURS);
-        revisionCleaner.markLastRevisionForEachProperty();
-        revisionCleaner.markCheckpointRevisionsToPreserve();
+    public void collectOldRevisions(UpdateOp op) {
+        revisionClassifier.classifyRevisionsAndProperties();
+        revisionCleaner.preserveRevisionsNewerThanThreshold(24, ChronoUnit.HOURS);
+        revisionCleaner.preserveLastRevisionForEachProperty();
+        revisionCleaner.preserveRevisionsReferencedByCheckpoints();
         revisionCleaner.removeCandidatesInList();
-    }
 
-    public int executeCleanupProcess(int numberToCleanup, int clusterToCleanup) {
-        return -99;
-    }
+        /*for (Map.Entry<Integer, TreeSet<Revision>> entry : revisionCleaner.candidateRevisionsToClean.entrySet()) {
+            for (Revision revision : entry.getValue()) {
+                System.out.println("Removing revision " + revision);
+                TreeSet<String> properties = revisionClassifier.propertiesModifiedByRevision.get(revision);
+                System.out.println("Properties modified by this revision: " + properties);
+                if (properties != null) {
+                    for (String property : properties) {
+                        op.removeMapEntry(property, revision);
+                    }
+                }
 
-    protected void classifyAndMapRevisionsAndProperties() {
-        //identifyRevisionsToClean();
-        //BclassifyAndMapRevisionsAndProperties();
-
-        revisionClassifier.identifyRevisionsToClean();
-        //newClassifyAndMapRevisionsAndProperties();
-    }
-
-    /*protected void newClassifyAndMapRevisionsAndProperties() {
-        candidateRevisionsToClean = new TreeMap<>();
-        blockedRevisionsToKeep = new TreeMap<>();
-        revisionsModifyingPropertyByCluster = new TreeMap<>();
-        revisionsModifyingProperty = new TreeMap<>();
-        propertiesModifiedByRevision = new TreeMap<>(StableRevisionComparator.INSTANCE);
-
-        // The first entry in "_deleted" has to be kept, as is when the document was created
-        //NavigableMap<Revision, String> deletedRevisions = ((NavigableMap<Revision, String>) workingDocument.get("_deleted"));
-        SortedMap<Revision, String> deletedRevisions = workingDocument.getLocalDeleted();
-        if (deletedRevisions != null && !deletedRevisions.isEmpty()) {
-            Revision createdRevision = deletedRevisions.firstKey();
-            addBlockedRevisionToKeep(createdRevision);
-        }
-
-        SortedMap<Revision, String> documentRevisions = getAllRevisions();
-        for (Map.Entry<Revision, String> revisionEntry : documentRevisions.entrySet()) {
-            Revision revision = revisionEntry.getKey();
-            String revisionValue = revisionEntry.getValue();
-
-            // Only check committed revisions (ignore branch commits starting with "c-")
-            if ("c".equals(revisionValue)) {
-                // Candidate to clean up
-                addCandidateRevisionToClean(revision);
-                // Store properties usage
-                mapPropertiesModifiedByThisRevision(revision);
+                op.removeMapEntry("_revisions", revision);
             }
-        }
-    }*/
+        }*/
+    }
 
-    /**
-     * Step 1:
-     * This method processes the revisions of the working document, classifying them into two categories:
-     * candidate revisions that can be cleaned up and used revisions that should be kept. It also creates maps to
-     * track the relationships between revisions and properties modified by them.
-     */
-    /*protected void BclassifyAndMapRevisionsAndProperties() {
-        candidateRevisionsToClean = new TreeMap<>();
-        blockedRevisionsToKeep = new TreeMap<>();
-        revisionsModifyingPropertyByCluster = new TreeMap<>();
-        revisionsModifyingProperty = new TreeMap<>();
-        propertiesModifiedByRevision = new TreeMap<>(StableRevisionComparator.INSTANCE);
-
-        // The first entry in "_deleted" has to be kept, as is when the document was created
-        //NavigableMap<Revision, String> deletedRevisions = ((NavigableMap<Revision, String>) workingDocument.get("_deleted"));
-        NavigableMap<Revision, String> deletedRevisions = ((NavigableMap<Revision, String>) workingDocument.getLocalDeleted());
-        if (deletedRevisions != null && !deletedRevisions.isEmpty()) {
-            // TODO: This is just a check to ensure the order is the expected
-            assert(deletedRevisions.descendingMap().lastKey().getTimestamp() <= deletedRevisions.descendingMap().firstKey().getTimestamp());
-
-            Revision createdRevision = deletedRevisions.descendingMap().lastKey();
-            addBlockedRevisionToKeep(createdRevision);
-        }
-
-        SortedMap<Revision, String> documentRevisions = getAllRevisions();
-        for (Map.Entry<Revision, String> revisionEntry : documentRevisions.entrySet()) {
-            Revision revision = revisionEntry.getKey();
-            String revisionValue = revisionEntry.getValue();
-
-            // Only check committed revisions (ignore branch commits starting with "c-")
-            if ("c".equals(revisionValue)) {
-                // Candidate to clean up
-                addCandidateRevisionToClean(revision);
-                // Store properties usage
-                mapPropertiesModifiedByThisRevision(revision);
-            }
-        }
-    }*/
-
-    protected class RevisionClassifierUtility {
+    protected class RevisionPropertiesClassifier {
         private final NodeDocument workingDocument;
-        private final SortedMap<Revision, String> documentRevisions;
         private SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> revisionsModifyingPropertyByCluster;
         private SortedMap<String, TreeSet<Revision>> revisionsModifyingProperty;
         private SortedMap<Revision, TreeSet<String>> propertiesModifiedByRevision;
 
-        RevisionClassifierUtility(NodeDocument workingDocument) {
+        private RevisionPropertiesClassifier(NodeDocument workingDocument) {
             this.workingDocument = workingDocument;
-            this.documentRevisions = workingDocument.getLocalRevisions();
 
             this.revisionsModifyingPropertyByCluster = new TreeMap<>();
             this.revisionsModifyingProperty = new TreeMap<>();
             this.propertiesModifiedByRevision = new TreeMap<>(StableRevisionComparator.INSTANCE);
         }
 
-        public void identifyRevisionsToClean() {
+        /**
+         * This method processes the revisions of the working document, creating maps to
+         * track the relationships between revisions and modified properties.
+         */
+        protected void classifyRevisionsAndProperties() {
             SortedMap<Revision, String> deletedRevisions = workingDocument.getLocalDeleted();
             // Always keep the first "_deleted" entry, as is when the document was created
             if (!deletedRevisions.isEmpty()) {
@@ -178,17 +108,17 @@ public class NodeDocumentRevisionCleaner {
                 Revision revision = revisionEntry.getKey();
                 String revisionValue = revisionEntry.getValue();
 
-                // Only check committed revisions (ignore branch commits starting with "c-")
+                // Only check committed revisions
                 if (Utils.isCommitted(revisionValue)) {
                     // Candidate to clean up
                     revisionCleaner.addCandidateRevisionToClean(revision);
                     // Store properties usage
-                    mapPropertiesModifiedByThisRevision(revision);
+                    classifyPropertiesModifiedByRevision(revision);
                 }
             }
         }
 
-        private void mapPropertiesModifiedByThisRevision(Revision revision) {
+        private void classifyPropertiesModifiedByRevision(Revision revision) {
             for (Map.Entry<String, Object> propertyEntry : workingDocument.entrySet()) {
                 if (Utils.isPropertyName(propertyEntry.getKey()) || NodeDocument.isDeletedEntry(propertyEntry.getKey())) {
                     Map<Revision, String> valueMap = (Map) propertyEntry.getValue();
@@ -214,17 +144,17 @@ public class NodeDocumentRevisionCleaner {
 
     protected class RevisionCleanerUtility {
 
-        private SortedMap<Integer, TreeSet<Revision>> blockedRevisionsToKeep;
-        private SortedMap<Integer, TreeSet<Revision>> candidateRevisionsToClean;
-        private final RevisionClassifierUtility revisionClassifier;
+        private final SortedMap<Integer, TreeSet<Revision>> blockedRevisionsToKeep;
+        private final SortedMap<Integer, TreeSet<Revision>> candidateRevisionsToClean;
+        private final RevisionPropertiesClassifier revisionClassifier;
 
-        protected RevisionCleanerUtility(RevisionClassifierUtility revisionClassifier) {
+        private RevisionCleanerUtility(RevisionPropertiesClassifier revisionClassifier) {
             this.revisionClassifier = revisionClassifier;
             this.candidateRevisionsToClean = new TreeMap<>();
             this.blockedRevisionsToKeep = new TreeMap<>();
         }
 
-        protected void markLastRevisionForEachProperty() {
+        protected void preserveLastRevisionForEachProperty() {
             for (SortedMap<Integer, TreeSet<Revision>> revisionsByCluster : revisionClassifier.revisionsModifyingPropertyByCluster.values()) {
                 for (TreeSet<Revision> revisions : revisionsByCluster.values()) {
                     Revision lastRevision = revisions.last();
@@ -233,7 +163,7 @@ public class NodeDocumentRevisionCleaner {
             }
         }
 
-        protected void markRevisionsNewerThanThresholdToPreserve(long amount, ChronoUnit unit) {
+        protected void preserveRevisionsNewerThanThreshold(long amount, ChronoUnit unit) {
             long thresholdToPreserve = Instant.now().minus(amount, unit).toEpochMilli();
             for (TreeSet<Revision> revisionSet : candidateRevisionsToClean.values()) {
                 for (Revision revision : revisionSet) {
@@ -244,7 +174,7 @@ public class NodeDocumentRevisionCleaner {
             }
         }
 
-        protected void markCheckpointRevisionsToPreserve() {
+        protected void preserveRevisionsReferencedByCheckpoints() {
             SortedMap<Revision, Checkpoints.Info> checkpoints = documentNodeStore.getCheckpoints().getCheckpoints();
             checkpoints.forEach((revision, info) -> {
                 // For each checkpoint, keep the last revision that modified a property prior to checkpoint
@@ -294,19 +224,19 @@ public class NodeDocumentRevisionCleaner {
         }
     }
 
-    public NavigableMap<Revision, String> getAllRevisions() {
-        return (NavigableMap<Revision, String>) workingDocument.getLocalRevisions();
+    public SortedMap<Revision, String> getAllRevisions() {
+        return workingDocument.getLocalRevisions();
     }
 
-    public SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> getRevisionsModifyingPropertyByCluster() {
+    protected SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> getRevisionsModifyingPropertyByCluster() {
         return revisionClassifier.revisionsModifyingPropertyByCluster;
     }
 
-    public SortedMap<String, TreeSet<Revision>> getRevisionsModifyingProperty() {
+    protected SortedMap<String, TreeSet<Revision>> getRevisionsModifyingProperty() {
         return revisionClassifier.revisionsModifyingProperty;
     }
 
-    public SortedMap<Revision, TreeSet<String>> getPropertiesModifiedByRevision() {
+    protected SortedMap<Revision, TreeSet<String>> getPropertiesModifiedByRevision() {
         return revisionClassifier.propertiesModifiedByRevision;
     }
 
@@ -316,5 +246,25 @@ public class NodeDocumentRevisionCleaner {
 
     public SortedMap<Integer, TreeSet<Revision>> getCandidateRevisionsToClean() {
         return revisionCleaner.candidateRevisionsToClean;
+    }
+
+    protected void classifyRevisionsAndProperties() {
+        revisionClassifier.classifyRevisionsAndProperties();
+    }
+
+    protected void markLastRevisionForEachProperty() {
+        revisionCleaner.preserveLastRevisionForEachProperty();
+    }
+
+    protected void markRevisionsNewerThanThresholdToPreserve(long amount, ChronoUnit unit) {
+        revisionCleaner.preserveRevisionsNewerThanThreshold(amount, unit);
+    }
+
+    protected void markCheckpointRevisionsToPreserve() {
+        revisionCleaner.preserveRevisionsReferencedByCheckpoints();
+    }
+
+    protected void removeCandidatesInList() {
+        revisionCleaner.removeCandidatesInList();
     }
 }

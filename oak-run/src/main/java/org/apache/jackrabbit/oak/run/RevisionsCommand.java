@@ -37,7 +37,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -47,13 +46,16 @@ import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.DocumentRevisionCleanupHelper;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
+import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocumentRevisionCleaner;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
 import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -65,7 +67,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Integer.getInteger;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
@@ -431,16 +435,6 @@ public class RevisionsCommand implements Command {
             System.err.println("path option is required for " + RevisionsOptions.CMD_CLEANUP + " command");
             return;
         }
-        Integer clusterToCleanup = options.getClusterId();
-        if (clusterToCleanup == null) {
-            System.err.println("clusterId option is required for " + RevisionsOptions.CMD_CLEANUP + " command");
-            return;
-        }
-        Integer numberToCleanup = options.getNumber();
-        if (numberToCleanup == null) {
-            System.err.println("number option is required for " + RevisionsOptions.CMD_CLEANUP + " command");
-            return;
-        }
 
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
@@ -452,10 +446,14 @@ public class RevisionsCommand implements Command {
         builder.setReadOnlyMode();
         useMemoryBlobStore(builder);
         DocumentNodeStore documentNodeStore = builder.build();
-        DocumentRevisionCleanupHelper cleanupHelper = new DocumentRevisionCleanupHelper(documentStore, documentNodeStore, path);
-        cleanupHelper.initializeCleanupProcess();
+        String id = org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath(path);
+        NodeDocument workingDocument = documentStore.find(NODES, id);
+        NodeDocumentRevisionCleaner revisionCleaner = new NodeDocumentRevisionCleaner(documentStore, documentNodeStore, workingDocument);
 
-        SortedMap<Revision, String> allRevisions = cleanupHelper.getAllRevisions();
+        final UpdateOp op = new UpdateOp(requireNonNull(id), false);
+        revisionCleaner.initializeCleanupProcess(op);
+
+        SortedMap<Revision, String> allRevisions = revisionCleaner.getAllRevisions();
         SortedMap<Integer, Integer> revisionsByClusterId = new TreeMap<>();
         for (Revision revision : allRevisions.keySet()) {
             Integer cid = revision.getClusterId();
@@ -466,15 +464,6 @@ public class RevisionsCommand implements Command {
             revisionsByClusterId.put(cid, count + 1);
         }
 
-        System.out.println("Last Revision by clusterId");
-        for (Map.Entry<Integer, Revision> entry : cleanupHelper.getLastRev().entrySet()) {
-            System.out.printf("  [%d] -> %s%n", entry.getKey(), entry.getValue().toReadableString());
-        }
-
-        System.out.println("Sweep Revision by clusterId");
-        for (Map.Entry<Integer, Revision> entry : cleanupHelper.getSweepRev().entrySet()) {
-            System.out.printf("  [%d] -> %s%n", entry.getKey(), entry.getValue().toReadableString());
-        }
         System.out.println();
 
         int count = 0;
@@ -488,15 +477,18 @@ public class RevisionsCommand implements Command {
             }
         }
 
-        for (Map.Entry<Integer, TreeSet<Revision>> entry : cleanupHelper.getCandidateRevisionsToClean().entrySet()) {
+        for (Map.Entry<Integer, TreeSet<Revision>> entry : revisionCleaner.getCandidateRevisionsToClean().entrySet()) {
             Integer cid = entry.getKey();
             TreeSet<Revision> revisions = entry.getValue();
-            int blocked = cleanupHelper.getBlockedRevisionsToKeep().get(cid) != null ? cleanupHelper.getBlockedRevisionsToKeep().get(cid).size() : 0;
+            int blocked = revisionCleaner.getBlockedRevisionsToKeep().get(cid) != null ? revisionCleaner.getBlockedRevisionsToKeep().get(cid).size() : 0;
             System.out.printf("ClusterId [%d] has %d Candidates and %d Blocked%n", cid, revisions.size(), blocked);
         }
 
-        System.out.println("=== Revisions to be cleaned for clusterId " + clusterToCleanup + " ===");
-        TreeSet<Revision> revisionsToClean = cleanupHelper.getCandidateRevisionsToClean().get(clusterToCleanup)
+        System.out.println("=== Operations to be executed ===");
+        System.out.println("Total of operations: " + op.getChanges().size());
+        System.out.println(op.getChanges());
+
+        /*TreeSet<Revision> revisionsToClean = revisionCleaner.getCandidateRevisionsToClean().get(clusterToCleanup)
                 .stream().limit(numberToCleanup).collect(Collectors.toCollection(TreeSet::new));
         if (revisionsToClean.isEmpty()) {
             System.out.println("No revisions to clean");
@@ -512,32 +504,17 @@ public class RevisionsCommand implements Command {
                     break;
                 }
             }
-        }
+        }*/
 
         Scanner scanner = new Scanner(System.in);
         System.out.println("The revisions will be deleted permanently. Are you sure to proceed? [y/N]");
         String confirmation = scanner.nextLine().trim().toLowerCase();
         if (confirmation.equals("y") || confirmation.equals("yes")) {
-            // Start the cleanup
-            count = 0;
-            for (Revision revision : cleanupHelper.getCandidateRevisionsToClean().get(clusterToCleanup)) {
-                // Remove the revision from _revisions and all the properties
-                /*UpdateOp update = new UpdateOp(workingDocument.path.toString(), false)
-                update.removeMapEntry("_revisions", revision)
-                for (String property : propertiesModifiedByRevision.get(revision)) {
-                    update.removeMapEntry(property, revision)
-                }
-                io.out.println("Executing UpdateOp: " + update)
-                try {
-                    documentStore.findAndUpdate(NODES, update)
-                } catch (DocumentStoreException ex) {
-                    io.out.println("Operation failed: " + ex)
-                }*/
-
+            try {
                 count++;
-                if (count >= numberToCleanup) {
-                    break;
-                }
+                documentStore.findAndUpdate(NODES, op);
+            } catch (DocumentStoreException ex) {
+                System.out.println("Operation failed: " + ex);
             }
             System.out.println("-- Executed " + count + " operations --");
         }
