@@ -932,7 +932,7 @@ Points to note
     analyzer for indexing as well as querying, using one-way synonyms in
     any practical way is not supported at the moment.
     * special characters have to be escaped
-    * multi word synonyms need particular attention (see https://lucidworks.com/2014/07/12/solution-for-multi-term-synonyms-in-lucenesolr-using-the-auto-phrasing-tokenfilter)
+    * multi word synonyms need particular attention (see https://lucidworks.com/post/solution-for-multi-term-synonyms-in-lucenesolr-using-the-auto-phrasing-tokenfilter/)
 
 Note that currently only one analyzer can be configured per index. Its not possible to specify separate
 analyzer for query and index time currently.
