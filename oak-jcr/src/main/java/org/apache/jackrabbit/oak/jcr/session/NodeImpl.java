@@ -977,7 +977,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), () -> getMixinTypeNames(tree) , oakName);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), () -> getMixinTypeNames(tree), oakName);
             }
         });
     }
