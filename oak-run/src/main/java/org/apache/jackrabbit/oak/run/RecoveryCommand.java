@@ -86,11 +86,11 @@ class RecoveryCommand implements Command {
             if (ds instanceof MongoDocumentStore) {
                 MongoDocumentStore docStore = (MongoDocumentStore) ds;
                 agent = new LastRevRecoveryAgent(docStore, dns);
-                seeker = new MongoMissingLastRevSeeker(docStore, dns.getClock());
+                seeker = new MongoMissingLastRevSeeker(docStore, dns.getClock(), dns.getRecoveryDelayMillis());
             } else if (ds instanceof RDBDocumentStore) {
                 RDBDocumentStore docStore = (RDBDocumentStore) ds;
                 agent = new LastRevRecoveryAgent(docStore, dns);
-                seeker = new RDBMissingLastRevSeeker(docStore, dns.getClock());
+                seeker = new RDBMissingLastRevSeeker(docStore, dns.getClock(), dns.getRecoveryDelayMillis());
             }
 
             if (agent == null || seeker == null) {

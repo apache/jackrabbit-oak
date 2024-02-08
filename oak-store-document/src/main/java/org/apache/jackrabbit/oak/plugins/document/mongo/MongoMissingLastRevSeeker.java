@@ -46,8 +46,8 @@ import org.jetbrains.annotations.NotNull;
 public class MongoMissingLastRevSeeker extends MissingLastRevSeeker {
     private final MongoDocumentStore store;
 
-    public MongoMissingLastRevSeeker(MongoDocumentStore store, Clock clock) {
-        super(store, clock);
+    public MongoMissingLastRevSeeker(MongoDocumentStore store, Clock clock, long recoveryDelayMillis) {
+        super(store, clock, recoveryDelayMillis);
         this.store = store;
     }
 

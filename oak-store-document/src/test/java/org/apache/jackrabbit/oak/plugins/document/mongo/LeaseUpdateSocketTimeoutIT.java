@@ -78,6 +78,8 @@ public class LeaseUpdateSocketTimeoutIT {
 
     private Clock clock;
 
+    private long recoveryDelayMillis;
+
     private DocumentStore store;
 
     private final FailureHandler handler = new FailureHandler();
@@ -93,6 +95,7 @@ public class LeaseUpdateSocketTimeoutIT {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         setClusterNodeInfoClock(clock);
+        recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
         ToxiproxyClient toxiproxyClient = new ToxiproxyClient(tp.getHost(), tp.getControlPort());
         proxy = toxiproxyClient.createProxy("mongo", "0.0.0.0:8666", "mongo:" + MONGODB_DEFAULT_PORT);
         String uri = "mongodb://" + tp.getHost() + ":" + tp.getMappedPort(8666);
@@ -157,7 +160,7 @@ public class LeaseUpdateSocketTimeoutIT {
 
     private ClusterNodeInfo newClusterNodeInfo() {
         ClusterNodeInfo info = ClusterNodeInfo.getInstance(store,
-                new SimpleRecoveryHandler(store, clock), null, null, 1);
+                new SimpleRecoveryHandler(store, clock, recoveryDelayMillis), null, null, 1);
         info.setLeaseFailureHandler(handler);
         return info;
     }

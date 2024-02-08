@@ -505,6 +505,8 @@ public final class DocumentNodeStore
 
     private final Clock clock;
 
+    private final long recoveryDelayMillis;
+
     private final Checkpoints checkpoints;
 
     private final VersionGarbageCollector versionGarbageCollector;
@@ -598,6 +600,7 @@ public final class DocumentNodeStore
         this.executor = builder.getExecutor();
         this.lastRevSeeker = builder.createMissingLastRevSeeker();
         this.clock = builder.getClock();
+        this.recoveryDelayMillis = builder.getRecoveryDelayMillis();
 
         int cid = builder.getClusterId();
         cid = SystemPropertySupplier.create("oak.documentMK.clusterId", cid).loggingTo(LOG).get();
@@ -605,9 +608,11 @@ public final class DocumentNodeStore
             clusterNodeInfo = ClusterNodeInfo.getReadOnlyInstance(nonLeaseCheckingStore);
         } else {
             clusterNodeInfo = ClusterNodeInfo.getInstance(nonLeaseCheckingStore,
-                    new RecoveryHandlerImpl(nonLeaseCheckingStore, clock, lastRevSeeker),
+                    new RecoveryHandlerImpl(nonLeaseCheckingStore, clock,
+                            recoveryDelayMillis, lastRevSeeker),
                     null, null, cid, builder.isClusterInvisible(),
-                    builder.getClusterIdReuseDelayAfterRecovery());
+                    builder.getClusterIdReuseDelayAfterRecovery(),
+                    getRecoveryDelayMillis());
             checkRevisionAge(nonLeaseCheckingStore, clusterNodeInfo, clock);
         }
         this.clusterId = clusterNodeInfo.getId();
@@ -2227,6 +2232,11 @@ public final class DocumentNodeStore
     @NotNull
     public Clock getClock() {
         return clock;
+    }
+
+    @Override
+    public long getRecoveryDelayMillis() {
+        return recoveryDelayMillis;
     }
 
     @Override

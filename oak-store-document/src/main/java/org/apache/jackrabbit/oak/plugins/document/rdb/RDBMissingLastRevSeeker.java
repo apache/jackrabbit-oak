@@ -51,8 +51,8 @@ public class RDBMissingLastRevSeeker extends MissingLastRevSeeker {
 
     private final RDBDocumentStore store;
 
-    public RDBMissingLastRevSeeker(RDBDocumentStore store, Clock clock) {
-        super(store, clock);
+    public RDBMissingLastRevSeeker(RDBDocumentStore store, Clock clock, long recoveryDelayMillis) {
+        super(store, clock, recoveryDelayMillis);
         this.store = store;
     }
 

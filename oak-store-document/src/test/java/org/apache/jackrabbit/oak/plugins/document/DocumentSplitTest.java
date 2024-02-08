@@ -1145,6 +1145,11 @@ public class DocumentSplitTest extends BaseDocumentMKTest {
         }
 
         @Override
+        public long getRecoveryDelayMillis() {
+            return rc.getRecoveryDelayMillis();
+        }
+
+        @Override
         public String getCommitValue(@NotNull Revision changeRevision,
                                      @NotNull NodeDocument doc) {
             return rc.getCommitValue(changeRevision, doc);

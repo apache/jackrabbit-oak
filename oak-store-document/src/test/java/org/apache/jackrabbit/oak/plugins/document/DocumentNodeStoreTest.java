@@ -3463,7 +3463,8 @@ public class DocumentNodeStoreTest {
         DocumentMK.Builder nsBuilder = new DocumentMK.Builder() {
             @Override
             public MissingLastRevSeeker createMissingLastRevSeeker() {
-                return new MissingLastRevSeeker(getDocumentStore(), getClock()) {
+                return new MissingLastRevSeeker(getDocumentStore(), getClock(),
+                        getRecoveryDelayMillis()) {
                     @NotNull
                     @Override
                     public Iterable<NodeDocument> getCandidates(long startTime) {

@@ -31,16 +31,20 @@ public class SimpleRecoveryHandler implements RecoveryHandler {
 
     private final Clock clock;
 
+    private final long recoveryDelayMillis;
+
     public SimpleRecoveryHandler(@NotNull DocumentStore store,
-                                 @NotNull Clock clock) {
+                                 @NotNull Clock clock,
+                                 long recoveryDelayMillis) {
         this.store = checkNotNull(store);
         this.clock = checkNotNull(clock);
+        this.recoveryDelayMillis = recoveryDelayMillis;
     }
 
     @Override
     public boolean recover(int clusterId) {
         // simulate recovery by acquiring recovery lock
-        RecoveryLock lock = new RecoveryLock(store, clock, clusterId);
+        RecoveryLock lock = new RecoveryLock(store, clock, recoveryDelayMillis, clusterId);
         if (lock.acquireRecoveryLock(clusterId)) {
             lock.releaseRecoveryLock(true);
             return true;

@@ -108,7 +108,7 @@ public class RDBDocumentNodeStoreBuilder
     public MissingLastRevSeeker createMissingLastRevSeeker() {
         final DocumentStore store = getDocumentStore();
         if (store instanceof RDBDocumentStore) {
-            return new RDBMissingLastRevSeeker((RDBDocumentStore) store, getClock());
+            return new RDBMissingLastRevSeeker((RDBDocumentStore) store, getClock(), getRecoveryDelayMillis());
         } else {
             return super.createMissingLastRevSeeker();
         }

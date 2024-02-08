@@ -101,7 +101,7 @@ public class LastRevRecoveryAgent {
 
     public LastRevRecoveryAgent(DocumentStore store, RevisionContext context) {
         this(store, context,
-                new MissingLastRevSeeker(store, context.getClock()),
+                new MissingLastRevSeeker(store, context.getClock(), context.getRecoveryDelayMillis()),
                 i -> {});
     }
 
@@ -154,7 +154,7 @@ public class LastRevRecoveryAgent {
                 // we want to acquire. Then it's fine to go ahead with
                 // an expired lease.
                 ClusterNodeInfoDocument me = missingLastRevUtil.getClusterNodeInfo(revisionContext.getClusterId());
-                if (me != null && me.isRecoveryNeeded(now)) {
+                if (me != null && me.isRecoveryNeeded(now, revisionContext.getRecoveryDelayMillis())) {
                     String msg = String.format(
                             "Own clusterId %s has a leaseEnd %s (%s) older than current time %s (%s). " +
                                     "Refusing to run recovery on clusterId %s.",
@@ -166,7 +166,7 @@ public class LastRevRecoveryAgent {
             }
             // Check if _lastRev recovery needed for this cluster node
             // state is Active && current time past leaseEnd
-            if (nodeInfo.isRecoveryNeeded(now)) {
+            if (nodeInfo.isRecoveryNeeded(now, revisionContext.getRecoveryDelayMillis())) {
                 // retrieve the root document's _lastRev
                 NodeDocument root = missingLastRevUtil.getRoot();
                 Revision lastRev = root.getLastRev().get(clusterId);
@@ -279,8 +279,8 @@ public class LastRevRecoveryAgent {
             // sweep revision. Initial sweep is not the responsibility
             // of the recovery agent.
             final RevisionContext context = new RecoveryContext(rootDoc,
-                    revisionContext.getClock(), clusterId,
-                    revisionContext::getCommitValue);
+                    revisionContext.getClock(), revisionContext.getRecoveryDelayMillis(),
+                    clusterId, revisionContext::getCommitValue);
             final NodeDocumentSweeper sweeper = new NodeDocumentSweeper(context, true);
             // make sure recovery does not run on stale cache
             // invalidate all suspects (OAK-9908)
@@ -668,7 +668,7 @@ public class LastRevRecoveryAgent {
                         "for id %d", clusterId);
                 throw new DocumentStoreException(msg);
             }
-            if (!infoDoc.isRecoveryNeeded(clock.getTime())) {
+            if (!infoDoc.isRecoveryNeeded(clock.getTime(), revisionContext.getRecoveryDelayMillis())) {
                 // meanwhile another process finished recovery
                 return 0;
             }
@@ -766,7 +766,8 @@ public class LastRevRecoveryAgent {
             @Override
             public boolean apply(ClusterNodeInfoDocument input) {
                 return revisionContext.getClusterId() != input.getClusterId()
-                        && input.isRecoveryNeeded(revisionContext.getClock().getTime());
+                        && input.isRecoveryNeeded(revisionContext.getClock().getTime(),
+                                revisionContext.getRecoveryDelayMillis());
             }
         }), ClusterNodeInfoDocument::getClusterId);
     }

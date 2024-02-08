@@ -68,6 +68,11 @@ public final class RevisionContextWrapper implements RevisionContext {
     }
 
     @Override
+    public long getRecoveryDelayMillis() {
+        return context.getRecoveryDelayMillis();
+    }
+
+    @Override
     public String getCommitValue(@NotNull Revision revision,
                                  @NotNull NodeDocument nodeDocument) {
         return context.getCommitValue(revision, nodeDocument);

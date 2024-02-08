@@ -34,6 +34,7 @@ import java.util.Set;
 
 import org.apache.jackrabbit.oak.commons.junit.LogCustomizer;
 import org.apache.jackrabbit.oak.plugins.document.AbstractDocumentStoreTest;
+import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
@@ -51,6 +52,8 @@ import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
+
+    private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
 
     public RDBDocumentStoreTest(DocumentStoreFixture dsf) {
         super(dsf);
@@ -212,7 +215,7 @@ public class RDBDocumentStoreTest extends AbstractDocumentStoreTest {
 
             Set<String> ids = Sets.newHashSet();
             boolean updated = false;
-            MissingLastRevSeeker seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) ds, Clock.SIMPLE);
+            MissingLastRevSeeker seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) ds, Clock.SIMPLE, recoveryDelayMillis);
             for (NodeDocument doc : seeker.getCandidates(0)) {
                 if (!updated) {
                     // as soon as we have the first document, update

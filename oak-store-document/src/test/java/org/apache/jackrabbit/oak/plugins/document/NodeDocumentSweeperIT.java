@@ -48,6 +48,8 @@ public class NodeDocumentSweeperIT extends AbstractTwoNodeTest {
 
     private LastRevRecoveryAgent agent2;
 
+    private long recoveryDelayMillis;
+
     public NodeDocumentSweeperIT(DocumentStoreFixture fixture) {
         super(fixture);
     }
@@ -64,12 +66,13 @@ public class NodeDocumentSweeperIT extends AbstractTwoNodeTest {
 
     @Before
     public void prepareAgent() {
+        recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
         // first setup seeker according to underlying document store implementation
         MissingLastRevSeeker seeker;
         if (store2 instanceof MongoDocumentStore) {
-            seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store2, clock);
+            seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store2, clock, recoveryDelayMillis);
         } else if (store2 instanceof RDBDocumentStore) {
-            seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) store2, clock) {
+            seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) store2, clock, recoveryDelayMillis) {
                 @Override
                 public @NotNull Iterable<NodeDocument> getCandidates(long startTime) {
                     List<NodeDocument> docs = new ArrayList<>();
@@ -80,11 +83,11 @@ public class NodeDocumentSweeperIT extends AbstractTwoNodeTest {
             };
         } else {
             // use default implementation
-            seeker = new MissingLastRevSeeker(store2, clock);
+            seeker = new MissingLastRevSeeker(store2, clock, recoveryDelayMillis);
         }
         // then customize seeker to return documents in a defined order
         // return docs sorted by decreasing depth
-        MissingLastRevSeeker testSeeker = new MissingLastRevSeeker(store2, clock) {
+        MissingLastRevSeeker testSeeker = new MissingLastRevSeeker(store2, clock, recoveryDelayMillis) {
             @Override
             public @NotNull Iterable<NodeDocument> getCandidates(long startTime) {
                 List<NodeDocument> docs = new ArrayList<>();

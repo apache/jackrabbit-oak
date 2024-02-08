@@ -192,7 +192,7 @@ public abstract class MongoDocumentNodeStoreBuilderBase<T extends MongoDocumentN
     public MissingLastRevSeeker createMissingLastRevSeeker() {
         final DocumentStore store = getDocumentStore();
         if (store instanceof MongoDocumentStore) {
-            return new MongoMissingLastRevSeeker((MongoDocumentStore) store, getClock());
+            return new MongoMissingLastRevSeeker((MongoDocumentStore) store, getClock(), getRecoveryDelayMillis());
         } else {
             return super.createMissingLastRevSeeker();
         }
