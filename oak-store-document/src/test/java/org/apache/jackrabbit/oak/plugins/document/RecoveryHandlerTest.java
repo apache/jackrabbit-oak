@@ -35,9 +35,10 @@ public class RecoveryHandlerTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     private Clock clock = new Clock.Virtual();
+    private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
     private FailingDocumentStore store = new FailingDocumentStore(new MemoryDocumentStore());
-    private MissingLastRevSeeker seeker = new MissingLastRevSeeker(store, clock);
-    private RecoveryHandler handler = new RecoveryHandlerImpl(store, clock, seeker);
+    private MissingLastRevSeeker seeker = new MissingLastRevSeeker(store, clock, recoveryDelayMillis);
+    private RecoveryHandler handler = new RecoveryHandlerImpl(store, clock, recoveryDelayMillis, seeker);
 
     @Before
     public void before() throws Exception {

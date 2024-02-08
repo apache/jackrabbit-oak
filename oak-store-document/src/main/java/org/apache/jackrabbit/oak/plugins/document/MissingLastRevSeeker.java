@@ -44,9 +44,12 @@ public class MissingLastRevSeeker {
 
     protected final Clock clock;
 
-    public MissingLastRevSeeker(DocumentStore store, Clock clock) {
+    private final long recoveryDelayMillis;
+
+    public MissingLastRevSeeker(DocumentStore store, Clock clock, long recoveryDelayMillis) {
         this.store = store;
         this.clock = clock;
+        this.recoveryDelayMillis = recoveryDelayMillis;
     }
 
     /**
@@ -105,7 +108,7 @@ public class MissingLastRevSeeker {
      * @return whether the lock has been acquired
      */
     public boolean acquireRecoveryLock(int clusterId, int recoveredBy) {
-        return new RecoveryLock(store, clock, clusterId)
+        return new RecoveryLock(store, clock, recoveryDelayMillis, clusterId)
                 .acquireRecoveryLock(recoveredBy);
     }
 
@@ -121,7 +124,7 @@ public class MissingLastRevSeeker {
      * @param success whether recovery was successful.
      */
     public void releaseRecoveryLock(int clusterId, boolean success) {
-        new RecoveryLock(store, clock, clusterId).releaseRecoveryLock(success);
+        new RecoveryLock(store, clock, recoveryDelayMillis, clusterId).releaseRecoveryLock(success);
     }
 
     public NodeDocument getRoot() {
@@ -139,7 +142,7 @@ public class MissingLastRevSeeker {
     public boolean isRecoveryNeeded() {
         long now = clock.getTime();
         return StreamSupport.stream(getAllClusters().spliterator(), false)
-                .anyMatch(info -> info != null && info.isRecoveryNeeded(now));
+                .anyMatch(info -> info != null && info.isRecoveryNeeded(now, recoveryDelayMillis));
     }
 
     /**
@@ -149,6 +152,6 @@ public class MissingLastRevSeeker {
      *          instead.
      */
     public boolean isRecoveryNeeded(@NotNull ClusterNodeInfoDocument nodeInfo) {
-        return nodeInfo.isRecoveryNeeded(clock.getTime());
+        return nodeInfo.isRecoveryNeeded(clock.getTime(), recoveryDelayMillis);
     }
 }

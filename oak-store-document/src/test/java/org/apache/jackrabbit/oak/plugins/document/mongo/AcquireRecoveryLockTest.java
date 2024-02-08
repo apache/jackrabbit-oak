@@ -41,6 +41,8 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
 
     private Clock clock = new Clock.Virtual();
 
+    private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
+
     private MongoDocumentStore store;
 
     @Before
@@ -72,7 +74,7 @@ public class AcquireRecoveryLockTest extends AbstractMongoConnectionTest {
     // OAK-4131
     @Test
     public void recoveryBy() throws Exception {
-        MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store, getTestClock());
+        MongoMissingLastRevSeeker seeker = new MongoMissingLastRevSeeker(store, getTestClock(), recoveryDelayMillis);
         List<ClusterNodeInfoDocument> infoDocs = newArrayList(seeker.getAllClusters());
         assertEquals(1, infoDocs.size());
         int clusterId = infoDocs.get(0).getClusterId();

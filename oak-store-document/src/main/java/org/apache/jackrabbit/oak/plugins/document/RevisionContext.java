@@ -60,6 +60,11 @@ public interface RevisionContext {
     Clock getClock();
 
     /**
+     * @return the time in millis by which a recovery should be delayed.
+     */
+    long getRecoveryDelayMillis();
+
+    /**
      * Retrieves the commit value for a given change. This method returns the
      * following types of commit values:
      * <ul>

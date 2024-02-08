@@ -28,6 +28,7 @@ final class RecoveryContext implements RevisionContext {
 
     private final NodeDocument root;
     private final Clock clock;
+    private final long recoveryDelayMillis;
     private final int clusterId;
     private final CommitValueResolver resolver;
 
@@ -41,10 +42,12 @@ final class RecoveryContext implements RevisionContext {
      */
     RecoveryContext(NodeDocument root,
                     Clock clock,
+                    long recoveryDelayMillis,
                     int clusterId,
                     CommitValueResolver resolver) {
         this.root = root;
         this.clock = clock;
+        this.recoveryDelayMillis = recoveryDelayMillis;
         this.clusterId = clusterId;
         this.resolver = resolver;
     }
@@ -83,6 +86,11 @@ final class RecoveryContext implements RevisionContext {
     @Override
     public Clock getClock() {
         return clock;
+    }
+
+    @Override
+    public long getRecoveryDelayMillis() {
+        return recoveryDelayMillis;
     }
 
     @Nullable

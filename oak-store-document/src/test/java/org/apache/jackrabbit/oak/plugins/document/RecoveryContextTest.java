@@ -33,10 +33,24 @@ public class RecoveryContextTest {
         int clusterId = 1;
 
         RevisionContext context = new RecoveryContext(doc, Clock.SIMPLE,
+                ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS,
                 clusterId, (r, d) -> null);
         assertEquals(clusterId, context.getClusterId());
+        assertEquals(ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS, context.getRecoveryDelayMillis());
         assertEquals(0, context.getBranches().size());
         assertThat(context.getPendingModifications().getPaths(), empty());
         assertEquals(clusterId, context.newRevision().getClusterId());
+    }
+
+    @Test
+    public void recoveryDelay() {
+        DocumentStore store = new MemoryDocumentStore();
+        NodeDocument doc = new NodeDocument(store);
+        int clusterId = 1;
+
+        RevisionContext context = new RecoveryContext(doc, Clock.SIMPLE,
+                42,
+                clusterId, (r, d) -> null);
+        assertEquals(42, context.getRecoveryDelayMillis());
     }
 }

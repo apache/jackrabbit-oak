@@ -57,6 +57,7 @@ public class LastRevRecoveryTest {
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
 
     private Clock clock;
+    private long recoveryDelayMillis;
     private DocumentNodeStore ds1;
     private DocumentNodeStore ds2;
     private int c1Id;
@@ -69,6 +70,7 @@ public class LastRevRecoveryTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
+        recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
         // disable lease check because we fiddle with the virtual clock
         final LeaseCheckMode leaseCheck = LeaseCheckMode.DISABLED;
         sharedStore = new MemoryDocumentStore();
@@ -194,7 +196,7 @@ public class LastRevRecoveryTest {
         clock.waitUntil(doc.getLeaseEndTime() + 1);
 
         // simulate ongoing recovery by cluster node 2
-        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock);
+        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock, recoveryDelayMillis);
         seeker.acquireRecoveryLock(c1Id, c2Id);
 
         // run recovery from ds1
@@ -229,7 +231,7 @@ public class LastRevRecoveryTest {
         assertTrue(ds2.getClusterInfo().renewLease());
 
         // simulate ongoing recovery by cluster node 2
-        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock);
+        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock, recoveryDelayMillis);
         assertTrue(seeker.acquireRecoveryLock(c1Id, c2Id));
 
         // attempt to restart ds1 while lock is acquired
@@ -269,7 +271,7 @@ public class LastRevRecoveryTest {
         ds2.getClusterInfo().renewLease();
 
         // start of recovery by ds2
-        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock);
+        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock, ds1.getRecoveryDelayMillis());
         assertTrue(seeker.acquireRecoveryLock(c1Id, c2Id));
         // simulate crash of ds2
         ClusterNodeInfoDocument info2 = sharedStore.find(CLUSTER_NODES, String.valueOf(c2Id));
@@ -283,7 +285,7 @@ public class LastRevRecoveryTest {
 
         info1 = sharedStore.find(CLUSTER_NODES, clusterId);
         assertNotNull(info1);
-        assertTrue(info1.isRecoveryNeeded(clock.getTime()));
+        assertTrue(info1.isRecoveryNeeded(clock.getTime(), ds1.getRecoveryDelayMillis()));
         assertTrue(info1.isBeingRecovered());
 
         // restart ds1
@@ -296,7 +298,7 @@ public class LastRevRecoveryTest {
                 .getNodeStore();
         info1 = sharedStore.find(CLUSTER_NODES, clusterId);
         assertNotNull(info1);
-        assertFalse(info1.isRecoveryNeeded(clock.getTime()));
+        assertFalse(info1.isRecoveryNeeded(clock.getTime(), ds1.getRecoveryDelayMillis()));
         assertFalse(info1.isBeingRecovered());
     }
 
@@ -360,7 +362,7 @@ public class LastRevRecoveryTest {
         // simulate a startup with self-recovery by acquiring the clusterId
         // this will call the recovery handler because the lease is expired
         // use a seeker that takes longer than the lease duration
-        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock) {
+        MissingLastRevSeeker seeker = new MissingLastRevSeeker(sharedStore, clock, recoveryDelayMillis) {
             @Override
             public boolean acquireRecoveryLock(int clusterId, int recoveredBy) {
                 assertTrue(super.acquireRecoveryLock(clusterId, recoveredBy));
@@ -375,7 +377,7 @@ public class LastRevRecoveryTest {
             }
         };
         RecoveryHandler recoveryHandler = new RecoveryHandlerImpl(
-                sharedStore, clock, seeker);
+                sharedStore, clock, recoveryDelayMillis, seeker);
         try {
             // Explicitly acquiring the clusterId must fail
             // when it takes too long to recover

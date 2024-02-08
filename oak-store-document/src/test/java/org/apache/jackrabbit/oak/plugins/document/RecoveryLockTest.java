@@ -51,10 +51,12 @@ public class RecoveryLockTest {
 
     private Clock clock = new Clock.Virtual();
 
+    private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
+
     private ExecutorService executor = Executors.newCachedThreadPool();
 
-    private RecoveryLock lock1 = new RecoveryLock(store, clock, 1);
-    private RecoveryLock lock2 = new RecoveryLock(store, clock, 2);
+    private RecoveryLock lock1 = new RecoveryLock(store, clock, recoveryDelayMillis, 1);
+    private RecoveryLock lock2 = new RecoveryLock(store, clock, recoveryDelayMillis, 2);
 
     private ClusterNodeInfo info1;
 
@@ -143,8 +145,8 @@ public class RecoveryLockTest {
         // expire clusterId 1
         clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);
         ClusterNodeInfoDocument c = infoDocument(1);
-        MissingLastRevSeeker seeker = new MissingLastRevSeeker(store, clock);
-        assertTrue(c.isRecoveryNeeded(clock.getTime()));
+        MissingLastRevSeeker seeker = new MissingLastRevSeeker(store, clock, recoveryDelayMillis);
+        assertTrue(c.isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
         assertFalse(c.isBeingRecovered());
 
         Semaphore recovering = new Semaphore(0);
@@ -163,7 +165,7 @@ public class RecoveryLockTest {
 
         // check state again
         c = infoDocument(1);
-        assertTrue(c.isRecoveryNeeded(clock.getTime()));
+        assertTrue(c.isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
         assertTrue(c.isBeingRecovered());
         assertTrue(c.isBeingRecoveredBy(1));
         // clusterId 2 must not be able to acquire (break) the recovery lock
@@ -176,7 +178,7 @@ public class RecoveryLockTest {
 
         // check state again
         c = infoDocument(1);
-        assertFalse(c.isRecoveryNeeded(clock.getTime()));
+        assertFalse(c.isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
         assertFalse(c.isBeingRecovered());
         assertFalse(c.isBeingRecoveredBy(1));
 
@@ -194,7 +196,7 @@ public class RecoveryLockTest {
 
         info1 = ClusterNodeInfo.getInstance(store, RecoveryHandler.NOOP,
                 null, "node1", 1);
-        RecoveryLock recLock = new RecoveryLock(store, clock, 1);
+        RecoveryLock recLock = new RecoveryLock(store, clock, recoveryDelayMillis, 1);
 
         // expire clusterId 1
         clock.waitUntil(info1.getLeaseEndTime() + DEFAULT_LEASE_UPDATE_INTERVAL_MILLIS);

@@ -727,7 +727,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     }
 
     public MissingLastRevSeeker createMissingLastRevSeeker() {
-        return new MissingLastRevSeeker(getDocumentStore(), getClock());
+        return new MissingLastRevSeeker(getDocumentStore(), getClock(), getRecoveryDelayMillis());
     }
 
     public Cache<PathRev, DocumentNodeState> buildNodeCache(DocumentNodeStore store) {

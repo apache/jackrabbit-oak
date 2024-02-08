@@ -238,14 +238,7 @@ public class ClusterNodeInfo {
     static final int DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS = 0;
 
     /** OAK-10281 : default millis to delay a recovery after a lease timeout */
-    static final long DEFAULT_RECOVERY_DELAY_MILLIS = 0;
-
-    /**
-     * Actual millis to delay a recovery after a lease timeout.
-     * <p>
-     * Initialized by DocumentNodeStore constructor.
-     */
-    static long recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
+    public static final long DEFAULT_RECOVERY_DELAY_MILLIS = 0;
 
     /**
      * The Oak version.
@@ -476,7 +469,8 @@ public class ClusterNodeInfo {
                                               int configuredClusterId,
                                               boolean invisible) {
         return getInstance(store, recoveryHandler, machineId, instanceId, configuredClusterId,
-                invisible, DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS);
+                invisible, DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS,
+                DEFAULT_RECOVERY_DELAY_MILLIS);
     }
 
     /**
@@ -496,7 +490,8 @@ public class ClusterNodeInfo {
                                               String instanceId,
                                               int configuredClusterId,
                                               boolean invisible,
-                                              long reuseAfterRecoveryMillis) {
+                                              long reuseAfterRecoveryMillis,
+                                              long recoveryDelayMillis) {
         // defaults for machineId and instanceID
         if (machineId == null) {
             machineId = MACHINE_ID;
@@ -509,7 +504,8 @@ public class ClusterNodeInfo {
         for (int i = 0; i < retries; i++) {
             Map.Entry<ClusterNodeInfo, Long> suggestedClusterNode =
                     createInstance(store, recoveryHandler, machineId,
-                            instanceId, configuredClusterId, i == 0, invisible, reuseAfterRecoveryMillis);
+                            instanceId, configuredClusterId, i == 0, invisible,
+                            reuseAfterRecoveryMillis, recoveryDelayMillis);
             ClusterNodeInfo clusterNode = suggestedClusterNode.getKey();
             Long currentStartTime = suggestedClusterNode.getValue();
             String key = String.valueOf(clusterNode.id);
@@ -565,7 +561,8 @@ public class ClusterNodeInfo {
                                                                    int configuredClusterId,
                                                                    boolean waitForLease,
                                                                    boolean invisible,
-                                                                   long reuseAfterRecoveryMillis) {
+                                                                   long reuseAfterRecoveryMillis,
+                                                                   long recoveryDelayMillis) {
 
         long now = getCurrentTime();
         int maxId = 0;
@@ -616,7 +613,7 @@ public class ClusterNodeInfo {
             // -> potentially wait for lease if machine and instance id match
             if (leaseEnd != null
                     && leaseEnd > now
-                    && !doc.isRecoveryNeeded(now)) {
+                    && !doc.isRecoveryNeeded(now, recoveryDelayMillis)) {
                 // wait if (a) instructed to, and (b) also the remaining time
                 // time is not much bigger than the lease interval (in which
                 // case something is very very wrong anyway)
@@ -624,7 +621,9 @@ public class ClusterNodeInfo {
                         && iId.equals(instanceId)) {
                     boolean worthRetrying = waitForLeaseExpiry(store, doc, leaseEnd, machineId, instanceId);
                     if (worthRetrying) {
-                        return createInstance(store, recoveryHandler, machineId, instanceId, configuredClusterId, false, invisible, reuseAfterRecoveryMillis);
+                        return createInstance(store, recoveryHandler, machineId,
+                                instanceId, configuredClusterId, false, invisible,
+                                reuseAfterRecoveryMillis, recoveryDelayMillis);
                     }
                 }
 
@@ -636,7 +635,7 @@ public class ClusterNodeInfo {
             // if we get here the clusterId either:
             // 1) is inactive
             // 2) needs recovery
-            if (doc.isRecoveryNeeded(now)) {
+            if (doc.isRecoveryNeeded(now, recoveryDelayMillis)) {
                 if (mId.equals(machineId) && iId.equals(instanceId)) {
                     // this id matches our environment and has an expired lease
                     // use it after a successful recovery
@@ -1233,19 +1232,6 @@ public class ClusterNodeInfo {
      */
     static void resetClockToDefault() {
         clock = Clock.SIMPLE;
-    }
-
-    static long getRecoveryDelayMillis() {
-        return recoveryDelayMillis;
-    }
-
-    static void setRecoveryDelayMillis(long recoveryDelayMillis) {
-        ClusterNodeInfo.recoveryDelayMillis = recoveryDelayMillis;
-    }
-
-    /** <b>only used for testing</b> **/
-    static void resetRecoveryDelayMillisToDefault() {
-        recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
     }
 
     private static long getProcessId() {

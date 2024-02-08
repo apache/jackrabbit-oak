@@ -105,10 +105,12 @@ public class ClusterNodeInfoDocument extends Document {
      * </ul>
      * @param currentTimeMillis the current time in milliseconds since the start
      *                          start of the epoch.
+     * @param recoveryDelayMillis the configured time in millis which a recovery
+     *                            should be delayed by.
      */
-    public boolean isRecoveryNeeded(long currentTimeMillis) {
+    public boolean isRecoveryNeeded(long currentTimeMillis, long recoveryDelayMillis) {
         return isActive() &&
-                (currentTimeMillis - getLeaseEndTime() > ClusterNodeInfo.getRecoveryDelayMillis() ||
+                (currentTimeMillis - getLeaseEndTime() > recoveryDelayMillis ||
                         isBeingRecovered());
     }
 

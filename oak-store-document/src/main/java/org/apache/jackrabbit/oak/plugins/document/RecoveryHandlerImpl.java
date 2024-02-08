@@ -41,13 +41,16 @@ class RecoveryHandlerImpl implements RecoveryHandler {
 
     private final DocumentStore store;
     private final Clock clock;
+    private final long recoveryDelayMillis;
     private final MissingLastRevSeeker lastRevSeeker;
 
     RecoveryHandlerImpl(DocumentStore store,
                         Clock clock,
+                        long recoveryDelayMillis,
                         MissingLastRevSeeker lastRevSeeker) {
         this.store = store;
         this.clock = clock;
+        this.recoveryDelayMillis = recoveryDelayMillis;
         this.lastRevSeeker = lastRevSeeker;
     }
 
@@ -66,7 +69,7 @@ class RecoveryHandlerImpl implements RecoveryHandler {
         NodeDocument root = Utils.getRootDocument(store);
         // prepare a context for recovery
         RevisionContext context = new RecoveryContext(
-                root, clock, clusterId,
+                root, clock, recoveryDelayMillis, clusterId,
                 new CachingCommitValueResolver(COMMIT_VALUE_CACHE_SIZE, root::getSweepRevisions));
         LastRevRecoveryAgent agent = new LastRevRecoveryAgent(
                 store, context, lastRevSeeker, id -> {});

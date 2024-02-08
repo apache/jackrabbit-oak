@@ -45,6 +45,7 @@ import static org.junit.Assert.assertTrue;
 public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
 
     private Clock clock;
+    private long recoveryDelayMillis;
     private DocumentStore store;
     private MissingLastRevSeeker seeker;
 
@@ -58,13 +59,14 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         ClusterNodeInfo.setClock(clock);
+        recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
         store = ds;
         if (dsf == DocumentStoreFixture.MONGO) {
-            seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store, clock);
+            seeker = new MongoMissingLastRevSeeker((MongoDocumentStore) store, clock, recoveryDelayMillis);
         } else if (store instanceof RDBDocumentStore) {
-            seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) store, clock);
+            seeker = new RDBMissingLastRevSeeker((RDBDocumentStore) store, clock, recoveryDelayMillis);
         } else {
-            seeker = new MissingLastRevSeeker(store, clock);
+            seeker = new MissingLastRevSeeker(store, clock, recoveryDelayMillis);
         }
         removeMeClusterNodes.add("1");
         removeMeClusterNodes.add("2");
@@ -141,7 +143,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         assertFalse(getClusterNodeInfo(1).isBeingRecovered());
         assertFalse(getClusterNodeInfo(1).isActive());
         // recovery not needed anymore
-        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
         assertFalse(seeker.acquireRecoveryLock(1, 2));
     }
 
@@ -158,7 +160,7 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         assertFalse(getClusterNodeInfo(1).isBeingRecovered());
         assertTrue(getClusterNodeInfo(1).isActive());
         // recovery still needed
-        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
         assertTrue(seeker.acquireRecoveryLock(1, 2));
     }
 
@@ -171,15 +173,15 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         ClusterNodeInfo.getInstance(store, NOOP, null, null, 2);
 
         assertTrue(seeker.isRecoveryNeeded());
-        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
-        assertFalse(getClusterNodeInfo(2).isRecoveryNeeded(clock.getTime()));
+        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
+        assertFalse(getClusterNodeInfo(2).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
 
         assertTrue(seeker.acquireRecoveryLock(1, 2));
         seeker.releaseRecoveryLock(1, true);
 
         assertFalse(seeker.isRecoveryNeeded());
-        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
-        assertFalse(getClusterNodeInfo(2).isRecoveryNeeded(clock.getTime()));
+        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
+        assertFalse(getClusterNodeInfo(2).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
     }
 
     @Test
@@ -193,12 +195,12 @@ public class MissingLastRevSeekerTest extends AbstractDocumentStoreTest {
         assertTrue(seeker.acquireRecoveryLock(1, 2));
 
         assertTrue(seeker.isRecoveryNeeded());
-        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+        assertTrue(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
 
         seeker.releaseRecoveryLock(1, true);
 
         assertFalse(seeker.isRecoveryNeeded());
-        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime()));
+        assertFalse(getClusterNodeInfo(1).isRecoveryNeeded(clock.getTime(), recoveryDelayMillis));
     }
 
 

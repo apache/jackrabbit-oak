@@ -45,6 +45,8 @@ class RecoveryLock {
 
     private final int clusterId;
 
+    private final long recoveryDelayMillis;
+
     /**
      * Prepare a recovery lock on the document store for an entry with the given
      * {@code clusterId}. Constructing the lock does not check whether an entry
@@ -54,9 +56,10 @@ class RecoveryLock {
      * @param clock the clock used to check whether an entry's lease expired.
      * @param clusterId the {@code clusterId} this lock is created for.
      */
-    RecoveryLock(DocumentStore store, Clock clock, int clusterId) {
+    RecoveryLock(DocumentStore store, Clock clock, long recoveryDelayMillis, int clusterId) {
         this.store = store;
         this.clock = clock;
+        this.recoveryDelayMillis = recoveryDelayMillis;
         this.clusterId = clusterId;
     }
 
@@ -75,7 +78,7 @@ class RecoveryLock {
             // this is unexpected...
             return false;
         }
-        if (!doc.isRecoveryNeeded(clock.getTime())) {
+        if (!doc.isRecoveryNeeded(clock.getTime(), recoveryDelayMillis)) {
             return false;
         }
         if (tryAcquireRecoveryLock(doc, recoveredBy)) {
