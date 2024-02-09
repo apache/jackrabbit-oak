@@ -26,6 +26,8 @@ import javax.jcr.Session;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
 import org.junit.Test;
 
+import java.util.UUID;
+
 /**
  * Test nodes with many child nodes.
  */
@@ -76,5 +78,19 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
         test.addNode("node-x");
         writer.save();
         assertTrue(test.hasNode("node-x"));
+    }
+
+    @Test
+    public void moveOrderableWithManyChildren() throws Exception {
+        int max = 100;
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test-0", "nt:unstructured");
+        session.save();
+        for (int k = 0; k < max; k++) {
+            Node node = test.addNode(UUID.randomUUID().toString(), "nt:unstructured");
+            test.orderBefore(node.getName(), null);
+            session.move("/test-" + k, "/test-" + (k + 1));
+        }
+        session.save();
     }
 }
