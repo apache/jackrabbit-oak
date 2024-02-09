@@ -284,6 +284,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         return false;
     }
 
+    @Override
     public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Supplier<Iterable<String>> mixinTypes, @NotNull String nodeTypeName) {
         // shortcut
         if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
