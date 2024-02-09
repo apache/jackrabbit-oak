@@ -87,7 +87,7 @@ public interface EffectiveNodeTypeProvider {
      * @deprecated use {@link #isNodeType(String, Supplier, String)} instead
      */
     default boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
-        return isNodeType(primaryTypeName,() -> mixinTypes, nodeTypeName);
+        return isNodeType(primaryTypeName, () -> mixinTypes, nodeTypeName);
     }
 
     /**
