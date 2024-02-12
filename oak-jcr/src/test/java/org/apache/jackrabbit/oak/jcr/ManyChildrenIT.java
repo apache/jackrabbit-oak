@@ -82,12 +82,16 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
 
     @Test
     public void moveOrderableWithManyChildren() throws Exception {
+        StringBuilder prefix = new StringBuilder("");
+        for (int k = 0; k < 100000; k++) {
+            prefix.append("0123456789");
+        }
         int max = 100;
         Session session = getAdminSession();
         Node test = session.getRootNode().addNode("test-0", "nt:unstructured");
         session.save();
         for (int k = 0; k < max; k++) {
-            Node node = test.addNode(UUID.randomUUID().toString(), "nt:unstructured");
+            Node node = test.addNode(prefix.toString() + k, "nt:unstructured");
             test.orderBefore(node.getName(), null);
             session.move("/test-" + k, "/test-" + (k + 1));
         }
