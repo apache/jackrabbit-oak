@@ -26,12 +26,14 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -204,6 +206,73 @@ public class Utils {
             size = Integer.MAX_VALUE;
         }
         return (int) size;
+    }
+
+    public static String mapEntryDiagnostics(@NotNull Set<Entry<String, Object>> entries) {
+        StringBuilder t = new StringBuilder();
+        Map<String, Map.Entry<Integer, Long>> stats = new TreeMap<>();
+
+        for (Map.Entry<String, Object> member : entries) {
+            String key = member.getKey();
+            Integer count = 0;
+            Long size = 0L;
+
+            Map.Entry<Integer, Long> stat = stats.get(key);
+            if (stat != null) {
+                count = stat.getKey();
+                size = stat.getValue();
+            }
+
+            Object o = member.getValue();
+            if (o instanceof String) {
+                size += StringUtils.estimateMemoryUsage((String) o);
+                count += 1;
+            } else if (o instanceof Long) {
+                size += 16;
+                count += 1;
+            } else if (o instanceof Boolean) {
+                size += 8;
+                count += 1;
+            } else if (o instanceof Integer) {
+                size += 8;
+                count += 1;
+            } else if (o instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<Object, Object> x = (Map<Object, Object>)o;
+                size += 8 + (long)Utils.estimateMemoryUsage(x);
+                count += x.size();
+            } else if (o == null) {
+                // zero
+            } else {
+                throw new IllegalArgumentException("Can't estimate memory usage of " + o);
+            }
+
+            stats.put(key, Map.entry(count, size));
+        }
+
+        List<Map.Entry<String, Map.Entry<Integer, Long>>> sorted = new ArrayList<Entry<String, Entry<Integer, Long>>>(stats.entrySet());
+
+        // sort by estimated entry size, highest first
+        Collections.sort(sorted, new Comparator<Map.Entry<String, Map.Entry<Integer, Long>>>() {
+            @Override
+            public int compare(Entry<String, Entry<Integer, Long>> o1, Entry<String, Entry<Integer, Long>> o2) {
+                return o2.getValue().getValue().compareTo(o1.getValue().getValue());
+            }
+        });
+
+        String sep = "";
+        for (Map.Entry<String, Map.Entry<Integer, Long>> member : sorted) {
+            t.append(sep + member.getKey() + ": ");
+            sep = ", ";
+            if (member.getValue().getKey() <= 1) {
+                t.append(member.getValue().getValue() + " bytes");
+            } else {
+                t.append(member.getValue().getValue() + " bytes in " + member.getValue().getKey() + " entries ("
+                        + member.getValue().getValue() / member.getValue().getKey() + " avg)");
+            }
+        }
+
+        return t.toString();
     }
 
     public static String escapePropertyName(String propertyName) {

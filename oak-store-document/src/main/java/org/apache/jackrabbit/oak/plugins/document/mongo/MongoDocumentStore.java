@@ -1055,6 +1055,8 @@ public class MongoDocumentStore implements DocumentStore {
         }
         final Stopwatch watch = startWatch();
         boolean newEntry = false;
+        T oldDoc = null;
+
         try {
             // get modCount of cached document
             Long modCount = null;
@@ -1122,7 +1124,8 @@ public class MongoDocumentStore implements DocumentStore {
             if (checkConditions && oldNode == null) {
                 return null;
             }
-            T oldDoc = convertFromDBObject(collection, oldNode);
+
+            oldDoc = convertFromDBObject(collection, oldNode);
             if (oldDoc != null) {
                 if (collection == Collection.NODES) {
                     NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, updateOp);
@@ -1145,8 +1148,8 @@ public class MongoDocumentStore implements DocumentStore {
             return oldDoc;
         } catch (MongoWriteException e) {
             WriteError werr = e.getError();
-            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'.",
-                    updateOp.getId(), werr.getMessage());
+            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'. Document statistics: {}.",
+                    updateOp.getId(), werr.getMessage(), produceDiagnostics(collection, updateOp.getId()), e);
             throw handleException(e, collection, updateOp.getId());
         } catch (MongoCommandException e) {
             LOG.error("Failed to update the document with Id={} with MongoCommandException message ='{}'. ",
@@ -1161,6 +1164,23 @@ public class MongoDocumentStore implements DocumentStore {
             stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection, updateOp.getId(),
                     newEntry, true, 0);
         }
+    }
+
+    private <T extends Document> String produceDiagnostics(Collection<T> col, String id) {
+        StringBuilder t = new StringBuilder();
+
+        try {
+            T doc = find(col, id);
+            if (doc != null) {
+                t.append("_id: " + doc.getId() + ", _modCount: " + doc.getModCount() + ", memory: " + doc.getMemory());
+                t.append("; Contents: ");
+                t.append(Utils.mapEntryDiagnostics(doc.entrySet()));
+            }
+        } catch (Throwable thisIsBestEffort) {
+            t.append(thisIsBestEffort.getMessage());
+        }
+
+        return t.toString();
     }
 
     /**
