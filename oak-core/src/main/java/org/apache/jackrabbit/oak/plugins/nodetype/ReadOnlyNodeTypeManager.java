@@ -26,6 +26,7 @@ import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.NODE_TYPE
 import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.REP_SUPERTYPES;
 
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -284,7 +285,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
     }
 
     @Override
-    public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) {
+    public boolean isNodeType(@Nullable String primaryTypeName, @NotNull Supplier<Iterable<String>> mixinTypes, @NotNull String nodeTypeName) {
         // shortcut
         if (JcrConstants.NT_BASE.equals(nodeTypeName)) {
             return true;
@@ -293,7 +294,7 @@ public abstract class ReadOnlyNodeTypeManager implements NodeTypeManager, Effect
         if (primaryTypeName != null && isa(types, primaryTypeName, nodeTypeName)) {
             return true;
         }
-        for (String mixin : mixinTypes) {
+        for (String mixin : mixinTypes.get()) {
             if (isa(types, mixin, nodeTypeName)) {
                 return true;
             }
