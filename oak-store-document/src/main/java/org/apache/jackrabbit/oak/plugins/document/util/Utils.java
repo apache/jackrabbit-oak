@@ -26,12 +26,14 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -204,6 +206,76 @@ public class Utils {
             size = Integer.MAX_VALUE;
         }
         return (int) size;
+    }
+
+    private static class PropertyStats {
+        public int count;
+        public int size;
+    }
+
+    public static String mapEntryDiagnostics(@NotNull Set<Entry<String, Object>> entries) {
+        StringBuilder t = new StringBuilder();
+        Map<String, PropertyStats> stats = new TreeMap<>();
+
+        for (Map.Entry<String, Object> member : entries) {
+            String key = member.getKey();
+
+            PropertyStats stat = stats.get(key);
+            if (stat == null) {
+                stat = new PropertyStats();
+            }
+
+            Object o = member.getValue();
+            if (o instanceof String) {
+                stat.size += StringUtils.estimateMemoryUsage((String) o);
+                stat.count += 1;
+            } else if (o instanceof Long) {
+                stat.size += 16;
+                stat.count += 1;
+            } else if (o instanceof Boolean) {
+                stat.size += 8;
+                stat.count += 1;
+            } else if (o instanceof Integer) {
+                stat.size += 8;
+                stat.count += 1;
+            } else if (o instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<Object, Object> x = (Map<Object, Object>)o;
+                stat.size += 8 + Utils.estimateMemoryUsage(x);
+                stat.count += x.size();
+            } else if (o == null) {
+                // zero
+            } else {
+                throw new IllegalArgumentException("Can't estimate memory usage of " + o);
+            }
+
+            stats.put(key, stat);
+        }
+
+        List<Map.Entry<String, PropertyStats>> sorted = new ArrayList<Entry<String, PropertyStats>>(stats.entrySet());
+
+        // sort by estimated entry size, highest first
+        Collections.sort(sorted, new Comparator<Map.Entry<String, PropertyStats>>() {
+            @Override
+            public int compare(Entry<String, PropertyStats> o1, Entry<String, PropertyStats> o2) {
+                return o2.getValue().size - o1.getValue().size;
+            }
+        });
+
+        String sep = "";
+        for (Map.Entry<String, PropertyStats> member : sorted) {
+            String name = member.getKey();
+            PropertyStats stat = member.getValue();
+            t.append("'" + sep + name + "': ");
+            sep = ", ";
+            if (stat.count <= 1) {
+                t.append(stat.size + " bytes");
+            } else {
+                t.append(stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)");
+            }
+        }
+
+        return t.toString();
     }
 
     public static String escapePropertyName(String propertyName) {
