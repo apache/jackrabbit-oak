@@ -208,67 +208,70 @@ public class Utils {
         return (int) size;
     }
 
+    private static class PropertyStats {
+        public int count;
+        public int size;
+    }
+
     public static String mapEntryDiagnostics(@NotNull Set<Entry<String, Object>> entries) {
         StringBuilder t = new StringBuilder();
-        Map<String, Map.Entry<Integer, Long>> stats = new TreeMap<>();
+        Map<String, PropertyStats> stats = new TreeMap<>();
 
         for (Map.Entry<String, Object> member : entries) {
             String key = member.getKey();
-            Integer count = 0;
-            Long size = 0L;
 
-            Map.Entry<Integer, Long> stat = stats.get(key);
-            if (stat != null) {
-                count = stat.getKey();
-                size = stat.getValue();
+            PropertyStats stat = stats.get(key);
+            if (stat == null) {
+                stat = new PropertyStats();
             }
 
             Object o = member.getValue();
             if (o instanceof String) {
-                size += StringUtils.estimateMemoryUsage((String) o);
-                count += 1;
+                stat.size += StringUtils.estimateMemoryUsage((String) o);
+                stat.count += 1;
             } else if (o instanceof Long) {
-                size += 16;
-                count += 1;
+                stat.size += 16;
+                stat.count += 1;
             } else if (o instanceof Boolean) {
-                size += 8;
-                count += 1;
+                stat.size += 8;
+                stat.count += 1;
             } else if (o instanceof Integer) {
-                size += 8;
-                count += 1;
+                stat.size += 8;
+                stat.count += 1;
             } else if (o instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<Object, Object> x = (Map<Object, Object>)o;
-                size += 8 + (long)Utils.estimateMemoryUsage(x);
-                count += x.size();
+                stat.size += 8 + Utils.estimateMemoryUsage(x);
+                stat.count += x.size();
             } else if (o == null) {
                 // zero
             } else {
                 throw new IllegalArgumentException("Can't estimate memory usage of " + o);
             }
 
-            stats.put(key, Map.entry(count, size));
+            stats.put(key, stat);
         }
 
-        List<Map.Entry<String, Map.Entry<Integer, Long>>> sorted = new ArrayList<Entry<String, Entry<Integer, Long>>>(stats.entrySet());
+        List<Map.Entry<String, PropertyStats>> sorted = new ArrayList<Entry<String, PropertyStats>>(stats.entrySet());
 
         // sort by estimated entry size, highest first
-        Collections.sort(sorted, new Comparator<Map.Entry<String, Map.Entry<Integer, Long>>>() {
+        Collections.sort(sorted, new Comparator<Map.Entry<String, PropertyStats>>() {
             @Override
-            public int compare(Entry<String, Entry<Integer, Long>> o1, Entry<String, Entry<Integer, Long>> o2) {
-                return o2.getValue().getValue().compareTo(o1.getValue().getValue());
+            public int compare(Entry<String, PropertyStats> o1, Entry<String, PropertyStats> o2) {
+                return o2.getValue().size - o1.getValue().size;
             }
         });
 
         String sep = "";
-        for (Map.Entry<String, Map.Entry<Integer, Long>> member : sorted) {
-            t.append(sep + member.getKey() + ": ");
+        for (Map.Entry<String, PropertyStats> member : sorted) {
+            String name = member.getKey();
+            PropertyStats stat = member.getValue();
+            t.append("'" + sep + name + "': ");
             sep = ", ";
-            if (member.getValue().getKey() <= 1) {
-                t.append(member.getValue().getValue() + " bytes");
+            if (stat.count <= 1) {
+                t.append(stat.size + " bytes");
             } else {
-                t.append(member.getValue().getValue() + " bytes in " + member.getValue().getKey() + " entries ("
-                        + member.getValue().getValue() / member.getValue().getKey() + " avg)");
+                t.append(stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)");
             }
         }
 
