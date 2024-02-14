@@ -84,6 +84,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.bson.BSONException;
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
@@ -1544,12 +1545,48 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
-        Map<String, T> docs = new HashMap<String, T>();
-        if (!keys.isEmpty()) {
-            List<Bson> conditions = new ArrayList<>(keys.size());
-            for (String key : keys) {
-                conditions.add(getByKeyQuery(key));
+        try {
+            Map<String, T> docs = new HashMap<String, T>();
+            if (!keys.isEmpty()) {
+                List<Bson> conditions = new ArrayList<>(keys.size());
+                for (String key : keys) {
+                    conditions.add(getByKeyQuery(key));
+                }
+                MongoCollection<BasicDBObject> dbCollection;
+                if (secondariesWithinAcceptableLag()) {
+                    dbCollection = getDBCollection(collection);
+                } else {
+                    lagTooHigh();
+                    dbCollection = getDBCollection(collection).withReadPreference(ReadPreference.primary());
+                }
+                execute(session -> {
+                    FindIterable<BasicDBObject> cursor;
+                    if (session != null) {
+                        cursor = dbCollection.find(session, Filters.or(conditions));
+                    } else {
+                        cursor = dbCollection.find(Filters.or(conditions));
+                    }
+                    for (BasicDBObject doc : cursor) {
+                        T foundDoc = convertFromDBObject(collection, doc);
+                        docs.put(foundDoc.getId(), foundDoc);
+                    }
+                    return null;
+                }, collection);
             }
+            return docs;
+        } catch (BSONException ex) {
+            // TODO: refactor, see OAK-10650
+            LOG.error("trying bulk find, retrying one-by-one", ex);
+            return findDocumentsOneByOne(collection, keys);
+        }
+    }
+
+    // variant of findDocuments that avoids BSON exception by iterating instead of doing a bulk operation
+    private <T extends Document> Map<String, T> findDocumentsOneByOne(Collection<T> collection, Set<String> keys) {
+        Map<String, T> docs = new HashMap<String, T>();
+        for (String key : keys) {
+            Bson condition = getByKeyQuery(key);
+
             MongoCollection<BasicDBObject> dbCollection;
             if (secondariesWithinAcceptableLag()) {
                 dbCollection = getDBCollection(collection);
@@ -1560,9 +1597,9 @@ public class MongoDocumentStore implements DocumentStore {
             execute(session -> {
                 FindIterable<BasicDBObject> cursor;
                 if (session != null) {
-                    cursor = dbCollection.find(session, Filters.or(conditions));
+                    cursor = dbCollection.find(session, condition);
                 } else {
-                    cursor = dbCollection.find(Filters.or(conditions));
+                    cursor = dbCollection.find(condition);
                 }
                 for (BasicDBObject doc : cursor) {
                     T foundDoc = convertFromDBObject(collection, doc);
@@ -1571,6 +1608,7 @@ public class MongoDocumentStore implements DocumentStore {
                 return null;
             }, collection);
         }
+
         return docs;
     }
 
