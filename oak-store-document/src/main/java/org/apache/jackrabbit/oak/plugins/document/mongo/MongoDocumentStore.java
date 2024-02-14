@@ -1056,7 +1056,6 @@ public class MongoDocumentStore implements DocumentStore {
         }
         final Stopwatch watch = startWatch();
         boolean newEntry = false;
-        T oldDoc = null;
 
         try {
             // get modCount of cached document
@@ -1126,7 +1125,7 @@ public class MongoDocumentStore implements DocumentStore {
                 return null;
             }
 
-            oldDoc = convertFromDBObject(collection, oldNode);
+            T oldDoc = convertFromDBObject(collection, oldNode);
             if (oldDoc != null) {
                 if (collection == Collection.NODES) {
                     NodeDocument newDoc = (NodeDocument) applyChanges(collection, oldDoc, updateOp);
