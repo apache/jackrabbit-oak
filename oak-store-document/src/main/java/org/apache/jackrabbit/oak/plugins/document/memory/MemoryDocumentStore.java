@@ -99,7 +99,7 @@ public class MemoryDocumentStore implements DocumentStore {
 
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
-    private static final long SIZELIMIT = SystemPropertySupplier.create("memoryds.size.limit", -1).get();
+    private static final long SIZE_LIMIT = SystemPropertySupplier.create("memoryds.size.limit", -1).get();
 
     public MemoryDocumentStore() {
         this(false);
@@ -475,12 +475,12 @@ public class MemoryDocumentStore implements DocumentStore {
     }
 
     private void checkSize(Document doc) {
-        if (SIZELIMIT >= 0) {
+        if (SIZE_LIMIT >= 0) {
             int size = doc.getMemory();
-            if (size >= SIZELIMIT) {
+            if (size >= SIZE_LIMIT) {
                 throw new DocumentStoreException(
                         String.format("Resulting size for _id '%s' is %d, exceeding configured size limit of %d. Diagnostics: %s.",
-                                doc.getId(), size, SIZELIMIT, Utils.mapEntryDiagnostics(doc.entrySet())));
+                                doc.getId(), size, SIZE_LIMIT, Utils.mapEntryDiagnostics(doc.entrySet())));
             }
         }
     }
