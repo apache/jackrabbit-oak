@@ -509,15 +509,20 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
             up.set("foo", pval);
-            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            if (success) {
-                // check that we really can read it
-                NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
-                assertNotNull("failed to retrieve previously stored document", findme);
-                super.ds.remove(Collection.NODES, id);
-                min = test;
-                last = test;
-            } else {
+            try {
+                boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+                if (success) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    super.ds.remove(Collection.NODES, id);
+                    min = test;
+                    last = test;
+                } else {
+                    max = test;
+                }
+            } catch (DocumentStoreException ex) {
+                LOG.info("create with property size "+ test + " failed for " + super.dsname, ex);
                 max = test;
             }
         }
