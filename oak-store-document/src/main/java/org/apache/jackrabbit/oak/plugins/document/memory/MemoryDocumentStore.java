@@ -474,16 +474,6 @@ public class MemoryDocumentStore implements DocumentStore {
         return 0;
     }
 
-    private void maintainModCount(Document doc) {
-        if (maintainModCount) {
-            Long modCount = doc.getModCount();
-            if (modCount == null) {
-                modCount = 0L;
-            }
-            doc.put(Document.MOD_COUNT, modCount + 1);
-        }
-    }
-
     private void checkSize(Document doc) {
         if (SIZELIMIT >= 0) {
             int size = doc.getMemory();
@@ -492,6 +482,16 @@ public class MemoryDocumentStore implements DocumentStore {
                         String.format("Resulting size for _id '%s' is %d, exceeding configured size limit of %d. Diagnostics: %s.",
                                 doc.getId(), size, SIZELIMIT, Utils.mapEntryDiagnostics(doc.entrySet())));
             }
+        }
+    }
+
+    private void maintainModCount(Document doc) {
+        if (maintainModCount) {
+            Long modCount = doc.getModCount();
+            if (modCount == null) {
+                modCount = 0L;
+            }
+            doc.put(Document.MOD_COUNT, modCount + 1);
         }
     }
 }
