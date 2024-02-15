@@ -102,8 +102,6 @@ public abstract class SegmentCopyTestBase {
         SegmentNodeStorePersistence srcPersistence = getSrcPersistence();
         SegmentNodeStorePersistence destPersistence = getDestPersistence();
 
-        RepositoryLock destRepositoryLock = destPersistence.lockRepository();
-
         String srcPathOrUri = getSrcPathOrUri();
         String destPathOrUri = getDestPathOrUri();
 
@@ -123,8 +121,6 @@ public abstract class SegmentCopyTestBase {
         checkJournal(srcPersistence, destPersistence);
         checkGCJournal(srcPersistence, destPersistence);
         checkManifest(srcPersistence, destPersistence);
-
-        destRepositoryLock.unlock();
     }
 
     private int runSegmentCopy(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence,
