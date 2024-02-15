@@ -266,7 +266,7 @@ public class Utils {
         for (Map.Entry<String, PropertyStats> member : sorted) {
             String name = member.getKey();
             PropertyStats stat = member.getValue();
-            t.append("'" + sep + name + "': ");
+            t.append(sep + "'" + name + "': ");
             sep = ", ";
             if (stat.count <= 1) {
                 t.append(stat.size + " bytes");
