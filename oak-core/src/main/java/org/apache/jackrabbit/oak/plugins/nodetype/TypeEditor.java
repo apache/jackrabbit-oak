@@ -292,11 +292,12 @@ public class TypeEditor extends DefaultEditor {
         String primary = after.getName(JCR_PRIMARYTYPE);
         Iterable<String> mixins = after.getNames(JCR_MIXINTYPES);
 
+        final NodeBuilder childBuilder = builder.getChildNode(name);
         if (primary == null && effective != null) {
             // no primary type defined, find and apply a default type
             primary = effective.getDefaultType(name);
             if (primary != null) {
-                builder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
+                childBuilder.setProperty(JCR_PRIMARYTYPE, primary, NAME);
             } else {
                 constraintViolation(
                         4, "No default primary type available "
@@ -306,7 +307,6 @@ public class TypeEditor extends DefaultEditor {
 
         // if node type didn't change no need to validate child node
         boolean validate = primaryChanged(before, primary) || mixinsChanged(before, mixins);
-        NodeBuilder childBuilder = builder.getChildNode(name);
         TypeEditor editor = new TypeEditor(this, name, primary, mixins, childBuilder, validate);
         if (checkThisNode && validate && !effective.isValidChildNode(name, editor.getEffective())) {
             constraintViolation(
