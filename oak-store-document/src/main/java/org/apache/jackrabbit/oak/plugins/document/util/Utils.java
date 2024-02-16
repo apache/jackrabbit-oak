@@ -26,7 +26,6 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
@@ -36,11 +35,11 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
-
 import org.apache.jackrabbit.oak.commons.OakVersion;
 import org.apache.jackrabbit.oak.commons.PathUtils;
 import org.apache.jackrabbit.oak.commons.StringUtils;
@@ -213,8 +212,11 @@ public class Utils {
         public int size;
     }
 
+    /**
+     * Generates diagnostics about the structure of the entries of the document
+     * by counting properties and their lengths.
+     */
     public static String mapEntryDiagnostics(@NotNull Set<Entry<String, Object>> entries) {
-        StringBuilder t = new StringBuilder();
         Map<String, PropertyStats> stats = new TreeMap<>();
 
         for (Map.Entry<String, Object> member : entries) {
@@ -252,30 +254,39 @@ public class Utils {
             stats.put(key, stat);
         }
 
-        List<Map.Entry<String, PropertyStats>> sorted = new ArrayList<Entry<String, PropertyStats>>(stats.entrySet());
-
         // sort by estimated entry size, highest first
-        Collections.sort(sorted, new Comparator<Map.Entry<String, PropertyStats>>() {
-            @Override
-            public int compare(Entry<String, PropertyStats> o1, Entry<String, PropertyStats> o2) {
-                return o2.getValue().size - o1.getValue().size;
-            }
-        });
+        Comparator<Map.Entry<String, PropertyStats>> bySize = (Map.Entry<String, PropertyStats> o1,
+                Map.Entry<String, PropertyStats> o2) -> o2.getValue().size - o1.getValue().size;
 
-        String sep = "";
-        for (Map.Entry<String, PropertyStats> member : sorted) {
-            String name = member.getKey();
-            PropertyStats stat = member.getValue();
-            t.append(sep + "'" + name + "': ");
-            sep = ", ";
-            if (stat.count <= 1) {
-                t.append(stat.size + " bytes");
-            } else {
-                t.append(stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)");
-            }
+        return stats.entrySet().stream().sorted(bySize).map(e -> diagsForEntry(e)).collect(Collectors.joining(", "));
+    }
+
+    /**
+     * Stats for a single map entry.
+     */
+    private static String diagsForEntry(Map.Entry<String, PropertyStats> member) {
+        String name = member.getKey();
+        PropertyStats stat = member.getValue();
+        if (stat.count <= 1) {
+            return redactMemberName(name) + ": "+ stat.size + " bytes";
+        } else {
+            return redactMemberName(name) + ": "+ stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)";
         }
+    }
 
-        return t.toString();
+    /**
+     * List of property names that are system-defined by JCR and thus do not
+     * need to be redacted (to be expanded later)
+     */
+    private static final Set<String> POS_PROPERTY_LIST = Set.of("jcr:primaryType", "jcr:mixinTypes");
+
+    /**
+     * Redacts names for use in log entries. Attempts to hide all names that are
+     * not under system control.
+     */
+    private static String redactMemberName(String name) {
+        boolean redact = isPropertyName(name) && !name.startsWith(":") && !POS_PROPERTY_LIST.contains(name);
+        return redact ? "(name redacted)" : "'" + name + "'";
     }
 
     public static String escapePropertyName(String propertyName) {
