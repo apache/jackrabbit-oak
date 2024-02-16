@@ -81,19 +81,64 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     }
 
     @Test
-    public void moveOrderableWithManyChildren() throws Exception {
+    public void orderableAddManyChildrenWithSave() throws Exception {
+        int childCount = 1000;
         StringBuilder prefix = new StringBuilder("");
-        for (int k = 0; k < 100000; k++) {
+        for (int k = 0; k < 90; k++) {
             prefix.append("0123456789");
         }
-        int max = 100;
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test", "nt:unstructured");
+        session.save();
+        for (int k = 0; k < childCount; k++) {
+            test.addNode(prefix.toString() + k, "nt:unstructured");
+        }
+    }
+
+    @Test
+    public void moveOrderableWithManyChildren() throws Exception {
+        int childCount = 1000;
+        int moveCount = 100;
+        StringBuilder prefix = new StringBuilder("");
+        for (int k = 0; k < 90; k++) {
+            prefix.append("0123456789");
+        }
         Session session = getAdminSession();
         Node test = session.getRootNode().addNode("test-0", "nt:unstructured");
         session.save();
-        for (int k = 0; k < max; k++) {
-            Node node = test.addNode(prefix.toString() + k, "nt:unstructured");
-            test.orderBefore(node.getName(), null);
+        for (int k = 0; k < childCount; k++) {
+            test.addNode(prefix.toString() + k, "nt:unstructured");
+            if (k % 100 == 0) {
+                session.save();
+            }
+        }
+        session.save();
+        for (int k = 0; k < moveCount; k++) {
             session.move("/test-" + k, "/test-" + (k + 1));
+        }
+        session.save();
+    }
+
+    @Test
+    public void copyOrderableWithManyChildren() throws Exception {
+        int childCount = 1000;
+        int copyCount = 100;
+        StringBuilder prefix = new StringBuilder("");
+        for (int k = 0; k < 90; k++) {
+            prefix.append("0123456789");
+        }
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test-0", "nt:unstructured");
+        session.save();
+        for (int k = 0; k < childCount; k++) {
+            test.addNode(prefix.toString() + k, "nt:unstructured");
+            if (k % 100 == 0) {
+                session.save();
+            }
+        }
+        session.save();
+        for (int k = 0; k < copyCount; k++) {
+            session.getWorkspace().copy("/test-" + k, "/test-" + (k + 1));
         }
         session.save();
     }
