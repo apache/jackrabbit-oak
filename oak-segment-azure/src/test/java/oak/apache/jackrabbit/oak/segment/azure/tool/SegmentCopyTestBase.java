@@ -67,7 +67,6 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentNodeStorePersistence;
-import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
@@ -102,8 +101,6 @@ public abstract class SegmentCopyTestBase {
         SegmentNodeStorePersistence srcPersistence = getSrcPersistence();
         SegmentNodeStorePersistence destPersistence = getDestPersistence();
 
-        RepositoryLock destRepositoryLock = destPersistence.lockRepository();
-
         String srcPathOrUri = getSrcPathOrUri();
         String destPathOrUri = getDestPathOrUri();
 
@@ -123,8 +120,6 @@ public abstract class SegmentCopyTestBase {
         checkJournal(srcPersistence, destPersistence);
         checkGCJournal(srcPersistence, destPersistence);
         checkManifest(srcPersistence, destPersistence);
-
-        destRepositoryLock.unlock();
     }
 
     private int runSegmentCopy(SegmentNodeStorePersistence srcPersistence, SegmentNodeStorePersistence destPersistence,
