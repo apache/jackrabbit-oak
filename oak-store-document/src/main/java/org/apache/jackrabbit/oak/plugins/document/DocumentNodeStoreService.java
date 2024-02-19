@@ -310,10 +310,10 @@ public class DocumentNodeStoreService {
                 // might contain passwords
                 log.info("Starting DocumentNodeStore with host={}, db={}, cache size (MB)={}, persistentCache={}, " +
                                 "journalCache={}, blobCacheSize (MB)={}, maxReplicationLagInSecs={}, " +
-                                "clusterIdReuseDelayAfterRecoveryMillis={}",
+                                "clusterIdReuseDelayAfterRecoveryMillis={}, recoveryDelayMillis={}",
                         mongoURI.getHosts(), db, config.cache(), persistentCache,
                         journalCache, config.blobCacheSize(), config.maxReplicationLagInSecs(),
-                        config.clusterIdReuseDelayAfterRecoveryMillis());
+                        config.clusterIdReuseDelayAfterRecoveryMillis(), config.recoveryDelayMillis());
                 log.info("Mongo Connection details {}", MongoConnection.toString(mongoURI.getOptions()));
             }
 
@@ -478,6 +478,7 @@ public class DocumentNodeStoreService {
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
+                setRecoveryDelayMillis(config.recoveryDelayMillis()).
                 setLeaseFailureHandler(new LeaseFailureHandler() {
 
                     private final LeaseFailureHandler defaultLeaseFailureHandler = createDefaultLeaseFailureHandler();
@@ -531,6 +532,9 @@ public class DocumentNodeStoreService {
         if (isThrottlingEnabled(builder)) {
             builder.setThrottlingStatsCollector(new ThrottlingStatsCollectorImpl(statisticsProvider));
         }
+
+        // initialize the (global) recoveryDelayMillis
+        ClusterNodeInfo.setRecoveryDelayMillis(builder.getRecoveryDelayMillis());
     }
 
     private boolean isWrappingCustomBlobStore() {

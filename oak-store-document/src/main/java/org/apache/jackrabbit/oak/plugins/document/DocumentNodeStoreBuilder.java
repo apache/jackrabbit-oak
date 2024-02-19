@@ -121,6 +121,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private long clusterIdReuseDelayAfterRecovery = ClusterNodeInfo.DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
     private boolean timing;
     private boolean logging;
+    private long recoveryDelayMillis = ClusterNodeInfo.DEFAULT_RECOVERY_DELAY_MILLIS;
     private String loggingPrefix;
     private LeaseCheckMode leaseCheck = ClusterNodeInfo.DEFAULT_LEASE_CHECK_MODE; // OAK-2739 is enabled by default also for non-osgi
     private boolean isReadOnlyMode = false;
@@ -708,6 +709,15 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
 
     public long getSuspendTimeoutMillis() {
         return suspendTimeoutMillis;
+    }
+
+    public T setRecoveryDelayMillis(long recoveryDelayMillis) {
+        this.recoveryDelayMillis = recoveryDelayMillis;
+        return thisBuilder();
+    }
+
+    public long getRecoveryDelayMillis() {
+        return recoveryDelayMillis;
     }
 
     public T setGCMonitor(@NotNull GCMonitor gcMonitor) {
