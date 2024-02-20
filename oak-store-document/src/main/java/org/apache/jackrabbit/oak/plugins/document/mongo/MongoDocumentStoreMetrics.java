@@ -22,7 +22,6 @@ import java.util.TreeSet;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import com.mongodb.BasicDBObject;
 import com.mongodb.MongoException;
-import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
@@ -44,13 +43,13 @@ public final class MongoDocumentStoreMetrics implements Runnable {
             Collection.NODES, Collection.JOURNAL, Collection.CLUSTER_NODES, Collection.SETTINGS, Collection.BLOBS
     );
 
-    private final MongoDatabase db;
+    private final MongoDocumentStore store;
 
     private final StatisticsProvider statsProvider;
 
     public MongoDocumentStoreMetrics(MongoDocumentStore store,
                                      StatisticsProvider statsProvider) {
-        this.db = store.getDatabase();
+        this.store = store;
         this.statsProvider = statsProvider;
     }
 
@@ -67,7 +66,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
         LOG.debug("Updating counters");
         try {
             Set<String> collectionNames = new TreeSet<>();
-            db.listCollectionNames().into(collectionNames);
+            store.getDatabase().listCollectionNames().into(collectionNames);
             for (Collection<? extends Document> c : COLLECTIONS) {
                 if (!collectionNames.contains(c.toString())) {
                     LOG.debug("Collection {} does not exist", c);
@@ -82,6 +81,8 @@ public final class MongoDocumentStoreMetrics implements Runnable {
             DatabaseStats dbStats = getDBStats();
             updateCounter(getDBCounter("fsUsedSize"), dbStats.fsUsedSize);
             updateCounter(getDBCounter("fsTotalSize"), dbStats.fsTotalSize);
+
+            updateCounter(getDocumentStoreCounter("mongoWriteExceptions"), store.getAmountOfMongoWriteExceptions());
         } catch (MongoException e) {
             LOG.warn("Updating counters failed: {}", e.toString());
         }
@@ -94,7 +95,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
     private CollectionStats getStats(Collection<? extends Document> c)
             throws MongoException {
         CollectionStats stats = new CollectionStats();
-        BasicDBObject result = new BasicDBObject(db.runCommand(new org.bson.Document("collStats", c.toString())));
+        BasicDBObject result = new BasicDBObject(store.getDatabase().runCommand(new org.bson.Document("collStats", c.toString())));
         stats.count = result.getLong("count", 0);
         stats.size = result.getLong("size", 0);
         stats.storageSize = result.getLong("storageSize", 0);
@@ -104,7 +105,7 @@ public final class MongoDocumentStoreMetrics implements Runnable {
 
     private DatabaseStats getDBStats() throws MongoException {
         DatabaseStats stats = new DatabaseStats();
-        BasicDBObject result = new BasicDBObject(db.runCommand(new org.bson.Document("dbStats", 1)));
+        BasicDBObject result = new BasicDBObject(store.getDatabase().runCommand(new org.bson.Document("dbStats", 1)));
         stats.fsUsedSize = result.getLong("fsUsedSize", 0);
         stats.fsTotalSize = result.getLong("fsTotalSize", 0);
         return stats;
@@ -118,6 +119,11 @@ public final class MongoDocumentStoreMetrics implements Runnable {
 
     private CounterStats getDBCounter(String name) {
         String counterName = "MongoDB." + name;
+        return statsProvider.getCounterStats(counterName, METRICS_ONLY);
+    }
+
+    private CounterStats getDocumentStoreCounter(String name) {
+        String counterName = "MongoDB.DocumentStore." + name;
         return statsProvider.getCounterStats(counterName, METRICS_ONLY);
     }
 
