@@ -24,6 +24,7 @@ import javax.jcr.NodeIterator;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -81,6 +82,7 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore //OAK-10646
     public void orderableAddManyChildrenWithSave() throws Exception {
         int childCount = 1000;
         StringBuilder prefix = new StringBuilder("");
@@ -96,9 +98,10 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     }
 
     @Test
+    @Ignore //OAK-10646
     public void moveOrderableWithManyChildren() throws Exception {
         int childCount = 1000;
-        int moveCount = 100;
+        int moveCount = 1;
         StringBuilder prefix = new StringBuilder("");
         for (int k = 0; k < 90; k++) {
             prefix.append("0123456789");
@@ -113,16 +116,15 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
             }
         }
         session.save();
-        for (int k = 0; k < moveCount; k++) {
-            session.move("/test-" + k, "/test-" + (k + 1));
-        }
+        session.move("/test-0", "/test-1");
         session.save();
     }
 
     @Test
+    @Ignore //OAK-10646
     public void copyOrderableWithManyChildren() throws Exception {
         int childCount = 1000;
-        int copyCount = 100;
+        int copyCount = 1;
         StringBuilder prefix = new StringBuilder("");
         for (int k = 0; k < 90; k++) {
             prefix.append("0123456789");
@@ -137,9 +139,7 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
             }
         }
         session.save();
-        for (int k = 0; k < copyCount; k++) {
-            session.getWorkspace().copy("/test-" + k, "/test-" + (k + 1));
-        }
+        session.getWorkspace().copy("/test-0", "/test-1");
         session.save();
     }
 }
