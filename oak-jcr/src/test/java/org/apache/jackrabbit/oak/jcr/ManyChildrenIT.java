@@ -82,7 +82,7 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore //OAK-10646
+    // @Ignore //OAK-10646
     public void orderableAddManyChildrenWithSave() throws Exception {
         int childCount = 1000;
         StringBuilder prefix = new StringBuilder("");
@@ -98,7 +98,7 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore //OAK-10646
+    // @Ignore //OAK-10646
     public void moveOrderableWithManyChildren() throws Exception {
         int childCount = 1000;
         int moveCount = 1;
@@ -121,7 +121,7 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     }
 
     @Test
-    @Ignore //OAK-10646
+    // @Ignore //OAK-10646
     public void copyOrderableWithManyChildren() throws Exception {
         int childCount = 1000;
         int copyCount = 1;

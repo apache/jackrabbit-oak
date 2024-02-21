@@ -156,7 +156,7 @@ public final class UpdateOp {
      * @param revision the revision
      * @param value the value
      */
-    void setMapEntry(@NotNull String property, @NotNull Revision revision, String value) {
+    public void setMapEntry(@NotNull String property, @NotNull Revision revision, String value) {
         Operation op = new Operation(Operation.Type.SET_MAP_ENTRY, value);
         changes.put(new Key(property, checkNotNull(revision)), op);
     }

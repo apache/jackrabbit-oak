@@ -51,6 +51,8 @@ import org.apache.jackrabbit.oak.plugins.document.cache.CacheInvalidationStats;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.ReadPreference;
 import com.mongodb.WriteConcern;
@@ -100,6 +102,8 @@ public class MemoryDocumentStore implements DocumentStore {
     private static final Key KEY_MODIFIED = new Key(MODIFIED_IN_SECS, null);
 
     private static final long SIZE_LIMIT = SystemPropertySupplier.create("memoryds.size.limit", -1).get();
+
+    private static final Logger LOG = LoggerFactory.getLogger(MemoryDocumentStore.class); 
 
     public MemoryDocumentStore() {
         this(false);
@@ -341,7 +345,18 @@ public class MemoryDocumentStore implements DocumentStore {
             // update the document
             UpdateUtils.applyChanges(doc, update);
             maintainModCount(doc);
-            checkSize(doc);
+            try {
+                checkSize(doc);
+            } catch (DocumentStoreException ex) {
+                UpdateOp shrink = Utils.getShrinkOp(doc, ":childOrder", "(x)");
+                // try cleanup and then retry once
+                long before = doc.getMemory();
+                UpdateUtils.applyChanges(doc, shrink);
+                long after = doc.getMemory();
+                LOG.warn("Doc size was exceeded for {}:  {} bytes. Applied shrink ops: {}. New size: {}. Doing one retry.",
+                        doc.getId(), before, shrink, after);
+                checkSize(doc);
+            }
             doc.seal();
             map.put(update.getId(), doc);
             return oldDoc;
@@ -474,7 +489,10 @@ public class MemoryDocumentStore implements DocumentStore {
         return 0;
     }
 
-    private void checkSize(Document doc) {
+    /**
+     * aborts the operation if a size limit is configured and exceeded
+     */
+    private void checkSize(Document doc) throws DocumentStoreException {
         if (SIZE_LIMIT >= 0) {
             int size = doc.getMemory();
             if (size >= SIZE_LIMIT) {
