@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
@@ -275,6 +276,18 @@ public class Utils {
         } else {
             return redactMemberName(name) + ": "+ stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)";
         }
+    }
+
+    /**
+     * @return cluster if from first revision found in op, {@code -1} otherwise
+     */
+    public static int extractClusterId(UpdateOp op) {
+        for (Key key : op.getChanges().keySet()) {
+            if (key.getRevision() != null) {
+                return key.getRevision().getClusterId();
+            }
+        }
+        return -1;
     }
 
     /**
