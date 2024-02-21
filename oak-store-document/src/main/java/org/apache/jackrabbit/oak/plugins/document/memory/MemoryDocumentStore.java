@@ -348,13 +348,26 @@ public class MemoryDocumentStore implements DocumentStore {
             try {
                 checkSize(doc);
             } catch (DocumentStoreException ex) {
-                UpdateOp shrink = Utils.getShrinkOp(doc, ":childOrder");
-                // try cleanup and then retry once
-                long before = doc.getMemory();
-                UpdateUtils.applyChanges(doc, shrink);
-                long after = doc.getMemory();
-                LOG.warn("Doc size was exceeded for {}:  {} bytes. Applied shrink ops: {}. New size: {}. Doing one retry.",
-                        doc.getId(), before, shrink, after);
+                // slightly hacky approach to find "our" cluster id
+                if (update.hasChanges()) {
+                    int t_clusterid = -1;
+                    for (Key key : update.getChanges().keySet()) {
+                        if (t_clusterid == -1 && key.getRevision() != null) {
+                            t_clusterid = key.getRevision().getClusterId();
+                            break;
+                        }
+                    }
+                    if (t_clusterid != -1) {
+                        final int clusterid = t_clusterid;
+                        UpdateOp shrink = Utils.getShrinkOp(doc, ":childOrder", r -> r.getClusterId() == clusterid);
+                        // try cleanup and then retry once
+                        long before = doc.getMemory();
+                        UpdateUtils.applyChanges(doc, shrink);
+                        long after = doc.getMemory();
+                        LOG.info("Doc size was exceeded for {}:  {} bytes. Applied shrink ops: {}. New size: {}. Doing one retry.",
+                                doc.getId(), before, shrink, after);
+                    }
+                }
                 checkSize(doc);
             }
             doc.seal();
