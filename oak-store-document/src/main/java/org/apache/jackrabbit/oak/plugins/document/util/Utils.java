@@ -280,7 +280,7 @@ public class Utils {
     /**
      * Produce an {@link UpdateOp} suitable for shrinking branch revision entries for given property in {@link Document}, {@code null} otherwise.
      */
-    public static @Nullable UpdateOp getShrinkOp(Document doc, String propertyName, String replacementValue) {
+    public static @Nullable UpdateOp getShrinkOp(Document doc, String propertyName) {
         Object t_bc = doc.get("_bc");
         Object t_property = doc.get(propertyName);
         if (t_bc instanceof Map && t_property instanceof Map) {
@@ -314,7 +314,7 @@ public class Utils {
             for (Revision r : revs) {
                 if (last != null) {
                     if (last.getClusterId() == r.getClusterId()) {
-                        clean.setMapEntry(propertyName, last, replacementValue);
+                        clean.removeMapEntry(propertyName, last);
                     }
                 }
                 last = r;

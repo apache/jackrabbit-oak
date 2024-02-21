@@ -348,7 +348,7 @@ public class MemoryDocumentStore implements DocumentStore {
             try {
                 checkSize(doc);
             } catch (DocumentStoreException ex) {
-                UpdateOp shrink = Utils.getShrinkOp(doc, ":childOrder", "(x)");
+                UpdateOp shrink = Utils.getShrinkOp(doc, ":childOrder");
                 // try cleanup and then retry once
                 long before = doc.getMemory();
                 UpdateUtils.applyChanges(doc, shrink);
