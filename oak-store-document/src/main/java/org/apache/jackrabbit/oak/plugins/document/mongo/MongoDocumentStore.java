@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.jackrabbit.guava.common.base.Optional;
@@ -214,6 +215,8 @@ public class MongoDocumentStore implements DocumentStore {
     private Clock clock = Clock.SIMPLE;
 
     private final long maxReplicationLagMillis;
+
+    private final AtomicLong mongoWriteExceptions = new AtomicLong();
 
     /**
      * Duration in seconds under which queries would use index on _modified field
@@ -2317,8 +2320,17 @@ public class MongoDocumentStore implements DocumentStore {
                 invalidateCache(collection, id);
             }
         }
+
+        if (ex instanceof MongoWriteException) {
+            mongoWriteExceptions.incrementAndGet();
+        }
+
         return asDocumentStoreException(ex.getMessage(), ex,
                 getDocumentStoreExceptionTypeFor(ex), ids);
+    }
+
+    public long getAmountOfMongoWriteExceptions() {
+        return mongoWriteExceptions.get();
     }
 
     private <T extends Document> DocumentStoreException handleException(Throwable ex,
