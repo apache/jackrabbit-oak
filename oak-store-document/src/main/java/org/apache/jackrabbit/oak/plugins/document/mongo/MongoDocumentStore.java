@@ -1042,9 +1042,39 @@ public class MongoDocumentStore implements DocumentStore {
         return num;
     }
 
+    @Nullable
+    private <T extends Document> T findAndModify(Collection<T> collection, UpdateOp updateOp, boolean upsert,
+            boolean checkConditions) {
+        try {
+            return internalFindAndModify(collection, updateOp, upsert, checkConditions);
+        } catch (DocumentStoreException ex) {
+            if (ex.getCause() instanceof MongoWriteException) {
+                try {
+                    T doc = find(collection, updateOp.getId());
+                    if (doc != null) {
+                        final int cid = Utils.extractClusterId(updateOp);
+                        UpdateOp shrink = Utils.getShrinkOp(doc, ":childOrder", r -> r.getClusterId() == cid);
+                        LOG.info("retrying after exception with shrink operation: " + shrink);
+                        T prev = internalFindAndModify(collection, shrink, false, false);
+                        LOG.info("prev: " + prev + ", stats: " + produceDiagnostics(collection, updateOp.getId()));
+                        // then retry once
+                        T prev2 = internalFindAndModify(collection, updateOp, upsert, checkConditions);
+                        LOG.info("prev: " + prev2 + ", stats: " + produceDiagnostics(collection, updateOp.getId()));
+                        return prev2;
+                    }
+                } catch (Throwable worthATry) {
+                    LOG.error("Failed to update the document with Id={} with Throwable message = '{}'. Document statistics: {}.",
+                            updateOp.getId(), worthATry.getMessage(), produceDiagnostics(collection, updateOp.getId()), worthATry);
+                    throw handleException(worthATry, collection, updateOp.getId());
+                }
+            }
+            throw ex;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @Nullable
-    private <T extends Document> T findAndModify(Collection<T> collection,
+    private <T extends Document> T internalFindAndModify(Collection<T> collection,
                                                  UpdateOp updateOp,
                                                  boolean upsert,
                                                  boolean checkConditions) {
