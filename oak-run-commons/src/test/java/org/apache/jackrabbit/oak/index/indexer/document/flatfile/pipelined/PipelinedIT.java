@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -95,6 +96,7 @@ public class PipelinedIT {
 
 
     private MetricStatisticsProvider statsProvider;
+    private ConsoleIndexingReporter indexingReporter;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -122,6 +124,7 @@ public class PipelinedIT {
             c.getDatabase().drop();
         }
         statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executorService);
+        indexingReporter = new ConsoleIndexingReporter();
     }
 
     @After
@@ -132,6 +135,7 @@ public class PipelinedIT {
         }
         statsProvider.close();
         statsProvider = null;
+        indexingReporter = null;
     }
 
     @Test
@@ -217,6 +221,25 @@ public class PipelinedIT {
     @Test
     public void createFFS_mongoFiltering_include_excludes3() throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+
+        Predicate<String> pathPredicate = s -> true;
+
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
+
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/etc|{}",
+                "/home|{}",
+                "/jcr:system|{}"
+        ));
+    }
+
+    @Test
+    public void createFFS_mongoFiltering_include_excludes_retryOnConnectionErrors() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "true");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
 
         Predicate<String> pathPredicate = s -> true;
@@ -457,6 +480,7 @@ public class PipelinedIT {
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL,
+                PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_TRAVERSED_TOTAL,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_REJECTED_SPLIT_TOTAL,
                 PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_ACCEPTED_TOTAL,
@@ -605,6 +629,7 @@ public class PipelinedIT {
     private PipelinedStrategy createStrategy(Backend backend, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
         Set<String> preferredPathElements = Set.of();
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
+        indexingReporter.setIndexNames(List.of("testIndex"));
         return new PipelinedStrategy(
                 backend.mongoDocumentStore,
                 backend.mongoDatabase,
@@ -617,7 +642,8 @@ public class PipelinedIT {
                 pathPredicate,
                 pathFilters,
                 null,
-                statsProvider);
+                statsProvider,
+                indexingReporter);
     }
 
     private void createContent(NodeStore rwNodeStore) throws CommitFailedException {

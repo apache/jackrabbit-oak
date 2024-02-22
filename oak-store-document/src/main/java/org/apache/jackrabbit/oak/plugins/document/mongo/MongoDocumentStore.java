@@ -34,6 +34,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.jackrabbit.guava.common.base.Optional;
@@ -84,6 +85,7 @@ import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
+import org.bson.BSONException;
 import org.bson.BsonMaximumSizeExceededException;
 import org.bson.conversions.Bson;
 import org.jetbrains.annotations.NotNull;
@@ -213,6 +215,8 @@ public class MongoDocumentStore implements DocumentStore {
     private Clock clock = Clock.SIMPLE;
 
     private final long maxReplicationLagMillis;
+
+    private final AtomicLong mongoWriteExceptions = new AtomicLong();
 
     /**
      * Duration in seconds under which queries would use index on _modified field
@@ -1055,6 +1059,7 @@ public class MongoDocumentStore implements DocumentStore {
         }
         final Stopwatch watch = startWatch();
         boolean newEntry = false;
+
         try {
             // get modCount of cached document
             Long modCount = null;
@@ -1122,6 +1127,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (checkConditions && oldNode == null) {
                 return null;
             }
+
             T oldDoc = convertFromDBObject(collection, oldNode);
             if (oldDoc != null) {
                 if (collection == Collection.NODES) {
@@ -1145,8 +1151,8 @@ public class MongoDocumentStore implements DocumentStore {
             return oldDoc;
         } catch (MongoWriteException e) {
             WriteError werr = e.getError();
-            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'.",
-                    updateOp.getId(), werr.getMessage());
+            LOG.error("Failed to update the document with Id={} with MongoWriteException message = '{}'. Document statistics: {}.",
+                    updateOp.getId(), werr.getMessage(), produceDiagnostics(collection, updateOp.getId()), e);
             throw handleException(e, collection, updateOp.getId());
         } catch (MongoCommandException e) {
             LOG.error("Failed to update the document with Id={} with MongoCommandException message ='{}'. ",
@@ -1161,6 +1167,23 @@ public class MongoDocumentStore implements DocumentStore {
             stats.doneFindAndModify(watch.elapsed(TimeUnit.NANOSECONDS), collection, updateOp.getId(),
                     newEntry, true, 0);
         }
+    }
+
+    private <T extends Document> String produceDiagnostics(Collection<T> col, String id) {
+        StringBuilder t = new StringBuilder();
+
+        try {
+            T doc = find(col, id);
+            if (doc != null) {
+                t.append("_id: " + doc.getId() + ", _modCount: " + doc.getModCount() + ", memory: " + doc.getMemory());
+                t.append("; Contents: ");
+                t.append(Utils.mapEntryDiagnostics(doc.entrySet()));
+            }
+        } catch (Throwable thisIsBestEffort) {
+            t.append(thisIsBestEffort.getMessage());
+        }
+
+        return t.toString();
     }
 
     /**
@@ -1524,12 +1547,48 @@ public class MongoDocumentStore implements DocumentStore {
     }
 
     private <T extends Document> Map<String, T> findDocuments(Collection<T> collection, Set<String> keys) {
-        Map<String, T> docs = new HashMap<String, T>();
-        if (!keys.isEmpty()) {
-            List<Bson> conditions = new ArrayList<>(keys.size());
-            for (String key : keys) {
-                conditions.add(getByKeyQuery(key));
+        try {
+            Map<String, T> docs = new HashMap<String, T>();
+            if (!keys.isEmpty()) {
+                List<Bson> conditions = new ArrayList<>(keys.size());
+                for (String key : keys) {
+                    conditions.add(getByKeyQuery(key));
+                }
+                MongoCollection<BasicDBObject> dbCollection;
+                if (secondariesWithinAcceptableLag()) {
+                    dbCollection = getDBCollection(collection);
+                } else {
+                    lagTooHigh();
+                    dbCollection = getDBCollection(collection).withReadPreference(ReadPreference.primary());
+                }
+                execute(session -> {
+                    FindIterable<BasicDBObject> cursor;
+                    if (session != null) {
+                        cursor = dbCollection.find(session, Filters.or(conditions));
+                    } else {
+                        cursor = dbCollection.find(Filters.or(conditions));
+                    }
+                    for (BasicDBObject doc : cursor) {
+                        T foundDoc = convertFromDBObject(collection, doc);
+                        docs.put(foundDoc.getId(), foundDoc);
+                    }
+                    return null;
+                }, collection);
             }
+            return docs;
+        } catch (BSONException ex) {
+            // TODO: refactor, see OAK-10650
+            LOG.error("trying bulk find, retrying one-by-one", ex);
+            return findDocumentsOneByOne(collection, keys);
+        }
+    }
+
+    // variant of findDocuments that avoids BSON exception by iterating instead of doing a bulk operation
+    private <T extends Document> Map<String, T> findDocumentsOneByOne(Collection<T> collection, Set<String> keys) {
+        Map<String, T> docs = new HashMap<String, T>();
+        for (String key : keys) {
+            Bson condition = getByKeyQuery(key);
+
             MongoCollection<BasicDBObject> dbCollection;
             if (secondariesWithinAcceptableLag()) {
                 dbCollection = getDBCollection(collection);
@@ -1540,9 +1599,9 @@ public class MongoDocumentStore implements DocumentStore {
             execute(session -> {
                 FindIterable<BasicDBObject> cursor;
                 if (session != null) {
-                    cursor = dbCollection.find(session, Filters.or(conditions));
+                    cursor = dbCollection.find(session, condition);
                 } else {
-                    cursor = dbCollection.find(Filters.or(conditions));
+                    cursor = dbCollection.find(condition);
                 }
                 for (BasicDBObject doc : cursor) {
                     T foundDoc = convertFromDBObject(collection, doc);
@@ -1551,6 +1610,7 @@ public class MongoDocumentStore implements DocumentStore {
                 return null;
             }, collection);
         }
+
         return docs;
     }
 
@@ -2260,8 +2320,17 @@ public class MongoDocumentStore implements DocumentStore {
                 invalidateCache(collection, id);
             }
         }
+
+        if (ex instanceof MongoWriteException) {
+            mongoWriteExceptions.incrementAndGet();
+        }
+
         return asDocumentStoreException(ex.getMessage(), ex,
                 getDocumentStoreExceptionTypeFor(ex), ids);
+    }
+
+    public long getAmountOfMongoWriteExceptions() {
+        return mongoWriteExceptions.get();
     }
 
     private <T extends Document> DocumentStoreException handleException(Throwable ex,

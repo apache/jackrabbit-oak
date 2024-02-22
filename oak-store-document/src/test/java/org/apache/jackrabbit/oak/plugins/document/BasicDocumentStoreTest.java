@@ -495,7 +495,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testMaxProperty() {
         int min = 0;
-        int max = 1024 * 1024 * 8;
+        int max = 1024 * 1024 * 32;
         int test = 0;
         int last = 0;
 
@@ -509,20 +509,129 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
             up.set("foo", pval);
-            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            if (success) {
-                // check that we really can read it
-                NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
-                assertNotNull("failed to retrieve previously stored document", findme);
-                super.ds.remove(Collection.NODES, id);
-                min = test;
-                last = test;
-            } else {
+            try {
+                boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+                if (success) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    super.ds.remove(Collection.NODES, id);
+                    min = test;
+                    last = test;
+                } else {
+                    max = test;
+                }
+            } catch (DocumentStoreException ex) {
+                LOG.info("create with property size "+ test + " failed for " + super.dsname, ex);
                 max = test;
             }
         }
 
-        LOG.info("max prop length for " + super.dsname + " was " + last);
+        LOG.info("max prop length (create) for " + super.dsname + " was " + last);
+    }
+
+    @Test
+    public void testMaxUpdateProperty() {
+        int min = 0;
+        int max = 1024 * 1024 * 32;
+        int test = 0;
+        int last = 0;
+
+        while (max - min >= 256) {
+            if (test == 0) {
+                test = max; // try largest first
+            } else {
+                test = (max + min) / 2;
+            }
+            String id = this.getClass().getName() + ".testMaxUpdateProperty-" + test;
+            UpdateOp up = new UpdateOp(id, true);
+            super.ds.create(Collection.NODES, Collections.singletonList(up));
+
+            String pval = generateString(test, true);
+            up.set("foo", pval);
+            try {
+                NodeDocument doc = super.ds.findAndUpdate(Collection.NODES, up);
+                if (doc != null) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    super.ds.remove(Collection.NODES, id);
+                    min = test;
+                    last = test;
+                } else {
+                    max = test;
+                }
+            }
+            catch (DocumentStoreException ex) {
+                LOG.debug("trying prop length (update) for " + super.dsname, ex);
+                max = test;
+                super.ds.remove(Collection.NODES, id);
+            }
+        }
+
+        LOG.info("max prop length (update) for " + super.dsname + " was " + last);
+    }
+
+    @Test
+    public void testMaxAddProperty() {
+
+        String id = this.getClass().getName() + ".testMaxAddProperty";
+        UpdateOp up = new UpdateOp(id, true);
+        super.ds.create(Collection.NODES, Collections.singletonList(up));
+        String exception = null;
+
+        int i = 0;
+        for (i = 0; i < 32 && exception == null; i++) {
+            String pval = generateString(1024 * 1024 + i * 10, true);
+            String pname = String.format("foo%02d", i);
+            up.set(pname, pval);
+            try {
+                NodeDocument doc = super.ds.findAndUpdate(Collection.NODES, up);
+                if (doc != null) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    assertNotNull(findme.get(pname));
+                }
+            } catch (Throwable ex) {
+                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": " + ex.getMessage(), ex);
+                exception = ex.getMessage();
+            }
+        }
+
+        super.ds.remove(Collection.NODES, id);
+        LOG.info("max number of 1MB property additions for " + super.dsname + " was " + i + " (" + exception + ")");
+    }
+
+    @Test
+    public void testMaxAddPropertyUpdate() {
+
+        String id = this.getClass().getName() + ".testMaxAddPropertyUpdate";
+        UpdateOp up = new UpdateOp(id, true);
+        super.ds.create(Collection.NODES, Collections.singletonList(up));
+        String exception = null;
+
+        int i = 0;
+        for (i = 0; i < 32 && exception == null; i++) {
+            String pval = generateString(1024 * 1024 + i * 10, true);
+            String pname = "foo";
+            up.setMapEntry(pname, new Revision(System.currentTimeMillis(), i, 0), pval);
+            try {
+                NodeDocument doc = super.ds.findAndUpdate(Collection.NODES, up);
+                if (doc != null) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    assertNotNull(findme.get(pname));
+                }
+            } catch (Throwable ex) {
+                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": " + ex.getMessage(), ex);
+                exception = ex.getMessage();
+            }
+        }
+
+        super.ds.remove(Collection.NODES, id);
+        LOG.info("max number of 1MB property updates for " + super.dsname + " was " + i + " (" + exception + ")");
     }
 
     @Test

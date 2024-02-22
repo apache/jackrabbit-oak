@@ -36,7 +36,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.jcr.AccessDeniedException;
 import javax.jcr.Binary;
 import javax.jcr.InvalidItemStateException;
@@ -976,7 +975,7 @@ public class NodeImpl<T extends NodeDelegate> extends ItemImpl<T> implements Jac
             @Override
             public Boolean perform() throws RepositoryException {
                 Tree tree = node.getTree();
-                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), getMixinTypeNames(tree), oakName);
+                return getNodeTypeManager().isNodeType(getPrimaryTypeName(tree), () -> getMixinTypeNames(tree), oakName);
             }
         });
     }

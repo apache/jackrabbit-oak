@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-@Version("0.4.0")
+@Version("0.5.0")
 package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import org.osgi.annotation.versioning.Version;

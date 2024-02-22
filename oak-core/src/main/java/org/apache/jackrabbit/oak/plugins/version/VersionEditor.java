@@ -114,7 +114,7 @@ class VersionEditor implements Editor {
                 && !this.before.exists()) {
             Tree tree = new TreeProviderService().createReadOnlyTree(this.node.getNodeState());
             if (vMgr.getNodeTypeManager().isNodeType(
-                    TreeUtil.getPrimaryTypeName(tree), TreeUtil.getMixinTypeNames(tree), MIX_VERSIONABLE)) {
+                    TreeUtil.getPrimaryTypeName(tree), () -> TreeUtil.getMixinTypeNames(tree), MIX_VERSIONABLE)) {
                 // OAK-10462: the node has mix:versionable, but not the mandatory property jcr:isCheckedOut,
                 // so it has to be sentinel node for a restore operation.
                 // Unfortunately, there is no API available to detect that.

@@ -16,7 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -25,11 +24,9 @@ import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_DATA;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
@@ -41,16 +38,18 @@ import static org.junit.Assert.assertTrue;
 
 public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
     protected IndexOptions indexOptions;
+    protected TestRepository repositoryOptionsUtil;
 
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
         Tree indexDefn = createTestIndexNode(index, indexOptions.getIndexType());
+        indexDefn.setProperty("includedPaths", List.of("/content"), Type.STRINGS);
         TestUtil.useV2(indexDefn);
         //Aggregates
         TestUtil.newNodeAggregator(indexDefn)
-                .newRuleWithName(NT_FILE, newArrayList(JCR_CONTENT, JCR_CONTENT + "/*"))
-                .newRuleWithName(NT_FOLDER, newArrayList("myFile", "subfolder/subsubfolder/file"));
+                .newRuleWithName(NT_FILE, List.of(JCR_CONTENT, JCR_CONTENT + "/*"))
+                .newRuleWithName(NT_FOLDER, List.of("myFile", "subfolder/subsubfolder/file"));
 
         //Include all properties
         Tree props = TestUtil.newRulePropTree(indexDefn, "nt:base");
@@ -69,7 +68,8 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         String sqlCat = sqlBase + " CONTAINS (f.*, 'cat')";
         String sqlDog = sqlBase + " CONTAINS (f.*, 'dog')";
 
-        Tree file = root.getTree("/").addChild("myFile");
+        Tree content = root.getTree("/").addChild("content");
+        Tree file = content.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
         Tree resource = file.addChild(JCR_CONTENT);
         resource.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
@@ -79,23 +79,27 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty(binaryProperty(JCR_DATA,
                 "the quick brown fox jumps over the lazy dog."));
         root.commit();
-        assertQuery(sqlDog, ImmutableList.of("/myFile"));
+
+        assertEventually(() -> assertQuery(sqlDog, List.of("/content/myFile")));
 
         // update jcr:data
-        root.getTree("/")
+        root.getTree("/content")
                 .getChild("myFile")
                 .getChild(JCR_CONTENT)
                 .setProperty(
                         binaryProperty(JCR_DATA,
                                 "the quick brown fox jumps over the lazy cat."));
         root.commit();
-        assertQuery(sqlDog, new ArrayList<String>());
-        assertQuery(sqlCat, ImmutableList.of("/myFile"));
+
+        assertEventually(() -> {
+            assertQuery(sqlDog, List.of());
+            assertQuery(sqlCat, List.of("/content/myFile"));
+        });
 
         // replace jcr:content with unstructured
-        root.getTree("/").getChild("myFile").getChild(JCR_CONTENT).remove();
+        root.getTree("/content").getChild("myFile").getChild(JCR_CONTENT).remove();
 
-        Tree unstrContent = root.getTree("/").getChild("myFile")
+        Tree unstrContent = root.getTree("/content").getChild("myFile")
                 .addChild(JCR_CONTENT);
         unstrContent.setProperty(JCR_PRIMARYTYPE, JcrConstants.NT_UNSTRUCTURED,
                 Type.NAME);
@@ -106,21 +110,26 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         foo.setProperty("text", "the quick brown fox jumps over the lazy dog.");
         root.commit();
 
-        assertQuery(sqlDog, ImmutableList.of("/myFile"));
-        assertQuery(sqlCat, new ArrayList<String>());
+        assertEventually(() -> {
+            assertQuery(sqlDog, List.of("/content/myFile"));
+            assertQuery(sqlCat, List.of());
+        });
 
         // remove foo
-        root.getTree("/").getChild("myFile").getChild(JCR_CONTENT)
+        root.getTree("/content").getChild("myFile").getChild(JCR_CONTENT)
                 .getChild("foo").remove();
 
         root.commit();
-        assertQuery(sqlDog, new ArrayList<String>());
-        assertQuery(sqlCat, new ArrayList<String>());
+
+        assertEventually(() -> {
+            assertQuery(sqlDog, List.of());
+            assertQuery(sqlCat, List.of());
+        });
 
         // replace jcr:content again with resource
-        root.getTree("/").getChild("myFile").getChild(JCR_CONTENT).remove();
+        root.getTree("/content").getChild("myFile").getChild(JCR_CONTENT).remove();
 
-        resource = root.getTree("/").getChild("myFile").addChild(JCR_CONTENT);
+        resource = root.getTree("/content").getChild("myFile").addChild(JCR_CONTENT);
         resource.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
         resource.setProperty("jcr:lastModified", Calendar.getInstance());
         resource.setProperty("jcr:encoding", "UTF-8");
@@ -128,14 +137,17 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty(binaryProperty(JCR_DATA,
                 "the quick brown fox jumps over the lazy cat."));
         root.commit();
-        assertQuery(sqlDog, new ArrayList<String>());
-        assertQuery(sqlCat, ImmutableList.of("/myFile"));
 
+        assertEventually(() -> {
+            assertQuery(sqlDog, List.of());
+            assertQuery(sqlCat, List.of("/content/myFile"));
+        });
     }
 
     @Test
     public void testChildNodeWithOr() throws Exception {
-        Tree file = root.getTree("/").addChild("myFile");
+        Tree content = root.getTree("/").addChild("content");
+        Tree file = content.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
         Tree resource = file.addChild(JCR_CONTENT);
         resource.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
@@ -151,25 +163,28 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         root.commit();
 
         String matchContentSimple = "//element(*, nt:file)[(jcr:contains(jcr:content, 'dog'))]";
-        assertQuery(matchContentSimple, "xpath", ImmutableList.of("/myFile"));
+        assertEventually(() -> {
+            assertQuery(matchContentSimple, "xpath", List.of("/content/myFile"));
 
-        String matchContent = " //element(*, nt:file)[(jcr:contains(jcr:content, 'dog') or jcr:contains(jcr:content/@jcr:title, 'invalid') or jcr:contains(jcr:content/@jcr:description, 'invalid'))]";
-        assertQuery(matchContent, "xpath", ImmutableList.of("/myFile"));
+            String matchContent = " //element(*, nt:file)[(jcr:contains(jcr:content, 'dog') or jcr:contains(jcr:content/@jcr:title, 'invalid') or jcr:contains(jcr:content/@jcr:description, 'invalid'))]";
+            assertQuery(matchContent, "xpath", List.of("/content/myFile"));
 
-        String matchTitle = " //element(*, nt:file)[(jcr:contains(jcr:content, 'invalid') or jcr:contains(jcr:content/@jcr:title, 'title') or jcr:contains(jcr:content/@jcr:description, 'invalid'))]";
-        assertQuery(matchTitle, "xpath", ImmutableList.of("/myFile"));
+            String matchTitle = " //element(*, nt:file)[(jcr:contains(jcr:content, 'invalid') or jcr:contains(jcr:content/@jcr:title, 'title') or jcr:contains(jcr:content/@jcr:description, 'invalid'))]";
+            assertQuery(matchTitle, "xpath", List.of("/content/myFile"));
 
-        String matchDesc = " //element(*, nt:file)[(jcr:contains(jcr:content, 'invalid') or jcr:contains(jcr:content/@jcr:title, 'invalid') or jcr:contains(jcr:content/@jcr:description, 'description'))]";
-        assertQuery(matchDesc, "xpath", ImmutableList.of("/myFile"));
+            String matchDesc = " //element(*, nt:file)[(jcr:contains(jcr:content, 'invalid') or jcr:contains(jcr:content/@jcr:title, 'invalid') or jcr:contains(jcr:content/@jcr:description, 'description'))]";
+            assertQuery(matchDesc, "xpath", List.of("/content/myFile"));
 
-        String matchNone = " //element(*, nt:file)[(jcr:contains(jcr:content, 'invalid') or jcr:contains(jcr:content/@jcr:title, 'invalid') or jcr:contains(jcr:content/@jcr:description, 'invalid'))]";
-        assertQuery(matchNone, "xpath", new ArrayList<String>());
+            String matchNone = " //element(*, nt:file)[(jcr:contains(jcr:content, 'invalid') or jcr:contains(jcr:content/@jcr:title, 'invalid') or jcr:contains(jcr:content/@jcr:description, 'invalid'))]";
+            assertQuery(matchNone, "xpath", List.of());
+        });
     }
 
     @Test
     public void testChildNodeWithOrComposite() throws Exception {
 
-        Tree folder = root.getTree("/").addChild("myFolder");
+        Tree content = root.getTree("/").addChild("content");
+        Tree folder = content.addChild("myFolder");
         folder.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
         Tree file = folder.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
@@ -186,29 +201,31 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        String matchContentSimple = "//element(*, nt:folder)[(jcr:contains(myFile, 'dog'))]";
-        assertQuery(matchContentSimple, "xpath", ImmutableList.of("/myFolder"));
+        assertEventually(() -> {
+            String matchContentSimple = "//element(*, nt:folder)[(jcr:contains(myFile, 'dog'))]";
+            assertQuery(matchContentSimple, "xpath", List.of("/content/myFolder"));
 
-        String matchContent = " //element(*, nt:folder)[(jcr:contains(myFile, 'dog') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
-        assertQuery(matchContent, "xpath", ImmutableList.of("/myFolder"));
+            String matchContent = " //element(*, nt:folder)[(jcr:contains(myFile, 'dog') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
+            assertQuery(matchContent, "xpath", List.of("/content/myFolder"));
 
-        String matchTitle = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'title') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
-        assertQuery(matchTitle, "xpath", ImmutableList.of("/myFolder"));
+            String matchTitle = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'title') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
+            assertQuery(matchTitle, "xpath", List.of("/content/myFolder"));
 
-        String matchDesc = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'description'))]";
-        assertQuery(matchDesc, "xpath", ImmutableList.of("/myFolder"));
+            String matchDesc = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'description'))]";
+            assertQuery(matchDesc, "xpath", List.of("/content/myFolder"));
 
-        String matchNone = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
-        assertQuery(matchNone, "xpath", new ArrayList<String>());
+            String matchNone = " //element(*, nt:folder)[(jcr:contains(myFile, 'invalid') or jcr:contains(myFile/@jcr:title, 'invalid') or jcr:contains(myFile/@jcr:description, 'invalid'))]";
+            assertQuery(matchNone, "xpath", List.of());
 
-        String matchOnlyTitleOr = " //element(*, nt:folder)[(jcr:contains(myFile/@jcr:title, 'title') or jcr:contains(myFile/@jcr:title, 'unknown') )]";
-        assertQuery(matchOnlyTitleOr, "xpath", ImmutableList.of("/myFolder"));
+            String matchOnlyTitleOr = " //element(*, nt:folder)[(jcr:contains(myFile/@jcr:title, 'title') or jcr:contains(myFile/@jcr:title, 'unknown') )]";
+            assertQuery(matchOnlyTitleOr, "xpath", List.of("/content/myFolder"));
+        });
     }
 
     @Test
     public void testNodeTypes() throws Exception {
-
-        Tree folder = root.getTree("/").addChild("myFolder");
+        Tree content = root.getTree("/").addChild("content");
+        Tree folder = content.addChild("myFolder");
         folder.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
         Tree file = folder.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
@@ -225,17 +242,19 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        String matchContentSimple = "//*[( jcr:contains(., 'dog') and @jcr:primaryType = 'nt:file' )]";
-        assertQuery(matchContentSimple, "xpath", ImmutableList.of("/myFolder/myFile"));
+        assertEventually(() -> {
+            String matchContentSimple = "//*[( jcr:contains(., 'dog') and @jcr:primaryType = 'nt:file' )]";
+            assertQuery(matchContentSimple, "xpath", List.of("/content/myFolder/myFile"));
 
-        String matchContentDouble = "//*[( jcr:contains(., 'dog') and (@jcr:primaryType = 'nt:file' or @jcr:primaryType = 'nt:folder') )]";
-        assertQuery(matchContentDouble, "xpath", ImmutableList.of("/myFolder", "/myFolder/myFile"));
+            String matchContentDouble = "//*[( jcr:contains(., 'dog') and (@jcr:primaryType = 'nt:file' or @jcr:primaryType = 'nt:folder') )]";
+            assertQuery(matchContentDouble, "xpath", List.of("/content/myFolder", "/content/myFolder/myFile"));
+        });
     }
 
     @Test
     public void testNodeTypesDeep() throws Exception {
-
-        Tree folder = root.getTree("/").addChild("myFolder");
+        Tree content = root.getTree("/").addChild("content");
+        Tree folder = content.addChild("myFolder");
         folder.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
 
         Tree folder2 = folder.addChild("subfolder");
@@ -248,7 +267,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         root.commit();
 
         String xpath = "//element(*, nt:folder)[jcr:contains(., 'dog')]";
-        assertQuery(xpath, "xpath", ImmutableList.of("/myFolder"));
+        assertEventually(() -> assertQuery(xpath, "xpath", List.of("/content/myFolder")));
     }
 
     private static void file(Tree parent, String name) {
@@ -266,7 +285,8 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
     @Test
     public void testChildNodeProperty() throws Exception {
-        Tree file = root.getTree("/").addChild("myFile");
+        Tree content = root.getTree("/").addChild("content");
+        Tree file = content.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
         Tree resource = file.addChild(JCR_CONTENT);
         resource.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
@@ -281,19 +301,19 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        String matchChildSimple = "//*[( jcr:contains(@jcr:title, 'title') )]";
-        assertQuery(matchChildSimple, "xpath", ImmutableList.of("/myFile/jcr:content"));
+        assertEventually(() -> {
+            String matchChildSimple = "//*[( jcr:contains(@jcr:title, 'title') )]";
+            assertQuery(matchChildSimple, "xpath", List.of("/content/myFile/jcr:content"));
 
-        String matchChildWithStar = "//*[( jcr:contains(., 'dog') and jcr:contains(@jcr:title, 'title') )]";
-        assertQuery(matchChildWithStar, "xpath", ImmutableList.of("/myFile/jcr:content"));
-
+            String matchChildWithStar = "//*[( jcr:contains(., 'dog') and jcr:contains(@jcr:title, 'title') )]";
+            assertQuery(matchChildWithStar, "xpath", List.of("/content/myFile/jcr:content"));
+        });
     }
-
 
     @Test
     public void testChildNodeProperty2() throws Exception {
-
-        Tree file = root.getTree("/").addChild("myFile");
+        Tree content = root.getTree("/").addChild("content");
+        Tree file = content.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
         Tree resource = file.addChild(JCR_CONTENT);
         resource.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
@@ -302,7 +322,7 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         resource.setProperty("jcr:title", "title");
         resource.setProperty("jcr:description", "description");
 
-        Tree file2 = root.getTree("/").addChild("myFile2");
+        Tree file2 = content.addChild("myFile2");
         file2.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
         Tree resource2 = file2.addChild(JCR_CONTENT);
         resource2.setProperty(JCR_PRIMARYTYPE, "nt:resource", Type.NAME);
@@ -314,13 +334,13 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         root.commit();
 
         String matchChildSimple = "//*[( jcr:contains(jcr:content/@jcr:title, 'title') )]";
-        assertQuery(matchChildSimple, "xpath", ImmutableList.of("/myFile"));
-
+        assertEventually(() -> assertQuery(matchChildSimple, "xpath", List.of("/content/myFile")));
     }
 
     @Test
     public void testPreventDoubleAggregation() throws Exception {
-        Tree file = root.getTree("/").addChild("myFile");
+        Tree content = root.getTree("/").addChild("content");
+        Tree file = content.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
         file.setProperty("jcr:title", "fox");
 
@@ -334,14 +354,14 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         root.commit();
 
         String matchChildSimple = "//element(*, nt:file)[( jcr:contains(., 'fox') )]";
-        assertQuery(matchChildSimple, "xpath",
-                ImmutableList.of("/myFile"));
+        assertEventually(() -> assertQuery(matchChildSimple, "xpath", List.of("/content/myFile")));
     }
 
     @Test
     public void testDifferentNodes() throws Exception {
 
-        Tree folder = root.getTree("/").addChild("myFolder");
+        Tree content = root.getTree("/").addChild("content");
+        Tree folder = content.addChild("myFolder");
         folder.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
         Tree file = folder.addChild("myFile");
         file.setProperty(JCR_PRIMARYTYPE, NT_FILE, Type.NAME);
@@ -358,22 +378,24 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        assertQuery(
-                "//element(*, nt:file)[jcr:contains(., 'dog')]",
-                "xpath", ImmutableList.of("/myFolder/myFile"));
+        assertEventually(() -> {
+            assertQuery(
+                    "//element(*, nt:file)[jcr:contains(., 'dog')]",
+                    "xpath", List.of("/content/myFolder/myFile"));
 
-        assertQuery(
-                "//element(*, nt:file)[jcr:contains(., 'title')]",
-                "xpath", ImmutableList.of("/myFolder/myFile"));
+            assertQuery(
+                    "//element(*, nt:file)[jcr:contains(., 'title')]",
+                    "xpath", List.of("/content/myFolder/myFile"));
 
-        assertQuery(
-                "//element(*, nt:file)[jcr:contains(., 'dog') and jcr:contains(., 'title')]",
-                "xpath", ImmutableList.of("/myFolder/myFile"));
+            assertQuery(
+                    "//element(*, nt:file)[jcr:contains(., 'dog') and jcr:contains(., 'title')]",
+                    "xpath", List.of("/content/myFolder/myFile"));
 
-        // double aggregation dupes
-        assertQuery(
-                "//*[(jcr:contains(., 'dog') or jcr:contains(jcr:content, 'dog') )]",
-                "xpath", ImmutableList.of("/myFolder", "/myFolder/myFile", "/myFolder/myFile/jcr:content"));
+            // double aggregation dupes
+            assertQuery(
+                    "//*[(jcr:contains(., 'dog') or jcr:contains(jcr:content, 'dog') )]",
+                    "xpath", List.of("/content/myFolder", "/content/myFolder/myFile", "/content/myFolder/myFile/jcr:content"));
+        });
     }
 
     @Test
@@ -398,7 +420,8 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         setTraversalEnabled(false);
         Tree test, t;
 
-        test = root.getTree("/").addChild("test");
+        Tree content = root.getTree("/").addChild("content");
+        test = content.addChild("test");
         t = test.addChild("a");
         t.setProperty(JCR_PRIMARYTYPE, NT_FOLDER, Type.NAME);
         t.setProperty("foo", "bar");
@@ -412,19 +435,26 @@ public abstract class IndexAggregationCommonTest extends AbstractQueryTest {
         t.setProperty("foo", "bar cat");
         root.commit();
 
-        assertQuery(
-                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar')",
-                of("/test/a", "/test/d"));
-        assertQuery(
-                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar')",
-                of("/test/b", "/test/c"));
-        assertQuery(
-                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND CONTAINS(foo, 'bar cat')",
-                of("/test/d"));
-        assertQuery(
-                "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/test') AND NOT CONTAINS(foo, 'bar cat')",
-                of("/test/c"));
+        assertEventually(() -> {
+            assertQuery(
+                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND CONTAINS(foo, 'bar')",
+                    List.of("/content/test/a", "/content/test/d"));
+            assertQuery(
+                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND NOT CONTAINS(foo, 'bar')",
+                    List.of("/content/test/b", "/content/test/c"));
+            assertQuery(
+                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND CONTAINS(foo, 'bar cat')",
+                    List.of("/content/test/d"));
+            assertQuery(
+                    "SELECT * FROM [nt:folder] WHERE ISDESCENDANTNODE('/content/test') AND NOT CONTAINS(foo, 'bar cat')",
+                    List.of("/content/test/c"));
+        });
 
         setTraversalEnabled(true);
+    }
+
+    protected void assertEventually(Runnable r) {
+        TestUtil.assertEventually(r,
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

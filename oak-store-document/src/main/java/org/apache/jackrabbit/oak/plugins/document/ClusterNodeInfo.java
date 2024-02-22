@@ -237,13 +237,14 @@ public class ClusterNodeInfo {
     /** OAK-10622 : millis to prevent reuse of clusterId if it crashed and thus required a recover */
     static final int DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS = 0;
 
-    /** OAK-10281 : seconds to delay a recovery after a lease timeout */
-    private static final int DEFAULT_RECOVERY_DELAY_SECS = SystemPropertySupplier.create("oak.documentMK.recoveryDelaySecs", 0)
-            .loggingTo(LOG).validateWith(value -> value >= 0)
-            .formatSetMessage((name, value) -> String.format("recovery delay set to (secs): %ss (using system property %s)", name, value)).get();
-    private static final long DEFAULT_RECOVERY_DELAY_MILLIS = 1000L * (long)DEFAULT_RECOVERY_DELAY_SECS;
+    /** OAK-10281 : default millis to delay a recovery after a lease timeout */
+    static final long DEFAULT_RECOVERY_DELAY_MILLIS = 0;
 
-    // kept non-final for testing purpose
+    /**
+     * Actual millis to delay a recovery after a lease timeout.
+     * <p>
+     * Initialized by DocumentNodeStore constructor.
+     */
     static long recoveryDelayMillis = DEFAULT_RECOVERY_DELAY_MILLIS;
 
     /**
@@ -1238,7 +1239,6 @@ public class ClusterNodeInfo {
         return recoveryDelayMillis;
     }
 
-    /** <b>only used for testing</b> **/
     static void setRecoveryDelayMillis(long recoveryDelayMillis) {
         ClusterNodeInfo.recoveryDelayMillis = recoveryDelayMillis;
     }
