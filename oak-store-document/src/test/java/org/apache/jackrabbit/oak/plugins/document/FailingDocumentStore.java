@@ -55,6 +55,8 @@ class FailingDocumentStore extends DocumentStoreWrapper {
 
     private boolean afterOp = false;
 
+    private boolean noDispose = false;
+
     class Fail {
 
         private Fail() {
@@ -309,4 +311,16 @@ class FailingDocumentStore extends DocumentStoreWrapper {
     private void reportRemainingOps(List<UpdateOp> remainingOps) {
         listeners.forEach(listener -> remainingOps.forEach(listener::failed));
     }
+
+    public void noDispose() {
+        noDispose = true;
+    }
+
+    @Override
+    public void dispose() {
+        if (!noDispose) {
+            super.dispose();
+        }
+    }
+
 }
