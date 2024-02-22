@@ -95,16 +95,14 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertEquals(3, stats.updatedDetailedGCDocsCount);
+        assertEquals(2, stats.deletedDocGCCount);
         assertEquals(1, stats.deletedUnmergedBCCount);
 
-        assertTrue(store.getDocumentStore().find(Collection.NODES, "1:/a").wasDeletedOnce());
-        assertTrue(store.getDocumentStore().find(Collection.NODES, "1:/b").wasDeletedOnce());
-
-        // now do another gc to get those documents actually deleted
+        // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(2, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertNotExists("1:/a");
         assertNotExists("1:/b");
@@ -218,28 +216,23 @@ public class BranchCommitGCTest {
 
         store.runBackgroundOperations();
 
-        Long originalModified = store.getDocumentStore().find(Collection.NODES, "1:/a").getModified();
-
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        Long laterModified = store.getDocumentStore().find(Collection.NODES, "1:/a").getModified();
-        assertNotEquals(originalModified, laterModified);
-
         assertEquals(3, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(2, stats.deletedDocGCCount);
         assertEquals(2, stats.deletedUnmergedBCCount);
 
-        assertExists("1:/a");
-        assertExists("1:/b");
+        assertNotExists("1:/a");
+        assertNotExists("1:/b");
 
-        // now do another gc to get those documents actually deleted
+        // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(2, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
@@ -368,17 +361,17 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        // first gc round will only mark document for deleting by second round
-        assertEquals(0, stats.deletedDocGCCount);
+        // first gc round now deletes it, via orphaned node deletion
+        assertEquals(1, stats.deletedDocGCCount);
         assertEquals(4, stats.updatedDetailedGCDocsCount);
         assertEquals(1, stats.deletedUnmergedBCCount);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // now do second gc round to get those documents actually deleted
+        // now do second gc round - should not have anything left to clean up though
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(1, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
