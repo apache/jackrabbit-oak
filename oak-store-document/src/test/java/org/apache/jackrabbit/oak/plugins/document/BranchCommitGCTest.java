@@ -22,6 +22,8 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -32,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.SortedMap;
 import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.HOURS;
@@ -513,6 +516,17 @@ public class BranchCommitGCTest {
         store2.dispose();
         store.runBackgroundOperations();
 
+        {
+            // some flakyness diagnostics
+            NodeDocument d = store.getDocumentStore().find(Collection.NODES, "0:/", -1);
+            assertNotNull(d);
+            assertEquals(1, d.getLocalMap("rootProp").size());
+            assertEquals(1, d.getLocalMap("_collisions").size());
+            d = store.getDocumentStore().find(Collection.NODES, "1:/foo", -1);
+            assertNotNull(d);
+            assertEquals(3, d.getLocalMap("a").size());
+        }
+
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
@@ -521,6 +535,16 @@ public class BranchCommitGCTest {
         assertEquals(2, stats.updatedDetailedGCDocsCount);
         assertEquals(1, stats.deletedUnmergedBCCount);
         // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
+        {
+            // some flakyness diagnostics
+            NodeDocument d = store.getDocumentStore().find(Collection.NODES, "0:/", -1);
+            assertNotNull(d);
+            assertEquals(0, d.getLocalMap("rootProp").size());
+            assertEquals(0, d.getLocalMap("_collisions").size());
+            d = store.getDocumentStore().find(Collection.NODES, "1:/foo", -1);
+            assertNotNull(d);
+            assertEquals(0, d.getLocalMap("a").size());
+        }
         assertEquals(3, stats.deletedPropsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
