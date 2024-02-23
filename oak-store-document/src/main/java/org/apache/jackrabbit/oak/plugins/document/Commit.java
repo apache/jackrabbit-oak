@@ -32,6 +32,8 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -192,13 +194,17 @@ public class Commit {
         return success;
     }
 
+    void apply() throws ConflictException, DocumentStoreException {
+        apply(Collections.emptySet());
+    }
+
     /**
      * Applies this commit to the store.
      *
      * @throws ConflictException if the commit failed because of a conflict.
      * @throws DocumentStoreException if the commit cannot be applied.
      */
-    void apply() throws ConflictException, DocumentStoreException {
+    void apply(Set<Revision> previousRevisions) throws ConflictException, DocumentStoreException {
         boolean success = false;
         RevisionVector baseRev = getBaseRevision();
         boolean isBranch = baseRev != null && baseRev.isBranch();
@@ -206,7 +212,7 @@ public class Commit {
         if (isBranch && !nodeStore.isDisableBranches()) {
             try {
                 // prepare commit
-                prepare(baseRev);
+                prepare(baseRev, previousRevisions);
                 success = true;
             } finally {
                 if (!success) {
@@ -237,12 +243,12 @@ public class Commit {
         }
     }
 
-    private void prepare(RevisionVector baseRevision)
+    private void prepare(RevisionVector baseRevision, Set<Revision> previousRevisions)
             throws ConflictException, DocumentStoreException {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
-            applyToDocumentStoreWithTiming(baseRevision);
+            applyToDocumentStoreWithTiming(baseRevision, previousRevisions);
         }
     }
 
@@ -259,7 +265,7 @@ public class Commit {
      * Apply the changes to the document store.
      */
     void applyToDocumentStore() throws ConflictException, DocumentStoreException {
-        applyToDocumentStoreWithTiming(null);
+        applyToDocumentStoreWithTiming(null, Collections.emptySet());
     }
 
     /**
@@ -271,11 +277,11 @@ public class Commit {
      * @throws DocumentStoreException if an error occurs while writing to the
      *          underlying store.
      */
-    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision)
+    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision, Set<Revision> previousRevisions)
             throws ConflictException, DocumentStoreException {
         long start = System.nanoTime();
         try {
-            applyToDocumentStore(baseBranchRevision);
+            applyToDocumentStore(baseBranchRevision, previousRevisions);
         } finally {
             nodeStore.getStatsCollector().doneChangesApplied(
                     TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start));
@@ -291,7 +297,7 @@ public class Commit {
      * @throws DocumentStoreException if an error occurs while writing to the
      *          underlying store.
      */
-    private void applyToDocumentStore(RevisionVector baseBranchRevision)
+    private void applyToDocumentStore(RevisionVector baseBranchRevision, Set<Revision> previousRevisions)
             throws ConflictException, DocumentStoreException {
         // initially set the rollback to always fail until we have changes
         // in an oplog list and a commit root.
@@ -354,7 +360,27 @@ public class Commit {
         boolean commitRootHasChanges = operations.containsKey(commitRootPath);
         for (UpdateOp op : operations.values()) {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
+
+            // special case for :childOrder updates
+            if (!previousRevisions.isEmpty()) {
+                boolean removePreviousSetOperations = false;
+                for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
+                    if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
+                        // we are setting child order, so we should remove previous set operations from the same branch
+                        removePreviousSetOperations= true;
+                    }
+                }
+
+                if (removePreviousSetOperations) {
+                    for (Revision rev : previousRevisions) {
+                        op.removeMapEntry(":childOrder", rev);
+                    }
+                    LOG.debug("edited op is: " + op);
+                }
+            }
+
             changedNodes.add(op);
+
         }
         // create a "root of the commit" if there is none
         UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);

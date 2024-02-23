@@ -78,6 +78,9 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
     /** The maximum number of updates to keep in memory */
     private final int updateLimit;
 
+    /** Revisions created for this branch */
+    private final Set<Revision> revisions = new HashSet<>();
+
     /**
      * State of the this branch. Either {@link Unmodified}, {@link InMemory}, {@link Persisted},
      * {@link ResetFailed} or {@link Merged}.
@@ -318,9 +321,10 @@ class DocumentNodeStoreBranch implements NodeStoreBranch {
                 // finally clause cancel the commit
                 return base;
             }
-            c.apply();
+            c.apply(revisions);
             rev = store.done(c, base.getRootRevision().isBranch(), info);
             success = true;
+            revisions.add(c.getRevision());
         } finally {
             if (!success) {
                 store.canceled(c);
