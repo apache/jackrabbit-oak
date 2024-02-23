@@ -15,26 +15,17 @@
  * limitations under the License.
  */
 
-package org.apache.jackrabbit.oak.segment.file.tar;
+package org.apache.jackrabbit.oak.segment;
 
-import org.apache.jackrabbit.oak.segment.Segment;
-import org.apache.jackrabbit.oak.segment.SegmentId;
+import org.apache.jackrabbit.guava.common.base.Strings;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.UUID;
+public class LongIdMappingBlobStore extends IdMappingBlobStore {
 
-public interface EntryRecovery {
+    private static int next;
 
-    void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException;
+    @Override
+    protected String generateId() {
+        return Strings.repeat("0", Segment.BLOB_ID_SMALL_LIMIT) + next++;
+    }
 
-    void recoverGraphEdge(UUID from, UUID to);
-
-    void recoverBinaryReference(GCGeneration generation, UUID segmentId, String reference);
-
-    Segment getSegment(SegmentId id);
-
-    void addSegment(Segment segment);
-
-    Map<SegmentId, Segment> getRecoveredSegments();
 }

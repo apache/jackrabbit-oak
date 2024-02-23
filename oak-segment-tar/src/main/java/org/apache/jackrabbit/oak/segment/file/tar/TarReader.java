@@ -30,6 +30,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +45,8 @@ import java.util.stream.Collectors;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
+import org.apache.jackrabbit.oak.segment.Segment;
+import org.apache.jackrabbit.oak.segment.SegmentId;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndex;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.BinaryReferencesIndexLoader;
 import org.apache.jackrabbit.oak.segment.file.tar.binaries.InvalidBinaryReferencesIndexException;
@@ -178,10 +181,11 @@ public class TarReader implements Closeable {
         log.info("Regenerating tar file {}", file);
 
         try (TarWriter writer = new TarWriter(archiveManager, file)) {
+            Map<SegmentId, Segment> segmentMap = new HashMap<>(entries.size());
+
             for (Entry<UUID, byte[]> entry : entries.entrySet()) {
                 try {
                     recovery.recoverEntry(entry.getKey(), entry.getValue(), new EntryRecovery() {
-
                         @Override
                         public void recoverEntry(long msb, long lsb, byte[] data, int offset, int size, GCGeneration generation) throws IOException {
                             writer.writeEntry(msb, lsb, data, offset, size, generation);
@@ -197,6 +201,18 @@ public class TarReader implements Closeable {
                             writer.addBinaryReference(generation, segmentId, reference);
                         }
 
+                        public Segment getSegment(SegmentId id) {
+                            return segmentMap.get(id);
+                        }
+
+                        public void addSegment(Segment segment) {
+                            segmentMap.put(segment.getSegmentId(), segment);
+                        }
+
+                        @Override
+                        public Map<SegmentId, Segment> getRecoveredSegments() {
+                            return segmentMap;
+                        }
                     });
                 } catch (IOException e) {
                     throw new IOException(String.format("Unable to recover entry %s for file %s", entry.getKey(), file), e);
