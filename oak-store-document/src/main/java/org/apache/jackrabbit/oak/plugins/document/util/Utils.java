@@ -294,7 +294,7 @@ public class Utils {
      * Produce an {@link UpdateOp} suitable for shrinking branch revision entries for given property in {@link Document}, {@code null} otherwise.
      * 
      * @param doc document to inspect for repeated branch commits
-     * @param propertName property to check for
+     * @param propertyName property to check for
      * @param revisionChecker filter for revisions (for instance, to check for cluster id)
      * @return {@link UpdateOp} suitable for shrinking document, {@code null} otherwise
      */

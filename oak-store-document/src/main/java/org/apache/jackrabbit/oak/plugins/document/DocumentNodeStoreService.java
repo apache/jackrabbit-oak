@@ -181,6 +181,8 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
 
+    private static final String FT_NAME_DOC_STORE_COCLEANUP = "FT_COCLEANUP_OAK-10657";
+
     /**
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
      */
@@ -221,6 +223,7 @@ public class DocumentNodeStoreService {
     private JournalPropertyHandlerFactory journalPropertyHandlerFactory = new JournalPropertyHandlerFactory();
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
+    private Feature docStoreCommitCleanupFeature;
     private Feature cancelInvalidationFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
@@ -256,6 +259,7 @@ public class DocumentNodeStoreService {
         documentStoreType = DocumentStoreType.fromString(this.config.documentStoreType());
         prefetchFeature = Feature.newFeature(FT_NAME_PREFETCH, whiteboard);
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
+        docStoreCommitCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_COCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
 
         registerNodeStoreIfPossible();
@@ -474,6 +478,7 @@ public class DocumentNodeStoreService {
                 setLeaseCheckMode(ClusterNodeInfo.DEFAULT_LEASE_CHECK_DISABLED ? LeaseCheckMode.DISABLED : LeaseCheckMode.valueOf(config.leaseCheckMode())).
                 setPrefetchFeature(prefetchFeature).
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
+                setDocStoreCommitCleanupFeature(docStoreCommitCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
