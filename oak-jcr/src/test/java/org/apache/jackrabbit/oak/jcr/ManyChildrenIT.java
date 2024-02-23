@@ -21,13 +21,14 @@ import static org.junit.Assert.assertTrue;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
+import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.junit.Ignore;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
+import org.junit.Before;
 import org.junit.Test;
-
-import java.util.UUID;
 
 /**
  * Test nodes with many child nodes.
@@ -36,6 +37,22 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
 
     public ManyChildrenIT(NodeStoreFixture fixture) {
         super(fixture);
+    }
+
+    @Before
+    public void before() throws RepositoryException {
+        enableCommitCleanupFeatureIfAvailable();
+    }
+
+    private void enableCommitCleanupFeatureIfAvailable() throws RepositoryException {
+        //make sure that the repository is initialized
+        getRepository();
+        Tracker<FeatureToggle> toggleTracker = getWhiteboard().track(FeatureToggle.class);
+        for (FeatureToggle ft : toggleTracker.getServices()) {
+            if ("FT_COCLEANUP_OAK-10657".equals(ft.getName())) {
+                ft.setEnabled(true);
+            }
+        }
     }
 
     @Test
@@ -101,7 +118,6 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     // @Ignore //OAK-10646
     public void moveOrderableWithManyChildren() throws Exception {
         int childCount = 1000;
-        int moveCount = 1;
         StringBuilder prefix = new StringBuilder("");
         for (int k = 0; k < 90; k++) {
             prefix.append("0123456789");
@@ -124,7 +140,6 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
     // @Ignore //OAK-10646
     public void copyOrderableWithManyChildren() throws Exception {
         int childCount = 1000;
-        int copyCount = 1;
         StringBuilder prefix = new StringBuilder("");
         for (int k = 0; k < 90; k++) {
             prefix.append("0123456789");

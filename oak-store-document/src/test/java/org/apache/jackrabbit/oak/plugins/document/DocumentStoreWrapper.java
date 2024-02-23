@@ -169,4 +169,7 @@ public class DocumentStoreWrapper implements DocumentStore {
     public long determineServerTimeDifferenceMillis() {
         return store.determineServerTimeDifferenceMillis();
     }
+
+    @Override
+    public boolean isCommitCleanupFeatureEnabled() { return store.isCommitCleanupFeatureEnabled(); }
 }

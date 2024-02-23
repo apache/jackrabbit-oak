@@ -362,7 +362,7 @@ public class Commit {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
 
             // special case for :childOrder updates
-            if (!previousRevisions.isEmpty()) {
+            if (store.isCommitCleanupFeatureEnabled() && !previousRevisions.isEmpty()) {
                 boolean removePreviousSetOperations = false;
                 for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
                     if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {

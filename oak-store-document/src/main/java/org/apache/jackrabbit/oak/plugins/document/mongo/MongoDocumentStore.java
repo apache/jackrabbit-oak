@@ -83,6 +83,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.bson.BSONException;
@@ -306,6 +307,8 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
+    private final Feature docStoreCommitCleanupFeature;
+
     @Override
     public int getNodeNameLimit() {
         return nodeNameLimit;
@@ -324,6 +327,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
+        this.docStoreCommitCleanupFeature = builder.getDocStoreCommitCleanupFeature();
         this.readOnly = builder.getReadOnlyMode();
         MongoStatus status = builder.getMongoStatus();
         if (status == null) {
@@ -813,7 +817,7 @@ public class MongoDocumentStore implements DocumentStore {
             if (NodeDocument.DELETED_ONCE.equals(indexedProperty)) {
                 if (startValue != 1) {
                     throw new DocumentStoreException(
-                            "unsupported value for property " + 
+                            "unsupported value for property " +
                                     NodeDocument.DELETED_ONCE);
                 }
                 clauses.add(Filters.eq(indexedProperty, true));
@@ -2109,6 +2113,11 @@ public class MongoDocumentStore implements DocumentStore {
             doc = null;
         }
         return doc;
+    }
+
+    @Override
+    public boolean isCommitCleanupFeatureEnabled() {
+        return docStoreCommitCleanupFeature.isEnabled();
     }
 
     @NotNull

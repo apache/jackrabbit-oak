@@ -255,4 +255,9 @@ public final class LeaseCheckDocumentStoreWrapper implements DocumentStore {
     public Throttler throttler() {
         return delegate.throttler();
     }
+
+    @Override
+    public boolean isCommitCleanupFeatureEnabled() {
+        return delegate.isCommitCleanupFeatureEnabled();
+    }
 }
