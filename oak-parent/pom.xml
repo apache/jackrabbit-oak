@@ -34,6 +34,9 @@
   <packaging>pom</packaging>
 
   <properties>
+    <!-- build time stamp: should be updated prior to a release -->
+    <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
+    <project.build.outputTimestamp>1708183173</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
     <test.opts>${test.opts.coverage} ${test.opts.memory} -XX:+HeapDumpOnOutOfMemoryError -Dupdate.limit=100 -Djava.awt.headless=true</test.opts>
@@ -136,7 +139,7 @@
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
-          <version>5.1.8</version>
+          <version>5.1.9</version>
           <extensions>true</extensions>
           <inherited>true</inherited>
           <dependencies>
@@ -333,6 +336,11 @@
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
           <version>2.14.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-shade-plugin</artifactId>
+          <version>3.5.2</version>
         </plugin>
         
         <!-- This plugin's configuration is used to store Eclipse m2e      -->
@@ -1341,6 +1349,6 @@
   </profiles>
 
   <scm>
-    <tag>jackrabbit-oak-1.54.0</tag>
+    <tag>trunk</tag>
   </scm>
 </project>
