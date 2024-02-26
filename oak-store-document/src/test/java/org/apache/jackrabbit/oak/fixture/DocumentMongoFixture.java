@@ -71,7 +71,7 @@ public class DocumentMongoFixture extends NodeStoreFixture {
             }
             builder.setPersistentCache("target/persistentCache,time");
             builder.setMongoDB(createClient(), getDBName(suffix));
-            builder.setDocStoreCommitCleanupFeature(Feature.newFeature("FT_COCLEANUP_OAK-10657", getWhiteboard()));
+            builder.setDocStoreCommitCleanupFeature(Feature.newFeature("FT_COCLEANUP_OAK-10660", getWhiteboard()));
             DocumentNodeStore ns = builder.getNodeStore();
             suffixes.put(ns, suffix);
             return ns;

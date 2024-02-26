@@ -49,7 +49,7 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
         getRepository();
         Tracker<FeatureToggle> toggleTracker = getWhiteboard().track(FeatureToggle.class);
         for (FeatureToggle ft : toggleTracker.getServices()) {
-            if ("FT_COCLEANUP_OAK-10657".equals(ft.getName())) {
+            if ("FT_COCLEANUP_OAK-10660".equals(ft.getName())) {
                 ft.setEnabled(true);
             }
         }

@@ -181,7 +181,7 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_DOC_STORE_THROTTLING = "FT_THROTTLING_OAK-9909";
 
-    private static final String FT_NAME_DOC_STORE_COCLEANUP = "FT_COCLEANUP_OAK-10657";
+    private static final String FT_NAME_DOC_STORE_COCLEANUP = "FT_COCLEANUP_OAK-10660";
 
     /**
      * Feature toggle name to enable invalidation on cancel (due to a merge collision)
