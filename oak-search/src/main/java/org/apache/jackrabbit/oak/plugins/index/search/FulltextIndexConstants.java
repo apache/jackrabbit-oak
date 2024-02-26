@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.index.search;
 
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * Internal constants used in index definition, and index implementations.
@@ -436,4 +437,12 @@ public interface FulltextIndexConstants {
      * Boolean property indicating if in-built analyzer should preserve original term
      */
     String INDEX_ORIGINAL_TERM = "indexOriginalTerm";
+
+    /**
+     * Internal version of the index definition for specific index type. Index version is an information that might be
+     * needed from an outside process that does not have visibility to the specific index module.
+     */
+    Map<String, String> INDEX_VERSION_BY_TYPE = Map.of(
+            "elasticsearch", "1.1.0"
+    );
 }
