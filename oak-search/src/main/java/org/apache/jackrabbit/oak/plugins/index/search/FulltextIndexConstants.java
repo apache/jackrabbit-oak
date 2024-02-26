@@ -78,7 +78,7 @@ public interface FulltextIndexConstants {
     /**
      * Type of the property being indexed defined as part of property definition
      * under the given index definition. Refer to {@link javax.jcr.PropertyType}
-     * contants for the possible values
+     * constants for the possible values
      */
     String PROP_TYPE = "type";
 
@@ -197,7 +197,7 @@ public interface FulltextIndexConstants {
 
     /**
      * Limit for maximum number of reaggregates allowed. For example if there is an aggregate of nt:folder
-     * and it also includes nt:folder then aggregation would traverse down untill this limit is hit
+     * and it also includes nt:folder then aggregation would traverse down until this limit is hit
      */
     String AGG_RECURSIVE_LIMIT = "reaggregateLimit";
 
