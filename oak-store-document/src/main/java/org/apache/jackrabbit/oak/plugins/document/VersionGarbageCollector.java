@@ -955,7 +955,7 @@ public class VersionGarbageCollector {
                 traversedState = traversedState.getChildNode(name);
             }
 
-            if (isDeletedOrOrphanedNode(doc, traversedState, phases)) {
+            if (isDeletedOrOrphanedNode(traversedState)) {
                 // if this is an orphaned node, all that is needed is its removal
                 garbageDocsCount++;
                 totalGarbageDocsCount++;
