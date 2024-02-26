@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Function;
@@ -362,20 +363,35 @@ public class Commit {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
 
             // special case for :childOrder updates
-            if (store.isCommitCleanupFeatureEnabled() && !previousRevisions.isEmpty()) {
-                boolean removePreviousSetOperations = false;
-                for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
-                    if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
-                        // we are setting child order, so we should remove previous set operations from the same branch
-                        removePreviousSetOperations= true;
+            if (store.isCommitCleanupFeatureEnabled()) {
+                final Branch localBranch = getBranch();
+                if (localBranch != null) {
+                    final TreeSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
+                    boolean removePreviousSetOperations = false;
+                    for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
+                        if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
+                            // we are setting child order, so we should remove previous set operations from the same branch
+                            removePreviousSetOperations = true;
+                            // branch.getCommits contains all revisions of the branch
+                            // including the new one we're about to make
+                            // so don't do a removeMapEntry for that
+                            commits.remove(change.getKey().getRevision().asBranchRevision());
+                        }
                     }
-                }
-
-                if (removePreviousSetOperations) {
-                    for (Revision rev : previousRevisions) {
-                        op.removeMapEntry(":childOrder", rev);
+                    if (removePreviousSetOperations) {
+                        if (!commits.isEmpty()) {
+                            int countRemoves = 0;
+                            for (Revision rev : commits.descendingSet()) {
+                                op.removeMapEntry(":childOrder", rev.asTrunkRevision());
+                                if (++countRemoves >= 256) {
+                                    LOG.debug("applyToDocumentStore : only cleaning up last {} branch commits.",
+                                            countRemoves);
+                                    break;
+                                }
+                            }
+                            LOG.debug("applyToDocumentStore : childOrder-edited op is: " + op);
+                        }
                     }
-                    LOG.debug("edited op is: " + op);
                 }
             }
 
