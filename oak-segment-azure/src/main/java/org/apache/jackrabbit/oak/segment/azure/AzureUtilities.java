@@ -181,7 +181,6 @@ public final class AzureUtilities {
                 }
                 cloudBlob.deleteIfExists();
             } else if (blobItem instanceof CloudBlobDirectory) {
-                System.out.println("directory: " + blobItem.getUri());
                 CloudBlobDirectory cloudBlobDirectory = (CloudBlobDirectory) blobItem;
                 deleteAllBlobs(cloudBlobDirectory);
             }
