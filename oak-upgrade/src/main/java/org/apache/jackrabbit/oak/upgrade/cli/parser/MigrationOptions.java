@@ -104,6 +104,8 @@ public class MigrationOptions {
 
     private final Boolean addSecondaryMetadata;
 
+    private final Boolean skipCreateAzureContainer;
+
     public MigrationOptions(MigrationCliArguments args) throws CliArgumentException {
         this.disableMmap = args.hasOption(OptionParserFactory.DISABLE_MMAP);
         this.copyBinaries = args.hasOption(OptionParserFactory.COPY_BINARIES);
@@ -168,6 +170,7 @@ public class MigrationOptions {
         } else {
             this.addSecondaryMetadata = Boolean.getBoolean(ADD_SECONDARY_METADATA_PROP);
         }
+        this.skipCreateAzureContainer = args.hasOption(OptionParserFactory.SKIP_CREATE_AZURE_CONTAINER);
     }
 
     public boolean isCopyBinaries() {
@@ -347,6 +350,10 @@ public class MigrationOptions {
         return isDstFbs() || isDstFds() || isDstS3() || isDstAzure();
     }
 
+    public boolean isSkipCreateAzureContainer() {
+        return skipCreateAzureContainer;
+    }
+
     public void logOptions() {
         if (disableMmap) {
             log.info("Disabling memory mapped file access for Segment Store");
@@ -406,6 +413,10 @@ public class MigrationOptions {
 
         if (addSecondaryMetadata) {
             log.info("Secondary metadata will be added");
+        }
+
+        if (skipCreateAzureContainer) {
+            log.info("Skipping creation of the Azure container, if it does not yet exists");
         }
 
         log.info("Cache size: {} MB", cacheSizeInMB);

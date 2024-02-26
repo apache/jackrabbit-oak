@@ -22,9 +22,11 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_SHARED_ACCESS_SIGNATURE;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.isCustomAzureConnectionString;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromUri;
+
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isJcr2Repository;
 import static org.apache.jackrabbit.oak.upgrade.cli.node.Jackrabbit2Factory.isRepositoryXml;
 import static org.apache.jackrabbit.oak.upgrade.cli.parser.StoreArguments.SEGMENT_AZURE_PREFIX;
@@ -166,6 +168,7 @@ public enum StoreType {
                                 direction == MigrationDirection.SRC)
                         .connectionString(config.get(KEY_CONNECTION_STRING))
                         .containerName(config.get(KEY_CONTAINER_NAME))
+                        .skipCreateContainer(migrationOptions.isSkipCreateAzureContainer())
                         .build()
                 );
             } else {
@@ -176,6 +179,8 @@ public enum StoreType {
                         migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC)
                         .accountName(config.get(KEY_ACCOUNT_NAME))
                         .uri(config.get(KEY_STORAGE_URI))
+                        .sasToken(config.get(KEY_SHARED_ACCESS_SIGNATURE))
+                        .skipCreateContainer(migrationOptions.isSkipCreateAzureContainer())
                         .build()
                 );
             }

@@ -94,6 +94,8 @@ public class OptionParserFactory {
 
     public static final String ADD_SECONDARY_METADATA = "add-secondary-metadata";
 
+    public static final String SKIP_CREATE_AZURE_CONTAINER = "skip-create-azure-container";
+
     public static OptionParser create() {
         OptionParser op = new OptionParser();
         addUsageOptions(op);
@@ -174,5 +176,6 @@ public class OptionParserFactory {
         op.accepts(SKIP_CHECKPOINTS, "Don't copy checkpoints on the full segment->segment migration");
         op.accepts(FORCE_CHECKPOINTS, "Copy checkpoints even if the --include,exclude,merge-paths option is specified");
         op.accepts(ADD_SECONDARY_METADATA, "Adds the metadata required by secondary store");
+        op.accepts(SKIP_CREATE_AZURE_CONTAINER, "Skip creating the Azure container if it does not exist");
     }
 }
