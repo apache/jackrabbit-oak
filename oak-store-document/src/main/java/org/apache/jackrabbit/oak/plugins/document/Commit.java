@@ -195,17 +195,13 @@ public class Commit {
         return success;
     }
 
-    void apply() throws ConflictException, DocumentStoreException {
-        apply(Collections.emptySet());
-    }
-
     /**
      * Applies this commit to the store.
      *
      * @throws ConflictException if the commit failed because of a conflict.
      * @throws DocumentStoreException if the commit cannot be applied.
      */
-    void apply(Set<Revision> previousRevisions) throws ConflictException, DocumentStoreException {
+    void apply() throws ConflictException, DocumentStoreException {
         boolean success = false;
         RevisionVector baseRev = getBaseRevision();
         boolean isBranch = baseRev != null && baseRev.isBranch();
@@ -213,7 +209,7 @@ public class Commit {
         if (isBranch && !nodeStore.isDisableBranches()) {
             try {
                 // prepare commit
-                prepare(baseRev, previousRevisions);
+                prepare(baseRev);
                 success = true;
             } finally {
                 if (!success) {
@@ -244,12 +240,12 @@ public class Commit {
         }
     }
 
-    private void prepare(RevisionVector baseRevision, Set<Revision> previousRevisions)
+    private void prepare(RevisionVector baseRevision)
             throws ConflictException, DocumentStoreException {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
-            applyToDocumentStoreWithTiming(baseRevision, previousRevisions);
+            applyToDocumentStoreWithTiming(baseRevision);
         }
     }
 
@@ -266,7 +262,7 @@ public class Commit {
      * Apply the changes to the document store.
      */
     void applyToDocumentStore() throws ConflictException, DocumentStoreException {
-        applyToDocumentStoreWithTiming(null, Collections.emptySet());
+        applyToDocumentStoreWithTiming(null);
     }
 
     /**
@@ -278,11 +274,11 @@ public class Commit {
      * @throws DocumentStoreException if an error occurs while writing to the
      *          underlying store.
      */
-    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision, Set<Revision> previousRevisions)
+    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision)
             throws ConflictException, DocumentStoreException {
         long start = System.nanoTime();
         try {
-            applyToDocumentStore(baseBranchRevision, previousRevisions);
+            applyToDocumentStore(baseBranchRevision);
         } finally {
             nodeStore.getStatsCollector().doneChangesApplied(
                     TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start));
@@ -298,7 +294,7 @@ public class Commit {
      * @throws DocumentStoreException if an error occurs while writing to the
      *          underlying store.
      */
-    private void applyToDocumentStore(RevisionVector baseBranchRevision, Set<Revision> previousRevisions)
+    private void applyToDocumentStore(RevisionVector baseBranchRevision)
             throws ConflictException, DocumentStoreException {
         // initially set the rollback to always fail until we have changes
         // in an oplog list and a commit root.
