@@ -990,8 +990,7 @@ public class VersionGarbageCollector {
          * @return true if the node is orphaned (and/or can be removed), false
          *         otherwise
          */
-        private boolean isDeletedOrOrphanedNode(NodeDocument doc, NodeState traversedState,
-                GCPhases phases) {
+        private boolean isDeletedOrOrphanedNode(NodeState traversedState) {
             // several different cases here, but ultimately they all lead back to:
             return !traversedState.exists();
 
