@@ -83,6 +83,7 @@ import org.apache.jackrabbit.oak.plugins.document.cache.NodeDocumentCache;
 import org.apache.jackrabbit.oak.plugins.document.locks.NodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.locks.StripedNodeDocumentLocks;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.PerfLogger;
 import org.bson.BSONException;
@@ -306,6 +307,8 @@ public class MongoDocumentStore implements DocumentStore {
 
     private final boolean readOnly;
 
+    private final Feature docStoreCommitCleanupFeature;
+
     @Override
     public int getNodeNameLimit() {
         return nodeNameLimit;
@@ -324,6 +327,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     public MongoDocumentStore(MongoClient connection, MongoDatabase db,
                               MongoDocumentNodeStoreBuilderBase<?> builder) {
+        this.docStoreCommitCleanupFeature = builder.getDocStoreCommitCleanupFeature();
         this.readOnly = builder.getReadOnlyMode();
         MongoStatus status = builder.getMongoStatus();
         if (status == null) {
@@ -1042,9 +1046,41 @@ public class MongoDocumentStore implements DocumentStore {
         return num;
     }
 
+    @Nullable
+    private <T extends Document> T findAndModify(Collection<T> collection, UpdateOp updateOp, boolean upsert,
+            boolean checkConditions) {
+        try {
+            return internalFindAndModify(collection, updateOp, upsert, checkConditions);
+        } catch (DocumentStoreException ex) {
+            if (docStoreCommitCleanupFeature.isEnabled() && ex.getCause() instanceof MongoWriteException) {
+                try {
+                    T doc = find(collection, updateOp.getId());
+                    if (doc != null) {
+                        final int cid = Utils.extractClusterId(updateOp);
+                        UpdateOp shrink = Utils.getShrinkOp(doc, ":childOrder", r -> r.getClusterId() == cid);
+                        if (shrink != null) {
+                            LOG.info("retrying after exception with shrink operation: " + shrink);
+                            T prev = internalFindAndModify(collection, shrink, false, false);
+                            LOG.info("prev: " + prev + ", stats: " + produceDiagnostics(collection, updateOp.getId()));
+                            // then retry once
+                            T prev2 = internalFindAndModify(collection, updateOp, upsert, checkConditions);
+                            LOG.info("prev: " + prev2 + ", stats: " + produceDiagnostics(collection, updateOp.getId()));
+                            return prev2;
+                        }
+                    }
+                } catch (Throwable worthATry) {
+                    LOG.error("Failed to update the document with Id={} with Throwable message = '{}'. Document statistics: {}.",
+                            updateOp.getId(), worthATry.getMessage(), produceDiagnostics(collection, updateOp.getId()), worthATry);
+                    throw handleException(worthATry, collection, updateOp.getId());
+                }
+            }
+            throw ex;
+        }
+    }
+
     @SuppressWarnings("unchecked")
     @Nullable
-    private <T extends Document> T findAndModify(Collection<T> collection,
+    private <T extends Document> T internalFindAndModify(Collection<T> collection,
                                                  UpdateOp updateOp,
                                                  boolean upsert,
                                                  boolean checkConditions) {

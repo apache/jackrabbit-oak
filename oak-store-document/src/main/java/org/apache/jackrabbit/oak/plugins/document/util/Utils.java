@@ -26,6 +26,7 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
@@ -46,6 +47,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -54,6 +56,8 @@ import org.apache.jackrabbit.oak.plugins.document.Path;
 import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.StableRevisionComparator;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
@@ -271,6 +275,73 @@ public class Utils {
             return redactMemberName(name) + ": "+ stat.size + " bytes";
         } else {
             return redactMemberName(name) + ": "+ stat.size + " bytes in " + stat.count + " entries (" + stat.size / stat.count + " avg)";
+        }
+    }
+
+    /**
+     * @return cluster if from first revision found in op, {@code -1} otherwise
+     */
+    public static int extractClusterId(UpdateOp op) {
+        for (Key key : op.getChanges().keySet()) {
+            if (key.getRevision() != null) {
+                return key.getRevision().getClusterId();
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Produce an {@link UpdateOp} suitable for shrinking branch revision entries for given property in {@link Document}, {@code null} otherwise.
+     * 
+     * @param doc document to inspect for repeated branch commits
+     * @param propertyName property to check for
+     * @param revisionChecker filter for revisions (for instance, to check for cluster id)
+     * @return {@link UpdateOp} suitable for shrinking document, {@code null} otherwise
+     */
+    public static @Nullable UpdateOp getShrinkOp(Document doc, String propertyName, Predicate<Revision> revisionChecker) {
+        Object t_bc = doc.get("_bc");
+        Object t_property = doc.get(propertyName);
+        if (t_bc instanceof Map && t_property instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<Revision, String> _bc = (Map<Revision, String>)t_bc;
+            @SuppressWarnings("unchecked")
+            Map<Revision, String> pMap = (Map<Revision, String>)t_property;
+            List<Revision> revs = new ArrayList<>();
+            for (Map.Entry<Revision, String> en : pMap.entrySet()) {
+                Revision r = en.getKey();
+                if (revisionChecker.apply(r)) {
+                    String bcv = _bc.get(r);
+                    if ("true".equals(bcv)) {
+                        revs.add(r);
+                    }
+                }
+            }
+            // sort by age
+            Collections.sort(revs, new Comparator<Revision>() {
+                @Override
+                public int compare(Revision r1, Revision r2) {
+                    if (r1.getClusterId() != r2.getClusterId()) {
+                        return r1.getClusterId() - r2.getClusterId();
+                    } else if (r1.getTimestamp() != r2.getTimestamp()) {
+                        return r1.getTimestamp() > r2.getTimestamp() ? 1 : -1;
+                    } else {
+                        return r1.getCounter() - r2.getCounter();
+                    }
+                }});
+
+            UpdateOp clean = new UpdateOp(doc.getId(), false);
+            Revision last = null;
+            for (Revision r : revs) {
+                if (last != null) {
+                    if (last.getClusterId() == r.getClusterId()) {
+                        clean.removeMapEntry(propertyName, last);
+                    }
+                }
+                last = r;
+            }
+            return clean.hasChanges() ? clean : null;
+        } else {
+            return null;
         }
     }
 
