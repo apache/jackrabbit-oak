@@ -456,13 +456,6 @@ public class ElasticRequestHandler {
         return PhraseSuggester.of(ps -> ps
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
-                // The Elasticsearch Java client fails parsing a response to suggest queries if the highlight is not set.
-                // Caused by: co.elastic.clients.util.MissingRequiredPropertyException: Missing required property 'PhraseSuggestOption.highlighted'
-                //	at co.elastic.clients.util.ApiTypeHelper.requireNonNull(ApiTypeHelper.java:76)
-                //	at co.elastic.clients.elasticsearch.core.search.PhraseSuggestOption.<init>(PhraseSuggestOption.java:64)
-                // Happens with Elasticsearch server 8.4.2 and client 7.17.6
-                // https://github.com/elastic/elasticsearch-java/issues/404
-                .highlight(f -> f.preTag("").postTag(""))
                 .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing).size(10))
                 .collate(c -> c.query(q -> q.source(queryString.toString())))
         );

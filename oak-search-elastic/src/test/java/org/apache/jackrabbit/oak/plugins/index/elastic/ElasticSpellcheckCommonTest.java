@@ -61,13 +61,12 @@ public class ElasticSpellcheckCommonTest extends SpellcheckCommonTest {
         n1.setProperty("foo", "descent");
         adminSession.save();
 
-        String sql = "EXPLAIN SELECT [rep:spellcheck()] FROM nt:base WHERE SPELLCHECK('desent')";
+        String sql = "EXPLAIN SELECT [rep:spellcheck()] FROM [nt:base] WHERE SPELLCHECK('desent')";
         String expected = "{\"suggest\":{\"oak:suggestion\":{\"phrase\":{\"field\":\":spellcheck\",\"size\":10,\"collate\":" +
                 "{\"query\":{\"source\":\"{\\\"bool\\\":{\\\"must\\\":[{\\\"match_phrase\\\":{\\\":spellcheck\\\":{\\\"query\\\":\\\"{{suggestion}}\\\"}}}]}}\"}}," +
-                "\"direct_generator\":[{\"field\":\":spellcheck\",\"size\":10,\"suggest_mode\":\"missing\"}]," +
-                "\"highlight\":{\"post_tag\":\"\",\"pre_tag\":\"\"}}},\"text\":\"desent\"}}";
+                "\"direct_generator\":[{\"field\":\":spellcheck\",\"size\":10,\"suggest_mode\":\"missing\"}]}},\"text\":\"desent\"}}";
 
-        Query q = qm.createQuery(sql, Query.SQL);
+        Query q = qm.createQuery(sql, Query.JCR_SQL2);
         Row row = q.execute().getRows().nextRow();
         MatcherAssert.assertThat(row.getValue("plan").getString(), CoreMatchers.containsString(expected));
     }
