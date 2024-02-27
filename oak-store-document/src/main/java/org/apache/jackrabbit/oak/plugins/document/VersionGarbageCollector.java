@@ -53,6 +53,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -898,6 +899,9 @@ public class VersionGarbageCollector {
         private final Stopwatch timer;
         private final List<UpdateOp> updateOpList;
 
+        /** contains the list of _ids of orphan or deleted documents to be removed in the current batch **/
+        private final Map<String, Long> orphanOrDeletedRemovalMap;
+
         /**
          * Map of documentId => total no. of deleted properties.
          * <p>
@@ -919,6 +923,7 @@ public class VersionGarbageCollector {
         private int totalGarbageDocsCount;
         private final Revision revisionForModified;
         private final Revision ownHeadRevision;
+        private final DocumentNodeState root;
 
         public DetailedGC(@NotNull RevisionVector headRevision, long toModifiedMs, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
             this.headRevision = requireNonNull(headRevision);
@@ -926,12 +931,14 @@ public class VersionGarbageCollector {
             this.monitor = monitor;
             this.cancel = cancel;
             this.updateOpList = new ArrayList<>();
+            this.orphanOrDeletedRemovalMap = new HashMap<>();
             this.deletedPropsCountMap = new HashMap<>();
             this.deletedUnmergedBCSet = new HashSet<>();
             this.timer = createUnstarted();
             // clusterId is not used
             this.revisionForModified = Revision.newRevision(0);
             this.ownHeadRevision = headRevision.getRevision(nodeStore.getClusterId());
+            this.root = nodeStore.getRoot(headRevision);
         }
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
@@ -942,19 +949,58 @@ public class VersionGarbageCollector {
             final UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
             op.equals(MODIFIED_IN_SECS, doc.getModified());
 
-            collectDeletedProperties(doc, phases, op);
-            collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-            collectOldRevisions(doc, phases, op);
-            // only add if there are changes for this doc
-            if (op.hasChanges()) {
+            // traversed state == state of node at doc.id based on head revision
+            NodeState traversedState = root;
+            for (String name : doc.getPath().elements()) {
+                traversedState = traversedState.getChildNode(name);
+            }
+
+            if (isDeletedOrOrphanedNode(traversedState)) {
+                // if this is an orphaned node, all that is needed is its removal
                 garbageDocsCount++;
                 totalGarbageDocsCount++;
-                monitor.info("Collected [{}] garbage for doc [{}]", op.getChanges().size(), doc.getId());
-                updateOpList.add(op);
+                monitor.info("Deleted orphaned or deleted doc [{}]", doc.getId());
+                orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
+            } else {
+                collectDeletedProperties(doc, phases, op);
+                collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
+                collectOldRevisions(doc, phases, op);
+                // only add if there are changes for this doc
+                if (op.hasChanges()) {
+                    garbageDocsCount++;
+                    totalGarbageDocsCount++;
+                    monitor.info("Collected [{}] garbage for doc [{}]", op.getChanges().size(), doc.getId());
+                    updateOpList.add(op);
+                }
             }
             if (log.isDebugEnabled()) {
                 log.debug("UpdateOp for {} is {}", doc.getId(), op);
             }
+        }
+
+        /**
+         * Check if the node represented by the given doc and traversedState is
+         * <i>orphaned</i>. A node is considered orphaned if it does not have a visible
+         * parent node. But from a GC point of view this also includes regular
+         * deletion cases that have not otherwise been deleted already (eg by DeletedDocsGC).
+         *
+         * @param traversedState
+         * @return true if the node is orphaned (and/or can be removed), false
+         *         otherwise
+         */
+        private boolean isDeletedOrOrphanedNode(NodeState traversedState) {
+            // several different cases here, but ultimately they all lead back to:
+            return !traversedState.exists();
+
+            // if the node when reading at current headRevision (rather than traversed)
+            // does not exist, then this is rather a regular deletion, nothing special.
+            // that is usually handled in DeletedDocsGC - but if DetailedGC sees this,
+            // it seems risky to not delete it right away.
+
+            // if the node when reading at current headRevision (rather than traversed)
+            // does exist, then it could be either due to the parent node having
+            // been deleted (true orphan) - or the node itself got late-write-added.
+            // in both of these cases we should now delete it. That's all with above return.
         }
 
         private boolean hasGarbage() {
@@ -1207,9 +1253,10 @@ public class VersionGarbageCollector {
             totalGarbageDocsCount = 0;
         }
 
+
         public void removeGarbage(final VersionGCStats stats) {
 
-            if (updateOpList.isEmpty()) {
+            if (updateOpList.isEmpty() && orphanOrDeletedRemovalMap.isEmpty()) {
                 if (log.isDebugEnabled() || isDetailedGCDryRun) {
                     log.debug("Skipping removal of detailed garbage, cause no garbage detected");
                 }
@@ -1255,28 +1302,50 @@ public class VersionGarbageCollector {
                 }
                 if (!isDetailedGCDryRun) {
                     // only delete these in case it is not a dryRun
-                    List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
-                    int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();
-                    int updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
-                    stats.updatedDetailedGCDocsCount += updatedDocs;
-                    stats.deletedPropsCount += deletedProps;
-                    stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
 
-                    if (log.isDebugEnabled()) {
-                        log.debug("Updated [{}] documents, deleted [{}] properties, deleted [{}] unmergedBranchCommits",
-                                updatedDocs, deletedProps, deletedUnmergedBCSet.size());
+                    if (!orphanOrDeletedRemovalMap.isEmpty()) {
+                        // use remove() with the modified check to rule
+                        // out any further race-condition where this removal
+                        // races with a un-orphan/re-creation as a result of which
+                        // the node should now not be removed. The modified check
+                        // ensures a node would then not be removed
+                        // (and as a result the removedSize != map.size())
+                        final int removedSize = ds.remove(NODES, orphanOrDeletedRemovalMap);
+                        stats.updatedDetailedGCDocsCount += removedSize;
+                        stats.deletedDocGCCount += removedSize;
+                        detailedGCStats.documentsUpdated(removedSize);
+                        gcStats.documentsDeleted(removedSize);
+                        if (log.isDebugEnabled()) {
+                            log.debug("deleted [{}] documents (from intended {})",
+                                    removedSize, orphanOrDeletedRemovalMap.size());
+                        }
                     }
 
-                    // save stats
-                    detailedGCStats.propertiesDeleted(deletedProps);
-                    detailedGCStats.unmergedBranchCommitsDeleted(deletedUnmergedBCSet.size());
-                    detailedGCStats.documentsUpdated(updatedDocs);
-                    // fix for sonar : converted to long before operation
-                    detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
+                    if (!updateOpList.isEmpty()) {
+                        List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
+                        int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();
+                        int updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
+                        stats.updatedDetailedGCDocsCount += updatedDocs;
+                        stats.deletedPropsCount += deletedProps;
+                        stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
+
+                        if (log.isDebugEnabled()) {
+                            log.debug("Updated [{}] documents, deleted [{}] properties, deleted [{}] unmergedBranchCommits",
+                                    updatedDocs, deletedProps, deletedUnmergedBCSet.size());
+                        }
+
+                        // save stats
+                        detailedGCStats.propertiesDeleted(deletedProps);
+                        detailedGCStats.unmergedBranchCommitsDeleted(deletedUnmergedBCSet.size());
+                        detailedGCStats.documentsUpdated(updatedDocs);
+                        // fix for sonar : converted to long before operation
+                        detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
+                    }
                 }
             } finally {
                 // now reset delete metadata
                 updateOpList.clear();
+                orphanOrDeletedRemovalMap.clear();
                 deletedPropsCountMap.clear();
                 deletedUnmergedBCSet.clear();
                 garbageDocsCount = 0;

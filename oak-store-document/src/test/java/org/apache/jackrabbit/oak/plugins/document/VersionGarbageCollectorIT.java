@@ -19,11 +19,14 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -49,6 +52,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
@@ -61,10 +65,14 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VAL
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.isDeletedEntry;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.getCurrentTimestamp;
 import static org.apache.jackrabbit.oak.plugins.document.Revision.newRevision;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
+import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
@@ -97,6 +105,7 @@ import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
+import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
@@ -113,6 +122,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -192,11 +202,20 @@ public class VersionGarbageCollectorIT {
     }
 
     private void createSecondaryStore(LeaseCheckMode leaseCheckNode) {
+        createSecondaryStore(leaseCheckNode, false);
+    }
+
+    private void createSecondaryStore(LeaseCheckMode leaseCheckNode, boolean withFailingDS) {
         if (fixture instanceof RDBFixture) {
             ((RDBFixture) fixture).setRDBOptions(
                     new RDBOptions().tablePrefix(rdbTablePrefix).dropTablesOnClose(false));
         }
         ds2 = fixture.createDocumentStore();
+        if (withFailingDS) {
+            FailingDocumentStore failingDs = new FailingDocumentStore(ds2);
+            failingDs.noDispose();
+            ds2 = failingDs;
+        }
         DocumentMK.Builder documentMKBuilder2 = new DocumentMK.Builder().clock(clock).setClusterId(2)
                 .setLeaseCheckMode(leaseCheckNode)
                 .setDocumentStore(ds2).setAsyncDelay(0);
@@ -1181,6 +1200,361 @@ public class VersionGarbageCollectorIT {
         assertBranchRevisionRemovedFromAllDocuments(store1, br4);
     }
     // OAK-8646 END
+
+    private void createNodes(Collection<String> paths) throws Exception {
+        createNodes(paths.toArray(new String[paths.size()]));
+    }
+
+    private void createNodes(String... paths) throws CommitFailedException {
+        createNodes(store1, paths);
+    }
+
+    private void createNodes(DocumentNodeStore dns,
+            String... paths) throws CommitFailedException {
+        for (String path : paths) {
+            merge(dns, createChild(dns.getRoot().builder(), path));
+        }
+        dns.runBackgroundOperations();
+    }
+
+    interface LateWriteChangesBuilder {
+        void apply(NodeBuilder root, String path);
+    }
+
+    private void lateWriteCreateNodes(Collection<String> orphanedPaths,
+            String unrelatedPathOrNull) throws Exception {
+        lateWrite(orphanedPaths, (root, path) -> createChild(root, path),
+                unrelatedPathOrNull, ADD_NODE_OPS);
+    }
+
+    private void lateWriteRemoveNodes(Collection<String> orphanedPaths,
+            String unrelatedPathOrNull) throws Exception {
+        lateWrite(orphanedPaths, (rb, path) -> childBuilder(rb, path).remove(),
+                unrelatedPathOrNull, REMOVE_NODE_OPS);
+    }
+
+    /**
+     * Creates orphaned nodes, late write style. Assumes the secondary store is not
+     * in use as it needs to control its creation and disposal.
+     *
+     * @param filterPredicate
+     */
+    private void lateWrite(Collection<String> orphanedPaths,
+            LateWriteChangesBuilder lateWriteChangesBuilder, String unrelatedPath,
+            Predicate<UpdateOp> filterPredicate) throws Exception {
+        // this method requires store2 to be null as a prerequisite
+        assertNull(store2);
+        // as it creates store2 itself - then disposes it later too
+        createSecondaryStore(LeaseCheckMode.LENIENT, true);
+        // create the orphaned paths
+        final List<UpdateOp> failed = new ArrayList<>();
+        final FailingDocumentStore fds = (FailingDocumentStore) ds2;
+        fds.addListener(filter0(failed, filterPredicate));
+        fds.fail().after(0).eternally();
+        for (String path : orphanedPaths) {
+            try {
+                NodeBuilder rb = store2.getRoot().builder();
+                lateWriteChangesBuilder.apply(rb, path);
+                merge(store2, rb);
+                fail("merge must fail");
+            } catch (CommitFailedException e) {
+                // expected
+                String msg = e.getMessage();
+                e.printStackTrace();
+                assertEquals("OakOak0001: write operation failed", msg);
+            }
+        }
+        disposeQuietly(store2);
+        fds.fail().never();
+
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
+
+        {
+            store1.renewClusterIdLease();
+            assertTrue(store1.getLastRevRecoveryAgent().isRecoveryNeeded());
+            assertEquals(0, store1.getLastRevRecoveryAgent().recover(2));
+        }
+
+        // 'late write'
+        fds.createOrUpdate(NODES, failed);
+
+        if (unrelatedPath == null || unrelatedPath.isEmpty()) {
+            return;
+        }
+
+        // revive clusterId 2
+        createSecondaryStore(LeaseCheckMode.LENIENT);
+        merge(store2, createChild(store2.getRoot().builder(), unrelatedPath));
+        store2.runBackgroundOperations();
+        store2.dispose();
+        store1.runBackgroundOperations();
+    }
+
+    /**
+     * Creates a bunch of parents properly, then creates a bunch of orphans in
+     * late-write manner (i.e. not properly), then runs DetailedGC and assets that
+     * everything was deleted as expected
+     * 
+     * @param parents                 the nodes that should be created properly -
+     *                                each one in a separate merge
+     * @param orphans                 the nodes that should be created inproperly -
+     *                                each one in a separate late-write way
+     * @param expectedNumOrphanedDocs the expected number of orphan documents that
+     *                                DetailedGC should cleanup
+     * @param unrelatedPath           an unrelated path that should be merged after
+     *                                late-write - ensures lastRev is updated on
+     *                                root to allow detecting late-writes as such
+     */
+    private void doLateWriteCreateChildrenGC(Collection<String> parents,
+            Collection<String> orphans, int expectedNumOrphanedDocs, String unrelatedPath)
+            throws Exception {
+        assumeTrue(fixture.hasSinglePersistence());
+        createNodes(parents);
+        lateWriteCreateNodes(orphans, unrelatedPath);
+
+        assertDocumentsExist(parents);
+        assertDocumentsExist(orphans);
+        assertNodesDontExist(parents, orphans);
+
+        enableDetailedGC(store1);
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(expectedNumOrphanedDocs, stats.deletedDocGCCount);
+
+        assertDocumentsExist(parents);
+        // and the main assert being: have those lateCreated (orphans) docs been deleted
+        assertNodesDontExist(parents, orphans);
+        assertDocumentsDontExist(orphans);
+    }
+
+    private void assertNodesDontExist(Collection<String> existingNodes,
+            Collection<String> missingNodes) {
+        for (String aMissingNode : missingNodes) {
+            assertChildNotExists(existingNodes, aMissingNode);
+        }
+    }
+
+    private void assertChildNotExists(Collection<String> existingNodes, String aMissingNode) {
+        final Path aMissingPath = Path.fromString(aMissingNode);
+        String nearestParent = null;
+        Path nearestParentPath = null;
+        for (String anExistingNode : existingNodes) {
+            final Path anExistingPath = Path.fromString(anExistingNode);
+            if (!anExistingPath.isAncestorOf(aMissingPath)) {
+                // skip
+                continue;
+            }
+            if (nearestParent == null || nearestParentPath.isAncestorOf(anExistingPath)) {
+                nearestParent = anExistingNode;
+                nearestParentPath = anExistingPath;
+            }
+        }
+        assertNotNull(nearestParent);
+        Path nearestChildPath = aMissingPath;
+        Path childParentPath = nearestChildPath.getParent();
+        while(nearestParentPath.isAncestorOf(childParentPath)) {
+            nearestChildPath = childParentPath;
+            childParentPath = childParentPath.getParent();
+        }
+        assertFalse(getChildeNodeState(store1, nearestParent, true).hasChildNode(nearestChildPath.getName()));
+    }
+
+    /**
+     * Tests whether DetailedGC properly deletes a late-written addChild "/grand/parent/a"
+     */
+    @Test
+    public void lateWriteCreateChildGC() throws Exception {
+        doLateWriteCreateChildrenGC(List.of("/grand/parent"),
+                List.of("/grand/parent/a"), 1, "/d");
+    }
+
+    /**
+     * Tests whether DetailedGC can delete a whole subtree "/a/b/c/d/**" that was
+     * added via late-writes.
+     */
+    @Test
+    public void lateWriteCreateChildTreeGC() throws Exception {
+        doLateWriteCreateChildrenGC(List.of("/a", "/a/b/c"),
+                List.of("/a/b/c/d", "/a/b/c/d/e/f"), 3, "/d");
+    }
+
+    /**
+     * Tests whether DetailedGC can delete a large amount of randomly
+     * created orphans (that were added in a late-write manner)
+     */
+    @Test
+    public void lateWriteCreateManyChildrenGC() throws Exception {
+        List<String> nonOrphans = List.of("/a", "/b", "/c");
+        createNodes(nonOrphans);
+        Set<String> orphans = new HashSet<>();
+        Set<String> commonOrphanParents = new HashSet<>();
+        Random r = new Random(43);
+        for(int i = 0; i < 900; i++) {
+            String orphanParent = nonOrphans.get(r.nextInt(3)) +
+                                "/" + r.nextInt(42);
+            commonOrphanParents.add(orphanParent);
+            orphans.add(orphanParent + "/" + r.nextInt(24));
+        }
+        doLateWriteCreateChildrenGC(nonOrphans,
+                orphans, orphans.size() + commonOrphanParents.size(), "/d");
+    }
+
+    @Test
+    @Ignore(value = "OAK-10535 : fails currently as uncommitted revisions aren't yet removed")
+    public void lateWriteRemoveChildGC_noSweep() throws Exception {
+        assumeTrue(fixture.hasSinglePersistence());
+        enableDetailedGC(store1);
+        createNodes("/a/b/c/d");
+        lateWriteRemoveNodes(List.of("/a/b"), null);
+
+        assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+
+        assertTrue(store1.getDocumentStore().find(NODES, "2:/a/b") != null);
+        assertTrue(store1.getDocumentStore().find(NODES, "4:/a/b/c/d") != null);
+        assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
+        //TODO: below assert fails currently as uncommitted revisions aren't yet removed
+        // should be 3 as it should clean up the _deleted from /a/b, /a/b/c and /a/b/c/d
+        assertEquals(3, stats.updatedDetailedGCDocsCount);
+    }
+
+    /**
+     * This (re)produces a case where classic GC deletes nodes
+     * but they are still in the nodes cache, eg:
+     *  org.apache.jackrabbit.oak.plugins.document.ConflictException: 
+     * The node 4:/a/b/c/d does not exist or is already deleted 
+     * at base revision r2-0-1,r1-0-2,
+     * branch: null, commit revision: re-0-1]
+     */
+    @Test
+    @Ignore(value = "OAK-10658 : fails currently as invalidation is missing (in classic GC) after late-write-then-sweep-then-GC")
+    public void lateWriteRemoveChildGC_withSweep() throws Exception {
+        assumeTrue(fixture.hasSinglePersistence());
+        enableDetailedGC(store1);
+        createNodes("/a/b/c/d");
+        lateWriteRemoveNodes(List.of("/a/b"), "/foo");
+
+        getChildeNodeState(store1, "/a/b/c/d", true);
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        getChildeNodeState(store1, "/a/b/c/d", true);
+        assertTrue(store1.getDocumentStore().find(NODES, "4:/a/b/c/d") != null);
+        assertTrue(store1.getDocumentStore().find(NODES, "3:/a/b/c") != null);
+        assertTrue(store1.getDocumentStore().find(NODES, "2:/a/b") != null);
+
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+
+        assertFalse(store1.getDocumentStore().find(NODES, "4:/a/b/c/d") != null);
+        assertFalse(store1.getDocumentStore().find(NODES, "3:/a/b/c") != null);
+        assertFalse(store1.getDocumentStore().find(NODES, "2:/a/b") != null);
+
+        // invalidating store1's nodeCache would fix it
+        // but we need that to happen in prod code, not test
+//        store1.getNodeCache().invalidateAll();
+
+        // creating /a/b/c again, below late-write-removed /a/b
+        // triggered a ConflictException
+        createNodes("/a/b/c/d/e");
+        getChildeNodeState(store1, "/a/b/c/d/e", true);
+    }
+
+    private void enableDetailedGC(DocumentNodeStore dns) throws IllegalAccessException {
+        DetailGCHelper.enableDetailGC(dns.getVersionGarbageCollector());
+    }
+
+    @Test
+    public void orphanedChildGC() throws Exception {
+        assumeTrue(fixture.hasSinglePersistence());
+        createSecondaryStore(LeaseCheckMode.LENIENT);
+        createNodes(store2, "/a/b/c", "/a/b/c/d/e", "/a/f/g");
+        ds2.remove(NODES, "3:/a/b/c");
+        store2.dispose();
+
+        store1.runBackgroundOperations();
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        enableDetailedGC(store1);
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        // expected 2 updated (deletions): /a/b/c/d and /a/b/c/d/e
+        assertEquals(2, stats.updatedDetailedGCDocsCount);
+        assertEquals(2, stats.deletedDocGCCount);
+
+        createNodes("/a/b/c/d/e");
+    }
+
+    private void assertDocumentsDontExist(Collection<String> nonExistingPaths) {
+        for (String nonExistingPath : nonExistingPaths) {
+            Path p = Path.fromString(nonExistingPath);
+            assertFalse(getChildeNodeState(store1, nonExistingPath, false).exists());
+            String id = Utils.getIdFromPath(p);
+            assertTrue(store1.getDocumentStore().find(NODES, id) == null);
+        }
+    }
+
+    private void assertDocumentsExist(Collection<String> paths) {
+        for (String aPath : paths) {
+            Path p = Path.fromString(aPath);
+            String id = Utils.getIdFromPath(p);
+            assertFalse(store1.getDocumentStore().find(NODES, id, -1) == null);
+        }
+    }
+
+    private static final Predicate<UpdateOp> ADD_NODE_OPS = updateOp -> {
+        for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
+            if (isDeletedEntry(key.getName())
+                    && updateOp.getChanges().get(key).value.equals("false")) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    private static final Predicate<UpdateOp> REMOVE_NODE_OPS = updateOp -> {
+        for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
+            if (isDeletedEntry(key.getName())
+                    && updateOp.getChanges().get(key).value.equals("true")) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    private static FailedUpdateOpListener filter0(List<UpdateOp> ops,
+            Predicate<UpdateOp> predicate) {
+        return op -> {
+            if (predicate.test(op)) {
+                ops.add(op);
+            }
+        };
+    }
+
+    private static NodeState getChildeNodeState(DocumentNodeStore ns2, String path, boolean assertIntermediatesExist) {
+        final Path p = Path.fromString(path);
+        NodeState state = ns2.getRoot();
+        for (String name : p.elements()) {
+            state = state.getChildNode(name);
+            if (assertIntermediatesExist) {
+                assertTrue(state.exists());
+            }
+        }
+        return state;
+    }
 
     // OAK-10370
     @Test
