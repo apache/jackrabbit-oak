@@ -1394,7 +1394,7 @@ public class VersionGarbageCollectorIT {
      */
     @Test
     public void lateWriteCreateManyChildrenGC() throws Exception {
-        List<String> nonOrphans = Arrays.asList("/a", "/b", "/c");
+        List<String> nonOrphans = List.of("/a", "/b", "/c");
         createNodes(nonOrphans);
         Set<String> orphans = new HashSet<>();
         Set<String> commonOrphanParents = new HashSet<>();
