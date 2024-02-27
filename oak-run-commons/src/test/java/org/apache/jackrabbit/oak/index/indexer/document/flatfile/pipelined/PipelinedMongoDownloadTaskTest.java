@@ -51,8 +51,10 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -297,22 +299,14 @@ public class PipelinedMongoDownloadTaskTest {
 
     @Test
     public void createCustomExcludeEntriesFilter() {
-        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(null, true));
-        assertNull(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("", true));
+        assertTrue(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(null).isEmpty());
+        assertTrue(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("").isEmpty());
 
         Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
-        var expectedBson = Filters.nor(
-                Filters.regex(NodeDocument.ID, p),
-                Filters.and(
-                        Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN),
-                        Filters.in(NodeDocument.PATH, p)
-                )
-        );
+        var actualListOfPatterns = PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("^[0-9]{1,3}:/a/b.*$");
+        assertEquals(1, actualListOfPatterns.size());
 
-
-        var actualBson = PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("^[0-9]{1,3}:/a/b.*$", true);
-
-        assertBsonEquals(expectedBson, actualBson);
+        assertEquals(p.toString(), actualListOfPatterns.get(0).toString());
     }
 
     @Test
@@ -321,8 +315,7 @@ public class PipelinedMongoDownloadTaskTest {
         assertNull(
                 PipelinedMongoDownloadTask.computeMongoQueryFilter(
                         MongoFilterPaths.DOWNLOAD_ALL,
-                        null,
-                        true
+                        null
                 )
         );
     }
@@ -332,23 +325,14 @@ public class PipelinedMongoDownloadTaskTest {
         // Path filter but no exclude filter
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/"), List.of("/excluded1", "/content/excluded2")),
-                null,
-                true
+                null
         );
         // The generated filter should not include any condition to include the descendants of /
-        var expected = Filters.nor(
-                Filters.or(
-                        Filters.in(NodeDocument.ID,
-                                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded1/") + ".*$"),
-                                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/content/excluded2/") + ".*$")),
-                        Filters.and(
-                                Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN),
-                                Filters.in(NodeDocument.PATH,
-                                        Pattern.compile("^" + Pattern.quote("/excluded1/") + ".*$"),
-                                        Pattern.compile("^" + Pattern.quote("/content/excluded2/") + ".*$"))
-                        )
-                )
-        );
+        var expected =
+                Filters.nin(NodeDocument.ID,
+                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded1/") + ".*$"),
+                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/content/excluded2/") + ".*$")
+                );
         assertBsonEquals(expected, actual);
     }
 
@@ -358,15 +342,11 @@ public class PipelinedMongoDownloadTaskTest {
         // Path filter but no exclude filter
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/parent"), List.of()),
-                null,
-                true
+                null
         );
-        var expected = Filters.or(
-                Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$")),
-                Filters.and(
-                        Filters.in(NodeDocument.PATH, Pattern.compile("^" + Pattern.quote("/parent/") + ".*$")),
-                        Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN)
-                )
+        var expected = Filters.in(NodeDocument.ID,
+                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"),
+                LONG_PATH_ID_PATTERN
         );
         assertBsonEquals(expected, actual);
     }
@@ -375,47 +355,24 @@ public class PipelinedMongoDownloadTaskTest {
     public void computeMongoQueryFilterNoPathFilterWithExcludeFilter() {
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 MongoFilterPaths.DOWNLOAD_ALL,
-                "^[0-9]{1,3}:/a/b.*$",
-                true
+                "^[0-9]{1,3}:/a/b.*$"
         );
-        Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
-        assertBsonEquals(
-                Filters.nor(
-                        Filters.regex(NodeDocument.ID, excludePattern),
-                        Filters.and(
-                                Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN),
-                                Filters.in(NodeDocument.PATH, excludePattern)
-                        )
-                ),
-                actual
-        );
+        Bson expectedFilter = Filters.nin(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:/a/b.*$"));
+        assertBsonEquals(expectedFilter, actual);
     }
 
     @Test
     public void computeMongoQueryFilterWithPathFilterWithExcludeFilter() {
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/parent"), List.of()),
-                "^[0-9]{1,3}:/a/b.*$",
-                true
+                "^[0-9]{1,3}:/a/b.*$"
         );
 
         Pattern excludesPattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expected =
                 Filters.and(
-                        Filters.or(
-                                Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$")),
-                                Filters.and(
-                                        Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN),
-                                        Filters.in(NodeDocument.PATH, Pattern.compile("^" + Pattern.quote("/parent/") + ".*$"))
-                                )
-                        ),
-                        Filters.nor(
-                                Filters.regex(NodeDocument.ID, excludesPattern),
-                                Filters.and(
-                                        Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN),
-                                        Filters.in(NodeDocument.PATH, excludesPattern)
-                                )
-                        )
+                        Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"), LONG_PATH_ID_PATTERN),
+                        Filters.nin(NodeDocument.ID, excludesPattern)
                 );
         assertBsonEquals(expected, actual);
     }
@@ -424,21 +381,17 @@ public class PipelinedMongoDownloadTaskTest {
     public void computeMongoQueryFilterWithPathFilterWithExcludeFilterAndNaturalOrderTraversal() {
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/parent"), List.of()),
-                "^[0-9]{1,3}:/a/b.*$",
-                false
+                "^[0-9]{1,3}:/a/b.*$"
         );
 
         Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expected =
                 Filters.and(
-                        Filters.or(
-                                Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$")),
-                                Filters.in(NodeDocument.PATH, Pattern.compile("^" + Pattern.quote("/parent/") + ".*$"))
+                        Filters.in(NodeDocument.ID,
+                                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"),
+                                LONG_PATH_ID_PATTERN
                         ),
-                        Filters.nor(
-                                Filters.regex(NodeDocument.ID, excludePattern),
-                                Filters.in(NodeDocument.PATH, excludePattern)
-                        )
+                        Filters.nin(NodeDocument.ID, excludePattern)
                 );
         assertBsonEquals(expected, actual);
     }
@@ -447,24 +400,12 @@ public class PipelinedMongoDownloadTaskTest {
     public void computeMongoQueryFilterWithPathFilterWithExcludeFilterAndNaturalColumnTraversal() {
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/"), List.of("/excluded")),
-                "^[0-9]{1,3}:/a/b.*$",
-                false
+                "^[0-9]{1,3}:/a/b.*$"
         );
 
         Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expected =
-                Filters.and(
-                        Filters.nor(
-                                Filters.or(
-                                        Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/") + ".*$")),
-                                        Filters.in(NodeDocument.PATH, Pattern.compile("^" + Pattern.quote("/excluded/") + ".*$"))
-                                )
-                        ),
-                        Filters.nor(
-                                Filters.regex(NodeDocument.ID, excludePattern),
-                                Filters.in(NodeDocument.PATH, excludePattern)
-                        )
-                );
+                Filters.nin(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/") + ".*$"), excludePattern);
         assertBsonEquals(expected, actual);
     }
 
@@ -472,30 +413,14 @@ public class PipelinedMongoDownloadTaskTest {
     public void computeMongoQueryFilterWithPathFilterWithExcludeFilterAndNaturalIndexTraversal() {
         var actual = PipelinedMongoDownloadTask.computeMongoQueryFilter(
                 new MongoFilterPaths(List.of("/"), List.of("/excluded")),
-                "^[0-9]{1,3}:/a/b.*$",
-                true
+                "^[0-9]{1,3}:/a/b.*$"
         );
 
         Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
-        var expected =
-                Filters.and(
-                        Filters.nor(
-                                Filters.or(
-                                        Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/") + ".*$")),
-                                        Filters.and(
-                                                Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN),
-                                                Filters.in(NodeDocument.PATH, Pattern.compile("^" + Pattern.quote("/excluded/") + ".*$"))
-                                        )
-                                )
-                        ),
-                        Filters.nor(
-                                Filters.regex(NodeDocument.ID, excludePattern),
-                                Filters.and(
-                                        Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN),
-                                        Filters.in(NodeDocument.PATH, excludePattern)
-                                )
-                        )
-                );
+        var expected = Filters.nin(NodeDocument.ID,
+                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/") + ".*$"),
+                excludePattern
+        );
         assertBsonEquals(expected, actual);
     }
 
