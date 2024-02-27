@@ -24,6 +24,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,7 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isChildOrderCleanupEnabled;
 
 /**
  * A higher level object representing a commit.
@@ -359,7 +361,7 @@ public class Commit {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
 
             // special case for :childOrder updates
-            if (store.isCommitCleanupFeatureEnabled()) {
+            if (isChildOrderCleanupEnabled(nodeStore)) {
                 final Branch localBranch = getBranch();
                 if (localBranch != null) {
                     final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
@@ -390,9 +392,7 @@ public class Commit {
                     }
                 }
             }
-
             changedNodes.add(op);
-
         }
         // create a "root of the commit" if there is none
         UpdateOp commitRoot = getUpdateOperationForNode(commitRootPath);

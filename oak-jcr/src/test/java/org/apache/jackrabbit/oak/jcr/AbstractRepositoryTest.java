@@ -182,7 +182,9 @@ public abstract class AbstractRepositoryTest {
         QueryEngineSettings qs = new QueryEngineSettings();
         qs.setFullTextComparisonWithoutIndex(true);
         jcr.with(BundlingConfigInitializer.INSTANCE);
-        return jcr.withAsyncIndexing().with(qs).with(fixture.getWhiteboard());
+        jcr.withAsyncIndexing().with(qs);
+        Whiteboard whiteboard = fixture.getWhiteboard();
+        return whiteboard == null ? jcr : jcr.with(whiteboard);
     }
 
     protected NodeStore getNodeStore() {

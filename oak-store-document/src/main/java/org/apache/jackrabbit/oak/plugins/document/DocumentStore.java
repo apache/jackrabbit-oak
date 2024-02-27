@@ -571,16 +571,4 @@ public interface DocumentStore {
                                                        final @NotNull List<UpdateOp> updateOps) throws DocumentStoreException {
         return updateOps.stream().map(op -> findAndUpdate(collection, op)).collect(toList());
     }
-
-    /**
-     * If the feature "FT_COCLEANUP_OAK-10660" has been registered with the whiteboard (the DocumentNodeStoreService
-     * does this automatically), it may be enabled using a feature toggle. A DocumentStore implementation supporting
-     * that feature must overwrite thie method.
-     * For background information see https://issues.apache.org/jira/browse/OAK-10660
-     *
-     * @return true if the commit cleanup feature is enabled.
-     */
-    default boolean isCommitCleanupFeatureEnabled() {
-        return false;
-    }
 }

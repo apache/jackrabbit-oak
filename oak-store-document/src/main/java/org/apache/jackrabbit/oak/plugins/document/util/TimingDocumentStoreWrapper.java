@@ -629,9 +629,4 @@ public class TimingDocumentStoreWrapper implements DocumentStore {
 
         }
     }
-
-    @Override
-    public boolean isCommitCleanupFeatureEnabled() {
-        return base.isCommitCleanupFeatureEnabled();
-    }
 }

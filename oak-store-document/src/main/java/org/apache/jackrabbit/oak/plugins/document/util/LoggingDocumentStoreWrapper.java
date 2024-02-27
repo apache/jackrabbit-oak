@@ -478,9 +478,4 @@ public class LoggingDocumentStoreWrapper implements DocumentStore {
         }
         LOG.info(out);
     }
-
-    @Override
-    public boolean isCommitCleanupFeatureEnabled() {
-        return store.isCommitCleanupFeatureEnabled();
-    }
 }

@@ -571,6 +571,8 @@ public final class DocumentNodeStore
 
     private final Feature cancelInvalidationFeature;
 
+    private final Feature childOrderCleanupFeature;
+
     private Boolean cancelInvalidationLogged;
 
     private CacheWarming cacheWarming;
@@ -648,6 +650,7 @@ public final class DocumentNodeStore
 
         this.prefetchFeature = builder.getPrefetchFeature();
         this.cancelInvalidationFeature = builder.getCancelInvalidationFeature();
+        this.childOrderCleanupFeature = builder.getChildOrderCleanupFeature();
         this.cacheWarming = new CacheWarming(s);
 
         this.journalPropertyHandlerFactory = builder.getJournalPropertyHandlerFactory();
@@ -867,6 +870,11 @@ public final class DocumentNodeStore
         if (!builder.isBundlingDisabled()) {
             bundlingConfigHandler.initialize(this, executor);
         }
+    }
+
+
+    public boolean isChildOrderCleanupFeatureEnabled() {
+        return childOrderCleanupFeature != null && childOrderCleanupFeature.isEnabled();
     }
 
     public void dispose() {

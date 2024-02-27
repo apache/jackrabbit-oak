@@ -304,9 +304,4 @@ public class ThrottlingDocumentStoreWrapper implements DocumentStore {
         }
         return throttleTime;
     }
-
-    @Override
-    public boolean isCommitCleanupFeatureEnabled() {
-        return store.isCommitCleanupFeatureEnabled();
-    }
 }

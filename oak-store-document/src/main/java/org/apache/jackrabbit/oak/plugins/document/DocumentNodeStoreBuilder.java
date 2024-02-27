@@ -127,7 +127,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean isReadOnlyMode = false;
     private Feature prefetchFeature;
     private Feature docStoreThrottlingFeature;
-    private Feature docStoreCommitCleanupFeature;
+    private Feature childOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
@@ -319,14 +319,14 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return docStoreThrottlingFeature;
     }
 
-    public T setDocStoreCommitCleanupFeature(@Nullable Feature docStoreCommitCleanup) {
-        this.docStoreCommitCleanupFeature = docStoreCommitCleanup;
+    public T setChildOrderCleanupFeature(@Nullable Feature childOrderCleanupFeature) {
+        this.childOrderCleanupFeature = childOrderCleanupFeature;
         return thisBuilder();
     }
 
     @Nullable
-    public Feature getDocStoreCommitCleanupFeature() {
-        return docStoreCommitCleanupFeature;
+    public Feature getChildOrderCleanupFeature() {
+        return childOrderCleanupFeature;
     }
 
     public T setCancelInvalidationFeature(@Nullable Feature cancelInvalidation) {

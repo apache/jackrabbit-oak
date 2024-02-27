@@ -46,6 +46,7 @@ import org.apache.jackrabbit.oak.commons.StringUtils;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo;
 import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
@@ -975,6 +976,16 @@ public class Utils {
     public static boolean isThrottlingEnabled(final DocumentNodeStoreBuilder<?> builder) {
         final Feature docStoreThrottlingFeature = builder.getDocStoreThrottlingFeature();
         return builder.isThrottlingEnabled() || (docStoreThrottlingFeature != null && docStoreThrottlingFeature.isEnabled());
+    }
+
+    /**
+     * Check whether childOrder cleanup is enabled or not for document store.
+     *
+     * @param nodeStore instance for DocumentNodeStore
+     * @return true if childOrder cleanup is enabled else false
+     */
+    public static boolean isChildOrderCleanupEnabled(final DocumentNodeStore nodeStore) {
+        return nodeStore.isChildOrderCleanupFeatureEnabled();
     }
 
     /**
