@@ -104,7 +104,6 @@ public class SegmentAzureFactory implements NodeStoreFactory {
     public SegmentAzureFactory(Builder builder) {
         this.accountName = builder.accountName;
         this.sasToken = builder.sasToken;
-        ;
         this.uri = builder.uri;
         this.connectionString = builder.connectionString;
         this.containerName = builder.containerName;
