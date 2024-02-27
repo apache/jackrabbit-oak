@@ -1447,7 +1447,7 @@ public class VersionGarbageCollectorIT {
         assumeTrue(fixture.hasSinglePersistence());
         enableDetailedGC(store1);
         createNodes("/a/b/c/d");
-        lateWriteRemoveNodes(Arrays.asList("/a/b"), "/foo");
+        lateWriteRemoveNodes(List.of("/a/b"), "/foo");
 
         getChildeNodeState(store1, "/a/b/c/d", true);
 
