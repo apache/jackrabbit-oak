@@ -57,8 +57,13 @@ class ElasticIndexHelper {
      * WARN: Since this information might be needed from external tools that don't have a direct dependency on this module, the
      * actual version needs to be set in oak-search.
      */
-    protected static final String MAPPING_VERSION = FulltextIndexConstants.INDEX_VERSION_BY_TYPE.
-            getOrDefault(ElasticIndexDefinition.TYPE_ELASTICSEARCH, "1.0.0");
+    protected static final String MAPPING_VERSION;
+    static {
+        MAPPING_VERSION = FulltextIndexConstants.INDEX_VERSION_BY_TYPE.get(ElasticIndexDefinition.TYPE_ELASTICSEARCH);
+        if (MAPPING_VERSION == null) {
+            throw new IllegalStateException("Mapping version is not set");
+        }
+    }
 
     // Unset the refresh interval and disable replicas at index creation to optimize for initial loads
     // https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
