@@ -40,6 +40,7 @@ public class SegmentAzureFactoryTest {
     private static final Environment ENVIRONMENT = new Environment();
     private static final String CONTAINER_NAME = "oak-test";
     private static final String DIR = "repository";
+    private static final String CONNECTION_URI = "https://%s.blob.core.windows.net/%s";
 
 
     @Test
@@ -85,12 +86,11 @@ public class SegmentAzureFactoryTest {
         assumeTrue(StringUtils.isBlank(ENVIRONMENT.getVariable(AZURE_CLIENT_ID)));
         assumeTrue(StringUtils.isBlank(ENVIRONMENT.getVariable(AZURE_CLIENT_SECRET)));
 
-        assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME));
-        assumeNotNull(ENVIRONMENT.getVariable(AZURE_SECRET_KEY));
+        assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), ENVIRONMENT.getVariable(AZURE_SECRET_KEY));
 
         final String CONTAINER_NAME = "oak-migration-test";
 
-        String uri = String.format("https://%s.blob.core.windows.net/%s", ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
+        String uri = String.format(CONNECTION_URI, ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
         Closer closer = Closer.create();
         try {
             SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
@@ -110,14 +110,12 @@ public class SegmentAzureFactoryTest {
 
     @Test
     public void testConnectionWithUri_servicePrincipal() throws IOException, InterruptedException {
-        assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME));
-        assumeNotNull(ENVIRONMENT.getVariable(AZURE_TENANT_ID));
-        assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_ID));
-        assumeNotNull(ENVIRONMENT.getVariable(AZURE_CLIENT_SECRET));
+        assumeNotNull(ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), ENVIRONMENT.getVariable(AZURE_TENANT_ID),
+                ENVIRONMENT.getVariable(AZURE_CLIENT_ID), ENVIRONMENT.getVariable(AZURE_CLIENT_SECRET));
 
         final String CONTAINER_NAME = "oak-migration-test";
 
-        String uri = String.format("https://%s.blob.core.windows.net/%s", ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
+        String uri = String.format(CONNECTION_URI, ENVIRONMENT.getVariable(AZURE_ACCOUNT_NAME), CONTAINER_NAME);
         Closer closer = Closer.create();
         try {
             SegmentAzureFactory segmentAzureFactory = new SegmentAzureFactory.Builder(DIR, 256,
@@ -156,6 +154,7 @@ public class SegmentAzureFactoryTest {
         }
     }
 
+    @NotNull
     private SharedAccessAccountPolicy getPolicy() {
         SharedAccessAccountPolicy sharedAccessAccountPolicy = new SharedAccessAccountPolicy();
         EnumSet<SharedAccessAccountPermissions> sharedAccessAccountPermissions = EnumSet.of(SharedAccessAccountPermissions.CREATE,
