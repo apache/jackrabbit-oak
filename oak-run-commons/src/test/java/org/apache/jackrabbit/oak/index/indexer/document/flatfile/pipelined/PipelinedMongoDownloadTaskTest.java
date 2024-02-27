@@ -299,11 +299,11 @@ public class PipelinedMongoDownloadTaskTest {
 
     @Test
     public void createCustomExcludeEntriesFilter() {
-        assertTrue(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter(null).isEmpty());
-        assertTrue(PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("").isEmpty());
+        assertTrue(PipelinedMongoDownloadTask.customExcludedPatterns(null).isEmpty());
+        assertTrue(PipelinedMongoDownloadTask.customExcludedPatterns("").isEmpty());
 
         Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
-        var actualListOfPatterns = PipelinedMongoDownloadTask.createCustomExcludedEntriesFilter("^[0-9]{1,3}:/a/b.*$");
+        var actualListOfPatterns = PipelinedMongoDownloadTask.customExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
         assertEquals(1, actualListOfPatterns.size());
 
         assertEquals(p.toString(), actualListOfPatterns.get(0).toString());
