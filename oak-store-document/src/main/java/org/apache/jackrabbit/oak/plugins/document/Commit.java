@@ -360,7 +360,7 @@ public class Commit {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
 
             // special case for :childOrder updates
-            if (nodeStore.isChildOrderCleanupFeatureEnabled()) {
+            if (nodeStore.isChildOrderCleanupEnabled()) {
                 final Branch localBranch = getBranch();
                 if (localBranch != null) {
                     final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());

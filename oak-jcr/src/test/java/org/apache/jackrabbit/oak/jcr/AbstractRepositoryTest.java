@@ -39,8 +39,6 @@ import org.apache.jackrabbit.oak.query.QueryEngineSettings;
 import org.apache.jackrabbit.oak.spi.security.principal.EveryonePrincipal;
 import org.apache.jackrabbit.oak.spi.security.user.UserConstants;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
-import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -182,9 +180,7 @@ public abstract class AbstractRepositoryTest {
         QueryEngineSettings qs = new QueryEngineSettings();
         qs.setFullTextComparisonWithoutIndex(true);
         jcr.with(BundlingConfigInitializer.INSTANCE);
-        jcr.withAsyncIndexing().with(qs);
-        Whiteboard whiteboard = fixture.getWhiteboard();
-        return whiteboard == null ? jcr : jcr.with(whiteboard);
+        return jcr.withAsyncIndexing().with(qs);
     }
 
     protected NodeStore getNodeStore() {
@@ -200,10 +196,6 @@ public abstract class AbstractRepositoryTest {
             return ((ComponentHolder) fixture).get(nodeStore, name);
         }
         return null;
-    }
-
-    protected Whiteboard getWhiteboard() {
-        return fixture.getWhiteboard();
     }
 
     protected Session getAnonymousSession() throws RepositoryException {

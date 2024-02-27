@@ -21,13 +21,10 @@ import static org.junit.Assert.assertTrue;
 
 import javax.jcr.Node;
 import javax.jcr.NodeIterator;
-import javax.jcr.RepositoryException;
 import javax.jcr.Session;
 
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
-import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
-import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
-import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -37,22 +34,6 @@ public class ManyChildrenIT extends AbstractRepositoryTest {
 
     public ManyChildrenIT(NodeStoreFixture fixture) {
         super(fixture);
-    }
-
-    @Before
-    public void before() throws RepositoryException {
-        enableCommitCleanupFeatureIfAvailable();
-    }
-
-    private void enableCommitCleanupFeatureIfAvailable() throws RepositoryException {
-        //make sure that the repository is initialized
-        getRepository();
-        Tracker<FeatureToggle> toggleTracker = getWhiteboard().track(FeatureToggle.class);
-        for (FeatureToggle ft : toggleTracker.getServices()) {
-            if ("FT_COCLEANUP_OAK-10660".equals(ft.getName())) {
-                ft.setEnabled(true);
-            }
-        }
     }
 
     @Test

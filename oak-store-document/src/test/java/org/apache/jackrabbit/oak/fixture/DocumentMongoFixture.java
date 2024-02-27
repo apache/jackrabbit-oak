@@ -29,7 +29,6 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
-import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
 import org.junit.AssumptionViolatedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +70,7 @@ public class DocumentMongoFixture extends NodeStoreFixture {
             }
             builder.setPersistentCache("target/persistentCache,time");
             builder.setMongoDB(createClient(), getDBName(suffix));
-            builder.setChildOrderCleanupFeature(Feature.newFeature("FT_COCLEANUP_OAK-10660", getWhiteboard()));
+            builder.setNoChildOrderCleanupFeature(Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
             DocumentNodeStore ns = builder.getNodeStore();
             suffixes.put(ns, suffix);
             return ns;
