@@ -1369,8 +1369,8 @@ public class VersionGarbageCollectorIT {
      */
     @Test
     public void lateWriteCreateChildGC() throws Exception {
-        doLateWriteCreateChildrenGC(Arrays.asList("/grand/parent"),
-                Arrays.asList("/grand/parent/a"), 1, "/d");
+        doLateWriteCreateChildrenGC(List.of("/grand/parent"),
+                List.of("/grand/parent/a"), 1, "/d");
     }
 
     /**
