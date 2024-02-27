@@ -1472,8 +1472,7 @@ public class VersionGarbageCollectorIT {
     }
 
     private void enableDetailedGC(DocumentNodeStore dns) throws IllegalAccessException {
-        final VersionGarbageCollector vgc = dns.getVersionGarbageCollector();
-        writeField(vgc, "detailedGCEnabled", true, true);
+        DetailGCHelper.enableDetailGC(dns.getVersionGarbageCollector());
     }
 
     @Test
