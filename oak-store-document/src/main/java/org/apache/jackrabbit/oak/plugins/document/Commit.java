@@ -362,7 +362,7 @@ public class Commit {
             if (store.isCommitCleanupFeatureEnabled()) {
                 final Branch localBranch = getBranch();
                 if (localBranch != null) {
-                    final TreeSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
+                    final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
                     boolean removePreviousSetOperations = false;
                     for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
                         if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
