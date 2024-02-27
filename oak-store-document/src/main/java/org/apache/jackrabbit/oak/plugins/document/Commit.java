@@ -53,7 +53,6 @@ import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Document.MOD_COUNT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CANDIDATE_THRESHOLD;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isChildOrderCleanupEnabled;
 
 /**
  * A higher level object representing a commit.
@@ -361,7 +360,7 @@ public class Commit {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
 
             // special case for :childOrder updates
-            if (isChildOrderCleanupEnabled(nodeStore)) {
+            if (nodeStore.isChildOrderCleanupFeatureEnabled()) {
                 final Branch localBranch = getBranch();
                 if (localBranch != null) {
                     final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
