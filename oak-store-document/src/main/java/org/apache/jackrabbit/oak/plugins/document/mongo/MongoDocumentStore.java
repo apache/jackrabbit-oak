@@ -2117,7 +2117,7 @@ public class MongoDocumentStore implements DocumentStore {
 
     @Override
     public boolean isCommitCleanupFeatureEnabled() {
-        return docStoreCommitCleanupFeature.isEnabled();
+        return docStoreCommitCleanupFeature != null && docStoreCommitCleanupFeature.isEnabled();
     }
 
     @NotNull
