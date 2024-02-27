@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Function;
@@ -194,17 +195,13 @@ public class Commit {
         return success;
     }
 
-    void apply() throws ConflictException, DocumentStoreException {
-        apply(Collections.emptySet());
-    }
-
     /**
      * Applies this commit to the store.
      *
      * @throws ConflictException if the commit failed because of a conflict.
      * @throws DocumentStoreException if the commit cannot be applied.
      */
-    void apply(Set<Revision> previousRevisions) throws ConflictException, DocumentStoreException {
+    void apply() throws ConflictException, DocumentStoreException {
         boolean success = false;
         RevisionVector baseRev = getBaseRevision();
         boolean isBranch = baseRev != null && baseRev.isBranch();
@@ -212,7 +209,7 @@ public class Commit {
         if (isBranch && !nodeStore.isDisableBranches()) {
             try {
                 // prepare commit
-                prepare(baseRev, previousRevisions);
+                prepare(baseRev);
                 success = true;
             } finally {
                 if (!success) {
@@ -243,12 +240,12 @@ public class Commit {
         }
     }
 
-    private void prepare(RevisionVector baseRevision, Set<Revision> previousRevisions)
+    private void prepare(RevisionVector baseRevision)
             throws ConflictException, DocumentStoreException {
         if (!operations.isEmpty()) {
             updateParentChildStatus();
             updateBinaryStatus();
-            applyToDocumentStoreWithTiming(baseRevision, previousRevisions);
+            applyToDocumentStoreWithTiming(baseRevision);
         }
     }
 
@@ -265,7 +262,7 @@ public class Commit {
      * Apply the changes to the document store.
      */
     void applyToDocumentStore() throws ConflictException, DocumentStoreException {
-        applyToDocumentStoreWithTiming(null, Collections.emptySet());
+        applyToDocumentStoreWithTiming(null);
     }
 
     /**
@@ -277,11 +274,11 @@ public class Commit {
      * @throws DocumentStoreException if an error occurs while writing to the
      *          underlying store.
      */
-    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision, Set<Revision> previousRevisions)
+    private void applyToDocumentStoreWithTiming(RevisionVector baseBranchRevision)
             throws ConflictException, DocumentStoreException {
         long start = System.nanoTime();
         try {
-            applyToDocumentStore(baseBranchRevision, previousRevisions);
+            applyToDocumentStore(baseBranchRevision);
         } finally {
             nodeStore.getStatsCollector().doneChangesApplied(
                     TimeUnit.NANOSECONDS.toMicros(System.nanoTime() - start));
@@ -297,7 +294,7 @@ public class Commit {
      * @throws DocumentStoreException if an error occurs while writing to the
      *          underlying store.
      */
-    private void applyToDocumentStore(RevisionVector baseBranchRevision, Set<Revision> previousRevisions)
+    private void applyToDocumentStore(RevisionVector baseBranchRevision)
             throws ConflictException, DocumentStoreException {
         // initially set the rollback to always fail until we have changes
         // in an oplog list and a commit root.
@@ -362,20 +359,35 @@ public class Commit {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
 
             // special case for :childOrder updates
-            if (store.isCommitCleanupFeatureEnabled() && !previousRevisions.isEmpty()) {
-                boolean removePreviousSetOperations = false;
-                for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
-                    if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
-                        // we are setting child order, so we should remove previous set operations from the same branch
-                        removePreviousSetOperations= true;
+            if (store.isCommitCleanupFeatureEnabled()) {
+                final Branch localBranch = getBranch();
+                if (localBranch != null) {
+                    final TreeSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
+                    boolean removePreviousSetOperations = false;
+                    for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
+                        if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
+                            // we are setting child order, so we should remove previous set operations from the same branch
+                            removePreviousSetOperations = true;
+                            // branch.getCommits contains all revisions of the branch
+                            // including the new one we're about to make
+                            // so don't do a removeMapEntry for that
+                            commits.remove(change.getKey().getRevision().asBranchRevision());
+                        }
                     }
-                }
-
-                if (removePreviousSetOperations) {
-                    for (Revision rev : previousRevisions) {
-                        op.removeMapEntry(":childOrder", rev);
+                    if (removePreviousSetOperations) {
+                        if (!commits.isEmpty()) {
+                            int countRemoves = 0;
+                            for (Revision rev : commits.descendingSet()) {
+                                op.removeMapEntry(":childOrder", rev.asTrunkRevision());
+                                if (++countRemoves >= 256) {
+                                    LOG.debug("applyToDocumentStore : only cleaning up last {} branch commits.",
+                                            countRemoves);
+                                    break;
+                                }
+                            }
+                            LOG.debug("applyToDocumentStore : childOrder-edited op is: " + op);
+                        }
                     }
-                    LOG.debug("edited op is: " + op);
                 }
             }
 
