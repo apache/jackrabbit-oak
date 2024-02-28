@@ -381,7 +381,7 @@ public class Commit {
                         if (!commits.isEmpty()) {
                             int countRemoves = 0;
                             for (Revision rev : commits.descendingSet()) {
-                                op.removeMapEntry(":childOrder", rev.asTrunkRevision());
+                                op.removeMapEntry(PROPERTY_NAME_CHILDORDER, rev.asTrunkRevision());
                                 if (++countRemoves >= 256) {
                                     LOG.debug("applyToDocumentStore : only cleaning up last {} branch commits.",
                                             countRemoves);
