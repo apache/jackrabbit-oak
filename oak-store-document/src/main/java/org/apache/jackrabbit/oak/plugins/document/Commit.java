@@ -61,6 +61,8 @@ public class Commit {
 
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
 
+    private static final String PROPERTY_NAME_CHILDORDER = ":childOrder";
+
     protected final DocumentNodeStore nodeStore;
     private final RevisionVector baseRevision;
     private final RevisionVector startRevisions;
@@ -366,7 +368,7 @@ public class Commit {
                     final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
                     boolean removePreviousSetOperations = false;
                     for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
-                        if (":childOrder".equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
+                        if (PROPERTY_NAME_CHILDORDER.equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
                             // we are setting child order, so we should remove previous set operations from the same branch
                             removePreviousSetOperations = true;
                             // branch.getCommits contains all revisions of the branch
