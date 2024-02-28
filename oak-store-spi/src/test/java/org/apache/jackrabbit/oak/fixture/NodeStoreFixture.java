@@ -20,11 +20,15 @@
 package org.apache.jackrabbit.oak.fixture;
 
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 
 /**
  * NodeStore fixture for parametrized tests.
  */
 public abstract class NodeStoreFixture {
+
+    private final Whiteboard whiteboard = new DefaultWhiteboard();
 
     /**
      * Creates a new empty {@link NodeStore} instance. An implementation must
@@ -50,6 +54,10 @@ public abstract class NodeStoreFixture {
 
     public boolean isAvailable() {
         return true;
+    }
+
+    public Whiteboard getWhiteboard() {
+        return whiteboard;
     }
 
 }

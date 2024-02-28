@@ -24,7 +24,9 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.jackrabbit.guava.common.base.Function;
@@ -32,6 +34,8 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 import org.apache.jackrabbit.oak.commons.json.JsopStream;
 import org.apache.jackrabbit.oak.commons.json.JsopWriter;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -56,6 +60,8 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SPLIT_CAND
 public class Commit {
 
     private static final Logger LOG = LoggerFactory.getLogger(Commit.class);
+
+    private static final String PROPERTY_NAME_CHILDORDER = ":childOrder";
 
     protected final DocumentNodeStore nodeStore;
     private final RevisionVector baseRevision;
@@ -354,6 +360,39 @@ public class Commit {
         boolean commitRootHasChanges = operations.containsKey(commitRootPath);
         for (UpdateOp op : operations.values()) {
             NodeDocument.setCommitRoot(op, revision, commitRootDepth);
+
+            // special case for :childOrder updates
+            if (nodeStore.isChildOrderCleanupEnabled()) {
+                final Branch localBranch = getBranch();
+                if (localBranch != null) {
+                    final NavigableSet<Revision> commits = new TreeSet<>(localBranch.getCommits());
+                    boolean removePreviousSetOperations = false;
+                    for (Map.Entry<Key, Operation> change : op.getChanges().entrySet()) {
+                        if (PROPERTY_NAME_CHILDORDER.equals(change.getKey().getName()) && Operation.Type.SET_MAP_ENTRY == change.getValue().type) {
+                            // we are setting child order, so we should remove previous set operations from the same branch
+                            removePreviousSetOperations = true;
+                            // branch.getCommits contains all revisions of the branch
+                            // including the new one we're about to make
+                            // so don't do a removeMapEntry for that
+                            commits.remove(change.getKey().getRevision().asBranchRevision());
+                        }
+                    }
+                    if (removePreviousSetOperations) {
+                        if (!commits.isEmpty()) {
+                            int countRemoves = 0;
+                            for (Revision rev : commits.descendingSet()) {
+                                op.removeMapEntry(PROPERTY_NAME_CHILDORDER, rev.asTrunkRevision());
+                                if (++countRemoves >= 256) {
+                                    LOG.debug("applyToDocumentStore : only cleaning up last {} branch commits.",
+                                            countRemoves);
+                                    break;
+                                }
+                            }
+                            LOG.debug("applyToDocumentStore : childOrder-edited op is: {}", op);
+                        }
+                    }
+                }
+            }
             changedNodes.add(op);
         }
         // create a "root of the commit" if there is none
