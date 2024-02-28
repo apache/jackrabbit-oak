@@ -386,7 +386,7 @@ public class Commit {
                                     break;
                                 }
                             }
-                            LOG.debug("applyToDocumentStore : childOrder-edited op is: " + op);
+                            LOG.debug("applyToDocumentStore : childOrder-edited op is: {}", op);
                         }
                     }
                 }
