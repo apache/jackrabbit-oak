@@ -152,9 +152,24 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>();
 
-        List<Pattern> includedPatterns = descendantsIncludedPatterns(mongoFilterPaths.included);
+        List<Pattern> includedPatterns = toFilterPatterns(mongoFilterPaths.included);
         if (!includedPatterns.isEmpty()) {
-            filters.add(Filters.in(NodeDocument.ID, includedPatterns));
+            // The conditions above on the _id field is not enough to match all JCR nodes in the given paths because nodes
+            // with paths longer than a certain threshold, are represented by Mongo documents where the _id field is replaced
+            // by a hash and the full path is stored in an additional field _path. To retrieve these long path documents,
+            // we could add a condition on the _path field, but this would slow down substantially scanning the DB, because
+            // the _path field is not part of the index used by this query (it's an index on _modified, _id). Therefore,
+            // Mongo would have to retrieve every document from the column store to evaluate the filter condition. So instead
+            // we add below a condition to download all the long path documents. These documents can be identified by the
+            // format of the _id field (<n>:h<hash>), so it is possible to identify them using only the index.
+            // This might download documents for nodes that are not in the included paths, but those documents will anyway
+            // be filtered in the transform stage. And in most repositories, the number of long path documents is very small,
+            // often there are none, so the extra documents downloaded will not slow down by much the download. However, the
+            // performance gains of evaluating the filter of the query using only the index are very significant, especially
+            // when the index requires only a small number of nodes.
+            var patternsWithLongPathInclude = new ArrayList<>(includedPatterns);
+            patternsWithLongPathInclude.add(LONG_PATH_ID_PATTERN);
+            filters.add(Filters.in(NodeDocument.ID, patternsWithLongPathInclude));
         }
 
         // The Mongo filter returned here will download the top level path of each excluded subtree, which in theory
@@ -164,7 +179,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // would not have any measurable impact on performance because it only downloads a few extra documents, one
         // for each excluded subtree. The transform stage will anyway filter out these paths.
         ArrayList<Pattern> excludedPatterns = new ArrayList<>();
-        excludedPatterns.addAll(descendantsExcludedPatterns(mongoFilterPaths.excluded));
+        excludedPatterns.addAll(toFilterPatterns(mongoFilterPaths.excluded));
         // Custom regex filter to exclude paths
         excludedPatterns.addAll(customExcludedPatterns(customExcludeEntriesRegex));
 
@@ -181,46 +196,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static List<Pattern> descendantsIncludedPatterns(List<String> paths) {
-        if (paths.isEmpty()) {
-            return List.of();
-        }
-        if (paths.size() == 1 && paths.get(0).equals("/")) {
-            return List.of();
-        }
-
-        // The filter for descendants of a list of paths is a series of or conditions, each a regex filter on the _id
-        // field.
-        // We use the $in operator with a regular expression to match the paths.
-        //  https://www.mongodb.com/docs/manual/reference/operator/query/in/#use-the--in-operator-with-a-regular-expression
-        ArrayList<Pattern> patterns = new ArrayList<>();
-
-        for (String path : paths) {
-            if (!path.endsWith("/")) {
-                path = path + "/";
-            }
-            String quotedPath = Pattern.quote(path);
-            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
-        }
-        // The conditions above on the _id field is not enough to match all JCR nodes in the given paths because nodes
-        // with paths longer than a certain threshold, are represented by Mongo documents where the _id field is replaced
-        // by a hash and the full path is stored in an additional field _path. To retrieve these long path documents,
-        // we could add a condition on the _path field, but this would slow down substantially scanning the DB, because
-        // the _path field is not part of the index used by this query (it's an index on _modified, _id). Therefore,
-        // Mongo would have to retrieve every document from the column store to evaluate the filter condition. So instead
-        // we add below a condition to download all the long path documents. These documents can be identified by the
-        // format of the _id field (<n>:h<hash>), so it is possible to identify them using only the index.
-        // This might download documents for nodes that are not in the included paths, but those documents will anyway
-        // be filtered in the transform stage. And in most repositories, the number of long path documents is very small,
-        // often there are none, so the extra documents downloaded will not slow down by much the download. However, the
-        // performance gains of evaluating the filter of the query using only the index are very significant, especially
-        // when the index requieres only a small number of nodes.
-        patterns.add(LONG_PATH_ID_PATTERN);
-
-        return patterns;
-    }
-
-    private static List<Pattern> descendantsExcludedPatterns(List<String> paths) {
+    private static List<Pattern> toFilterPatterns(List<String> paths) {
         if (paths.isEmpty()) {
             return List.of();
         }
