@@ -20,7 +20,6 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -28,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
@@ -37,6 +37,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 import static java.util.List.of;
 import static java.util.Objects.requireNonNull;
@@ -73,6 +74,7 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.NO_BINARY;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
+import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
@@ -187,7 +189,7 @@ public class VersionGarbageCollectorIT {
         fixture.dispose();
     }
 
-    private String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
+    private final String rdbTablePrefix = "T" + Long.toHexString(System.currentTimeMillis());
 
     private void createPrimaryStore() {
         if (fixture instanceof RDBFixture) {
@@ -222,13 +224,11 @@ public class VersionGarbageCollectorIT {
         store2 = documentMKBuilder2.getNodeStore();
     }
 
-    private static Set<Thread> tbefore = new HashSet<>();
+    private static final Set<Thread> tbefore = new HashSet<>();
 
     @BeforeClass
     public static void before() throws Exception {
-        for (Thread t : Thread.getAllStackTraces().keySet()) {
-            tbefore.add(t);
-        }
+        tbefore.addAll(Thread.getAllStackTraces().keySet());
     }
 
     @AfterClass
@@ -1206,176 +1206,12 @@ public class VersionGarbageCollectorIT {
     }
     // OAK-8646 END
 
-    private void createNodes(Collection<String> paths) throws Exception {
-        createNodes(paths.toArray(new String[paths.size()]));
-    }
-
-    private void createNodes(String... paths) throws CommitFailedException {
-        createNodes(store1, paths);
-    }
-
-    private void createNodes(DocumentNodeStore dns,
-            String... paths) throws CommitFailedException {
-        for (String path : paths) {
-            merge(dns, createChild(dns.getRoot().builder(), path));
-        }
-        dns.runBackgroundOperations();
-    }
-
-    interface LateWriteChangesBuilder {
-        void apply(NodeBuilder root, String path);
-    }
-
-    private void lateWriteCreateNodes(Collection<String> orphanedPaths,
-            String unrelatedPathOrNull) throws Exception {
-        lateWrite(orphanedPaths, (root, path) -> createChild(root, path),
-                unrelatedPathOrNull, ADD_NODE_OPS);
-    }
-
-    private void lateWriteRemoveNodes(Collection<String> orphanedPaths,
-            String unrelatedPathOrNull) throws Exception {
-        lateWrite(orphanedPaths, (rb, path) -> childBuilder(rb, path).remove(),
-                unrelatedPathOrNull, REMOVE_NODE_OPS);
-    }
-
-    /**
-     * Creates orphaned nodes, late write style. Assumes the secondary store is not
-     * in use as it needs to control its creation and disposal.
-     *
-     * @param filterPredicate
-     */
-    private void lateWrite(Collection<String> orphanedPaths,
-            LateWriteChangesBuilder lateWriteChangesBuilder, String unrelatedPath,
-            Predicate<UpdateOp> filterPredicate) throws Exception {
-        // this method requires store2 to be null as a prerequisite
-        assertNull(store2);
-        // as it creates store2 itself - then disposes it later too
-        createSecondaryStore(LeaseCheckMode.LENIENT, true);
-        // create the orphaned paths
-        final List<UpdateOp> failed = new ArrayList<>();
-        final FailingDocumentStore fds = (FailingDocumentStore) ds2;
-        fds.addListener(filter0(failed, filterPredicate));
-        fds.fail().after(0).eternally();
-        for (String path : orphanedPaths) {
-            try {
-                NodeBuilder rb = store2.getRoot().builder();
-                lateWriteChangesBuilder.apply(rb, path);
-                merge(store2, rb);
-                fail("merge must fail");
-            } catch (CommitFailedException e) {
-                // expected
-                String msg = e.getMessage();
-                e.printStackTrace();
-                assertEquals("OakOak0001: write operation failed", msg);
-            }
-        }
-        disposeQuietly(store2);
-        fds.fail().never();
-
-        // wait until lease expires
-        clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
-
-        {
-            store1.renewClusterIdLease();
-            assertTrue(store1.getLastRevRecoveryAgent().isRecoveryNeeded());
-            assertEquals(0, store1.getLastRevRecoveryAgent().recover(2));
-        }
-
-        // 'late write'
-        fds.createOrUpdate(NODES, failed);
-
-        if (unrelatedPath == null || unrelatedPath.isEmpty()) {
-            return;
-        }
-
-        // revive clusterId 2
-        createSecondaryStore(LeaseCheckMode.LENIENT);
-        merge(store2, createChild(store2.getRoot().builder(), unrelatedPath));
-        store2.runBackgroundOperations();
-        store2.dispose();
-        store1.runBackgroundOperations();
-    }
-
-    /**
-     * Creates a bunch of parents properly, then creates a bunch of orphans in
-     * late-write manner (i.e. not properly), then runs DetailedGC and assets that
-     * everything was deleted as expected
-     * 
-     * @param parents                 the nodes that should be created properly -
-     *                                each one in a separate merge
-     * @param orphans                 the nodes that should be created inproperly -
-     *                                each one in a separate late-write way
-     * @param expectedNumOrphanedDocs the expected number of orphan documents that
-     *                                DetailedGC should cleanup
-     * @param unrelatedPath           an unrelated path that should be merged after
-     *                                late-write - ensures lastRev is updated on
-     *                                root to allow detecting late-writes as such
-     */
-    private void doLateWriteCreateChildrenGC(Collection<String> parents,
-            Collection<String> orphans, int expectedNumOrphanedDocs, String unrelatedPath)
-            throws Exception {
-        assumeTrue(fixture.hasSinglePersistence());
-        createNodes(parents);
-        lateWriteCreateNodes(orphans, unrelatedPath);
-
-        assertDocumentsExist(parents);
-        assertDocumentsExist(orphans);
-        assertNodesDontExist(parents, orphans);
-
-        enableDetailedGC(store1);
-
-        // wait two hours
-        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-        // clean everything older than one hour
-        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
-        assertNotNull(stats);
-        assertEquals(expectedNumOrphanedDocs, stats.deletedDocGCCount);
-
-        assertDocumentsExist(parents);
-        // and the main assert being: have those lateCreated (orphans) docs been deleted
-        assertNodesDontExist(parents, orphans);
-        assertDocumentsDontExist(orphans);
-    }
-
-    private void assertNodesDontExist(Collection<String> existingNodes,
-            Collection<String> missingNodes) {
-        for (String aMissingNode : missingNodes) {
-            assertChildNotExists(existingNodes, aMissingNode);
-        }
-    }
-
-    private void assertChildNotExists(Collection<String> existingNodes, String aMissingNode) {
-        final Path aMissingPath = Path.fromString(aMissingNode);
-        String nearestParent = null;
-        Path nearestParentPath = null;
-        for (String anExistingNode : existingNodes) {
-            final Path anExistingPath = Path.fromString(anExistingNode);
-            if (!anExistingPath.isAncestorOf(aMissingPath)) {
-                // skip
-                continue;
-            }
-            if (nearestParent == null || nearestParentPath.isAncestorOf(anExistingPath)) {
-                nearestParent = anExistingNode;
-                nearestParentPath = anExistingPath;
-            }
-        }
-        assertNotNull(nearestParent);
-        Path nearestChildPath = aMissingPath;
-        Path childParentPath = nearestChildPath.getParent();
-        while(nearestParentPath.isAncestorOf(childParentPath)) {
-            nearestChildPath = childParentPath;
-            childParentPath = childParentPath.getParent();
-        }
-        assertFalse(getChildeNodeState(store1, nearestParent, true).hasChildNode(nearestChildPath.getName()));
-    }
-
     /**
      * Tests whether DetailedGC properly deletes a late-written addChild "/grand/parent/a"
      */
     @Test
     public void lateWriteCreateChildGC() throws Exception {
-        doLateWriteCreateChildrenGC(List.of("/grand/parent"),
-                List.of("/grand/parent/a"), 1, "/d");
+        doLateWriteCreateChildrenGC(of("/grand/parent"), of("/grand/parent/a"), 1, "/d");
     }
 
     /**
@@ -1384,8 +1220,7 @@ public class VersionGarbageCollectorIT {
      */
     @Test
     public void lateWriteCreateChildTreeGC() throws Exception {
-        doLateWriteCreateChildrenGC(List.of("/a", "/a/b/c"),
-                List.of("/a/b/c/d", "/a/b/c/d/e/f"), 3, "/d");
+        doLateWriteCreateChildrenGC(of("/a", "/a/b/c"), of("/a/b/c/d", "/a/b/c/d/e/f"), 3, "/d");
     }
 
     /**
@@ -1394,28 +1229,26 @@ public class VersionGarbageCollectorIT {
      */
     @Test
     public void lateWriteCreateManyChildrenGC() throws Exception {
-        List<String> nonOrphans = List.of("/a", "/b", "/c");
+        List<String> nonOrphans = of("/a", "/b", "/c");
         createNodes(nonOrphans);
         Set<String> orphans = new HashSet<>();
         Set<String> commonOrphanParents = new HashSet<>();
         Random r = new Random(43);
         for(int i = 0; i < 900; i++) {
-            String orphanParent = nonOrphans.get(r.nextInt(3)) +
-                                "/" + r.nextInt(42);
+            String orphanParent = nonOrphans.get(r.nextInt(3)) + "/" + r.nextInt(42);
             commonOrphanParents.add(orphanParent);
             orphans.add(orphanParent + "/" + r.nextInt(24));
         }
-        doLateWriteCreateChildrenGC(nonOrphans,
-                orphans, orphans.size() + commonOrphanParents.size(), "/d");
+        doLateWriteCreateChildrenGC(nonOrphans, orphans, orphans.size() + commonOrphanParents.size(), "/d");
     }
 
     @Test
     @Ignore(value = "OAK-10535 : fails currently as uncommitted revisions aren't yet removed")
     public void lateWriteRemoveChildGC_noSweep() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
-        enableDetailedGC(store1);
+        enableDetailGC(store1.getVersionGarbageCollector());
         createNodes("/a/b/c/d");
-        lateWriteRemoveNodes(List.of("/a/b"), null);
+        lateWriteRemoveNodes(of("/a/b"), null);
 
         assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
 
@@ -1425,8 +1258,8 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
         assertNotNull(stats);
 
-        assertTrue(store1.getDocumentStore().find(NODES, "2:/a/b") != null);
-        assertTrue(store1.getDocumentStore().find(NODES, "4:/a/b/c/d") != null);
+        assertNotNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
+        assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
         assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
         //TODO: below assert fails currently as uncommitted revisions aren't yet removed
         // should be 3 as it should clean up the _deleted from /a/b, /a/b/c and /a/b/c/d
@@ -1445,9 +1278,9 @@ public class VersionGarbageCollectorIT {
     @Ignore(value = "OAK-10658 : fails currently as invalidation is missing (in classic GC) after late-write-then-sweep-then-GC")
     public void lateWriteRemoveChildGC_withSweep() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
-        enableDetailedGC(store1);
+        enableDetailGC(store1.getVersionGarbageCollector());
         createNodes("/a/b/c/d");
-        lateWriteRemoveNodes(List.of("/a/b"), "/foo");
+        lateWriteRemoveNodes(of("/a/b"), "/foo");
 
         getChildeNodeState(store1, "/a/b/c/d", true);
 
@@ -1455,16 +1288,16 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         getChildeNodeState(store1, "/a/b/c/d", true);
-        assertTrue(store1.getDocumentStore().find(NODES, "4:/a/b/c/d") != null);
-        assertTrue(store1.getDocumentStore().find(NODES, "3:/a/b/c") != null);
-        assertTrue(store1.getDocumentStore().find(NODES, "2:/a/b") != null);
+        assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
+        assertNotNull(store1.getDocumentStore().find(NODES, "3:/a/b/c"));
+        assertNotNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
 
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
         assertNotNull(stats);
 
-        assertFalse(store1.getDocumentStore().find(NODES, "4:/a/b/c/d") != null);
-        assertFalse(store1.getDocumentStore().find(NODES, "3:/a/b/c") != null);
-        assertFalse(store1.getDocumentStore().find(NODES, "2:/a/b") != null);
+        assertNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
+        assertNull(store1.getDocumentStore().find(NODES, "3:/a/b/c"));
+        assertNull(store1.getDocumentStore().find(NODES, "2:/a/b"));
 
         // invalidating store1's nodeCache would fix it
         // but we need that to happen in prod code, not test
@@ -1474,10 +1307,6 @@ public class VersionGarbageCollectorIT {
         // triggered a ConflictException
         createNodes("/a/b/c/d/e");
         getChildeNodeState(store1, "/a/b/c/d/e", true);
-    }
-
-    private void enableDetailedGC(DocumentNodeStore dns) throws IllegalAccessException {
-        DetailGCHelper.enableDetailGC(dns.getVersionGarbageCollector());
     }
 
     @Test
@@ -1493,7 +1322,7 @@ public class VersionGarbageCollectorIT {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        enableDetailedGC(store1);
+        enableDetailGC(store1.getVersionGarbageCollector());
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
         assertNotNull(stats);
         // expected 2 updated (deletions): /a/b/c/d and /a/b/c/d/e
@@ -1501,64 +1330,6 @@ public class VersionGarbageCollectorIT {
         assertEquals(2, stats.deletedDocGCCount);
 
         createNodes("/a/b/c/d/e");
-    }
-
-    private void assertDocumentsDontExist(Collection<String> nonExistingPaths) {
-        for (String nonExistingPath : nonExistingPaths) {
-            Path p = Path.fromString(nonExistingPath);
-            assertFalse(getChildeNodeState(store1, nonExistingPath, false).exists());
-            String id = Utils.getIdFromPath(p);
-            assertTrue(store1.getDocumentStore().find(NODES, id) == null);
-        }
-    }
-
-    private void assertDocumentsExist(Collection<String> paths) {
-        for (String aPath : paths) {
-            Path p = Path.fromString(aPath);
-            String id = Utils.getIdFromPath(p);
-            assertFalse(store1.getDocumentStore().find(NODES, id, -1) == null);
-        }
-    }
-
-    private static final Predicate<UpdateOp> ADD_NODE_OPS = updateOp -> {
-        for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
-            if (isDeletedEntry(key.getName())
-                    && updateOp.getChanges().get(key).value.equals("false")) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    private static final Predicate<UpdateOp> REMOVE_NODE_OPS = updateOp -> {
-        for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
-            if (isDeletedEntry(key.getName())
-                    && updateOp.getChanges().get(key).value.equals("true")) {
-                return true;
-            }
-        }
-        return false;
-    };
-
-    private static FailedUpdateOpListener filter0(List<UpdateOp> ops,
-            Predicate<UpdateOp> predicate) {
-        return op -> {
-            if (predicate.test(op)) {
-                ops.add(op);
-            }
-        };
-    }
-
-    private static NodeState getChildeNodeState(DocumentNodeStore ns2, String path, boolean assertIntermediatesExist) {
-        final Path p = Path.fromString(path);
-        NodeState state = ns2.getRoot();
-        for (String name : p.elements()) {
-            state = state.getChildNode(name);
-            if (assertIntermediatesExist) {
-                assertTrue(state.exists());
-            }
-        }
-        return state;
     }
 
     // OAK-10370
@@ -1674,6 +1445,207 @@ public class VersionGarbageCollectorIT {
 
     // OAK-10370 END
 
+    // OAK-10676
+    @Test
+    public void removePropertyAddedByLateWriteWithoutUnrelatedPath() throws Exception {
+        // create a node with property.
+        assumeTrue(fixture.hasSinglePersistence());
+        NodeBuilder nb = store1.getRoot().builder();
+        nb.child("bar").setProperty("p", "v");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // remove the property
+        nb = store1.getRoot().builder();
+        nb.child("bar").removeProperty("p");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // unrelated path should be such that the paths and unrelated path shouldn't have common parent
+        // for e.g. if path is /bar & unrelated is /d then there common ancestor is "/" i.e. root.
+        lateWriteAddPropertiesNodes(of("/bar"), null, "p", "v2");
+
+        assertDocumentsExist(of("/bar"));
+        assertPropertyExist("/bar", "p");
+
+        enableDetailGC(store1.getVersionGarbageCollector());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(1, stats.deletedPropsCount);
+
+        assertDocumentsExist(of("/bar"));
+    }
+
+    @Test
+    public void removePropertyAddedByLateWriteWithoutUnrelatedPath_2() throws Exception {
+        // create a node with property.
+        assumeTrue(fixture.hasSinglePersistence());
+        NodeBuilder nb = store1.getRoot().builder();
+        nb.child("foo").child("bar").child("baz").setProperty("prop", "value");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // remove the property
+        nb = store1.getRoot().builder();
+        nb.child("foo").child("bar").child("baz").removeProperty("prop");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // unrelated path should be such that the paths and unrelated path shouldn't have common parent
+        // for e.g. if path is /bar & unrelated is /d then there common ancestor is "/" i.e. root.
+        lateWriteAddPropertiesNodes(of("/foo/bar/baz"), "/a", "prop", "value2");
+
+        assertDocumentsExist(of("/foo/bar/baz"));
+        assertPropertyExist("/foo/bar/baz", "prop");
+
+        enableDetailGC(store1.getVersionGarbageCollector());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(0, stats.deletedDocGCCount);
+        // since we have updated a totally unrelated path i.e. "/a", we should still be seeing the garbage from late write and
+        // thus it will be collected.
+        assertEquals(1, stats.deletedPropsCount);
+
+        assertDocumentsExist(of("/foo/bar/baz"));
+    }
+
+    @Test
+    public void removePropertyAddedByLateWriteWithRelatedPath() throws Exception {
+        // create a node with property.
+        assumeTrue(fixture.hasSinglePersistence());
+        NodeBuilder nb = store1.getRoot().builder();
+        nb.child("bar").setProperty("prop", "value");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // remove the property
+        nb = store1.getRoot().builder();
+        nb.child("bar").removeProperty("prop");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // unrelated path should be such that the paths and unrelated path shouldn't have common parent
+        // for e.g. if path is /bar & unrelated is /d then there common ancestor is "/" i.e. root.
+        lateWriteAddPropertiesNodes(of("/bar"), "/d", "prop", "value2");
+
+        assertDocumentsExist(of("/bar"));
+        assertPropertyExist("/bar", "prop");
+
+        enableDetailGC(store1.getVersionGarbageCollector());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(0, stats.deletedDocGCCount);
+        // we shouldn't be able to remove the property since we have updated an related path that has lead to an update
+        // of common ancestor and this would make late write visible
+        assertEquals(0, stats.deletedPropsCount);
+
+        assertDocumentsExist(of("/bar"));
+    }
+
+    @Test
+    public void skipPropertyRemovedByLateWriteWithoutUnrelatedPath() throws Exception {
+        // create a node with property.
+        assumeTrue(fixture.hasSinglePersistence());
+        NodeBuilder nb = store1.getRoot().builder();
+        nb.child("bar").setProperty("p", "value");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // unrelated path should be such that the paths and unrelated path shouldn't have common parent
+        // for e.g. if path is /bar & unrelated is /d then there common ancestor is "/" i.e. root.
+        lateWriteRemovePropertiesNodes(of("/bar"), null, "p");
+
+        assertDocumentsExist(of("/bar"));
+        assertPropertyNotExist("/bar", "p");
+
+        enableDetailGC(store1.getVersionGarbageCollector());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedPropsCount);
+
+        assertDocumentsExist(of("/bar"));
+    }
+
+    @Test
+    public void skipPropertyRemovedByLateWriteWithoutUnrelatedPath_2() throws Exception {
+        // create a node with property.
+        assumeTrue(fixture.hasSinglePersistence());
+        NodeBuilder nb = store1.getRoot().builder();
+        nb.child("foo").child("bar").child("baz").setProperty("prop", "value");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // unrelated path should be such that the paths and unrelated path shouldn't have common parent
+        // for e.g. if path is /bar & unrelated is /d then there common ancestor is "/" i.e. root.
+        lateWriteRemovePropertiesNodes(of("/foo/bar/baz"), "/a", "prop");
+
+        assertDocumentsExist(of("/foo/bar/baz"));
+        assertPropertyNotExist("/foo/bar/baz", "prop");
+
+        enableDetailGC(store1.getVersionGarbageCollector());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(0, stats.deletedDocGCCount);
+        // since we have updated an totally unrelated path i.e. "/a", we should still be seeing the garbage from late write and
+        // thus it will be collected.
+        assertEquals(0, stats.deletedPropsCount);
+
+        assertDocumentsExist(of("/foo/bar/baz"));
+    }
+
+    @Test
+    public void skipPropertyRemovedByLateWriteWithRelatedPath() throws Exception {
+        // create a node with property.
+        assumeTrue(fixture.hasSinglePersistence());
+        NodeBuilder nb = store1.getRoot().builder();
+        nb.child("bar").setProperty("prop", "value");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+
+        // unrelated path should be such that the paths and unrelated path shouldn't have common parent
+        // for e.g. if path is /bar & unrelated is /d then there common ancestor is "/" i.e. root.
+        lateWriteRemovePropertiesNodes(of("/bar"), "/d", "prop");
+
+        assertDocumentsExist(of("/bar"));
+        assertPropertyNotExist("/bar", "prop");
+
+        enableDetailGC(store1.getVersionGarbageCollector());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(0, stats.deletedDocGCCount);
+        // we should be able to remove the property since we have updated an related path that has lead to an update
+        // of common ancestor and this would make late write visible
+        assertEquals(1, stats.deletedPropsCount);
+
+        assertDocumentsExist(of("/bar"));
+    }
+    // OAK-10676 END
 
     private void gcSplitDocsInternal(String subNodeName) throws Exception {
         long maxAge = 1; //hrs
@@ -1797,8 +1769,7 @@ public class VersionGarbageCollectorIT {
         assertTrue(store1.getRoot().getChildNode("t").getChildNode("target").exists());
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
-        assertEquals(false, store1.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
+        assertFalse(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
     }
 
     /**
@@ -1839,8 +1810,7 @@ public class VersionGarbageCollectorIT {
         assertFalse(store1.getRoot().getChildNode("t").getChildNode("target").exists());
         // invalidate node cache to ensure readNode is called below
         store1.getNodeCache().invalidateAll();
-        assertEquals(true, store1.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
+        assertTrue(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
 
     }
 
@@ -1881,31 +1851,8 @@ public class VersionGarbageCollectorIT {
         assertFalse(store1.getRoot().getChildNode("t").getChildNode("target").exists());
         // invalidate node cache to ensure readNode/getNodeAtRevision is called below
         store1.getNodeCache().invalidateAll();
-        assertEquals(false, store1.retrieve(checkpoint).getChildNode("t")
-                .getChildNode("target").exists());
+        assertFalse(requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getChildNode("target").exists());
 
-    }
-
-    private void createLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
-        createOrDeleteLeaf(s, false, pathElems);
-    }
-
-    private void deleteLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
-        createOrDeleteLeaf(s, true, pathElems);
-    }
-
-    private void createOrDeleteLeaf(DocumentNodeStore s, boolean delete,
-            String... pathElems) throws Exception {
-        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(10));
-        final NodeBuilder rb = s.getRoot().builder();
-        NodeBuilder b = rb;
-        for (String pathElem : pathElems) {
-            b = b.child(pathElem);
-        }
-        if (delete) {
-            b.remove();
-        }
-        s.merge(rb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     /**
@@ -1954,7 +1901,7 @@ public class VersionGarbageCollectorIT {
         // step 5 : create a checkpoint (valid for 42 days) at t(+1w+6sec)
         String checkpoint = store1.checkpoint(TimeUnit.DAYS.toMillis(42));
         assertEquals(exp, store1.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, store1.retrieve(checkpoint).getChildNode("t").getString("foo"));
+        assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
 
         // step 6 : wait for 1 week
         clock.waitUntil(clock.getTime() + TimeUnit.DAYS.toMillis(7));
@@ -1965,7 +1912,7 @@ public class VersionGarbageCollectorIT {
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
         assertEquals("barZ", store1.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, store1.retrieve(checkpoint).getChildNode("t").getString("foo"));
+        assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
 
         // step 8 : move the clock a couple seconds to ensure GC maxRev condition hits
         // (without this it might not yet GC the split doc we want it to,
@@ -1977,7 +1924,7 @@ public class VersionGarbageCollectorIT {
         // flush the caches as otherwise it might deliver stale data
         store1.getNodeCache().invalidateAll();
         assertEquals("barZ", store1.getRoot().getChildNode("t").getString("foo"));
-        assertEquals(exp, store1.retrieve(checkpoint).getChildNode("t").getString("foo"));
+        assertEquals(exp, requireNonNull(store1.retrieve(checkpoint)).getChildNode("t").getString("foo"));
     }
 
     // OAK-1729
@@ -2029,8 +1976,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(10, stats.splitDocGCCount);
         assertEquals(0, stats.deletedLeafDocGCCount);
 
-        DocumentNodeState test = getDoc("/test").getNodeAtRevision(
-                store1, store1.getHeadRevision(), null);
+        DocumentNodeState test = getDoc("/test").getNodeAtRevision(store1, store1.getHeadRevision(), null);
         assertNotNull(test);
         assertTrue(test.hasProperty("test"));
     }
@@ -2105,8 +2051,7 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = getDoc("/foo");
         assertNotNull(doc);
-        DocumentNodeState state = doc.getNodeAtRevision(
-                store1, store1.getHeadRevision(), null);
+        DocumentNodeState state = doc.getNodeAtRevision(store1, store1.getHeadRevision(), null);
         assertNotNull(state);
     }
 
@@ -2653,6 +2598,288 @@ public class VersionGarbageCollectorIT {
             merge(store1, builder);
             store1.runBackgroundOperations();
         }
+    }
+
+    // helper methods
+
+    private void assertPropertyExist(String path, String propertyName) {
+        Path p = Path.fromString(path);
+        String id = Utils.getIdFromPath(p);
+        assertNotNull(requireNonNull(store1.getDocumentStore().find(NODES, id, -1)).get(propertyName));
+    }
+
+    private void assertPropertyNotExist(String path, String propertyName) {
+        Path p = Path.fromString(path);
+        String id = Utils.getIdFromPath(p);
+        SortedMap<Revision, String> valueMap = requireNonNull(store1.getDocumentStore().find(NODES, id, -1)).getLocalMap(propertyName);
+        assertNull(valueMap.get(valueMap.firstKey()));
+    }
+
+    private static final Predicate<UpdateOp> ADD_NODE_OPS = updateOp -> {
+        for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
+            if (isDeletedEntry(key.getName()) && updateOp.getChanges().get(key).value.equals("false")) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    private static final Predicate<UpdateOp> REMOVE_NODE_OPS = updateOp -> {
+        for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
+            if (isDeletedEntry(key.getName()) && updateOp.getChanges().get(key).value.equals("true")) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    private static FailedUpdateOpListener filter0(List<UpdateOp> ops, Predicate<UpdateOp> predicate) {
+        return op -> {
+            if (predicate.test(op)) {
+                ops.add(op);
+            }
+        };
+    }
+
+    private static Predicate<UpdateOp> setPropertyOps(String propertyName) {
+        return updateOp -> {
+            for (UpdateOp.Key key : updateOp.getChanges().keySet()) {
+                if (propertyName.equals(key.getName()) && updateOp.getChanges().get(key).type == SET_MAP_ENTRY) {
+                    return true;
+                }
+            }
+            return false;
+        };
+    }
+
+    private static NodeState getChildeNodeState(DocumentNodeStore ns2, String path, boolean assertIntermediatesExist) {
+        final Path p = Path.fromString(path);
+        NodeState state = ns2.getRoot();
+        for (String name : p.elements()) {
+            state = state.getChildNode(name);
+            if (assertIntermediatesExist) {
+                assertTrue(state.exists());
+            }
+        }
+        return state;
+    }
+
+    private void assertDocumentsDontExist(Collection<String> nonExistingPaths) {
+        for (String nonExistingPath : nonExistingPaths) {
+            Path p = Path.fromString(nonExistingPath);
+            assertFalse(getChildeNodeState(store1, nonExistingPath, false).exists());
+            String id = Utils.getIdFromPath(p);
+            assertNull(store1.getDocumentStore().find(NODES, id));
+        }
+    }
+
+    private void assertDocumentsExist(Collection<String> paths) {
+        for (String aPath : paths) {
+            Path p = Path.fromString(aPath);
+            String id = Utils.getIdFromPath(p);
+            assertNotNull(store1.getDocumentStore().find(NODES, id, -1));
+        }
+    }
+
+    private void createNodes(Collection<String> paths) throws Exception {
+        createNodes(paths.toArray(new String[0]));
+    }
+
+    private void createNodes(String... paths) throws CommitFailedException {
+        createNodes(store1, paths);
+    }
+
+    private void createNodes(DocumentNodeStore dns,
+                             String... paths) throws CommitFailedException {
+        for (String path : paths) {
+            merge(dns, createChild(dns.getRoot().builder(), path));
+        }
+        dns.runBackgroundOperations();
+    }
+
+    interface LateWriteChangesBuilder {
+        void apply(NodeBuilder root, String path);
+    }
+
+    private void lateWriteCreateNodes(Collection<String> orphanedPaths,
+                                      String unrelatedPathOrNull) throws Exception {
+        lateWrite(orphanedPaths, TestUtils::createChild,
+                unrelatedPathOrNull, ADD_NODE_OPS, (ds, ops) -> ds.createOrUpdate(NODES, ops));
+    }
+
+    private void lateWriteRemoveNodes(Collection<String> orphanedPaths,
+                                      String unrelatedPathOrNull) throws Exception {
+        lateWrite(orphanedPaths, (rb, path) -> childBuilder(rb, path).remove(),
+                unrelatedPathOrNull, REMOVE_NODE_OPS, (ds, ops) -> ds.createOrUpdate(NODES, ops));
+    }
+
+    private void lateWriteAddPropertiesNodes(Collection<String> paths, String unrelatedPath, String propertyName,
+                                             String propertyValue) throws Exception {
+        lateWrite(paths, (rb, path) -> childBuilder(rb, path).setProperty(propertyName, propertyValue), unrelatedPath,
+                setPropertyOps(propertyName), (ds, ops) -> ds.findAndUpdate(NODES, ops));
+    }
+
+    private void lateWriteRemovePropertiesNodes(Collection<String> paths, String unrelatedPath, String propertyName)
+            throws Exception {
+        lateWrite(paths, (rb, path) -> childBuilder(rb, path).removeProperty(propertyName), unrelatedPath,
+                setPropertyOps(propertyName), (ds, ops) -> ds.findAndUpdate(NODES, ops));
+    }
+
+    /**
+     *
+     * Add late write properties on given paths. Assumes the secondary store is not
+     * in use as it needs to control its creation and disposal.
+     *
+     * @param paths paths on which we need to update the property
+     * @param lateWriteChangesBuilder builder to create lateWrite operations
+     * @param unrelatedPath this path needs to be totally unrelated to above paths i.e. they shouldn't have common parent
+     * @param filterPredicate to filter operations on FallingDocumentStore
+     * @param dataStoreConsumer persist late write changes to DocumentStore
+     * @throws Exception in case of merge failure we throw exception
+     */
+    private void lateWrite(Collection<String> paths, LateWriteChangesBuilder lateWriteChangesBuilder, String unrelatedPath,
+                           Predicate<UpdateOp> filterPredicate, BiConsumer<DocumentStore, List<UpdateOp>> dataStoreConsumer) throws Exception {
+        // this method requires store2 to be null as a prerequisite
+        assertNull(store2);
+        // as it creates store2 itself - then disposes it later too
+        createSecondaryStore(LeaseCheckMode.LENIENT, true);
+        // create the orphaned paths
+        final List<UpdateOp> failed = new ArrayList<>();
+        final FailingDocumentStore fds = (FailingDocumentStore) ds2;
+        fds.addListener(filter0(failed, filterPredicate));
+        fds.fail().after(0).eternally();
+        for (String path : paths) {
+            try {
+                NodeBuilder rb = store2.getRoot().builder();
+                lateWriteChangesBuilder.apply(rb, path);
+                merge(store2, rb);
+                fail("merge must fail");
+            } catch (CommitFailedException e) {
+                // expected
+                String msg = e.getMessage();
+                e.printStackTrace();
+                assertEquals("OakOak0001: write operation failed", msg);
+            }
+        }
+        disposeQuietly(store2);
+        fds.fail().never();
+
+        // wait until lease expires
+        clock.waitUntil(clock.getTime() + DEFAULT_LEASE_DURATION_MILLIS + 1);
+
+        {
+            store1.renewClusterIdLease();
+            assertTrue(store1.getLastRevRecoveryAgent().isRecoveryNeeded());
+            assertEquals(0, store1.getLastRevRecoveryAgent().recover(2));
+        }
+
+        // 'late write'
+        dataStoreConsumer.accept(fds, failed);
+
+        if (unrelatedPath == null || unrelatedPath.isEmpty()) {
+            return;
+        }
+
+        // revive clusterId 2
+        createSecondaryStore(LeaseCheckMode.LENIENT);
+        merge(store2, createChild(store2.getRoot().builder(), unrelatedPath));
+        store2.runBackgroundOperations();
+        store2.dispose();
+        store1.runBackgroundOperations();
+    }
+
+    /**
+     * Creates a bunch of parents properly, then creates a bunch of orphans in
+     * late-write manner (i.e. not properly), then runs DetailedGC and assets that
+     * everything was deleted as expected
+     *
+     * @param parents                 the nodes that should be created properly -
+     *                                each one in a separate merge
+     * @param orphans                 the nodes that should be created inproperly -
+     *                                each one in a separate late-write way
+     * @param expectedNumOrphanedDocs the expected number of orphan documents that
+     *                                DetailedGC should cleanup
+     * @param unrelatedPath           an unrelated path that should be merged after
+     *                                late-write - ensures lastRev is updated on
+     *                                root to allow detecting late-writes as such
+     */
+    private void doLateWriteCreateChildrenGC(Collection<String> parents,
+                                             Collection<String> orphans, int expectedNumOrphanedDocs, String unrelatedPath)
+            throws Exception {
+        assumeTrue(fixture.hasSinglePersistence());
+        createNodes(parents);
+        lateWriteCreateNodes(orphans, unrelatedPath);
+
+        assertDocumentsExist(parents);
+        assertDocumentsExist(orphans);
+        assertNodesDontExist(parents, orphans);
+
+        enableDetailGC(store1.getVersionGarbageCollector());
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+        // clean everything older than one hour
+        VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
+        assertNotNull(stats);
+        assertEquals(expectedNumOrphanedDocs, stats.deletedDocGCCount);
+
+        assertDocumentsExist(parents);
+        // and the main assert being: have those lateCreated (orphans) docs been deleted
+        assertNodesDontExist(parents, orphans);
+        assertDocumentsDontExist(orphans);
+    }
+
+    private void assertNodesDontExist(Collection<String> existingNodes,
+                                      Collection<String> missingNodes) {
+        for (String aMissingNode : missingNodes) {
+            assertChildNotExists(existingNodes, aMissingNode);
+        }
+    }
+
+    private void assertChildNotExists(Collection<String> existingNodes, String aMissingNode) {
+        final Path aMissingPath = Path.fromString(aMissingNode);
+        String nearestParent = null;
+        Path nearestParentPath = null;
+        for (String anExistingNode : existingNodes) {
+            final Path anExistingPath = Path.fromString(anExistingNode);
+            if (!anExistingPath.isAncestorOf(aMissingPath)) {
+                // skip
+                continue;
+            }
+            if (nearestParent == null || nearestParentPath.isAncestorOf(anExistingPath)) {
+                nearestParent = anExistingNode;
+                nearestParentPath = anExistingPath;
+            }
+        }
+        assertNotNull(nearestParent);
+        Path nearestChildPath = aMissingPath;
+        Path childParentPath = nearestChildPath.getParent();
+        while(nearestParentPath.isAncestorOf(childParentPath)) {
+            nearestChildPath = childParentPath;
+            childParentPath = childParentPath.getParent();
+        }
+        assertFalse(getChildeNodeState(store1, nearestParent, true).hasChildNode(nearestChildPath.getName()));
+    }
+
+    private void createLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
+        createOrDeleteLeaf(s, false, pathElems);
+    }
+
+    private void deleteLeaf(DocumentNodeStore s, String... pathElems) throws Exception {
+        createOrDeleteLeaf(s, true, pathElems);
+    }
+
+    private void createOrDeleteLeaf(DocumentNodeStore s, boolean delete, String... pathElems) throws Exception {
+        clock.waitUntil(clock.getTime() + TimeUnit.SECONDS.toMillis(10));
+        final NodeBuilder rb = s.getRoot().builder();
+        NodeBuilder b = rb;
+        for (String pathElem : pathElems) {
+            b = b.child(pathElem);
+        }
+        if (delete) {
+            b.remove();
+        }
+        s.merge(rb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void merge(DocumentNodeStore store, NodeBuilder builder)

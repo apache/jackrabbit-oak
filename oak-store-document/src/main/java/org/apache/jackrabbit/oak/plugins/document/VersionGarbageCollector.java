@@ -962,7 +962,8 @@ public class VersionGarbageCollector {
                 monitor.info("Deleted orphaned or deleted doc [{}]", doc.getId());
                 orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
             } else {
-                collectDeletedProperties(doc, phases, op);
+                // here the node is not orphaned which means that we can reach the node from root
+                collectDeletedProperties(doc, phases, op, traversedState);
                 collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
                 collectOldRevisions(doc, phases, op);
                 // only add if there are changes for this doc
@@ -1007,7 +1008,8 @@ public class VersionGarbageCollector {
             return garbageDocsCount > 0;
         }
 
-        private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
+        private void collectDeletedProperties(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp,
+                                              final NodeState traversedState) {
 
             // get Map of all properties along with their values
             if (phases.start(GCPhase.DETAILED_GC_COLLECT_PROPS)) {
@@ -1017,7 +1019,7 @@ public class VersionGarbageCollector {
                 // All the properties whose value is null in head revision are
                 // eligible to be garbage collected.
 
-                final Set<String> retainPropSet = ofNullable(doc.getNodeAtRevision(nodeStore, headRevision, null))
+                final Set<String> retainPropSet = ofNullable(traversedState instanceof DocumentNodeState ? (DocumentNodeState)traversedState : null)
                         .map(DocumentNodeState::getAllBundledProperties)
                         .map(Map::keySet)
                         .map(p -> p.stream().map(Utils::escapePropertyName).collect(toSet()))
