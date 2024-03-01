@@ -908,6 +908,66 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         }
     }
 
+    // see OAK-10673
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testDeleteNonExistingMapEntry() {
+        String id = this.getClass().getName() + ".testDeleteNonExistingMapEntry-" + UUID.randomUUID();
+        String propname = ":childOrder";
+
+        UpdateOp up = new UpdateOp(id, true);
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
+
+        long ts = System.currentTimeMillis();
+        Revision r1 = new Revision(ts, 0, 1);
+
+        // set initial value of :childOrder
+        UpdateOp op1 = new UpdateOp(id, false);
+        op1.setMapEntry(propname, r1, "foo");
+        Document d0 = super.ds.findAndUpdate(Collection.NODES, op1);
+        assertNotNull(d0);
+        assertNull(d0.get(propname));
+
+        // set new value, remove previous one
+        Revision r2 = new Revision(ts, 2, 1);
+        UpdateOp op2 = new UpdateOp(id, false);
+        op2.removeMapEntry(propname, r1);
+        op2.setMapEntry(propname, r2, "bar");
+        Document d1 = super.ds.findAndUpdate(Collection.NODES, op2);
+
+        // check previous state, map should only contain entry for r1 -> "foo"
+        assertNotNull(d1);
+        assertNotNull(d1.get(propname));
+        Map<Revision, String> mresulting1 = (Map<Revision, String>)d1.get(propname);
+        assertEquals(propname + " + map should contain one entry", 1, mresulting1.size());
+        assertEquals("foo", mresulting1.get(r1));
+
+        // set new value, remove all previous
+        Revision r3 = new Revision(ts, 3, 1);
+        UpdateOp op3 = new UpdateOp(id, false);
+        // attempts to remove non-existing revision (r1) should not fail
+        op3.removeMapEntry(propname, r1);
+        op3.removeMapEntry(propname, r2);
+        op3.setMapEntry(propname, r3, "qux");
+        Document d2 = super.ds.findAndUpdate(Collection.NODES, op3);
+
+        // check previous state, map should only contain entry for r2 -> "bar"
+        assertNotNull(d2);
+        assertNotNull(d2.get(propname));
+        Map<Revision, String> mresulting2 = (Map<Revision, String>)d2.get(propname);
+        assertEquals(propname + " + map should contain one entry", 1, mresulting2.size());
+        assertEquals("bar", mresulting2.get(r2));
+
+        // get final state, map should only contain entry for r3 -> "qux"
+        Document d3 = ds.find(Collection.NODES, id, -1);
+        assertNotNull(d3);
+        assertNotNull(d3.get(propname));
+        Map<Revision, String> mresulting3 = (Map<Revision, String>)d3.get(propname);
+        assertEquals(propname + " + map should contain one entry", 1, mresulting3.size());
+        assertEquals("on " + super.dsname + ", got: " + mresulting3, "qux", mresulting3.get(r3));
+    }
+
     @Test
     public void testDeleteNonExisting() {
         String id = this.getClass().getName() + ".testDeleteNonExisting-" + UUID.randomUUID();
