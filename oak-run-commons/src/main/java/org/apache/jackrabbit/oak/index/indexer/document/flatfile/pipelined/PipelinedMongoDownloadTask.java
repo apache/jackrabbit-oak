@@ -137,7 +137,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private final static BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
-    final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h.*$");
+    final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h");
 
     private static final String THREAD_NAME = "mongo-dump";
 
@@ -152,7 +152,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>();
 
-        List<Pattern> includedPatterns = toFilterPatterns(mongoFilterPaths.included);
+        List<Pattern> includedPatterns = toFilterPatterns(mongoFilterPaths.included, false);
         if (!includedPatterns.isEmpty()) {
             // The conditions above on the _id field is not enough to match all JCR nodes in the given paths because nodes
             // with paths longer than a certain threshold, are represented by Mongo documents where the _id field is replaced
@@ -178,14 +178,15 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // This is done because excluding also the top level path would add extra complexity to the filter and
         // would not have any measurable impact on performance because it only downloads a few extra documents, one
         // for each excluded subtree. The transform stage will anyway filter out these paths.
-        ArrayList<Pattern> excludedPatterns = new ArrayList<>();
-        excludedPatterns.addAll(toFilterPatterns(mongoFilterPaths.excluded));
-        // Custom regex filter to exclude paths
-        excludedPatterns.addAll(customExcludedPatterns(customExcludeEntriesRegex));
+        toFilterPatterns(mongoFilterPaths.excluded, true).
+                forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
-        if (!excludedPatterns.isEmpty()) {
-            filters.add(Filters.nin(NodeDocument.ID, excludedPatterns));
+        var customRegexExcludePattern = customExcludedPatterns(customExcludeEntriesRegex);
+        // TODO: find a way to negate the custom regex pattern
+        if (!customRegexExcludePattern.isEmpty()) {
+            filters.add(Filters.not(Filters.regex(NodeDocument.ID, customRegexExcludePattern.get(0))));
         }
+
 
         if (filters.isEmpty()) {
             return null;
@@ -196,7 +197,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static List<Pattern> toFilterPatterns(List<String> paths) {
+    private static List<Pattern> toFilterPatterns(List<String> paths, boolean negate) {
         if (paths.isEmpty()) {
             return List.of();
         }
@@ -209,7 +210,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 path = path + "/";
             }
             String quotedPath = Pattern.quote(path);
-            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
+//            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
+            var regex = "^[0-9]{1,3}:" + quotedPath;
+            if (negate) {
+//                https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
+                patterns.add(Pattern.compile(negateRegex(regex)));
+            } else {
+                patterns.add(Pattern.compile(regex));
+            }
         }
         return patterns;
     }
@@ -222,6 +230,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
             return List.of(Pattern.compile(customRegexPattern));
         }
+    }
+
+    private static String negateRegex(String regex) {
+        return "^(?!.*" + regex + ").*$";
     }
 
     /**

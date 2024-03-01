@@ -345,7 +345,7 @@ public class PipelinedMongoDownloadTaskTest {
                 null
         );
         var expected = Filters.in(NodeDocument.ID,
-                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"),
+                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/")),
                 LONG_PATH_ID_PATTERN
         );
         assertBsonEquals(expected, actual);
@@ -388,7 +388,7 @@ public class PipelinedMongoDownloadTaskTest {
         var expected =
                 Filters.and(
                         Filters.in(NodeDocument.ID,
-                                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"),
+                                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/")),
                                 LONG_PATH_ID_PATTERN
                         ),
                         Filters.nin(NodeDocument.ID, excludePattern)
