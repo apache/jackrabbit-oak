@@ -73,12 +73,12 @@ public class SegmentAzureServicePrincipalNodeStoreContainer implements NodeStore
 
     @Override
     public void close() {
-        if (tmpDir != null) {
-            tmpDir.delete();
-        }
         if (fs != null) {
             fs.close();
             fs = null;
+        }
+        if (tmpDir != null) {
+            tmpDir.delete();
         }
     }
 
