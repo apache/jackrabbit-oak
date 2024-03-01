@@ -16,8 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinateFactory;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDescriptor;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexStatistics;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -28,16 +29,13 @@ import org.jetbrains.annotations.Nullable;
 public class ElasticsearchIndexNode implements IndexNode {
 
     private final ElasticsearchIndexDefinition indexDefinition;
-    private ElasticsearchIndexCoordinateFactory factory;
+    private final ElasticsearchIndexDescriptor indexDescriptor;
 
-    static ElasticsearchIndexNode fromIndexPath(@NotNull NodeState root, @NotNull String indexPath) {
-        NodeState indexNS = NodeStateUtils.getNode(root, indexPath);
-        ElasticsearchIndexDefinition indexDefinition = new ElasticsearchIndexDefinition(root, indexNS, indexPath);
-        return new ElasticsearchIndexNode(indexDefinition);
-    }
-
-    private ElasticsearchIndexNode(ElasticsearchIndexDefinition indexDefinition) {
-        this.indexDefinition = indexDefinition;
+    protected ElasticsearchIndexNode(@NotNull NodeState root, @NotNull String indexPath,
+                                     @NotNull ElasticsearchConnection elasticsearchConnection) {
+        final NodeState indexNS = NodeStateUtils.getNode(root, indexPath);
+        this.indexDefinition = new ElasticsearchIndexDefinition(root, indexNS, indexPath);
+        this.indexDescriptor = new ElasticsearchIndexDescriptor(elasticsearchConnection, indexDefinition);
     }
 
     @Override
@@ -50,6 +48,10 @@ public class ElasticsearchIndexNode implements IndexNode {
         return indexDefinition;
     }
 
+    public ElasticsearchIndexDescriptor getIndexDescriptor() {
+        return indexDescriptor;
+    }
+
     @Override
     public int getIndexNodeId() {
         // TODO: does it matter that we simply return 0 as there's no observation based _refresh_ going on here
@@ -59,10 +61,6 @@ public class ElasticsearchIndexNode implements IndexNode {
 
     @Override
     public @Nullable IndexStatistics getIndexStatistics() {
-        return new ElasticsearchIndexStatistics(factory.getElasticsearchIndexCoordinate(indexDefinition));
-    }
-
-    public void setFactory(ElasticsearchIndexCoordinateFactory factory) {
-        this.factory = factory;
+        return new ElasticsearchIndexStatistics(indexDescriptor);
     }
 }

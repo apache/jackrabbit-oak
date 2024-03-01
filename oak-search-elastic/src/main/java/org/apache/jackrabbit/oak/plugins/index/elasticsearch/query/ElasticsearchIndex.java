@@ -16,12 +16,12 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinateFactory;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexNode;
 import org.apache.jackrabbit.oak.plugins.index.search.SizeEstimator;
-import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndex;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.query.FulltextIndexPlanner;
+import org.apache.jackrabbit.oak.plugins.index.search.util.LMSEstimator;
 import org.apache.jackrabbit.oak.spi.query.Cursor;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.apache.jackrabbit.oak.spi.query.QueryLimits;
@@ -45,11 +45,11 @@ public class ElasticsearchIndex extends FulltextIndex {
     // higher than some threshold below which the query should rather be answered by something else if possible
     private static final double MIN_COST = 100.1;
 
-    private final ElasticsearchIndexCoordinateFactory esIndexCoordFactory;
+    private final ElasticsearchConnection elasticsearchConnection;
     private final NodeState root;
 
-    ElasticsearchIndex(@NotNull ElasticsearchIndexCoordinateFactory esIndexCoordFactory, @NotNull NodeState root) {
-        this.esIndexCoordFactory = esIndexCoordFactory;
+    ElasticsearchIndex(@NotNull ElasticsearchConnection elasticsearchConnection, @NotNull NodeState root) {
+        this.elasticsearchConnection = elasticsearchConnection;
         this.root = root;
     }
 
@@ -85,9 +85,7 @@ public class ElasticsearchIndex extends FulltextIndex {
 
     @Override
     protected IndexNode acquireIndexNode(String indexPath) {
-        ElasticsearchIndexNode elasticsearchIndexNode = ElasticsearchIndexNode.fromIndexPath(root, indexPath);
-        elasticsearchIndexNode.setFactory(esIndexCoordFactory);
-        return elasticsearchIndexNode;
+        return new ElasticsearchIndexNode(root, indexPath, elasticsearchConnection);
     }
 
     @Override
@@ -104,7 +102,7 @@ public class ElasticsearchIndex extends FulltextIndex {
         final FulltextIndexPlanner.PlanResult pr = getPlanResult(plan);
         QueryLimits settings = filter.getQueryLimits();
 
-        Iterator<FulltextResultRow> itr = new ElasticsearchResultRowIterator(esIndexCoordFactory, filter, pr, plan,
+        Iterator<FulltextResultRow> itr = new ElasticsearchResultRowIterator(filter, pr, plan,
                 acquireIndexNode(plan), FulltextIndex::shouldInclude, getEstimator(plan.getPlanName()));
         SizeEstimator sizeEstimator = getSizeEstimator(plan);
 

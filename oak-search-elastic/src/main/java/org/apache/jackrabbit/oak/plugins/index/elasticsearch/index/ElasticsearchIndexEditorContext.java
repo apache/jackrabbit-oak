@@ -26,6 +26,8 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.IOException;
+
 public class ElasticsearchIndexEditorContext extends FulltextIndexEditorContext<ElasticsearchDocument> {
     ElasticsearchIndexEditorContext(NodeState root,
                                     NodeBuilder definition, @Nullable IndexDefinition indexDefinition,
@@ -53,11 +55,15 @@ public class ElasticsearchIndexEditorContext extends FulltextIndexEditorContext<
 
         // Now, that index definition _might_ have been migrated by super call, it would be ok to
         // get writer and provision index settings and mappings
-        getWriter().setProvisioningRequired();
+        try {
+            getWriter().provisionIndex();
+        } catch (IOException e) {
+            throw new IllegalStateException("Unable to provision index", e);
+        }
     }
 
     @Override
     public ElasticsearchIndexWriter getWriter() {
-        return (ElasticsearchIndexWriter)super.getWriter();
+        return (ElasticsearchIndexWriter) super.getWriter();
     }
 }

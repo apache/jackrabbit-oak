@@ -20,6 +20,9 @@ import com.microsoft.azure.storage.CloudStorageAccount;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 import com.microsoft.azure.storage.blob.CloudBlobContainer;
+
+import com.google.common.collect.ImmutableMap;
+
 import org.junit.Assume;
 import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
@@ -33,7 +36,6 @@ import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class AzuriteDockerRule extends ExternalResource {
@@ -49,7 +51,7 @@ public class AzuriteDockerRule extends ExternalResource {
     protected void before() throws Throwable {
         azuriteContainer = new GenericContainer<>(DOCKER_IMAGE_NAME)
                 .withExposedPorts(10000)
-                .withEnv(Map.of("executable", "blob"))
+                .withEnv(ImmutableMap.of("executable", "blob"))
                 .withStartupTimeout(Duration.ofSeconds(30));
 
         try {

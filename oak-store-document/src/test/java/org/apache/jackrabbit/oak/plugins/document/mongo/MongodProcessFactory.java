@@ -36,16 +36,14 @@ import org.slf4j.LoggerFactory;
 
 import de.flapdoodle.embed.mongo.Command;
 import de.flapdoodle.embed.mongo.MongodStarter;
-import de.flapdoodle.embed.mongo.config.DownloadConfigBuilder;
-import de.flapdoodle.embed.mongo.config.ExtractedArtifactStoreBuilder;
-import de.flapdoodle.embed.mongo.config.RuntimeConfigBuilder;
-import de.flapdoodle.embed.process.config.IRuntimeConfig;
+import de.flapdoodle.embed.mongo.config.Defaults;
+import de.flapdoodle.embed.process.config.RuntimeConfig;
+import de.flapdoodle.embed.process.io.directories.Directory;
 import de.flapdoodle.embed.process.io.directories.FixedPath;
-import de.flapdoodle.embed.process.io.directories.IDirectory;
 import de.flapdoodle.embed.process.io.progress.Slf4jProgressListener;
 import de.flapdoodle.embed.process.runtime.Network;
 
-import static de.flapdoodle.embed.process.io.directories.Directories.join;
+import static org.apache.jackrabbit.oak.plugins.document.mongo.MongodProcess.join;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -55,26 +53,21 @@ public class MongodProcessFactory extends ExternalResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(MongodProcessFactory.class);
 
-    private static final IDirectory EXTRACT_DIR = join(new FixedPath("target"), new FixedPath("mongo-extracted"));
+    private static final Directory DOWNLOAD_DIR = join(new FixedPath("target"), new FixedPath("mongo-download"));
 
-    private static final IDirectory DOWNLOAD_DIR = join(new FixedPath("target"), new FixedPath("mongo-download"));
-
-    private static final IDirectory TMP_DIR = join(new FixedPath("target"), new FixedPath("tmp"));
+    private static final Directory TMP_DIR = join(new FixedPath("target"), new FixedPath("tmp"));
 
     static {
         System.setProperty("de.flapdoodle.embed.io.tmpdir", TMP_DIR.asFile().getAbsolutePath());
     }
 
-    private static final IRuntimeConfig CONFIG = new RuntimeConfigBuilder()
-            .defaultsWithLogger(Command.MongoD, LoggerFactory.getLogger(MongodProcessFactory.class))
-            .artifactStore(new ExtractedArtifactStoreBuilder()
-                    .defaults(Command.MongoD)
-                    .download(new DownloadConfigBuilder()
-                            .defaultsForCommand(Command.MongoD)
+    private static final RuntimeConfig CONFIG = Defaults.runtimeConfigFor(Command.MongoD, LOG)
+            .artifactStore(Defaults.extractedArtifactStoreFor(Command.MongoD)
+                    .withDownloadConfig(Defaults.downloadConfigFor(Command.MongoD)
                             .progressListener(new Slf4jProgressListener(LOG))
                             .artifactStorePath(DOWNLOAD_DIR).build())
-                    .extractDir(EXTRACT_DIR).build())
-            .daemonProcess(false)
+            )
+            .isDaemonProcess(false)
             .build();
 
     private static final MongodStarter STARTER = MongodStarter.getInstance(CONFIG);
@@ -83,7 +76,7 @@ public class MongodProcessFactory extends ExternalResource {
 
     public Map<Integer, MongodProcess> startReplicaSet(String replicaSetName, int size)
             throws IOException {
-        int[] ports = Network.getFreeServerPorts(InetAddress.getLoopbackAddress(), size);
+        int[] ports = Network.freeServerPorts(InetAddress.getLoopbackAddress(), size);
         return startReplicaSet(replicaSetName, ports);
     }
 
@@ -103,9 +96,6 @@ public class MongodProcessFactory extends ExternalResource {
 
     @Override
     protected void before() {
-        if (!EXTRACT_DIR.asFile().exists()) {
-            assertTrue(EXTRACT_DIR.asFile().mkdirs());
-        }
         if (!TMP_DIR.asFile().exists()) {
             assertTrue(TMP_DIR.asFile().mkdirs());
         }
@@ -160,4 +150,5 @@ public class MongodProcessFactory extends ExternalResource {
                     new Document("replSetInitiate", config));
         }
     }
+
 }
