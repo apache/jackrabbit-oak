@@ -147,15 +147,29 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      * @param mongoFilterPaths          The paths to be included/excluded in the filter. These define subtrees to be included or excluded.
      *                                  (see {@link MongoFilterPaths} for details)
      * @param customExcludeEntriesRegex Documents with paths matching this regex are excluded from download
-     * @param queryUsesIndexTraversal   Whether the query will use an index to traverse the documents.
      * @return The filter to be used in the Mongo query, or null if no filter is required
      */
-    static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex, boolean queryUsesIndexTraversal) {
+    static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>();
 
-        Bson includedFilter = descendantsFilter(mongoFilterPaths.included, queryUsesIndexTraversal);
-        if (includedFilter != null) {
-            filters.add(includedFilter);
+        List<Pattern> includedPatterns = toFilterPatterns(mongoFilterPaths.included);
+        if (!includedPatterns.isEmpty()) {
+            // The conditions above on the _id field is not enough to match all JCR nodes in the given paths because nodes
+            // with paths longer than a certain threshold, are represented by Mongo documents where the _id field is replaced
+            // by a hash and the full path is stored in an additional field _path. To retrieve these long path documents,
+            // we could add a condition on the _path field, but this would slow down substantially scanning the DB, because
+            // the _path field is not part of the index used by this query (it's an index on _modified, _id). Therefore,
+            // Mongo would have to retrieve every document from the column store to evaluate the filter condition. So instead
+            // we add below a condition to download all the long path documents. These documents can be identified by the
+            // format of the _id field (<n>:h<hash>), so it is possible to identify them using only the index.
+            // This might download documents for nodes that are not in the included paths, but those documents will anyway
+            // be filtered in the transform stage. And in most repositories, the number of long path documents is very small,
+            // often there are none, so the extra documents downloaded will not slow down by much the download. However, the
+            // performance gains of evaluating the filter of the query using only the index are very significant, especially
+            // when the index requires only a small number of nodes.
+            var patternsWithLongPathInclude = new ArrayList<>(includedPatterns);
+            patternsWithLongPathInclude.add(LONG_PATH_ID_PATTERN);
+            filters.add(Filters.in(NodeDocument.ID, patternsWithLongPathInclude));
         }
 
         // The Mongo filter returned here will download the top level path of each excluded subtree, which in theory
@@ -164,15 +178,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // This is done because excluding also the top level path would add extra complexity to the filter and
         // would not have any measurable impact on performance because it only downloads a few extra documents, one
         // for each excluded subtree. The transform stage will anyway filter out these paths.
-        Bson excludedFilter = descendantsFilter(mongoFilterPaths.excluded, queryUsesIndexTraversal);
-        if (excludedFilter != null) {
-            filters.add(Filters.nor(excludedFilter));
-        }
-
+        ArrayList<Pattern> excludedPatterns = new ArrayList<>();
+        excludedPatterns.addAll(toFilterPatterns(mongoFilterPaths.excluded));
         // Custom regex filter to exclude paths
-        Bson customExcludedPathsFilter = createCustomExcludedEntriesFilter(customExcludeEntriesRegex, queryUsesIndexTraversal);
-        if (customExcludedPathsFilter != null) {
-            filters.add(customExcludedPathsFilter);
+        excludedPatterns.addAll(customExcludedPatterns(customExcludeEntriesRegex));
+
+        if (!excludedPatterns.isEmpty()) {
+            filters.add(Filters.nin(NodeDocument.ID, excludedPatterns));
         }
 
         if (filters.isEmpty()) {
@@ -184,65 +196,31 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    static Bson createCustomExcludedEntriesFilter(String customRegexPattern, boolean queryUsesIndexTraversal) {
-        if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
-            LOG.info("Mongo custom regex is disabled");
-            return null;
-        } else {
-            LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
-            var pattern = Pattern.compile(customRegexPattern);
-            Bson pathFilter = createPathFilter(List.of(pattern), queryUsesIndexTraversal);
-            return Filters.nor(Filters.regex(NodeDocument.ID, pattern), pathFilter);
-        }
-    }
-
-    private static Bson descendantsFilter(List<String> paths, boolean queryUsesIndexTraversal) {
+    private static List<Pattern> toFilterPatterns(List<String> paths) {
         if (paths.isEmpty()) {
-            return null;
+            return List.of();
         }
         if (paths.size() == 1 && paths.get(0).equals("/")) {
-            return null;
+            return List.of();
         }
-
-        // The filter for descendants of a list of paths is a series of or conditions. For each path, we have to build
-        // two conditions in two different fields of the documents:
-        // _ _id   - for non-long paths - In this case, the _id is of the form "2:/foo/bar"
-        // _ _path - for long paths - In this case, the _id is a hash and the document contains an additional _path
-        //      field with the path of the document.
-        // We use the $in operator with a regular expression to match the paths.
-        //  https://www.mongodb.com/docs/manual/reference/operator/query/in/#use-the--in-operator-with-a-regular-expression
-        ArrayList<Pattern> pathPatterns = new ArrayList<>();
-        ArrayList<Pattern> idPatterns = new ArrayList<>();
-
+        ArrayList<Pattern> patterns = new ArrayList<>();
         for (String path : paths) {
             if (!path.endsWith("/")) {
                 path = path + "/";
             }
             String quotedPath = Pattern.quote(path);
-            idPatterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
-            pathPatterns.add(Pattern.compile("^" + quotedPath + ".*$"));
+            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
         }
-
-        Bson pathFilter = createPathFilter(pathPatterns, queryUsesIndexTraversal);
-        return Filters.or(Filters.in(NodeDocument.ID, idPatterns), pathFilter);
+        return patterns;
     }
 
-    private static Bson createPathFilter(List<Pattern> pattern, boolean queryUsesIndexTraversal) {
-        // If a document has a long path, the _id is replaced by a hash and the path is stored in an additional _path field.
-        // When doing an index scan, it may be more efficient to check that the _id is in the format of a long path id
-        // (that is, numeric prefix followed by ":h") first, before checking the _path field. The _id
-        // is available from the index while the _path field is only available on the document itself, so checking the
-        // _path will force an expensive retrieval of the full document. It is not guaranteed that Mongo will implement
-        // this optimization, but it is adding this additional check to allow MongoDB to apply this optimization.
-        // If the query does a column scan, then Mongo retrieves the full document from the column store, so we can
-        // check the _path directly, which simplifies a bit the query.
-        if (queryUsesIndexTraversal) {
-            return Filters.and(
-                    Filters.regex(NodeDocument.ID, LONG_PATH_ID_PATTERN),
-                    Filters.in(NodeDocument.PATH, pattern)
-            );
+    static List<Pattern> customExcludedPatterns(String customRegexPattern) {
+        if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
+            LOG.info("Mongo custom regex is disabled");
+            return List.of();
         } else {
-            return Filters.in(NodeDocument.PATH, pattern);
+            LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
+            return List.of(Pattern.compile(customRegexPattern));
         }
     }
 
@@ -387,7 +365,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .build();
             MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_DURATION_SECONDS, durationMillis / 1000);
             MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL, documentsDownloadedTotal);
-            MetricsUtils.addMetric(statisticsProvider, reporter,  PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
+            MetricsUtils.addMetric(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_MONGO_DOWNLOAD_ENQUEUE_DELAY_PERCENTAGE,
                     PipelinedUtils.toPercentage(totalEnqueueWaitTimeMillis, durationMillis)
             );
             MetricsUtils.addMetricByteSize(statisticsProvider, reporter, PipelinedMetrics.OAK_INDEXER_PIPELINED_DOCUMENTS_DOWNLOADED_TOTAL_BYTES,
@@ -421,7 +399,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // That is, download "/", "/content", "/content/dam" for a base path of "/content/dam". These nodes will not be
         // matched by the regex used in the Mongo query, which assumes a prefix of "???:/content/dam"
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
-        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex, true);
+        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository");
         } else {
@@ -516,7 +494,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // We are downloading potentially a large fraction of the repository, so using an index scan will be
         // inefficient. So we pass the natural hint to force MongoDB to use natural ordering, that is, column scan
         MongoFilterPaths mongoFilterPaths = getPathsForRegexFiltering();
-        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex, false);
+        Bson mongoFilter = computeMongoQueryFilter(mongoFilterPaths, customExcludeEntriesRegex);
         if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection

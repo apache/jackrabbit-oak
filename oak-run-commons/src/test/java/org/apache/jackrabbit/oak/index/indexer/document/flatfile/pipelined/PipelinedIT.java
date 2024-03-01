@@ -32,6 +32,7 @@ import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.plugins.index.ConsoleIndexingReporter;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
@@ -186,7 +187,7 @@ public class PipelinedIT {
                 "/content/dam/2023|{\"p2\":\"v2023\"}",
                 "/content/dam/2023/01|{\"p1\":\"v202301\"}",
                 "/content/dam/2023/02|{}"
-        ));
+        ), true);
     }
 
     @Test
@@ -214,7 +215,7 @@ public class PipelinedIT {
                 "/content/dam/2022/02|{\"p1\":\"v202202\"}",
                 "/content/dam/2022/03|{\"p1\":\"v202203\"}",
                 "/content/dam/2022/04|{\"p1\":\"v202204\"}"
-        ));
+        ), true);
     }
 
 
@@ -234,7 +235,7 @@ public class PipelinedIT {
                 "/etc|{}",
                 "/home|{}",
                 "/jcr:system|{}"
-        ));
+        ), true);
     }
 
     @Test
@@ -253,7 +254,7 @@ public class PipelinedIT {
                 "/etc|{}",
                 "/home|{}",
                 "/jcr:system|{}"
-        ));
+        ), true);
     }
 
     @Test
@@ -283,8 +284,7 @@ public class PipelinedIT {
                 "/content/dam/2022/02/04|{\"p1\":\"v20220204\"}",
                 "/content/dam/2022/03|{\"p1\":\"v202203\"}",
                 "/content/dam/2022/04|{\"p1\":\"v202204\"}"
-
-        ));
+        ), true);
     }
 
     @Test
@@ -305,7 +305,7 @@ public class PipelinedIT {
                 "/content/dam/2023/01|{\"p1\":\"v202301\"}",
                 "/content/dam/2023/02|{}",
                 "/content/dam/2023/02/28|{\"p1\":\"v20230228\"}"
-        ));
+        ), true);
     }
 
     @Test
@@ -344,7 +344,7 @@ public class PipelinedIT {
         // The list above has the longest paths first, reverse it to match the order in the FFS
         Collections.reverse(expected);
 
-        testSuccessfulDownload(pathPredicate, pathFilters, expected);
+        testSuccessfulDownload(pathPredicate, pathFilters, expected, false);
     }
 
 
@@ -454,10 +454,10 @@ public class PipelinedIT {
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters)
             throws CommitFailedException, IOException {
-        testSuccessfulDownload(pathPredicate, pathFilters, EXPECTED_FFS);
+        testSuccessfulDownload(pathPredicate, pathFilters, EXPECTED_FFS, false);
     }
 
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected)
+    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected, boolean ignoreLongPaths)
             throws CommitFailedException, IOException {
         Backend rwStore = createNodeStore(false);
         createContent(rwStore.documentNodeStore);
@@ -468,7 +468,19 @@ public class PipelinedIT {
 
         File file = pipelinedStrategy.createSortedStoreFile();
         assertTrue(file.exists());
-        assertEquals(expected, Files.readAllLines(file.toPath()));
+        List<String> result = Files.readAllLines(file.toPath());
+        if (ignoreLongPaths) {
+            // Remove the long paths from the result. The filter on Mongo is best-effort, it will download long path
+            // documents, even if they do not match the includedPaths.
+            result = result.stream()
+                    .filter(s -> {
+                        var name = s.split("\\|")[0];
+                        return name.length() < Utils.PATH_LONG;
+                    })
+                    .collect(Collectors.toList());
+
+        }
+        assertEquals(expected, result);
         assertMetrics();
     }
 
