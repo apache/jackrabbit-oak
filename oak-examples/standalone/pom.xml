@@ -36,7 +36,7 @@
 
   <properties>
     <skip.deployment>true</skip.deployment>
-    <spring.boot.version>2.7.13</spring.boot.version>
+    <spring.boot.version>2.7.18</spring.boot.version>
   </properties>
 
   <dependencyManagement>
