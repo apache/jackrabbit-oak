@@ -41,6 +41,21 @@ public final class AzureConstants {
     public static final String AZURE_SAS = "azureSas";
 
     /**
+     * Azure active directory
+     */
+    public static final String AZURE_TENANT_ID = "tenantId";
+
+    /**
+     * Azure service principal id
+     */
+    public static final String AZURE_CLIENT_ID = "clientId";
+
+    /**
+     * Azure service principal password
+     */
+    public static final String AZURE_CLIENT_SECRET = "clientSecret";
+
+    /**
      * Azure blob endpoint
      */
     public static final String AZURE_BLOB_ENDPOINT = "azureBlobEndpoint";

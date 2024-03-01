@@ -43,6 +43,7 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
+import org.checkerframework.checker.units.qual.A;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.rules.TemporaryFolder;
@@ -66,12 +67,15 @@ public class AzureDataStoreUtils extends DataStoreUtils {
      */
     public static boolean isAzureConfigured() {
         Properties props = getAzureConfig();
-        //need either access keys or sas
+        //need either access keys or sas or service principal
         if (!props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY) || !props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME)
                 || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
             if (!props.containsKey(AzureConstants.AZURE_SAS) || !props.containsKey(AzureConstants.AZURE_BLOB_ENDPOINT)
                     || !(props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME))) {
-                return false;
+                // service principal
+                return props.containsKey(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME) && props.containsKey(AzureConstants.AZURE_TENANT_ID) &&
+                        props.containsKey(AzureConstants.AZURE_CLIENT_ID) && props.containsKey(AzureConstants.AZURE_CLIENT_SECRET) &&
+                        props.containsKey(AzureConstants.AZURE_BLOB_CONTAINER_NAME);
             }
         }
         return true;

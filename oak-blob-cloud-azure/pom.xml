@@ -50,6 +50,7 @@
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core,
+                            azure-identity,
                             guava,
                             jsr305
                         </Embed-Dependency>
@@ -143,6 +144,10 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-keyvault-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity</artifactId>
         </dependency>
         <!-- Azure Guava dependency -->
         <dependency>
