@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeSet;
@@ -76,11 +78,21 @@ public class MongoRegexPathFilterFactory {
     }
 
     public MongoFilterPaths buildMongoFilter(List<PathFilter> pathFilters) {
+        return buildMongoFilter(pathFilters, List.of());
+
+    }
+
+    /**
+     * @param pathFilters         Filters representing the included/excludedPaths settings of the indexes
+     * @param customExcludedPaths Additional excluded paths set in the Oak configuration.
+     * @return Paths to include and exclude in the Mongo query
+     */
+    public MongoFilterPaths buildMongoFilter(List<PathFilter> pathFilters, List<String> customExcludedPaths) {
         if (pathFilters == null || pathFilters.isEmpty()) {
             return MongoFilterPaths.DOWNLOAD_ALL;
         }
         // Merge and deduplicate the included and excluded paths of all filters.
-        // The included paths will also be further de-deuplicated, by removing paths that are children of other path in
+        // The included paths will also be further de-deuplicated, by removing paths that are children of other paths in
         // the list, that is, by keeping only the top level paths. To make it easy to de-duplicate, we sort the paths
         // alphabetically.
         // The list of excluded paths does not need to be sorted, but we do it anyway for consistency when logging the
@@ -123,6 +135,14 @@ public class MongoRegexPathFilterFactory {
             return MongoFilterPaths.DOWNLOAD_ALL;
         }
 
+        if (customExcludedPaths.stream().anyMatch(PathUtils::denotesRoot)) {
+            LOG.warn("Ignoring custom excluded paths setting, root cannot be excluded: {}",  customExcludedPaths);
+        } else if (!isRootPath(finalIncludedPathsRoots)) {
+            LOG.info("Ignoring custom excluded paths because included paths did not resolve to root. Mongo filters: {}", finalIncludedPathsRoots);
+        } else {
+            finalExcludedPaths = mergeIndexAndCustomExcludePaths(finalExcludedPaths, customExcludedPaths);
+        }
+
         // Also check the number of excluded paths and disable filtering by them if there are too many.
         // We do not need to revert to download the full repository in the case where there is a reasonable number of
         // included paths but too many excluded paths. The excluded paths are always children of the included paths, so
@@ -134,16 +154,32 @@ public class MongoRegexPathFilterFactory {
             finalExcludedPaths = List.of();
         }
 
-        if (finalExcludedPaths.isEmpty()) {
-            // Only included paths
-            if (finalIncludedPathsRoots.contains("/")) {
-                return MongoFilterPaths.DOWNLOAD_ALL;
-            } else {
-                return new MongoFilterPaths(finalIncludedPathsRoots, List.of());
-            }
-        } else {
-            return new MongoFilterPaths(finalIncludedPathsRoots, finalExcludedPaths);
-        }
+        return new MongoFilterPaths(finalIncludedPathsRoots, finalExcludedPaths);
     }
 
+    private boolean isRootPath(List<String> includedPaths) {
+        return includedPaths.isEmpty() || (includedPaths.size() == 1 && includedPaths.get(0).equals("/"));
+    }
+
+    /*
+     * Merge the excluded paths defined by the indexes with the custom excluded paths. This is done by taking the union
+     * of the two lists and then removing any path that is a subpath of any other path in the list.
+     */
+    static List<String> mergeIndexAndCustomExcludePaths(List<String> indexExcludedPaths, List<String> customExcludedPaths) {
+        if (customExcludedPaths.isEmpty()) {
+            return indexExcludedPaths;
+        }
+
+        var excludedUnion = new HashSet<>(indexExcludedPaths);
+        excludedUnion.addAll(customExcludedPaths);
+        var mergedExcludes = new ArrayList<String>();
+        for (String testPath : excludedUnion) {
+            // Add a path only if it is not a subpath of any other path in the list
+            if (excludedUnion.stream().noneMatch(p -> PathUtils.isAncestor(p, testPath))) {
+                mergedExcludes.add(testPath);
+            }
+        }
+        Collections.sort(mergedExcludes);
+        return mergedExcludes;
+    }
 }

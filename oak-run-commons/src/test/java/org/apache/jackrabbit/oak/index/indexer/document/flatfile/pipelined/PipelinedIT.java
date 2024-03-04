@@ -71,6 +71,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.lang.management.ManagementFactory.getPlatformMBeanServer;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
@@ -616,6 +617,78 @@ public class PipelinedIT {
         assertTrue(file.exists());
         assertArrayEquals(expected.toArray(new String[0]), Files.readAllLines(file.toPath()).toArray(new String[0]));
         assertMetrics();
+    }
+
+
+    @Test
+    public void createFFS_mongoFiltering_custom_excluded_paths_1() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home");
+
+        Predicate<String> pathPredicate = s -> true;
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/etc", "/home", "/jcr:system")));
+
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/etc|{}",
+                "/home|{}",
+                "/jcr:system|{}"
+        ), true);
+    }
+
+    @Test
+    public void createFFS_mongoFiltering_custom_excluded_paths_2() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home");
+
+        Predicate<String> pathPredicate = s -> true;
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of("/content/dam", "/jcr:system")));
+
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/etc|{}",
+                "/home|{}",
+                "/jcr:system|{}"
+        ), true);
+    }
+
+    @Test
+    public void createFFS_mongoFiltering_custom_excluded_paths_3() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home,/content/dam,/jcr:system");
+
+        Predicate<String> pathPredicate = s -> true;
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of()));
+
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/etc|{}",
+                "/home|{}",
+                "/jcr:system|{}"
+        ), true);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void createFFS_mongoFiltering_custom_excluded_paths_cannot_exclude_root() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/");
+        Predicate<String> pathPredicate = s -> true;
+        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/"), List.of()));
+
+        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
+                "/|{}",
+                "/content|{}",
+                "/content/dam|{}",
+                "/etc|{}",
+                "/home|{}",
+                "/jcr:system|{}"
+        ), true);
     }
 
 

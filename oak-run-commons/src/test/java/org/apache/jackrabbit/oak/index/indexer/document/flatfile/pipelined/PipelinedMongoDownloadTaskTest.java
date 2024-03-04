@@ -330,8 +330,8 @@ public class PipelinedMongoDownloadTaskTest {
         // The generated filter should not include any condition to include the descendants of /
         var expected =
                 Filters.nin(NodeDocument.ID,
-                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded1/") + ".*$"),
-                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/content/excluded2/") + ".*$")
+                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded1/")),
+                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/content/excluded2/"))
                 );
         assertBsonEquals(expected, actual);
     }
@@ -345,7 +345,7 @@ public class PipelinedMongoDownloadTaskTest {
                 null
         );
         var expected = Filters.in(NodeDocument.ID,
-                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"),
+                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/")),
                 LONG_PATH_ID_PATTERN
         );
         assertBsonEquals(expected, actual);
@@ -371,7 +371,7 @@ public class PipelinedMongoDownloadTaskTest {
         Pattern excludesPattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expected =
                 Filters.and(
-                        Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"), LONG_PATH_ID_PATTERN),
+                        Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/")), LONG_PATH_ID_PATTERN),
                         Filters.nin(NodeDocument.ID, excludesPattern)
                 );
         assertBsonEquals(expected, actual);
@@ -388,7 +388,7 @@ public class PipelinedMongoDownloadTaskTest {
         var expected =
                 Filters.and(
                         Filters.in(NodeDocument.ID,
-                                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/") + ".*$"),
+                                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/")),
                                 LONG_PATH_ID_PATTERN
                         ),
                         Filters.nin(NodeDocument.ID, excludePattern)
@@ -405,7 +405,7 @@ public class PipelinedMongoDownloadTaskTest {
 
         Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expected =
-                Filters.nin(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/") + ".*$"), excludePattern);
+                Filters.nin(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/")), excludePattern);
         assertBsonEquals(expected, actual);
     }
 
@@ -418,7 +418,7 @@ public class PipelinedMongoDownloadTaskTest {
 
         Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
         var expected = Filters.nin(NodeDocument.ID,
-                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/") + ".*$"),
+                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/")),
                 excludePattern
         );
         assertBsonEquals(expected, actual);
@@ -434,6 +434,30 @@ public class PipelinedMongoDownloadTaskTest {
                 actual.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry()),
                 expected.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry())
         );
+    }
+
+    @Test
+    public void mergeExcludedPaths() {
+        // Indexes do not define any exclude, the custom index adds one exclude
+        testMergeExcludedPaths(List.of(), List.of("/b"), List.of("/b"));
+        // Indexes define one exclude, the custom index adds one exclude
+        testMergeExcludedPaths(List.of("/a"), List.of("/b"), List.of("/a", "/b"));
+        // Adds an exclude already in the list
+        testMergeExcludedPaths(List.of("/a"), List.of("/a"), List.of("/a"));
+        // Adds an exclude that is a child of an existing exclude
+        testMergeExcludedPaths(List.of("/a"), List.of("/a/s"), List.of("/a"));
+        // Adds an exclude that is a parent of an existing exclude
+        testMergeExcludedPaths(List.of("/a/s"), List.of("/a"), List.of("/a"));
+        testMergeExcludedPaths(List.of("/a/s"), List.of(), List.of("/a/s"));
+        testMergeExcludedPaths(List.of("/a", "/b/b1", "/c/c1/c2"), List.of("/d/d1/d2", "/b", "/c/c1/c2/c3"),
+                List.of("/a", "/b", "/c/c1/c2", "/d/d1/d2"));
+        testMergeExcludedPaths(List.of("/a/s"), List.of("/"), List.of("/"));
+
+    }
+
+    private void testMergeExcludedPaths(List<String> indexExcludedPaths, List<String> customExcludedPaths, List<String> expected) {
+        var mergedExcludedPaths = MongoRegexPathFilterFactory.mergeIndexAndCustomExcludePaths(indexExcludedPaths, customExcludedPaths);
+        assertEquals(expected, mergedExcludedPaths);
     }
 }
 

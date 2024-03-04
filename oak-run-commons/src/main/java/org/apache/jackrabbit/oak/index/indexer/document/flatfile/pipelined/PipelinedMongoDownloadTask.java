@@ -126,6 +126,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     public static final String OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS = "oak.indexer.pipelined.mongoRegexPathFilteringMaxPaths";
     public static final int DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS = 20;
 
+    /**
+     * Additional Oak paths to exclude from downloading from Mongo. This is a comma-separated list of paths.
+     * These paths are only filtered if the included paths computed from the idndexes resolve to the root tree (/),
+     * otherwise the value of this property is ignored.
+     */
+    public static final String OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS = "oak.indexer.pipelined.mongoCustomExcludedPaths";
+    public static final String DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS = "";
 
     // Use a short initial retry interval. In most cases if the connection to a replica fails, there will be other
     // replicas available so a reconnection attempt will succeed immediately.
@@ -137,7 +144,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private final static BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private final static BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
-    final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h.*$");
+    final static Pattern LONG_PATH_ID_PATTERN = Pattern.compile("^[0-9]{1,3}:h");
 
     private static final String THREAD_NAME = "mongo-dump";
 
@@ -209,7 +216,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 path = path + "/";
             }
             String quotedPath = Pattern.quote(path);
-            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
+            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath));
         }
         return patterns;
     }
@@ -267,6 +274,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private final IndexingReporter reporter;
     private final MongoRegexPathFilterFactory regexPathFilterFactory;
     private final String customExcludeEntriesRegex;
+    private final List<String> customExcludedPaths;
 
     private long totalEnqueueWaitTimeMillis = 0;
     private Instant lastDelayedEnqueueWarningMessageLoggedTimestamp = Instant.now();
@@ -327,6 +335,29 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX
         );
         this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, customExcludeEntriesRegex);
+
+        var excludePathsString = ConfigHelper.getSystemPropertyAsString(
+                OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS,
+                DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS
+        ).trim();
+        this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, excludePathsString);
+        if (excludePathsString.isEmpty()) {
+            this.customExcludedPaths = List.of();
+        } else  if (!regexPathFiltering) {
+            LOG.info("Ignoring custom excluded paths because regex path filtering is disabled");
+            this.customExcludedPaths = List.of();
+        } else {
+            this.customExcludedPaths = Arrays.stream(excludePathsString.split(","))
+                    .map(String::trim)
+                    .collect(Collectors.toList());
+        }
+        var invalidPaths = customExcludedPaths.stream()
+                .filter(p -> !PathUtils.isValid(p) || !PathUtils.isAbsolute(p) || PathUtils.denotesRoot(p))
+                .collect(Collectors.toList());
+        if (!invalidPaths.isEmpty()) {
+            throw new IllegalArgumentException("Invalid paths in " + OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS + " " +
+                    " system property: " + invalidPaths + ". Paths must be valid, must be absolute and must not be the root.");
+        }
 
         //TODO This may lead to reads being routed to secondary depending on MongoURI
         //So caller must ensure that its safe to read from secondary
@@ -525,7 +556,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                             .map(pf -> "PF{includedPaths=" + pf.getIncludedPaths() + ", excludedPaths=" + pf.getExcludedPaths() + "}")
                             .collect(Collectors.joining(", "))
             );
-            MongoFilterPaths mongoFilterPaths = this.regexPathFilterFactory.buildMongoFilter(pathFilters);
+            MongoFilterPaths mongoFilterPaths = this.regexPathFilterFactory.buildMongoFilter(pathFilters, customExcludedPaths);
             LOG.info("Paths used for regex filtering on Mongo: {}", mongoFilterPaths);
             return mongoFilterPaths;
         }
