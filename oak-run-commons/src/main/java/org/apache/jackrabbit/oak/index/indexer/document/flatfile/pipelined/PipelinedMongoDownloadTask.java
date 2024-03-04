@@ -128,7 +128,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     /**
      * Additional Oak paths to exclude from downloading from Mongo. This is a comma-separated list of paths.
-     * These paths are only filtered if the included paths computed from the idndexes resolve to the root tree (/),
+     * These paths are only filtered if the included paths computed from the indexes resolve to the root tree (/),
      * otherwise the value of this property is ignored.
      */
     public static final String OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS = "oak.indexer.pipelined.mongoCustomExcludedPaths";
