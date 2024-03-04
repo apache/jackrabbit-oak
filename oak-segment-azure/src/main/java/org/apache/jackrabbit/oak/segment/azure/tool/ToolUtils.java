@@ -172,12 +172,12 @@ public class ToolUtils {
     public static CloudBlobDirectory createCloudBlobDirectory(String path) {
         return createCloudBlobDirectory(path, ENVIRONMENT);
     }
-    
+
     public static CloudBlobDirectory createCloudBlobDirectory(String path, Environment environment) {
         Map<String, String> config = parseAzureConfigurationFromUri(path);
 
         String accountName = config.get(KEY_ACCOUNT_NAME);
-        
+
         StorageCredentials credentials;
         if (config.containsKey(KEY_SHARED_ACCESS_SIGNATURE)) {
             credentials = new StorageCredentialsSharedAccessSignature(config.get(KEY_SHARED_ACCESS_SIGNATURE));
@@ -194,6 +194,11 @@ public class ToolUtils {
             throw new IllegalArgumentException(
                 "Could not connect to the Azure Storage. Please verify the path provided!");
         }
+    }
+
+    @NotNull
+    public static StorageCredentials getStorageCredentialsFromAccountAndEnv(@NotNull String accountName) {
+        return getStorageCredentialsFromAccountAndEnv(accountName, ENVIRONMENT);
     }
 
     @NotNull
