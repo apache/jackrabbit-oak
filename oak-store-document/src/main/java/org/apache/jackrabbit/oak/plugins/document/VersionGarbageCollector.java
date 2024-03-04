@@ -941,7 +941,7 @@ public class VersionGarbageCollector {
             this.root = nodeStore.getRoot(headRevision);
         }
 
-        public UpdateOp collectGarbage(final NodeDocument doc, final GCPhases phases) {
+        public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
 
             detailedGCStats.documentRead();
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
@@ -965,7 +965,7 @@ public class VersionGarbageCollector {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
                 collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-                collectOldRevisions(doc, phases, op);
+                collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, phases, op);
                 // only add if there are changes for this doc
                 if (op.hasChanges()) {
                     garbageDocsCount++;
@@ -977,8 +977,6 @@ public class VersionGarbageCollector {
             if (log.isDebugEnabled()) {
                 log.debug("UpdateOp for {} is {}", doc.getId(), op);
             }
-
-            return op;
         }
 
         /**
@@ -1239,7 +1237,8 @@ public class VersionGarbageCollector {
             };
         }
 
-        private void collectOldRevisions(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
+        private void collectRevisionsOlderThan24hAndBetweenCheckpoints(final NodeDocument doc,
+                                                              final GCPhases phases, final UpdateOp updateOp) {
             if (phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
                 NodeDocumentRevisionCleaner cleaner = new NodeDocumentRevisionCleaner(nodeStore, doc);
                 cleaner.collectOldRevisions(updateOp);
@@ -1399,7 +1398,7 @@ public class VersionGarbageCollector {
         }
     }
 
-    public UpdateOp collectGarbageOnDocument(DocumentNodeStore store, NodeDocument doc) {
+    public void collectGarbageOnDocument(DocumentNodeStore store, NodeDocument doc, boolean verbose) {
         VersionGCStats stats = new VersionGCStats();
         stats.active.start();
         AtomicBoolean cancel = new AtomicBoolean();
@@ -1409,12 +1408,21 @@ public class VersionGarbageCollector {
         DetailedGC gc = new DetailedGC(headRevision, 0, gcMonitor, cancel);
 
         if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
-            UpdateOp op = gc.collectGarbage(doc, phases);
+            gc.collectGarbage(doc, phases);
             phases.stop(GCPhase.DETAILED_GC_COLLECT_GARBAGE);
-            return op;
         }
 
-        return null;
+        if (verbose) {
+            gcMonitor.info("GarbageCollector will run [{}] operations", gc.updateOpList.size());
+            for (UpdateOp update : gc.updateOpList) {
+                gcMonitor.info(update.toString());
+            }
+        }
+
+        if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
+            gc.removeGarbage(phases.stats);
+            phases.stop(GCPhase.DETAILED_GC_CLEANUP);
+        }
     }
 
     /**

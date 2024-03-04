@@ -27,6 +27,13 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+/**
+ * This is a prototype class of a very fine-grained revision cleaner that cleans even revisions
+ * in-between checkpoints. It is not clear if it will be used for now.
+ *
+ * A version is considered to be cleanable if it is not referenced by any checkpoint and is older than
+ * a certain threshold.
+ */
 public class NodeDocumentRevisionCleaner {
 
     private final DocumentNodeStore documentNodeStore;
@@ -57,9 +64,9 @@ public class NodeDocumentRevisionCleaner {
         revisionCleaner.preserveRevisionsReferencedByCheckpoints();
         revisionCleaner.removeCandidatesInList();
 
-        for (Map.Entry<Integer, TreeSet<Revision>> entry : revisionCleaner.candidateRevisionsToClean.entrySet()) {
+        for (Map.Entry<Integer, TreeSet<Revision>> entry : revisionCleaner.getCandidateRevisionsToClean().entrySet()) {
             for (Revision revision : entry.getValue()) {
-                TreeSet<String> properties = revisionClassifier.propertiesModifiedByRevision.get(revision);
+                TreeSet<String> properties = revisionClassifier.getPropertiesModifiedByRevision().get(revision);
                 if (properties != null) {
                     for (String property : properties) {
                         op.removeMapEntry(property, revision);
@@ -133,6 +140,18 @@ public class NodeDocumentRevisionCleaner {
                 }
             }
         }
+
+        public SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> getRevisionsModifyingPropertyByCluster() {
+            return revisionsModifyingPropertyByCluster;
+        }
+
+        public SortedMap<String, TreeSet<Revision>> getRevisionsModifyingProperty() {
+            return revisionsModifyingProperty;
+        }
+
+        public SortedMap<Revision, TreeSet<String>> getPropertiesModifiedByRevision() {
+            return propertiesModifiedByRevision;
+        }
     }
 
     private class RevisionCleanerUtility {
@@ -148,7 +167,7 @@ public class NodeDocumentRevisionCleaner {
         }
 
         private void preserveLastRevisionForEachProperty() {
-            for (SortedMap<Integer, TreeSet<Revision>> revisionsByCluster : revisionClassifier.revisionsModifyingPropertyByCluster.values()) {
+            for (SortedMap<Integer, TreeSet<Revision>> revisionsByCluster : revisionClassifier.getRevisionsModifyingPropertyByCluster().values()) {
                 for (TreeSet<Revision> revisions : revisionsByCluster.values()) {
                     Revision lastRevision = revisions.last();
                     addBlockedRevisionToKeep(lastRevision);
@@ -171,7 +190,7 @@ public class NodeDocumentRevisionCleaner {
             SortedMap<Revision, Checkpoints.Info> checkpoints = documentNodeStore.getCheckpoints().getCheckpoints();
             checkpoints.forEach((revision, info) -> {
                 // For each checkpoint, keep the last revision that modified a property prior to checkpoint
-                revisionClassifier.revisionsModifyingProperty.forEach((propertyName, revisionsSet) -> {
+                revisionClassifier.getRevisionsModifyingProperty().forEach((propertyName, revisionsSet) -> {
                     // Traverse the revisionVector of the checkpoint and find the last revision that modified the property
                     info.getCheckpoint().forEach(revisionToFind -> {
                         // If the exact revision exists, keep it. If not, find the previous one that modified that property
@@ -208,40 +227,44 @@ public class NodeDocumentRevisionCleaner {
             ).add(revision);
         }
 
-        protected void removeCandidatesInList() {
+        private void removeCandidatesInList() {
             revisionCleaner.blockedRevisionsToKeep.forEach((key, value) -> {
-                if (revisionCleaner.candidateRevisionsToClean.containsKey(key)) {
-                    revisionCleaner.candidateRevisionsToClean.get(key).removeAll(value);
+                if (revisionCleaner.getCandidateRevisionsToClean().containsKey(key)) {
+                    revisionCleaner.getCandidateRevisionsToClean().get(key).removeAll(value);
                 }
             });
+        }
+
+        public SortedMap<Integer, TreeSet<Revision>> getBlockedRevisionsToKeep() {
+            return blockedRevisionsToKeep;
+        }
+
+        public SortedMap<Integer, TreeSet<Revision>> getCandidateRevisionsToClean() {
+            return candidateRevisionsToClean;
         }
     }
 
     /*
      * The following methods are used to expose the internal state of the cleaner for testing/debugging purposes.
      */
-    public SortedMap<Revision, String> getAllRevisions() {
-        return workingDocument.getLocalRevisions();
-    }
-
     protected SortedMap<String, SortedMap<Integer, TreeSet<Revision>>> getRevisionsModifyingPropertyByCluster() {
-        return revisionClassifier.revisionsModifyingPropertyByCluster;
+        return revisionClassifier.getRevisionsModifyingPropertyByCluster();
     }
 
     protected SortedMap<String, TreeSet<Revision>> getRevisionsModifyingProperty() {
-        return revisionClassifier.revisionsModifyingProperty;
+        return revisionClassifier.getRevisionsModifyingProperty();
     }
 
     protected SortedMap<Revision, TreeSet<String>> getPropertiesModifiedByRevision() {
-        return revisionClassifier.propertiesModifiedByRevision;
+        return revisionClassifier.getPropertiesModifiedByRevision();
     }
 
     public SortedMap<Integer, TreeSet<Revision>> getBlockedRevisionsToKeep() {
-        return revisionCleaner.blockedRevisionsToKeep;
+        return revisionCleaner.getBlockedRevisionsToKeep();
     }
 
     public SortedMap<Integer, TreeSet<Revision>> getCandidateRevisionsToClean() {
-        return revisionCleaner.candidateRevisionsToClean;
+        return revisionCleaner.getCandidateRevisionsToClean();
     }
 
     protected void classifyRevisionsAndProperties() {
