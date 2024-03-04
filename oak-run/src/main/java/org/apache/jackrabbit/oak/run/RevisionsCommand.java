@@ -23,11 +23,6 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -37,7 +32,6 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -48,15 +42,11 @@ import org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfoDocument;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStore;
-import org.apache.jackrabbit.oak.plugins.document.DocumentStoreException;
 import org.apache.jackrabbit.oak.plugins.document.FormatVersion;
 import org.apache.jackrabbit.oak.plugins.document.MissingLastRevSeeker;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
-import org.apache.jackrabbit.oak.plugins.document.NodeDocumentRevisionCleaner;
-import org.apache.jackrabbit.oak.plugins.document.Revision;
 import org.apache.jackrabbit.oak.plugins.document.RevisionContextWrapper;
 import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
-import org.apache.jackrabbit.oak.plugins.document.UpdateOp;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
@@ -70,11 +60,11 @@ import org.slf4j.LoggerFactory;
 
 import static java.lang.Boolean.TRUE;
 import static java.lang.Integer.getInteger;
-import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getRootDocument;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isDetailedGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
@@ -89,18 +79,17 @@ public class RevisionsCommand implements Command {
 
     private static final Logger LOG = LoggerFactory.getLogger(RevisionsCommand.class);
 
-    private static final int REVISION_CAP = getInteger("oak.revision.cap", 250);
-
     private static final String USAGE = Joiner.on(System.lineSeparator()).join(
             "revisions {<jdbc-uri> | <mongodb-uri>} <sub-command> [options]",
             "where sub-command is one of",
-            "  info     give information about the revisions state without performing",
-            "           any modifications",
+            "  info           give information about the revisions state without performing",
+            "                 any modifications",
             "  collect        perform garbage collection",
             "  reset          clear all persisted metadata",
             "  sweep          clean up uncommitted changes",
-            "  detailedGC     perform detailed garbage collection i.e. remove unmerged branch commits, old revisions, deleted properties etc",
-            "  pathCleanup    clean up old/unused revisions and unmerged branch commits on a specific path"
+            "  detailedGC     perform detailed garbage collection i.e. remove unmerged branch commits, old ",
+            "                 revisions, deleted properties etc. Use the optional --path argument to perform the ",
+            "                 detailedGC only on the specific document"
     );
 
     private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
@@ -114,7 +103,6 @@ public class RevisionsCommand implements Command {
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
         static final String CMD_SWEEP = "sweep";
-        static final String CMD_CLEANUP = "pathCleanup";
         static final String CMD_DETAILED_GC = "detailedGC";
 
         final OptionSpec<?> once;
@@ -127,7 +115,6 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> detailedGCOnly;
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
-        final OptionSpec<Integer> number;
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
 
@@ -162,9 +149,6 @@ public class RevisionsCommand implements Command {
                     .accepts("verbose", "print INFO messages to the console");
             path = parser
                     .accepts("path", "path to the document to be cleaned up").withRequiredArg();
-            number = parser
-                    .accepts("number", "number of revisions to clean").withRequiredArg()
-                    .ofType(Integer.class).defaultsTo(0);
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -216,10 +200,6 @@ public class RevisionsCommand implements Command {
             return path.value(options);
         }
 
-        int getNumber() {
-            return number.value(options);
-        }
-
         boolean isDetailedGCEnabled() {
             return options.has(detailedGC);
         }
@@ -249,10 +229,13 @@ public class RevisionsCommand implements Command {
                 reset(options, closer);
             } else if (RevisionsOptions.CMD_SWEEP.equals(subCmd)) {
                 sweep(options, closer);
-            } else if (RevisionsOptions.CMD_CLEANUP.equals(subCmd)) {
-                pathCleanup(options, closer);
             } else if (RevisionsOptions.CMD_DETAILED_GC.equals(subCmd)) {
-                collect(options, closer, true);
+                String path = options.getPath();
+                if (path != null && !path.isEmpty()) {
+                    collectDocument(options, closer, path);
+                } else {
+                    collect(options, closer, true);
+                }
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
             }
@@ -496,13 +479,7 @@ public class RevisionsCommand implements Command {
         SweepHelper.sweep(store, new RevisionContextWrapper(ns, clusterId), seeker);
     }
 
-    private void pathCleanup(RevisionsOptions options, Closer closer) throws IOException {
-        String path = options.getPath();
-        if (path == null || path.isEmpty()) {
-            System.err.println("path option is required for " + RevisionsOptions.CMD_CLEANUP + " command");
-            return;
-        }
-
+    private void collectDocument(RevisionsOptions options, Closer closer, String path) throws IOException {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
@@ -513,36 +490,16 @@ public class RevisionsCommand implements Command {
         builder.setReadOnlyMode();
         useMemoryBlobStore(builder);
         DocumentNodeStore documentNodeStore = builder.build();
-        String id = org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath(path);
-        NodeDocument workingDocument = documentStore.find(NODES, id);
-        //NodeDocumentRevisionCleaner revisionCleaner = new NodeDocumentRevisionCleaner(documentNodeStore, workingDocument);
 
         VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
         // Set a LoggingGC monitor that will output the detailedGC operations
         gc.setGCMonitor(new LoggingGCMonitor(LOG));
         // Run detailedGC on the given document
-        UpdateOp op = gc.collectGarbageOnDocument(documentNodeStore, workingDocument);
-        if (op == null) {
-            System.out.println("No detailedGC operations to be executed");
-            return;
-        }
+        NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
+        gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
 
-        //TODO: Probably we should output some details of detailedGCStats
+        //TODO: Probably we should output some details of detailedGCStats. Could be done after OAK-10378
         //gc.getDetailedGCStats();
-
-        if (options.isDryRun()) {
-            //TODO: Improve printing of operations
-            System.out.println("=== Operations to be executed ===");
-            System.out.println("Total of operations: " + op.getChanges().size());
-            System.out.println(op.getChanges());
-        } else {
-            try {
-                System.out.println("-- Executing " + op.getChanges().size() + " operations --");
-                //documentStore.findAndUpdate(NODES, op);
-            } catch (DocumentStoreException ex) {
-                System.out.println("Operation failed: " + ex);
-            }
-        }
     }
 
     private String fmtTimestamp(long ts) {
