@@ -34,6 +34,9 @@
   <packaging>pom</packaging>
 
   <properties>
+    <!-- build time stamp: should be updated prior to a release -->
+    <!-- see https://maven.apache.org/guides/mini/guide-reproducible-builds.html -->
+    <project.build.outputTimestamp>1709307307</project.build.outputTimestamp>
     <minimalMavenBuildVersion>3.3.9</minimalMavenBuildVersion><!-- evaluated by ASF parent -->
     <maven.compiler.target>${java.version}</maven.compiler.target><!-- evaluated by m-compiler-p and m-javadoc-p -->
     <test.opts.memory>-Xmx512m</test.opts.memory>
