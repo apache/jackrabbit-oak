@@ -941,7 +941,7 @@ public class VersionGarbageCollector {
             this.root = nodeStore.getRoot(headRevision);
         }
 
-        public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
+        public UpdateOp collectGarbage(final NodeDocument doc, final GCPhases phases) {
 
             detailedGCStats.documentRead();
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
@@ -977,6 +977,8 @@ public class VersionGarbageCollector {
             if (log.isDebugEnabled()) {
                 log.debug("UpdateOp for {} is {}", doc.getId(), op);
             }
+
+            return op;
         }
 
         /**
@@ -1238,12 +1240,11 @@ public class VersionGarbageCollector {
         }
 
         private void collectOldRevisions(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
-
             if (phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
-                // TODO add old rev collection logic
+                NodeDocumentRevisionCleaner cleaner = new NodeDocumentRevisionCleaner(nodeStore, doc);
+                cleaner.collectOldRevisions(updateOp);
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
             }
-
         }
 
         int getGarbageCount() {
@@ -1396,6 +1397,24 @@ public class VersionGarbageCollector {
                 /* ignore */
             }
         }
+    }
+
+    public UpdateOp collectGarbageOnDocument(DocumentNodeStore store, NodeDocument doc) {
+        VersionGCStats stats = new VersionGCStats();
+        stats.active.start();
+        AtomicBoolean cancel = new AtomicBoolean();
+        GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
+
+        final RevisionVector headRevision = store.getHeadRevision();
+        DetailedGC gc = new DetailedGC(headRevision, 0, gcMonitor, cancel);
+
+        if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
+            UpdateOp op = gc.collectGarbage(doc, phases);
+            phases.stop(GCPhase.DETAILED_GC_COLLECT_GARBAGE);
+            return op;
+        }
+
+        return null;
     }
 
     /**

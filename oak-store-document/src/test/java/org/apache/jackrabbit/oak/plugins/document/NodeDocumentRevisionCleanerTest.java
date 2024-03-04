@@ -22,6 +22,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -50,7 +51,7 @@ public class NodeDocumentRevisionCleanerTest {
 
         Mockito.when(documentStore.find(Mockito.eq(NODES), Mockito.anyString())).thenReturn(workingDocument);
         Mockito.when(documentNodeStore.getBranches()).thenReturn(new UnmergedBranches());
-        nodeDocumentRevisionCleaner = new NodeDocumentRevisionCleaner(documentStore, documentNodeStore, workingDocument);
+        nodeDocumentRevisionCleaner = new NodeDocumentRevisionCleaner(documentNodeStore, workingDocument);
     }
 
     @Test
@@ -213,7 +214,8 @@ public class NodeDocumentRevisionCleanerTest {
         prepareDocumentMock(jsonBuilder.toString());
         prepareCheckpointsMock(jsonCheckpoints);
 
-        nodeDocumentRevisionCleaner.collectOldRevisions(null);
+        final UpdateOp op = new UpdateOp(requireNonNull("0:/"), false);
+        nodeDocumentRevisionCleaner.collectOldRevisions(op);
 
         // The revisions blocked should be:
         //  - r106000003-0-3, r118000004-0-2, r108000005-0-3 (referenced by checkpoint 1)
@@ -279,7 +281,8 @@ public class NodeDocumentRevisionCleanerTest {
         prepareDocumentMock(jsonBuilder.toString());
         prepareCheckpointsMock(jsonCheckpoints);
 
-        nodeDocumentRevisionCleaner.collectOldRevisions(null);
+        final UpdateOp op = new UpdateOp(requireNonNull("0:/"), false);
+        nodeDocumentRevisionCleaner.collectOldRevisions(op);
 
         // The revisions blocked should be:
         //  - r103000008-0-1, r103000009-0-2, r103000010-0-3 (last revisions)
