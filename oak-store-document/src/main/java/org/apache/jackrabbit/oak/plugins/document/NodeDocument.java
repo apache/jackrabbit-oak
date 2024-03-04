@@ -930,6 +930,53 @@ public final class NodeDocument extends Document {
     }
 
     /**
+     * Resolve the commit revision that holds the current value of a property based
+     * on provided readRevision if the current value is in the local
+     * map - null if the current value might be in a split doc or the node or property
+     * does not exist at all.
+     *
+     * @param nodeStore    the node store.
+     * @param readRevision the read revision.
+     * @param key          the key of the property to resolve
+     * @return a Revision if the value of the property resolves to a value based
+     *         on what's in the local document, null if the node or property does
+     *         not exist at all or the value is in a split document.
+     */
+    Revision localCommitRevisionOfProperty(@NotNull DocumentNodeStore nodeStore,
+                                           @NotNull RevisionVector readRevision,
+                                           @NotNull String key) {
+        Map<Revision, String> validRevisions = Maps.newHashMap();
+        Branch branch = nodeStore.getBranches().getBranch(readRevision);
+        LastRevs lastRevs = createLastRevs(readRevision,
+                nodeStore, branch, null);
+
+        Revision min = getLiveRevision(nodeStore, readRevision, validRevisions, lastRevs);
+        if (min == null) {
+            // node is deleted
+            return null;
+        }
+
+        // ignore when local map is empty (OAK-2442)
+        SortedMap<Revision, String> local = getLocalMap(key);
+        if (local.isEmpty()) {
+            return null;
+        }
+
+        // first check local map, which contains most recent values
+        Value value = getLatestValue(nodeStore, local.entrySet(),
+                readRevision, validRevisions, lastRevs);
+        if (value == null) {
+            return null;
+        }
+        // check if there may be more recent values in a previous document
+        if (requiresCompleteMapCheck(value, local, nodeStore)) {
+            return null;
+        } else {
+            return value.valueEntry.getKey();
+        }
+    }
+
+    /**
      * Returns a {@link DocumentNodeState} as seen at the given
      * <code>readRevision</code>.
      *
@@ -967,6 +1014,7 @@ public final class NodeDocument extends Document {
             if (local.isEmpty()) {
                 continue;
             }
+
             // first check local map, which contains most recent values
             Value value = getLatestValue(nodeStore, local.entrySet(),
                     readRevision, validRevisions, lastRevs);
@@ -980,7 +1028,7 @@ public final class NodeDocument extends Document {
                         readRevision, validRevisions, lastRevs);
             }
             String propertyName = Utils.unescapePropertyName(key);
-            String v = value != null ? value.value : null;
+            String v = value != null ? value.valueEntry.getValue() : null;
             if (v != null){
                 props.add(nodeStore.createPropertyState(propertyName, v));
             }
@@ -1065,7 +1113,7 @@ public final class NodeDocument extends Document {
             value = getLatestValue(context, getDeleted().entrySet(), readRevision, validRevisions, lastRevs);
         }
 
-        return value != null && "false".equals(value.value) ? value.revision : null;
+        return value != null && "false".equals(value.valueEntry.getValue()) ? value.revision : null;
     }
 
     /**
@@ -2253,7 +2301,7 @@ public final class NodeDocument extends Document {
             }
 
             if (isValidRevision(context, propRev, commitValue, readRevision, validRevisions)) {
-                return new Value(commitRev, entry.getValue());
+                return new Value(commitRev, entry);
             }
         }
         return null;
@@ -2363,14 +2411,16 @@ public final class NodeDocument extends Document {
 
         final Revision revision;
         /**
-         * The value of a property at the given revision. A {@code null} value
+         * valueEntry contains both the underlying (commit) revision and
+         * the (String) value of a property. valueEntry is never null.
+         * valueEntry.getValue() being {@code null}
          * indicates the property was removed.
          */
-        final String value;
+        final Map.Entry<Revision, String> valueEntry;
 
-        Value(@NotNull Revision revision, @Nullable String value) {
-            this.revision = checkNotNull(revision);
-            this.value = value;
+        Value(@NotNull Revision mergeRevision, @NotNull Map.Entry<Revision, String> valueEntry) {
+            this.revision = checkNotNull(mergeRevision);
+            this.valueEntry = valueEntry;
         }
     }
 

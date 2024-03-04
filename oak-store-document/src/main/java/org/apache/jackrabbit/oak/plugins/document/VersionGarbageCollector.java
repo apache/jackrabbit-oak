@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -55,6 +56,7 @@ import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -337,6 +339,7 @@ public class VersionGarbageCollector {
         int updatedDetailedGCDocsCount;
         int skippedDetailedGCDocsCount;
         int deletedPropsCount;
+        int deletedPropRevsCount;
         int deletedUnmergedBCCount;
         final TimeDurationFormatter df = TimeDurationFormatter.forLogging();
         final Stopwatch active = Stopwatch.createUnstarted();
@@ -417,6 +420,7 @@ public class VersionGarbageCollector {
                     ", updatedDetailedGCDocsCount=" + updatedDetailedGCDocsCount +
                     ", skippedDetailedGCDocsCount=" + skippedDetailedGCDocsCount +
                     ", deletedPropsCount=" + deletedPropsCount +
+                    ", deletedPropRevsCount=" + deletedPropRevsCount +
                     ", deletedUnmergedBCCount=" + deletedUnmergedBCCount +
                     ", iterationCount=" + iterationCount +
                     ", timeDetailedGCActive=" + df.format(detailedGCActiveElapsed, MICROSECONDS) +
@@ -443,6 +447,7 @@ public class VersionGarbageCollector {
             this.updatedDetailedGCDocsCount += run.updatedDetailedGCDocsCount;
             this.skippedDetailedGCDocsCount += run.skippedDetailedGCDocsCount;
             this.deletedPropsCount += run.deletedPropsCount;
+            this.deletedPropRevsCount += run.deletedPropRevsCount;
             this.deletedUnmergedBCCount += run.deletedUnmergedBCCount;
             if (run.iterationCount > 0) {
                 // run is cumulative with times in elapsed fields
@@ -915,6 +920,18 @@ public class VersionGarbageCollector {
         private final Map<String, Integer> deletedPropsCountMap;
 
         /**
+         * Map of documentId => total no. of deleted property revisions.
+         * <p>
+         *
+         * The document can be updated between collecting and deletion phases.
+         * This would lead to document not getting deleted (since now modified date & mod count would have changed)
+         * SO the Bulk API wouldn't update this doc.
+         * <p>
+         * In order to calculate the correct no. of updated documents & deleted property revisions, we save them in a map
+         */
+        private final Map<String, Integer> deletedPropRevsCountMap;
+
+        /**
          * {@link Set} of unmergedBranchCommit Revisions to calculate the no. of unmergedBranchCommits that would be
          * removed in this iteration of DetailedGC.
          */
@@ -933,6 +950,7 @@ public class VersionGarbageCollector {
             this.updateOpList = new ArrayList<>();
             this.orphanOrDeletedRemovalMap = new HashMap<>();
             this.deletedPropsCountMap = new HashMap<>();
+            this.deletedPropRevsCountMap = new HashMap<>();
             this.deletedUnmergedBCSet = new HashSet<>();
             this.timer = createUnstarted();
             // clusterId is not used
@@ -965,7 +983,8 @@ public class VersionGarbageCollector {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
                 collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-                collectOldRevisions(doc, phases, op);
+                collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState);
+                collectRevisionsEntriesOlderThanSweepRev(doc, phases, op);
                 // only add if there are changes for this doc
                 if (op.hasChanges()) {
                     garbageDocsCount++;
@@ -1237,13 +1256,78 @@ public class VersionGarbageCollector {
             };
         }
 
-        private void collectOldRevisions(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp) {
+        /**
+         * Removes entries in _revisions that are older than sweepRev. Those revisions
+         * usually get split away - but split is not guaranteed to happen as it only
+         * acts after a certain threshold. So removing entries from _revisions here
+         * is an additional precision level of garbage collection.
+         */
+        private void collectRevisionsEntriesOlderThanSweepRev(final NodeDocument doc,
+                final GCPhases phases, UpdateOp op) {
+            //TODO: remove revisions from _revisions map that are older than sweepRev
+        }
 
-            if (phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
-                // TODO add old rev collection logic
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
+        /**
+         * Remove all property revisions in the local document that are no longer used.
+         * This includes bundled properties. It also includes related entries that
+         * become obsolete as a result - i.e. _commitRoot and _bc.
+         */
+        private void collectUnusedPropertyRevisions(final NodeDocument doc,
+                final GCPhases phases, final UpdateOp updateOp,
+                final DocumentNodeState traversedState) {
+
+            if (!phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
+                // cancelled
+                return;
             }
 
+            //TODO: below only handles normal properties - must also handled bundled state/props
+
+            int deletedRevsCount = 0;
+            for (PropertyState prop : traversedState.getProperties()) {
+                final String key = Utils.escapePropertyName(prop.getName());
+                // we need to use the traversedState.getLastRevision() as the readRevision,
+                // as that is what was originally used in getNodeAtRevision when traversing
+                final Revision keepCommitRev = doc.localCommitRevisionOfProperty(nodeStore,
+                        traversedState.getLastRevision(), key);
+                if (keepCommitRev == null) {
+                    // could be due to node not existing or current value being in a split
+                    // doc - while the former is unexpected, the latter might happen.
+                    // in both cases let's skip this property
+                    log.debug("collectUnusedRevisions : no visible revision for property {} in doc {}",
+                            prop.getName(), doc.getId());
+                    continue;
+                }
+                // if we get a revision it is from the local map.
+                // paranoia check that
+                final SortedMap<Revision, String> localMap = doc.getLocalMap(prop.getName());
+                if (!localMap.containsKey(keepCommitRev)) {
+                    // this is unexpected - log and skip this property
+                    log.error("collectUnusedRevisions : revision {} for property {} not found in doc {}",
+                            keepCommitRev, prop.getName(), doc.getId());
+                    continue;
+                }
+                // in this case we are good to delete all but the keepRevision
+                for (Revision localRev : localMap.keySet()) {
+                    if (!keepCommitRev.equals(localRev)) {
+                        // if the localRev is a branch commit, it might be unmerged,
+                        // in which case it might already have been marked for removal
+                        // via collectUnmergedBranchCommits. Checking for that next.
+                        Operation c = updateOp.getChanges().get(new Key(prop.getName(), localRev));
+                        if (c == null) {
+                            log.trace("collectUnusedRevisions : removing property key {} from doc {}",
+                                    prop.getName(), doc.getId());
+                            updateOp.removeMapEntry(prop.getName(), localRev);
+                            deletedRevsCount++;
+                        }
+                    }
+                }
+            }
+
+            //TODO: remove unused entries in _commitRoot and _bc that are now no longer needed
+
+            deletedPropRevsCountMap.put(doc.getId(), deletedRevsCount);
+            phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
         }
 
         int getGarbageCount() {
@@ -1326,9 +1410,11 @@ public class VersionGarbageCollector {
                     if (!updateOpList.isEmpty()) {
                         List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
                         int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();
+                        int deletedPropRevs = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropRevsCountMap.getOrDefault(d.getId(), 0)).sum();
                         int updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
                         stats.updatedDetailedGCDocsCount += updatedDocs;
                         stats.deletedPropsCount += deletedProps;
+                        stats.deletedPropRevsCount += deletedPropRevs;
                         stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
 
                         if (log.isDebugEnabled()) {

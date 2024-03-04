@@ -429,6 +429,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta*2);
         VersionGCStats stats = gc(gc, delta, MILLISECONDS);
         assertEquals(1, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(1, stats.updatedDetailedGCDocsCount);
         assertTrue(stats.ignoredGCDueToCheckPoint);
         assertTrue(stats.ignoredDetailedGCDueToCheckPoint);
@@ -463,6 +464,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -477,6 +479,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
@@ -484,6 +487,7 @@ public class VersionGarbageCollectorIT {
 
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(1, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(1, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
@@ -499,7 +503,11 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        // 2 prop revs deleted : original setProperty("test", "t") and removeProperty("test")
+        assertEquals(2, stats.deletedPropRevsCount);
+        // below check was 0 before old revision cleanup
+        // with old revision cleanup this now becomes 1 (for x.test cleanup)
+        assertEquals(1, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
@@ -537,6 +545,7 @@ public class VersionGarbageCollectorIT {
 
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertEquals(50_000, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(5_000, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
@@ -580,6 +589,7 @@ public class VersionGarbageCollectorIT {
 
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(50_000, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(5_000, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
@@ -643,6 +653,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -657,6 +668,7 @@ public class VersionGarbageCollectorIT {
 
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(10, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
@@ -682,6 +694,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(10, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
@@ -753,6 +766,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(10, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
@@ -776,6 +790,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -792,6 +807,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
@@ -799,6 +815,7 @@ public class VersionGarbageCollectorIT {
 
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b4 = store1.getRoot().builder();
@@ -810,6 +827,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
     }
 
@@ -834,6 +852,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -850,6 +869,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
@@ -857,6 +877,7 @@ public class VersionGarbageCollectorIT {
 
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b4 = store1.getRoot().builder();
@@ -868,6 +889,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
     }
 
@@ -901,6 +923,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -917,6 +940,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
@@ -924,6 +948,7 @@ public class VersionGarbageCollectorIT {
 
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
     }
 
     @Test
@@ -956,6 +981,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -972,6 +998,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //3. Check that deleted property does get collected post maxAge
@@ -979,6 +1006,7 @@ public class VersionGarbageCollectorIT {
 
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(10, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
     }
 
     @Test
@@ -1069,6 +1097,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
 
         //Remove property
@@ -1153,6 +1182,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(3, stats.updatedDetailedGCDocsCount);
         // deleted properties are : 1:/foo -> prop, a & p && 1:/bar -> _bc
         assertEquals(4, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(2, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionRemovedFromAllDocuments(store1, br4);
@@ -1193,6 +1223,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(3, stats.updatedDetailedGCDocsCount);
         // deleted properties are : 1:/foo -> prop, a, _collisions & p && 1:/bar -> _bc
         assertEquals(5, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(4, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionRemovedFromAllDocuments(store1, br2);
@@ -1327,6 +1358,18 @@ public class VersionGarbageCollectorIT {
         createNodes("/a/b/c/d/e");
     }
 
+    @Ignore(value="impl me")
+    @Test
+    public void unusedPropertiesDGC() throws Exception {
+        fail("impl me");
+    }
+
+    @Ignore(value="this is a reminder to add bundling-detailedGC tests in general, plus some of those cases combined with OAK-10542")
+    @Test
+    public void testBundlingAndLatestSplit() throws Exception {
+        fail("yet to be implemented");
+    }
+
     // OAK-10370
     @Test
     public void testGCDeletedPropsWithDryRunMode() throws Exception {
@@ -1353,6 +1396,7 @@ public class VersionGarbageCollectorIT {
 
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
         assertEquals(1, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(1, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
@@ -1380,6 +1424,7 @@ public class VersionGarbageCollectorIT {
         final long oldestModifiedDocDryRunTimeStamp = stats.oldestModifiedDocTimeStamp;
 
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
         assertTrue(stats.detailedGCDryRunMode);
@@ -1429,6 +1474,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         // deleted properties are : 1:/foo -> prop, a, _collisions & p && 1:/bar -> _bc
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertTrue(stats.detailedGCDryRunMode);
 
@@ -1472,6 +1518,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(stats);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(1, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         assertDocumentsExist(of("/bar"));
     }
@@ -1509,6 +1556,7 @@ public class VersionGarbageCollectorIT {
         // since we have updated a totally unrelated path i.e. "/a", we should still be seeing the garbage from late write and
         // thus it will be collected.
         assertEquals(1, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         assertDocumentsExist(of("/foo/bar/baz"));
     }
@@ -1546,6 +1594,8 @@ public class VersionGarbageCollectorIT {
         // we shouldn't be able to remove the property since we have updated an related path that has lead to an update
         // of common ancestor and this would make late write visible
         assertEquals(0, stats.deletedPropsCount);
+        // 2 prop-revs GCed : the original prop=value, plus the removeProperty(prop)
+        assertEquals(2, stats.deletedPropRevsCount);
 
         assertDocumentsExist(of("/bar"));
     }
@@ -1575,6 +1625,8 @@ public class VersionGarbageCollectorIT {
         assertNotNull(stats);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedPropsCount);
+        // 1 prop-rev removal : the late-write null
+        assertEquals(1, stats.deletedPropRevsCount);
 
         assertDocumentsExist(of("/bar"));
     }
@@ -1606,6 +1658,8 @@ public class VersionGarbageCollectorIT {
         // since we have updated an totally unrelated path i.e. "/a", we should still be seeing the garbage from late write and
         // thus it will be collected.
         assertEquals(0, stats.deletedPropsCount);
+        // removes 1 prop-rev : the late-write null
+        assertEquals(1, stats.deletedPropRevsCount);
 
         assertDocumentsExist(of("/foo/bar/baz"));
     }
@@ -1637,6 +1691,7 @@ public class VersionGarbageCollectorIT {
         // we should be able to remove the property since we have updated an related path that has lead to an update
         // of common ancestor and this would make late write visible
         assertEquals(1, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         assertDocumentsExist(of("/bar"));
     }

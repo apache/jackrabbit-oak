@@ -195,6 +195,7 @@ public class BranchCommitGCTest {
         assertEquals(3, stats.updatedDetailedGCDocsCount);
         // deleted properties are : 1:/foo -> prop, a, _collisions & p && 1:/bar -> _bc
         assertEquals(5, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(4, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
@@ -399,6 +400,7 @@ public class BranchCommitGCTest {
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(1, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
@@ -416,6 +418,7 @@ public class BranchCommitGCTest {
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
         assertEquals(1, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(1, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
@@ -504,6 +507,7 @@ public class BranchCommitGCTest {
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         RevisionVector br = unmergedBranchCommit(b -> {
             b.setProperty("rootProp", "v");
@@ -546,6 +550,7 @@ public class BranchCommitGCTest {
             assertEquals(0, d.getLocalMap("a").size());
         }
         assertEquals(3, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
