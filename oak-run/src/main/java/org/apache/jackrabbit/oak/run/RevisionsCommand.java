@@ -37,6 +37,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -63,6 +64,7 @@ import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
+import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,11 +96,11 @@ public class RevisionsCommand implements Command {
             "where sub-command is one of",
             "  info     give information about the revisions state without performing",
             "           any modifications",
-            "  collect      perform garbage collection",
-            "  reset        clear all persisted metadata",
-            "  sweep        clean up uncommitted changes",
-            "  cleanup  clean up old/unused revisions",
-            "  detailedGC   perform detailed garbage collection i.e. remove unmerged branch commits, old revisions, deleted properties etc"
+            "  collect        perform garbage collection",
+            "  reset          clear all persisted metadata",
+            "  sweep          clean up uncommitted changes",
+            "  detailedGC     perform detailed garbage collection i.e. remove unmerged branch commits, old revisions, deleted properties etc",
+            "  pathCleanup    clean up old/unused revisions and unmerged branch commits on a specific path"
     );
 
     private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
@@ -112,7 +114,7 @@ public class RevisionsCommand implements Command {
         static final String CMD_COLLECT = "collect";
         static final String CMD_RESET = "reset";
         static final String CMD_SWEEP = "sweep";
-        static final String CMD_CLEANUP = "cleanup";
+        static final String CMD_CLEANUP = "pathCleanup";
         static final String CMD_DETAILED_GC = "detailedGC";
 
         final OptionSpec<?> once;
@@ -248,7 +250,7 @@ public class RevisionsCommand implements Command {
             } else if (RevisionsOptions.CMD_SWEEP.equals(subCmd)) {
                 sweep(options, closer);
             } else if (RevisionsOptions.CMD_CLEANUP.equals(subCmd)) {
-                cleanup(options, closer);
+                pathCleanup(options, closer);
             } else if (RevisionsOptions.CMD_DETAILED_GC.equals(subCmd)) {
                 collect(options, closer, true);
             } else {
@@ -494,7 +496,7 @@ public class RevisionsCommand implements Command {
         SweepHelper.sweep(store, new RevisionContextWrapper(ns, clusterId), seeker);
     }
 
-    private void cleanup(RevisionsOptions options, Closer closer) throws IOException {
+    private void pathCleanup(RevisionsOptions options, Closer closer) throws IOException {
         String path = options.getPath();
         if (path == null || path.isEmpty()) {
             System.err.println("path option is required for " + RevisionsOptions.CMD_CLEANUP + " command");
@@ -513,75 +515,33 @@ public class RevisionsCommand implements Command {
         DocumentNodeStore documentNodeStore = builder.build();
         String id = org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath(path);
         NodeDocument workingDocument = documentStore.find(NODES, id);
-        NodeDocumentRevisionCleaner revisionCleaner = new NodeDocumentRevisionCleaner(documentStore, documentNodeStore, workingDocument);
+        //NodeDocumentRevisionCleaner revisionCleaner = new NodeDocumentRevisionCleaner(documentNodeStore, workingDocument);
 
-        final UpdateOp op = new UpdateOp(requireNonNull(id), false);
-        revisionCleaner.initializeCleanupProcess(op);
-
-        SortedMap<Revision, String> allRevisions = revisionCleaner.getAllRevisions();
-        SortedMap<Integer, Integer> revisionsByClusterId = new TreeMap<>();
-        for (Revision revision : allRevisions.keySet()) {
-            Integer cid = revision.getClusterId();
-            Integer count = revisionsByClusterId.get(cid);
-            if (count == null) {
-                count = 0;
-            }
-            revisionsByClusterId.put(cid, count + 1);
-        }
-
-        System.out.println();
-
-        int count = 0;
-        System.out.println("=== Total Revisions by clusterId ===");
-        for (Map.Entry<Integer, Integer> entry : revisionsByClusterId.entrySet()) {
-            System.out.printf("  [%d] -> %d revisions%n", entry.getKey(), entry.getValue());
-            count++;
-            if (count >= REVISION_CAP) {
-                System.out.printf("  ...%n");
-                break;
-            }
-        }
-
-        for (Map.Entry<Integer, TreeSet<Revision>> entry : revisionCleaner.getCandidateRevisionsToClean().entrySet()) {
-            Integer cid = entry.getKey();
-            TreeSet<Revision> revisions = entry.getValue();
-            int blocked = revisionCleaner.getBlockedRevisionsToKeep().get(cid) != null ? revisionCleaner.getBlockedRevisionsToKeep().get(cid).size() : 0;
-            System.out.printf("ClusterId [%d] has %d Candidates and %d Blocked%n", cid, revisions.size(), blocked);
-        }
-
-        System.out.println("=== Operations to be executed ===");
-        System.out.println("Total of operations: " + op.getChanges().size());
-        System.out.println(op.getChanges());
-
-        /*TreeSet<Revision> revisionsToClean = revisionCleaner.getCandidateRevisionsToClean().get(clusterToCleanup)
-                .stream().limit(numberToCleanup).collect(Collectors.toCollection(TreeSet::new));
-        if (revisionsToClean.isEmpty()) {
-            System.out.println("No revisions to clean");
+        VersionGarbageCollector gc = bootstrapVGC(options, closer, true);
+        // Set a LoggingGC monitor that will output the detailedGC operations
+        gc.setGCMonitor(new LoggingGCMonitor(LOG));
+        // Run detailedGC on the given document
+        UpdateOp op = gc.collectGarbageOnDocument(documentNodeStore, workingDocument);
+        if (op == null) {
+            System.out.println("No detailedGC operations to be executed");
             return;
-        } else {
-            count = 0;
-            for (Revision revision : revisionsToClean) {
-                System.out.printf("  %s%n", revision.toReadableString());
-                count++;
-                if (count >= REVISION_CAP) {
-                    System.out.print("  ...%n");
-                    System.out.printf("  %s%n", revisionsToClean.last().toReadableString());
-                    break;
-                }
-            }
-        }*/
+        }
 
-        Scanner scanner = new Scanner(System.in);
-        System.out.println("The revisions will be deleted permanently. Are you sure to proceed? [y/N]");
-        String confirmation = scanner.nextLine().trim().toLowerCase();
-        if (confirmation.equals("y") || confirmation.equals("yes")) {
+        //TODO: Probably we should output some details of detailedGCStats
+        //gc.getDetailedGCStats();
+
+        if (options.isDryRun()) {
+            //TODO: Improve printing of operations
+            System.out.println("=== Operations to be executed ===");
+            System.out.println("Total of operations: " + op.getChanges().size());
+            System.out.println(op.getChanges());
+        } else {
             try {
-                count++;
-                documentStore.findAndUpdate(NODES, op);
+                System.out.println("-- Executing " + op.getChanges().size() + " operations --");
+                //documentStore.findAndUpdate(NODES, op);
             } catch (DocumentStoreException ex) {
                 System.out.println("Operation failed: " + ex);
             }
-            System.out.println("-- Executed " + count + " operations --");
         }
     }
 
