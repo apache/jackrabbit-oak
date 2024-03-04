@@ -21,7 +21,7 @@ import org.apache.jackrabbit.oak.plugins.index.ContextAwareCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
 import org.apache.jackrabbit.oak.plugins.index.IndexingContext;
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinateFactory;
 import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.ExtractedTextCache;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
@@ -30,16 +30,17 @@ import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexConstants.TYPE_ELASTICSEARCH;
 
 public class ElasticsearchIndexEditorProvider implements IndexEditorProvider {
 
-    private final ElasticsearchConnection elasticsearchConnection;
+    private final ElasticsearchIndexCoordinateFactory esIndexCoordFactory;
     private final ExtractedTextCache extractedTextCache;
 
-    public ElasticsearchIndexEditorProvider(@NotNull ElasticsearchConnection elasticsearchConnection,
+    public ElasticsearchIndexEditorProvider(@NotNull ElasticsearchIndexCoordinateFactory esIndexCoordFactory,
                                             ExtractedTextCache extractedTextCache) {
-        this.elasticsearchConnection = elasticsearchConnection;
+        this.esIndexCoordFactory = esIndexCoordFactory;
         this.extractedTextCache = extractedTextCache != null ? extractedTextCache : new ExtractedTextCache(0, 0);
     }
 
@@ -48,16 +49,15 @@ public class ElasticsearchIndexEditorProvider implements IndexEditorProvider {
                                            @NotNull NodeBuilder definition, @NotNull NodeState root,
                                            @NotNull IndexUpdateCallback callback) throws CommitFailedException {
         if (TYPE_ELASTICSEARCH.equals(type)) {
-            if (!(callback instanceof ContextAwareCallback)) {
-                throw new IllegalStateException("callback instance not of type ContextAwareCallback [" + callback + "]");
-            }
-            IndexingContext indexingContext = ((ContextAwareCallback) callback).getIndexingContext();
+            checkArgument(callback instanceof ContextAwareCallback, "callback instance not of type " +
+                    "ContextAwareCallback [%s]", callback);
+            IndexingContext indexingContext = ((ContextAwareCallback)callback).getIndexingContext();
 
             String indexPath = indexingContext.getIndexPath();
             ElasticsearchIndexDefinition indexDefinition =
                     new ElasticsearchIndexDefinition(root, definition.getNodeState(), indexPath);
 
-            ElasticsearchIndexWriterFactory writerFactory = new ElasticsearchIndexWriterFactory(elasticsearchConnection);
+            ElasticsearchIndexWriterFactory writerFactory = new ElasticsearchIndexWriterFactory(esIndexCoordFactory);
 
             ElasticsearchIndexEditorContext context = new ElasticsearchIndexEditorContext(root,
                     definition, indexDefinition,

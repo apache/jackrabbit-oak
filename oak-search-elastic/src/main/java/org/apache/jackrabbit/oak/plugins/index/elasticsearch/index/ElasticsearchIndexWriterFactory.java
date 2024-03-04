@@ -16,21 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.index;
 
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchConnection;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinateFactory;
 import org.apache.jackrabbit.oak.plugins.index.search.IndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.editor.FulltextIndexWriterFactory;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 
 public class ElasticsearchIndexWriterFactory implements FulltextIndexWriterFactory<ElasticsearchDocument> {
-    private final ElasticsearchConnection elasticsearchConnection;
+    private final ElasticsearchIndexCoordinateFactory esIndexCoordFactory;
 
-    ElasticsearchIndexWriterFactory(@NotNull ElasticsearchConnection elasticsearchConnection) {
-        this.elasticsearchConnection = elasticsearchConnection;
+    ElasticsearchIndexWriterFactory(@NotNull ElasticsearchIndexCoordinateFactory esIndexCoordFactory) {
+        this.esIndexCoordFactory = esIndexCoordFactory;
     }
 
     @Override
     public ElasticsearchIndexWriter newInstance(IndexDefinition definition, NodeBuilder definitionBuilder, boolean reindex) {
-        return new ElasticsearchIndexWriter(definition, elasticsearchConnection);
+        return new ElasticsearchIndexWriter(definition, esIndexCoordFactory);
     }
 }

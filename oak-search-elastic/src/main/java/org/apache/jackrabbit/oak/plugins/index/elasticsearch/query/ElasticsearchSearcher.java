@@ -16,11 +16,14 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elasticsearch.query;
 
-import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDescriptor;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinateFactory;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexCoordinate;
+import org.apache.jackrabbit.oak.plugins.index.elasticsearch.ElasticsearchIndexDefinition;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.jetbrains.annotations.NotNull;
@@ -28,10 +31,14 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 
 public class ElasticsearchSearcher {
-    private final ElasticsearchIndexDescriptor indexDescriptor;
+    private final ElasticsearchIndexCoordinate esIndexCoord;
+    private final RestHighLevelClient client;
 
-    ElasticsearchSearcher(@NotNull ElasticsearchIndexNode indexNode) {
-        indexDescriptor = indexNode.getIndexDescriptor();
+    ElasticsearchSearcher(@NotNull ElasticsearchIndexCoordinateFactory esIndexCoordFactory,
+                          @NotNull ElasticsearchIndexNode indexNode) {
+        ElasticsearchIndexDefinition defn = indexNode.getDefinition();
+        esIndexCoord = esIndexCoordFactory.getElasticsearchIndexCoordinate(defn);
+        client = esIndexCoord.getClient();
     }
 
     public SearchResponse search(QueryBuilder query, int batchSize) throws IOException {
@@ -39,11 +46,12 @@ public class ElasticsearchSearcher {
                 .query(query)
                 .fetchSource(false)
                 .storedField(FieldNames.PATH)
-                .size(batchSize);
+                .size(batchSize)
+                ;
 
-        SearchRequest request = new SearchRequest(indexDescriptor.getIndexName())
+        SearchRequest request = new SearchRequest(esIndexCoord.getEsIndexName())
                 .source(searchSourceBuilder);
 
-        return indexDescriptor.getClient().search(request, RequestOptions.DEFAULT);
+        return client.search(request, RequestOptions.DEFAULT);
     }
 }
