@@ -22,6 +22,8 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * A Bloom filter implementation.
+ * <p>
+ * Copied for the purpose of testing in oak-store-document; see OAK-10674.
  */
 public class BloomFilter {
 

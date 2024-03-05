@@ -20,6 +20,8 @@ package org.apache.jackrabbit.oak.plugins.document.cache.tmp;
 
 /**
  * A hash function utility class.
+ * <p>
+ * Copied for the purpose of testing in oak-store-document; see OAK-10674.
  */
 public class Hash {
 
