@@ -53,7 +53,7 @@ import org.junit.runners.Parameterized;
 
 import com.google.common.collect.ImmutableSet;
 
-import jersey.repackaged.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 
 /**
  * Tests indexing and queries when using the composite node store.
