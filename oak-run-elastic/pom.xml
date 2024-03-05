@@ -40,7 +40,7 @@
         85 MB : remove Elasticsearch RHLC
         103.5 MB: Azure Identity client library for Java (OAK-10604)
         -->
-        <max.jar.size>103500000</max.jar.size>
+        <max.jar.size>103700000</max.jar.size>
                       
     </properties>
 

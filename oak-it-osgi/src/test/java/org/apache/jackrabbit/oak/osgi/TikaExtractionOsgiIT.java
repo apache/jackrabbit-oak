@@ -16,41 +16,58 @@
  */
 package org.apache.jackrabbit.oak.osgi;
 
+import org.apache.sling.testing.paxexam.SlingOptions;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.parser.AutoDetectParser;
 import org.apache.tika.parser.Parser;
 import org.apache.tika.sax.WriteOutContentHandler;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
 import org.ops4j.pax.exam.Configuration;
 import org.ops4j.pax.exam.CoreOptions;
 import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.options.DefaultCompositeOption;
+import org.ops4j.pax.exam.options.SystemPropertyOption;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerClass;
+
 import org.osgi.framework.Bundle;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.Version;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import org.xml.sax.ContentHandler;
 
-import javax.inject.Inject;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
+
 import static java.util.Arrays.stream;
-import static org.junit.Assert.*;
-import static org.ops4j.pax.exam.CoreOptions.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+
+import static org.ops4j.pax.exam.CoreOptions.bundle;
+import static org.ops4j.pax.exam.CoreOptions.composite;
+import static org.ops4j.pax.exam.CoreOptions.frameworkProperty;
+import static org.ops4j.pax.exam.CoreOptions.junitBundles;
+import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
+import static org.ops4j.pax.exam.CoreOptions.systemProperties;
+import static org.ops4j.pax.exam.CoreOptions.wrappedBundle;
+
+import static org.apache.jackrabbit.oak.osgi.OSGiIT.getConfigDir;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerClass.class)
@@ -74,38 +91,30 @@ public class TikaExtractionOsgiIT {
     public Option[] configuration() throws IOException {
         return CoreOptions.options(
                 junitBundles(),
-                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "2.2.3" ),
-                frameworkProperty("repository.home").value("target"),
+                mavenBundle("org.apache.felix", "org.apache.felix.scr", "2.1.28"),
+                // transitive deps of Felix SCR 2.1.x
+                mavenBundle("org.osgi", "org.osgi.util.promise", "1.1.1"),
+                mavenBundle("org.osgi", "org.osgi.util.function", "1.1.0"),
+                mavenBundle("org.apache.felix", "org.apache.felix.jaas", "1.0.2"),
+                mavenBundle("org.osgi", "org.osgi.dto", "1.0.0"),
+                // require at least ConfigAdmin 1.6 supported by felix.configadmin 1.9.0+
+                mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.9.20" ),
+                mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
+                mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
+                mavenBundle("org.apache.logging.log4j", "log4j-api", "2.23.0"),
+                mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
+                SlingOptions.spyfly(),
                 setupTikaAndPoi(),
-                jpmsOptions()
+                frameworkProperty("repository.home").value("target"),
+                systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
+                OSGiIT.jpmsOptions()
                 // to debug a test, un-comment this and "run" the test which would block due to suspend="y"
                 // then run debugger on a remote app with specified port
 //                , vmOption( "-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005" )
         );
     }
 
-    private Option jpmsOptions(){
-        DefaultCompositeOption composite = new DefaultCompositeOption();
-        if (Version.parseVersion(System.getProperty("java.specification.version")).getMajor() > 1){
-            if (java.nio.file.Files.exists(java.nio.file.FileSystems.getFileSystem(URI.create("jrt:/")).getPath("modules", "java.se.ee"))){
-                composite.add(vmOption("--add-modules=java.se.ee"));
-            }
-            composite.add(vmOption("--add-opens=java.base/jdk.internal.loader=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.lang=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.lang.invoke=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.io=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.net=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.nio=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.util=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.util.jar=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.util.regex=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/java.util.zip=ALL-UNNAMED"));
-            composite.add(vmOption("--add-opens=java.base/sun.nio.ch=ALL-UNNAMED"));
-        }
-        return composite;
-    }
-
-    private Option setupTikaAndPoi() throws IOException {
+    private static Option setupTikaAndPoi() throws IOException {
         Map<String, String> versions = setupVersions();
         return composite(
                 composite(
@@ -127,22 +136,8 @@ public class TikaExtractionOsgiIT {
                         , mavenBundle("org.apache.commons", "commons-math3", versions.get(MATH3_VERSION))
                         // poi dependency end
                 )
-                , jarBundles()
+                , OSGiIT.jarBundles()
         );
-    }
-
-    private Option jarBundles() throws MalformedURLException {
-        String[] jarNames = new String[]{"commons-io.jar", "commons-codec.jar"};
-        File jarDir = new File("target", "test-bundles");
-
-        DefaultCompositeOption composite = new DefaultCompositeOption();
-
-        List<File> jarFiles = stream(jarNames).map(jarName -> new File(jarDir, jarName)).collect(Collectors.toList());
-        for (File jar : jarFiles) {
-            composite.add(bundle(jar.toURI().toURL().toString()));
-        }
-
-        return composite;
     }
 
     private static Map<String, String> setupVersions() throws IOException {
