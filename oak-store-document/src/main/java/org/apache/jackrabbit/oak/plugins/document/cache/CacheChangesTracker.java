@@ -16,13 +16,15 @@
  */
 package org.apache.jackrabbit.oak.plugins.document.cache;
 
-import org.apache.jackrabbit.oak.plugins.document.cache.tmp.BloomFilter;
+import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.hash.BloomFilter;
+import org.apache.jackrabbit.guava.common.hash.Funnel;
+import org.apache.jackrabbit.guava.common.hash.PrimitiveSink;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.util.List;
-import java.util.function.Predicate;
 
 public class CacheChangesTracker implements Closeable {
 
@@ -46,13 +48,13 @@ public class CacheChangesTracker implements Closeable {
     }
 
     public void invalidateDocument(String key) {
-        if (keyFilter.test(key)) {
+        if (keyFilter.apply(key)) {
             lazyBloomFilter.put(key);
         }
     }
 
     public boolean mightBeenAffected(String key) {
-        return keyFilter.test(key) && lazyBloomFilter.mightContain(key);
+        return keyFilter.apply(key) && lazyBloomFilter.mightContain(key);
     }
 
     @Override
@@ -63,7 +65,7 @@ public class CacheChangesTracker implements Closeable {
             if (lazyBloomFilter.filter == null) {
                 LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
             } else {
-                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, "TBD");
+                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, lazyBloomFilter.filter.expectedFpp());
             }
         }
     }
@@ -74,14 +76,14 @@ public class CacheChangesTracker implements Closeable {
 
         private final int entries;
 
-        private volatile BloomFilter filter;
+        private volatile BloomFilter<String> filter;
 
         public LazyBloomFilter(int entries) {
             this.entries = entries;
         }
 
         public synchronized void put(String entry) {
-            getFilter().add(entry);
+            getFilter().put(entry);
         }
 
         public boolean mightContain(String entry) {
@@ -89,14 +91,21 @@ public class CacheChangesTracker implements Closeable {
                 return false;
             } else {
                 synchronized (this) {
-                    return filter.mayContain(entry);
+                    return filter.mightContain(entry);
                 }
             }
         }
 
-        private BloomFilter getFilter() {
+        private BloomFilter<String> getFilter() {
             if (filter == null) {
-                filter = BloomFilter.construct(entries, FPP);
+                filter = BloomFilter.create(new Funnel<String>() {
+                    private static final long serialVersionUID = -7114267990225941161L;
+
+                    @Override
+                    public void funnel(String from, PrimitiveSink into) {
+                        into.putUnencodedChars(from);
+                    }
+                }, entries, FPP);
             }
             return filter;
         }
