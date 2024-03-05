@@ -36,6 +36,7 @@ import javax.jcr.RepositoryException;
 
 import org.apache.jackrabbit.oak.plugins.document.spi.lease.LeaseFailureHandler;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.sling.testing.paxexam.SlingOptions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ops4j.pax.exam.Configuration;
@@ -71,13 +72,16 @@ public class OSGiIT {
                 mavenBundle( "org.apache.felix", "org.apache.felix.configadmin", "1.9.20" ),
                 mavenBundle( "org.apache.felix", "org.apache.felix.fileinstall", "3.2.6" ),
                 mavenBundle( "org.ops4j.pax.logging", "pax-logging-api", "1.7.2" ),
+                mavenBundle("jakarta.servlet", "jakarta.servlet-api", "5.0.0"),
+                // required for slf4j 2.0.x
+                SlingOptions.spyfly(),
                 frameworkProperty("repository.home").value("target"),
                 systemProperties(new SystemPropertyOption("felix.fileinstall.dir").value(getConfigDir())),
                 jarBundles(),
                 jpmsOptions());
     }
 
-    private Option jpmsOptions(){
+    static Option jpmsOptions(){
         DefaultCompositeOption composite = new DefaultCompositeOption();
         if (Version.parseVersion(System.getProperty("java.specification.version")).getMajor() > 1){
             if (java.nio.file.Files.exists(java.nio.file.FileSystems.getFileSystem(URI.create("jrt:/")).getPath("modules", "java.se.ee"))){
@@ -98,11 +102,11 @@ public class OSGiIT {
         return composite;
     }
 
-    private String getConfigDir(){
+    static String getConfigDir(){
         return new File(new File("src", "test"), "config").getAbsolutePath();
     }
 
-    private Option jarBundles() throws MalformedURLException {
+    static Option jarBundles() throws MalformedURLException {
         DefaultCompositeOption composite = new DefaultCompositeOption();
         for (File bundle : new File("target", "test-bundles").listFiles()) {
             if (bundle.getName().endsWith(".jar") && bundle.isFile()) {
