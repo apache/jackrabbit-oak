@@ -185,8 +185,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // This is done because excluding also the top level path would add extra complexity to the filter and
         // would not have any measurable impact on performance because it only downloads a few extra documents, one
         // for each excluded subtree. The transform stage will anyway filter out these paths.
-        toFilterPatterns(mongoFilterPaths.excluded, true).
-                forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
+        List<Pattern> filterPatterns = toFilterPatterns(mongoFilterPaths.excluded, true);
+        filterPatterns.forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
         var customRegexExcludePattern = customExcludedPatterns(customExcludeEntriesRegex);
         // TODO: find a way to negate the custom regex pattern
@@ -216,16 +216,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             if (!path.endsWith("/")) {
                 path = path + "/";
             }
-            String quotedPath = Pattern.quote(path);
-            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath));
-//            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath + ".*$"));
-            var regex = "^[0-9]{1,3}:" + quotedPath;
+            String regex = "^[0-9]{1,3}:" + Pattern.quote(path);
             if (negate) {
 //                https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
-                patterns.add(Pattern.compile(negateRegex(regex)));
-            } else {
-                patterns.add(Pattern.compile(regex));
+                regex = negateRegex(regex);
             }
+            patterns.add(Pattern.compile(regex));
         }
         return patterns;
     }
@@ -240,7 +236,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static String negateRegex(String regex) {
+    static String negateRegex(String regex) {
         return "^(?!.*" + regex + ").*$";
     }
 
@@ -356,7 +352,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, excludePathsString);
         if (excludePathsString.isEmpty()) {
             this.customExcludedPaths = List.of();
-        } else  if (!regexPathFiltering) {
+        } else if (!regexPathFiltering) {
             LOG.info("Ignoring custom excluded paths because regex path filtering is disabled");
             this.customExcludedPaths = List.of();
         } else {
