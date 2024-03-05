@@ -232,7 +232,9 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
                 : GCGeneration.NULL;
         w.recoverEntry(msb, lsb, data, 0, data.length, generation);
         if (SegmentId.isDataSegmentId(lsb)) {
-            Segment segment = new Segment(tracker, segmentReader, tracker.newSegmentId(msb, lsb), buffer);
+            SegmentId segmentId = tracker.newSegmentId(msb, lsb);
+            Segment segment = new Segment(tracker, segmentReader, segmentId, buffer);
+            w.addSegment(segment);
             populateTarGraph(segment, w);
             populateTarBinaryReferences(segment, w);
         }
@@ -250,7 +252,7 @@ public abstract class AbstractFileStore implements SegmentStore, Closeable {
         final UUID id = segment.getSegmentId().asUUID();
         segment.forEachRecord((number, type, offset) -> {
             if (type == RecordType.BLOB_ID) {
-                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number));
+                w.recoverBinaryReference(generation, id, SegmentBlob.readBlobId(segment, number, w.getRecoveredSegments()));
             }
         });
     }

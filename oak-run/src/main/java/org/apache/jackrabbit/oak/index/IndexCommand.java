@@ -183,6 +183,8 @@ public class IndexCommand implements Command {
         dumpIndexContents(indexOpts, extendedIndexHelper);
         reindexOperation(indexOpts, extendedIndexHelper);
         importIndexOperation(indexOpts, extendedIndexHelper);
+
+        log.info("[INDEXING_REPORT:INDEX_UPLOAD]\n{}" , extendedIndexHelper.getIndexReporter().generateReport());
     }
 
     private ExtendedIndexHelper createIndexHelper(NodeStoreFixture fixture,

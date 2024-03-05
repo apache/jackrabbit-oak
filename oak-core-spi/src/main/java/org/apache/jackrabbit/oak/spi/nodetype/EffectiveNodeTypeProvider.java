@@ -19,6 +19,7 @@ package org.apache.jackrabbit.oak.spi.nodetype;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Supplier;
 
 import javax.jcr.Node;
 import javax.jcr.RepositoryException;
@@ -83,8 +84,26 @@ public interface EffectiveNodeTypeProvider {
      * refer to an existing node type.
      * @throws RepositoryException If the given node type name is invalid or if
      * some other error occurs.
+     * @deprecated use {@link #isNodeType(String, Supplier, String)} instead
      */
-    boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
+    default boolean isNodeType(@NotNull String primaryTypeName, @NotNull Iterable<String> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException {
+        return isNodeType(primaryTypeName, () -> mixinTypes, nodeTypeName);
+    }
+
+    /**
+     * Returns {@code true} if {@code typeName} is of the specified primary node
+     * type or mixin type, or a subtype thereof. Returns {@code false} otherwise.
+     *
+     * @param primaryTypeName  the internal oak name of the node to test
+     * @param mixinTypes the internal oak names of the node to test.
+     * @param nodeTypeName The internal oak name of the node type to be tested.
+     * @return {@code true} if the specified node type is of the given node type.
+     * @throws NoSuchNodeTypeException If the specified node type name doesn't
+     * refer to an existing node type.
+     * @throws RepositoryException If the given node type name is invalid or if
+     * some other error occurs.
+     */
+    boolean isNodeType(@NotNull String primaryTypeName, @NotNull Supplier<Iterable<String>> mixinTypes, @NotNull String nodeTypeName) throws NoSuchNodeTypeException, RepositoryException;
 
     /**
      * Returns {@code true} if {@code typeName} is of the specified primary node

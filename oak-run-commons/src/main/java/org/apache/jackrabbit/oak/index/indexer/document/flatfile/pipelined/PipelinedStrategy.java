@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.index.FormattingUtils;
 import org.apache.jackrabbit.oak.plugins.index.MetricsFormatter;
+import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
@@ -146,7 +147,6 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 32;
     private static final int MAX_AUTODETECT_WORKING_MEMORY_MB = 4000;
 
-
     private static class MonitorTask<T> implements Runnable {
         private final ArrayBlockingQueue<T[]> mongoDocQueue;
         private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
@@ -215,6 +215,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private final PathElementComparator pathComparator;
     private final List<PathFilter> pathFilters;
     private final StatisticsProvider statisticsProvider;
+    private final IndexingReporter indexingReporter;
     private final int numberOfTransformThreads;
     private final int mongoDocQueueSize;
     private final int mongoDocBatchMaxSizeMB;
@@ -225,10 +226,11 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private long nodeStateEntriesExtracted;
 
     /**
-     * @param pathPredicate      Used by the transform stage to test if a node should be kept or discarded.
-     * @param pathFilters        If non-empty, the download stage will use these filters to try to create a query that downloads
-     *                           only the matching MongoDB documents.
+     * @param pathPredicate    Used by the transform stage to test if a node should be kept or discarded.
+     * @param pathFilters      If non-empty, the download stage will use these filters to try to create a query that downloads
+     *                         only the matching MongoDB documents.
      * @param statisticsProvider Used to collect statistics about the indexing process.
+     * @param indexingReporter
      */
     public PipelinedStrategy(MongoDocumentStore documentStore,
                              MongoDatabase mongoDatabase,
@@ -241,7 +243,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                              Predicate<String> pathPredicate,
                              List<PathFilter> pathFilters,
                              String checkpoint,
-                             StatisticsProvider statisticsProvider) {
+                             StatisticsProvider statisticsProvider,
+                             IndexingReporter indexingReporter) {
         super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
         this.docStore = documentStore;
         this.mongoDatabase = mongoDatabase;
@@ -251,27 +254,33 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         this.pathComparator = new PathElementComparator(preferredPathElements);
         this.pathFilters = pathFilters;
         this.statisticsProvider = statisticsProvider;
+        this.indexingReporter = indexingReporter;
         Preconditions.checkState(documentStore.isReadOnly(), "Traverser can only be used with readOnly store");
 
         int mongoDocQueueReservedMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
         Preconditions.checkArgument(mongoDocQueueReservedMemoryMB >= MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB + ": " + mongoDocQueueReservedMemoryMB + ". Must be >= " + MIN_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB);
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_QUEUE_RESERVED_MEMORY_MB, String.valueOf(mongoDocQueueReservedMemoryMB));
 
         this.mongoDocBatchMaxSizeMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB);
         Preconditions.checkArgument(mongoDocBatchMaxSizeMB > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB + ": " + mongoDocBatchMaxSizeMB + ". Must be > 0");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_SIZE_MB, String.valueOf(mongoDocBatchMaxSizeMB));
 
         this.mongoDocBatchMaxNumberOfDocuments = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS);
         Preconditions.checkArgument(mongoDocBatchMaxNumberOfDocuments > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS + ": " + mongoDocBatchMaxNumberOfDocuments + ". Must be > 0");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_DOC_BATCH_MAX_NUMBER_OF_DOCUMENTS, String.valueOf(mongoDocBatchMaxNumberOfDocuments));
 
         this.numberOfTransformThreads = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, DEFAULT_OAK_INDEXER_PIPELINED_TRANSFORM_THREADS);
         Preconditions.checkArgument(numberOfTransformThreads > 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_TRANSFORM_THREADS + ": " + numberOfTransformThreads + ". Must be > 0");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_TRANSFORM_THREADS, String.valueOf(numberOfTransformThreads));
 
         int sortBufferMemoryPercentage = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE, DEFAULT_OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE);
         Preconditions.checkArgument(sortBufferMemoryPercentage > 0 && sortBufferMemoryPercentage <= 100,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE + ": " + numberOfTransformThreads + ". Must be between 1 and 100");
+        this.indexingReporter.addConfig(OAK_INDEXER_PIPELINED_SORT_BUFFER_MEMORY_PERCENTAGE, String.valueOf(sortBufferMemoryPercentage));
 
         // mongo-dump  <-> transform threads
         Preconditions.checkArgument(mongoDocQueueReservedMemoryMB >= 8 * mongoDocBatchMaxSizeMB,
@@ -328,6 +337,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         int workingMemoryMB = ConfigHelper.getSystemPropertyAsInt(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, DEFAULT_OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB);
         Preconditions.checkArgument(workingMemoryMB >= 0,
                 "Invalid value for property " + OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB + ": " + workingMemoryMB + ". Must be >= 0");
+        indexingReporter.addConfig(OAK_INDEXER_PIPELINED_WORKING_MEMORY_MB, workingMemoryMB);
         if (workingMemoryMB == 0) {
             return autodetectWorkingMemoryMB();
         } else {
@@ -409,7 +419,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     mongoDocBatchMaxNumberOfDocuments,
                     mongoDocQueue,
                     pathFilters,
-                    statisticsProvider
+                    statisticsProvider,
+                    indexingReporter
             ));
 
             for (int i = 0; i < numberOfTransformThreads; i++) {
@@ -434,14 +445,17 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     emptyBatchesQueue,
                     nonEmptyBatchesQueue,
                     sortedFilesQueue,
-                    statisticsProvider
+                    statisticsProvider,
+                    indexingReporter
             ));
 
             PipelinedMergeSortTask mergeSortTask = new PipelinedMergeSortTask(
                     this.getStoreDir().toPath(),
                     pathComparator,
                     this.getAlgorithm(),
-                    sortedFilesQueue, statisticsProvider);
+                    sortedFilesQueue,
+                    statisticsProvider,
+                    indexingReporter);
 
             ecs.submit(mergeSortTask);
 
@@ -475,7 +489,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                                 monitorFuture.cancel(false);
                                 // Terminate the sort thread.
                                 nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
-                                transformStageStatistics.publishStatistics(statisticsProvider);
+                                transformStageStatistics.publishStatistics(statisticsProvider, indexingReporter);
                             }
 
                         } else if (result instanceof PipelinedSortBatchTask.Result) {
@@ -520,11 +534,15 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         throw new RuntimeException(ex);
                     }
                 }
+                var elapsedSeconds = start.elapsed(TimeUnit.SECONDS);
                 LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
-                        .add("duration", FormattingUtils.formatToSeconds(start))
-                        .add("durationSeconds", start.elapsed(TimeUnit.SECONDS))
+                        .add("duration", FormattingUtils.formatToSeconds(elapsedSeconds))
+                        .add("durationSeconds", elapsedSeconds)
                         .add("nodeStateEntriesExtracted", nodeStateEntriesExtracted)
                         .build());
+                indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
+
+                LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             } finally {

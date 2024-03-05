@@ -33,6 +33,7 @@ import org.apache.jackrabbit.oak.segment.spi.monitor.RemoteStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileReader;
 import org.apache.jackrabbit.oak.segment.spi.persistence.JournalFileWriter;
+import org.apache.jackrabbit.oak.segment.spi.persistence.RepositoryLock;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveEntry;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveManager;
 import org.apache.jackrabbit.oak.segment.spi.persistence.SegmentArchiveReader;
@@ -88,10 +89,14 @@ public class SegmentStoreMigrator implements Closeable  {
     }
 
     public void migrate() throws IOException, ExecutionException, InterruptedException {
+        RepositoryLock repositoryLock = target.lockRepository();
+
         RETRIER.execute(this::migrateJournal);
         RETRIER.execute(this::migrateGCJournal);
         RETRIER.execute(this::migrateManifest);
         migrateArchives();
+
+        repositoryLock.unlock();
     }
 
     private void migrateJournal() throws IOException {

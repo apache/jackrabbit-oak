@@ -456,13 +456,6 @@ public class ElasticRequestHandler {
         return PhraseSuggester.of(ps -> ps
                 .field(FieldNames.SPELLCHECK)
                 .size(10)
-                // The Elasticsearch Java client fails parsing a response to suggest queries if the highlight is not set.
-                // Caused by: co.elastic.clients.util.MissingRequiredPropertyException: Missing required property 'PhraseSuggestOption.highlighted'
-                //	at co.elastic.clients.util.ApiTypeHelper.requireNonNull(ApiTypeHelper.java:76)
-                //	at co.elastic.clients.elasticsearch.core.search.PhraseSuggestOption.<init>(PhraseSuggestOption.java:64)
-                // Happens with Elasticsearch server 8.4.2 and client 7.17.6
-                // https://github.com/elastic/elasticsearch-java/issues/404
-                .highlight(f -> f.preTag("").postTag(""))
                 .directGenerator(d -> d.field(FieldNames.SPELLCHECK).suggestMode(SuggestMode.Missing).size(10))
                 .collate(c -> c.query(q -> q.source(queryString.toString())))
         );
@@ -550,14 +543,27 @@ public class ElasticRequestHandler {
             }
 
             private boolean visitTerm(String propertyName, String text, String boost, boolean not) {
-                // base query
-                boolean dbEnabled = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty();
-                QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
-                if (boost != null) {
-                    qsqBuilder.boost(Float.valueOf(boost));
+                BoolQuery.Builder bqBuilder = new BoolQuery.Builder();
+                if (propertyName != null && FulltextIndex.isNodePath(propertyName) && !pr.isPathTransformed()) {
+                    //Get rid of /* as aggregated fulltext field name is the
+                    //node relative path
+                    String p = PathUtils.getParentPath(propertyName);
+                    bqBuilder.must(m -> m.nested(nf ->
+                            nf.path(ElasticIndexDefinition.DYNAMIC_PROPERTIES)
+                                    .query(Query.of(q -> q.term(t -> t.field(ElasticIndexDefinition.DYNAMIC_PROPERTIES + ".name").value(p))))
+                    ));
+                    QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, ElasticIndexDefinition.DYNAMIC_PROPERTIES + ".value", pr, false);
+                    bqBuilder.must(m -> m.nested(nf -> nf.path(ElasticIndexDefinition.DYNAMIC_PROPERTIES).query(Query.of(q -> q.queryString(qsqBuilder.build())))));
+                } else {
+                    boolean dbEnabled = !elasticIndexDefinition.getDynamicBoostProperties().isEmpty();
+                    QueryStringQuery.Builder qsqBuilder = fullTextQuery(text, getElasticFieldName(propertyName), pr, dbEnabled);
+                    bqBuilder.must(m -> m.queryString(qsqBuilder.build()));
                 }
-                BoolQuery.Builder bqBuilder = new BoolQuery.Builder()
-                        .must(m -> m.queryString(qsqBuilder.build()));
+
+                if (boost != null) {
+                    bqBuilder.boost(Float.valueOf(boost));
+                }
+
                 Stream<NestedQuery> dynamicScoreQueries = dynamicScoreQueries(text);
                 dynamicScoreQueries.forEach(dsq -> bqBuilder.should(s -> s.nested(dsq)));
 
@@ -569,8 +575,8 @@ public class ElasticRequestHandler {
                 return true;
             }
         });
-        return Query.of(q->q
-                .bool(result.get()));
+        
+        return Query.of(q -> q.bool(result.get()));
     }
 
     private Stream<NestedQuery> dynamicScoreQueries(String text) {
@@ -592,7 +598,7 @@ public class ElasticRequestHandler {
 
         Filter filter = plan.getFilter();
         if (!filter.matchesAllTypes()) {
-            Optional<Query> nodeTypeConstraints = nodeTypeConstraints(planResult.indexingRule, filter);
+            Optional<Query> nodeTypeConstraints = nodeTypeConstraints(planResult.indexingRule, filter, elasticIndexDefinition);
             nodeTypeConstraints.ifPresent(queries::add);
         }
 
@@ -735,14 +741,14 @@ public class ElasticRequestHandler {
         return ":fulltext";
     }
 
-    private static Optional<Query> nodeTypeConstraints(IndexDefinition.IndexingRule defn, Filter filter) {
+    private static Optional<Query> nodeTypeConstraints(IndexDefinition.IndexingRule defn, Filter filter, ElasticIndexDefinition definition) {
         List<Query> queries = new ArrayList<>();
         PropertyDefinition primaryType = defn.getConfig(JCR_PRIMARYTYPE);
         // TODO OAK-2198 Add proper nodeType query support
 
         if (primaryType != null && primaryType.propertyIndex) {
             for (String type : filter.getPrimaryTypes()) {
-                queries.add(TermQuery.of(t -> t.field(JCR_PRIMARYTYPE).value(FieldValue.of(type)))._toQuery());
+                queries.add(TermQuery.of(t -> t.field(definition.getElasticKeyword(JCR_PRIMARYTYPE)).value(FieldValue.of(type)))._toQuery());
             }
         }
 
@@ -811,7 +817,7 @@ public class ElasticRequestHandler {
         LOG.debug("fullTextQuery for text: '{}', fieldName: '{}'", text, fieldName);
         QueryStringQuery.Builder qsqBuilder = new QueryStringQuery.Builder()
                 .query(FulltextIndex.rewriteQueryText(text))
-                .defaultOperator(co.elastic.clients.elasticsearch._types.query_dsl.Operator.And)
+                .defaultOperator(Operator.And)
                 .type(TextQueryType.CrossFields)
                 .tieBreaker(0.5d);
         if (FieldNames.FULLTEXT.equals(fieldName)) {

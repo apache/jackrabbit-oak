@@ -14,15 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.jackrabbit.oak.plugins.index.lucene;
+package org.apache.jackrabbit.oak.plugins.index.elastic;
 
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.InitialContent;
 import org.apache.jackrabbit.oak.Oak;
 import org.apache.jackrabbit.oak.api.ContentRepository;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.plugins.index.IndexAggregation2CommonTest;
-import org.apache.jackrabbit.oak.plugins.index.LuceneIndexOptions;
 import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.name.NamespaceEditorProvider;
 import org.apache.jackrabbit.oak.plugins.nodetype.TypeEditorProvider;
@@ -30,34 +28,36 @@ import org.apache.jackrabbit.oak.plugins.nodetype.write.NodeTypeRegistry;
 import org.apache.jackrabbit.oak.plugins.tree.factories.RootFactory;
 import org.apache.jackrabbit.oak.spi.commit.CompositeEditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.EditorHook;
-import org.apache.jackrabbit.oak.spi.commit.Observer;
-import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
-import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.ApplyDiff;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.jetbrains.annotations.NotNull;
-import org.junit.After;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.ClassRule;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Collections;
-import java.util.List;
 
-import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
-import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.fail;
 
-public class LuceneIndexAggregation2CommonTest extends IndexAggregation2CommonTest {
-    private static final Logger LOG = LoggerFactory.getLogger(LuceneIndexAggregation2CommonTest.class);
+public class ElasticIndexAggregation2Test extends IndexAggregation2CommonTest {
+
+    @ClassRule
+    public static final ElasticConnectionRule elasticRule = new ElasticConnectionRule(
+            ElasticTestUtils.ELASTIC_CONNECTION_STRING);
+
+
+    private final ElasticTestRepositoryBuilder builder;
+
+    public ElasticIndexAggregation2Test() {
+        this.indexOptions = new ElasticIndexOptions();
+        this.builder = new ElasticTestRepositoryBuilder(elasticRule);
+        this.repositoryOptionsUtil = builder.build();
+    }
 
     @Override
     protected ContentRepository createRepository() {
-        indexOptions = new LuceneIndexOptions();
-        LuceneIndexProvider provider = new LuceneIndexProvider();
+        indexOptions = new ElasticIndexOptions();
 
         return new Oak()
                 .with(new InitialContent() {
@@ -69,8 +69,7 @@ public class LuceneIndexAggregation2CommonTest extends IndexAggregation2CommonTe
                         // registering additional node types for wider testing
                         InputStream stream = null;
                         try {
-                            stream = LuceneIndexAggregation2CommonTest.class
-                                    .getResourceAsStream("test_nodetypes.cnd");
+                            stream = Thread.currentThread().getContextClassLoader().getResource("test_nodetypes.cnd").openStream();
                             NodeState base = builder.getNodeState();
                             NodeStore store = new MemoryNodeStore(base);
 
@@ -99,26 +98,13 @@ public class LuceneIndexAggregation2CommonTest extends IndexAggregation2CommonTe
                     }
 
                 })
-                .with(new OpenSecurityProvider())
-                .with(((QueryIndexProvider) provider.with(getNodeAggregator())))
-                .with((Observer) provider).with(new LuceneIndexEditorProvider())
+                .with(builder.getSecurityProvider())
+                .with(builder.indexTracker)
+                .with(builder.getEditorProvider())
+                .with(builder.getIndexProvider())
+                .with(builder.getIndexEditorProvider())
+                .with(builder.getQueryIndexProvider())
+                .with(builder.getQueryEngineSettings())
                 .createContentRepository();
     }
-
-    /**
-     * convenience method for printing on logs the currently registered node types.
-     *
-     * @param builder
-     */
-    private static void printNodeTypes(NodeBuilder builder) {
-        if (LOG.isDebugEnabled()) {
-            NodeBuilder namespace = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
-            List<String> nodes = Lists.newArrayList(namespace.getChildNodeNames());
-            Collections.sort(nodes);
-            for (String node : nodes) {
-                LOG.debug(node);
-            }
-        }
-    }
-
 }

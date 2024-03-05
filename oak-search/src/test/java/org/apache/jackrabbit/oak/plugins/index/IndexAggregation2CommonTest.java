@@ -16,8 +16,6 @@
  */
 package org.apache.jackrabbit.oak.plugins.index;
 
-import org.apache.jackrabbit.guava.common.base.Strings;
-import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyValue;
 import org.apache.jackrabbit.oak.api.Result;
@@ -29,20 +27,19 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.tree.TreeUtil;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
 import org.apache.jackrabbit.oak.spi.query.QueryIndex;
+import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.StreamSupport;
 
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
-import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
-import static org.apache.jackrabbit.guava.common.collect.ImmutableList.of;
-import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.JcrConstants.JCR_SYSTEM;
 import static org.apache.jackrabbit.JcrConstants.JCR_CONTENT;
 import static org.apache.jackrabbit.JcrConstants.JCR_PRIMARYTYPE;
 import static org.apache.jackrabbit.JcrConstants.NT_FILE;
@@ -51,12 +48,14 @@ import static org.apache.jackrabbit.oak.api.QueryEngine.NO_BINDINGS;
 import static org.apache.jackrabbit.oak.api.Type.NAME;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
+import static org.apache.jackrabbit.oak.spi.nodetype.NodeTypeConstants.JCR_NODE_TYPES;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
-    private static final Logger LOG = LoggerFactory.getLogger(IndexAggregation2CommonTest.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(IndexAggregation2CommonTest.class);
 
     private static final String NT_TEST_PAGE = "test:Page";
     private static final String NT_TEST_PAGECONTENT = "test:PageContent";
@@ -66,7 +65,6 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
     protected IndexOptions indexOptions;
     protected TestRepository repositoryOptionsUtil;
 
-
     @Override
     protected void createTestIndexNode() throws Exception {
         Tree index = root.getTree("/");
@@ -74,15 +72,15 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         TestUtil.useV2(indexDefn);
         //Aggregates
         TestUtil.newNodeAggregator(indexDefn)
-                .newRuleWithName(NT_FILE, newArrayList("jcr:content"))
-                .newRuleWithName(NT_TEST_PAGE, newArrayList("jcr:content"))
-                .newRuleWithName(NT_TEST_PAGECONTENT, newArrayList("*", "*/*", "*/*/*", "*/*/*/*"))
-                .newRuleWithName(NT_TEST_ASSET, newArrayList("jcr:content"))
+                .newRuleWithName(NT_FILE, List.of("jcr:content"))
+                .newRuleWithName(NT_TEST_PAGE, List.of("jcr:content"))
+                .newRuleWithName(NT_TEST_PAGECONTENT, List.of("*", "*/*", "*/*/*", "*/*/*/*"))
+                .newRuleWithName(NT_TEST_ASSET, List.of("jcr:content"))
                 .newRuleWithName(
                         NT_TEST_ASSETCONTENT,
-                        newArrayList("metadata", "renditions", "renditions/original", "comments",
+                        List.of("metadata", "renditions", "renditions/original", "comments",
                                 "renditions/original/jcr:content"))
-                .newRuleWithName("rep:User", newArrayList("profile"));
+                .newRuleWithName("rep:User", List.of("profile"));
 
         Tree originalInclude = indexDefn.getChild(FulltextIndexConstants.AGGREGATES)
                 .getChild(NT_TEST_ASSET).addChild("includeOriginal");
@@ -107,15 +105,15 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
     protected static QueryIndex.NodeAggregator getNodeAggregator() {
         return new SimpleNodeAggregator()
-                .newRuleWithName(NT_FILE, newArrayList("jcr:content"))
-                .newRuleWithName(NT_TEST_PAGE, newArrayList("jcr:content"))
-                .newRuleWithName(NT_TEST_PAGECONTENT, newArrayList("*", "*/*", "*/*/*", "*/*/*/*"))
-                .newRuleWithName(NT_TEST_ASSET, newArrayList("jcr:content"))
+                .newRuleWithName(NT_FILE, List.of("jcr:content"))
+                .newRuleWithName(NT_TEST_PAGE, List.of("jcr:content"))
+                .newRuleWithName(NT_TEST_PAGECONTENT, List.of("*", "*/*", "*/*/*", "*/*/*/*"))
+                .newRuleWithName(NT_TEST_ASSET, List.of("jcr:content"))
                 .newRuleWithName(
                         NT_TEST_ASSETCONTENT,
-                        newArrayList("metadata", "renditions", "renditions/original", "comments",
+                        List.of("metadata", "renditions", "renditions/original", "comments",
                                 "renditions/original/jcr:content"))
-                .newRuleWithName("rep:User", newArrayList("profile"));
+                .newRuleWithName("rep:User", List.of("profile"));
     }
 
     @Test
@@ -125,7 +123,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
                 "(jcr:contains(., 'mountain')) " +
                 "and (jcr:contains(jcr:content/metadata/@format, 'image'))]";
         Tree content = root.getTree("/").addChild("content");
-        List<String> expected = Lists.newArrayList();
+        List<String> expected = new ArrayList<>();
 
         /*
          * creating structure
@@ -178,7 +176,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
         root.commit();
 
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", expected));
         setTraversalEnabled(true);
     }
 
@@ -195,10 +193,10 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
                 "]";
 
         Tree content = root.getTree("/").addChild("content");
-        List<String> expected = newArrayList();
+        List<String> expected = new ArrayList<>();
 
         Tree metadata = createAssetStructure(content, "tagged");
-        metadata.setProperty("tags", of("namespace:season/summer"), STRINGS);
+        metadata.setProperty("tags", List.of("namespace:season/summer"), STRINGS);
         metadata.setProperty("format", "image/jpeg", STRING);
         expected.add("/content/tagged");
 
@@ -213,13 +211,13 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
         // the following is NOT expected
         metadata = createAssetStructure(content, "winter-node");
-        metadata.setProperty("tags", of("namespace:season/winter"), STRINGS);
+        metadata.setProperty("tags", List.of("namespace:season/winter"), STRINGS);
         metadata.setProperty("title", "Lorem winter ipsum", STRING);
         metadata.setProperty("format", "image/jpeg", STRING);
 
         root.commit();
 
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", expected));
         setTraversalEnabled(true);
     }
 
@@ -233,10 +231,10 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
                 "]";
 
         Tree content = root.getTree("/").addChild("content");
-        List<String> expected = newArrayList();
+        List<String> expected = new ArrayList<>();
 
         Tree metadata = createAssetStructure(content, "tagged");
-        metadata.setProperty("tags", of("namespace:season/summer"), STRINGS);
+        metadata.setProperty("tags", List.of("namespace:season/summer"), STRINGS);
         metadata.setProperty("format", "image/jpeg", STRING);
 
         Tree original = metadata.getParent().addChild("renditions").addChild("original");
@@ -247,13 +245,13 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         expected.add("/content/tagged");
         root.commit();
 
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", expected));
 
-        //Update the reaggregated node and with that parent should be get updated
+        //Update the re-aggregated node and with that parent should be get updated
         Tree originalContent = TreeUtil.getTree(root.getTree("/"), "/content/tagged/jcr:content/renditions/original/jcr:content");
         originalContent.setProperty(PropertyStates.createProperty("jcr:data", "kiwi jumps".getBytes()));
         root.commit();
-        assertQuery(statement, "xpath", Collections.<String>emptyList());
+        assertEventually(() -> assertQuery(statement, "xpath", List.of()));
         setTraversalEnabled(true);
     }
 
@@ -263,8 +261,6 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         final String statement = "//element(*, test:Asset)[ " +
                 "jcr:contains(firstLevelChild, 'summer') ]";
 
-        List<String> expected = newArrayList();
-
         Tree content = root.getTree("/").addChild("content");
         Tree page = content.addChild("pages");
         page.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
@@ -272,8 +268,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         child.setProperty("tag", "summer is here", STRING);
         root.commit();
 
-        expected.add("/content/pages");
-        assertQuery(statement, "xpath", expected);
+        assertEventually(() -> assertQuery(statement, "xpath", List.of("/content/pages")));
     }
 
     @Ignore("OAK-6597")
@@ -304,7 +299,7 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
 
             PropertyValue excerptValue = firstHit.getValue("rep:excerpt");
             assertNotNull(excerptValue);
-            assertFalse("Excerpt for '" + term + "' is not supposed to be empty.", "".equals(excerptValue.getValue(STRING)));
+            assertNotEquals("Excerpt for '" + term + "' is not supposed to be empty.", "", excerptValue.getValue(STRING));
         }
     }
 
@@ -337,8 +332,9 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
      */
     private static Tree createAssetStructure(@NotNull final Tree parent,
                                              @NotNull final String nodeName) {
-        checkNotNull(parent);
-        checkArgument(!Strings.isNullOrEmpty(nodeName), "nodeName cannot be null or empty");
+        if (nodeName.isEmpty()) {
+            throw new IllegalArgumentException("nodeName cannot be null or empty");
+        }
 
         Tree node = parent.addChild(nodeName);
         node.setProperty(JCR_PRIMARYTYPE, NT_TEST_ASSET, NAME);
@@ -375,8 +371,9 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
      */
     private static Tree createPageStructure(@NotNull final Tree parent,
                                             @NotNull final String nodeName) {
-        checkNotNull(parent);
-        checkArgument(!Strings.isNullOrEmpty(nodeName), "nodeName cannot be null or empty");
+        if (nodeName.isEmpty()) {
+            throw new IllegalArgumentException("nodeName cannot be null or empty");
+        }
 
         Tree node = parent.addChild(nodeName);
         node.setProperty(JCR_PRIMARYTYPE, NT_TEST_PAGE, NAME);
@@ -384,5 +381,22 @@ public abstract class IndexAggregation2CommonTest extends AbstractQueryTest {
         node.setProperty(JCR_PRIMARYTYPE, NT_TEST_PAGECONTENT, NAME);
 
         return node;
+    }
+
+    /**
+     * convenience method for printing on logs the currently registered node types.
+     */
+    protected static void printNodeTypes(NodeBuilder builder) {
+        if (LOG.isDebugEnabled()) {
+            NodeBuilder namespace = builder.child(JCR_SYSTEM).child(JCR_NODE_TYPES);
+            StreamSupport.stream(namespace.getChildNodeNames().spliterator(), false)
+                    .sorted()
+                    .forEach(LOG::debug);
+        }
+    }
+
+    protected void assertEventually(Runnable r) {
+        TestUtil.assertEventually(r,
+                ((repositoryOptionsUtil.isAsync() ? repositoryOptionsUtil.defaultAsyncIndexingTimeInSeconds : 0) + 3000) * 5);
     }
 }

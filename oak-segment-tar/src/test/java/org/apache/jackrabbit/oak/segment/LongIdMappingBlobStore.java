@@ -15,20 +15,17 @@
  * limitations under the License.
  */
 
-<test='http://jackrabbit.apache.org/oak-test/ns/1.0'>
+package org.apache.jackrabbit.oak.segment;
 
+import org.apache.jackrabbit.guava.common.base.Strings;
 
-[test:PageContent] > nt:unstructured
-  orderable
+public class LongIdMappingBlobStore extends IdMappingBlobStore {
 
-[test:Page] > nt:hierarchyNode
-  orderable primaryitem jcr:content
-  + jcr:content (nt:base) = nt:unstructured
-  + * (nt:base) = nt:base version
+    private static int next;
 
-[test:AssetContent] > nt:unstructured
- + metadata (nt:unstructured)
+    @Override
+    protected String generateId() {
+        return Strings.repeat("0", Segment.BLOB_ID_SMALL_LIMIT) + next++;
+    }
 
-[test:Asset] > nt:hierarchyNode
- + jcr:content (test:AssetContent) = test:AssetContent copy primary
- + * (nt:base) = nt:base version
+}

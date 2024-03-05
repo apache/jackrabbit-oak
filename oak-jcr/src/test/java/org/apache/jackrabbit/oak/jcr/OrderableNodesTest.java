@@ -18,6 +18,7 @@ package org.apache.jackrabbit.oak.jcr;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -30,6 +31,10 @@ import javax.jcr.Session;
 
 import org.apache.jackrabbit.commons.iterator.NodeIterable;
 import org.apache.jackrabbit.oak.fixture.NodeStoreFixture;
+import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
+import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.FeatureToggle;
+import org.apache.jackrabbit.oak.spi.whiteboard.Tracker;
 import org.junit.Test;
 
 public class OrderableNodesTest extends AbstractRepositoryTest {
@@ -109,6 +114,86 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
         NodeIterator it = test.getNodes();
         assertEquals("a", it.nextNode().getName());
         assertEquals("b", it.nextNode().getName());
+    }
+
+    @Test
+    public void orderableAddManyChildrenWithSave() throws Exception {
+        int childCount = 1000;
+        StringBuilder prefix = new StringBuilder("");
+        for (int k = 0; k < 90; k++) {
+            prefix.append("0123456789");
+        }
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test", "nt:unstructured");
+        session.save();
+        for (int k = 0; k < childCount; k++) {
+            test.addNode(prefix.toString() + k, "nt:unstructured");
+        }
+    }
+
+    @Test
+    public void moveOrderableWithManyChildren() throws Exception {
+        int childCount = 1000;
+        StringBuilder prefix = new StringBuilder("");
+        for (int k = 0; k < 90; k++) {
+            prefix.append("0123456789");
+        }
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test-0", "nt:unstructured");
+        session.save();
+        for (int k = 0; k < childCount; k++) {
+            test.addNode(prefix.toString() + k, "nt:unstructured");
+            if (k % 100 == 0) {
+                session.save();
+            }
+        }
+        session.save();
+        session.move("/test-0", "/test-1");
+        session.save();
+    }
+
+    @Test
+    public void copyOrderableWithManyChildren() throws Exception {
+        int childCount = 1000;
+        StringBuilder prefix = new StringBuilder("");
+        for (int k = 0; k < 90; k++) {
+            prefix.append("0123456789");
+        }
+        Session session = getAdminSession();
+        Node test = session.getRootNode().addNode("test-0", "nt:unstructured");
+        session.save();
+        for (int k = 0; k < childCount; k++) {
+            test.addNode(prefix.toString() + k, "nt:unstructured");
+            if (k % 100 == 0) {
+                session.save();
+            }
+        }
+        session.save();
+        session.getWorkspace().copy("/test-0", "/test-1");
+        session.save();
+    }
+
+    @Test
+    public void childOrderCleanupFeatureToggleTest() throws RepositoryException {
+        Tracker<FeatureToggle> track = fixture.getWhiteboard().track(FeatureToggle.class);
+        NodeStore nodeStore = createNodeStore(fixture);
+        assertNotNull(nodeStore);
+        if (nodeStore instanceof DocumentNodeStore) {
+            DocumentNodeStore documentNodeStore = (DocumentNodeStore) nodeStore;
+            assertTrue(documentNodeStore.isChildOrderCleanupEnabled());
+            for (FeatureToggle toggle : track.getServices()) {
+                if ("FT_NOCOCLEANUP_OAK-10660".equals(toggle.getName())) {
+                    assertFalse(toggle.isEnabled());
+                    assertTrue(documentNodeStore.isChildOrderCleanupEnabled());
+                    toggle.setEnabled(true);
+                    assertTrue(toggle.isEnabled());
+                    assertFalse(documentNodeStore.isChildOrderCleanupEnabled());
+                    toggle.setEnabled(false);
+                    assertFalse(toggle.isEnabled());
+                    assertTrue(documentNodeStore.isChildOrderCleanupEnabled());
+                }
+            }
+        }
     }
 
     private void doTest(String nodeType) throws RepositoryException {

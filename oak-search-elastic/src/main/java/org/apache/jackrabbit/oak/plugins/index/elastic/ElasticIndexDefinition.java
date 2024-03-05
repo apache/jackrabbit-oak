@@ -99,6 +99,12 @@ public class ElasticIndexDefinition extends IndexDefinition {
      */
     public static final String DYNAMIC_BOOST_FULLTEXT = ":dynamic-boost-ft";
 
+    /**
+     * Dynamic properties are fields that are not explicitly defined in the index mapping and are added on the fly when a document is indexed.
+     * Examples: aggregations with relative nodes, regex properties (to be supported), etc.
+     */
+    public static final String DYNAMIC_PROPERTIES = ":dynamic-properties";
+
     public static final String SPLIT_ON_CASE_CHANGE = "splitOnCaseChange";
     public static final String SPLIT_ON_NUMERICS = "splitOnNumerics";
 

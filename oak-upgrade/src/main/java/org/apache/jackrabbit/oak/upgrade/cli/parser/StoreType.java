@@ -21,6 +21,7 @@ import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationPar
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONNECTION_STRING;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_CONTAINER_NAME;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_DIR;
+import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_SHARED_ACCESS_SIGNATURE;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.KEY_STORAGE_URI;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.isCustomAzureConnectionString;
 import static org.apache.jackrabbit.oak.segment.azure.util.AzureConfigurationParserUtils.parseAzureConfigurationFromCustomConnection;
@@ -175,6 +176,7 @@ public enum StoreType {
                 return new StoreFactory(new SegmentAzureFactory.Builder(config.get(KEY_DIR),
                         migrationOptions.getCacheSizeInMB(), direction == MigrationDirection.SRC)
                         .accountName(config.get(KEY_ACCOUNT_NAME))
+                        .sasToken(config.get(KEY_SHARED_ACCESS_SIGNATURE))
                         .uri(config.get(KEY_STORAGE_URI))
                         .build()
                 );

@@ -495,7 +495,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
     @Test
     public void testMaxProperty() {
         int min = 0;
-        int max = 1024 * 1024 * 8;
+        int max = 1024 * 1024 * 32;
         int test = 0;
         int last = 0;
 
@@ -509,20 +509,129 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
             String pval = generateString(test, true);
             UpdateOp up = new UpdateOp(id, true);
             up.set("foo", pval);
-            boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
-            if (success) {
-                // check that we really can read it
-                NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
-                assertNotNull("failed to retrieve previously stored document", findme);
-                super.ds.remove(Collection.NODES, id);
-                min = test;
-                last = test;
-            } else {
+            try {
+                boolean success = super.ds.create(Collection.NODES, Collections.singletonList(up));
+                if (success) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    super.ds.remove(Collection.NODES, id);
+                    min = test;
+                    last = test;
+                } else {
+                    max = test;
+                }
+            } catch (DocumentStoreException ex) {
+                LOG.info("create with property size "+ test + " failed for " + super.dsname, ex);
                 max = test;
             }
         }
 
-        LOG.info("max prop length for " + super.dsname + " was " + last);
+        LOG.info("max prop length (create) for " + super.dsname + " was " + last);
+    }
+
+    @Test
+    public void testMaxUpdateProperty() {
+        int min = 0;
+        int max = 1024 * 1024 * 32;
+        int test = 0;
+        int last = 0;
+
+        while (max - min >= 256) {
+            if (test == 0) {
+                test = max; // try largest first
+            } else {
+                test = (max + min) / 2;
+            }
+            String id = this.getClass().getName() + ".testMaxUpdateProperty-" + test;
+            UpdateOp up = new UpdateOp(id, true);
+            super.ds.create(Collection.NODES, Collections.singletonList(up));
+
+            String pval = generateString(test, true);
+            up.set("foo", pval);
+            try {
+                NodeDocument doc = super.ds.findAndUpdate(Collection.NODES, up);
+                if (doc != null) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    super.ds.remove(Collection.NODES, id);
+                    min = test;
+                    last = test;
+                } else {
+                    max = test;
+                }
+            }
+            catch (DocumentStoreException ex) {
+                LOG.debug("trying prop length (update) for " + super.dsname, ex);
+                max = test;
+                super.ds.remove(Collection.NODES, id);
+            }
+        }
+
+        LOG.info("max prop length (update) for " + super.dsname + " was " + last);
+    }
+
+    @Test
+    public void testMaxAddProperty() {
+
+        String id = this.getClass().getName() + ".testMaxAddProperty";
+        UpdateOp up = new UpdateOp(id, true);
+        super.ds.create(Collection.NODES, Collections.singletonList(up));
+        String exception = null;
+
+        int i = 0;
+        for (i = 0; i < 32 && exception == null; i++) {
+            String pval = generateString(1024 * 1024 + i * 10, true);
+            String pname = String.format("foo%02d", i);
+            up.set(pname, pval);
+            try {
+                NodeDocument doc = super.ds.findAndUpdate(Collection.NODES, up);
+                if (doc != null) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    assertNotNull(findme.get(pname));
+                }
+            } catch (Throwable ex) {
+                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": " + ex.getMessage(), ex);
+                exception = ex.getMessage();
+            }
+        }
+
+        super.ds.remove(Collection.NODES, id);
+        LOG.info("max number of 1MB property additions for " + super.dsname + " was " + i + " (" + exception + ")");
+    }
+
+    @Test
+    public void testMaxAddPropertyUpdate() {
+
+        String id = this.getClass().getName() + ".testMaxAddPropertyUpdate";
+        UpdateOp up = new UpdateOp(id, true);
+        super.ds.create(Collection.NODES, Collections.singletonList(up));
+        String exception = null;
+
+        int i = 0;
+        for (i = 0; i < 32 && exception == null; i++) {
+            String pval = generateString(1024 * 1024 + i * 10, true);
+            String pname = "foo";
+            up.setMapEntry(pname, new Revision(System.currentTimeMillis(), i, 0), pval);
+            try {
+                NodeDocument doc = super.ds.findAndUpdate(Collection.NODES, up);
+                if (doc != null) {
+                    // check that we really can read it
+                    NodeDocument findme = super.ds.find(Collection.NODES, id, 0);
+                    assertNotNull("failed to retrieve previously stored document", findme);
+                    assertNotNull(findme.get(pname));
+                }
+            } catch (Throwable ex) {
+                LOG.error("trying to add " + i + "th 1MB property " + super.dsname + ": " + ex.getMessage(), ex);
+                exception = ex.getMessage();
+            }
+        }
+
+        super.ds.remove(Collection.NODES, id);
+        LOG.info("max number of 1MB property updates for " + super.dsname + " was " + i + " (" + exception + ")");
     }
 
     @Test
@@ -797,6 +906,66 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         } else {
             LOG.info(super.dsname + ": create() created: " + created + ", missing: " + toCreate);
         }
+    }
+
+    // see OAK-10673
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testDeleteNonExistingMapEntry() {
+        String id = this.getClass().getName() + ".testDeleteNonExistingMapEntry-" + UUID.randomUUID();
+        String propname = ":childOrder";
+
+        UpdateOp up = new UpdateOp(id, true);
+        assertTrue(super.ds.create(Collection.NODES, Collections.singletonList(up)));
+        removeMe.add(id);
+
+        long ts = System.currentTimeMillis();
+        Revision r1 = new Revision(ts, 0, 1);
+
+        // set initial value of :childOrder
+        UpdateOp op1 = new UpdateOp(id, false);
+        op1.setMapEntry(propname, r1, "foo");
+        Document d0 = super.ds.findAndUpdate(Collection.NODES, op1);
+        assertNotNull(d0);
+        assertNull(d0.get(propname));
+
+        // set new value, remove previous one
+        Revision r2 = new Revision(ts, 2, 1);
+        UpdateOp op2 = new UpdateOp(id, false);
+        op2.removeMapEntry(propname, r1);
+        op2.setMapEntry(propname, r2, "bar");
+        Document d1 = super.ds.findAndUpdate(Collection.NODES, op2);
+
+        // check previous state, map should only contain entry for r1 -> "foo"
+        assertNotNull(d1);
+        assertNotNull(d1.get(propname));
+        Map<Revision, String> mresulting1 = (Map<Revision, String>)d1.get(propname);
+        assertEquals(propname + " + map should contain one entry", 1, mresulting1.size());
+        assertEquals("foo", mresulting1.get(r1));
+
+        // set new value, remove all previous
+        Revision r3 = new Revision(ts, 3, 1);
+        UpdateOp op3 = new UpdateOp(id, false);
+        // attempts to remove non-existing revision (r1) should not fail
+        op3.removeMapEntry(propname, r1);
+        op3.removeMapEntry(propname, r2);
+        op3.setMapEntry(propname, r3, "qux");
+        Document d2 = super.ds.findAndUpdate(Collection.NODES, op3);
+
+        // check previous state, map should only contain entry for r2 -> "bar"
+        assertNotNull(d2);
+        assertNotNull(d2.get(propname));
+        Map<Revision, String> mresulting2 = (Map<Revision, String>)d2.get(propname);
+        assertEquals(propname + " + map should contain one entry", 1, mresulting2.size());
+        assertEquals("bar", mresulting2.get(r2));
+
+        // get final state, map should only contain entry for r3 -> "qux"
+        Document d3 = ds.find(Collection.NODES, id, -1);
+        assertNotNull(d3);
+        assertNotNull(d3.get(propname));
+        Map<Revision, String> mresulting3 = (Map<Revision, String>)d3.get(propname);
+        assertEquals(propname + " + map should contain one entry", 1, mresulting3.size());
+        assertEquals("on " + super.dsname + ", got: " + mresulting3, "qux", mresulting3.get(r3));
     }
 
     @Test
