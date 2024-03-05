@@ -19,7 +19,6 @@
 
 package org.apache.jackrabbit.oak.segment;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
@@ -40,6 +39,7 @@ import static org.apache.jackrabbit.oak.segment.SegmentVersion.LATEST_VERSION;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Set;
 
@@ -220,7 +220,7 @@ public class SegmentBufferWriter implements WriteOperationHandler {
         statistics = new Statistics();
         statistics.id = segment.getSegmentId();
 
-        byte[] data = metaInfo.getBytes(UTF_8);
+        byte[] data = metaInfo.getBytes(StandardCharsets.UTF_8);
         RecordWriters.newValueWriter(data.length, data).write(this, store);
 
         dirty = false;

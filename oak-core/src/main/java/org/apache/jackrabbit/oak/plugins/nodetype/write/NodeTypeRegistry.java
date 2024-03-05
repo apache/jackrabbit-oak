@@ -22,13 +22,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 
 import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.ValueFactory;
 import javax.jcr.nodetype.NodeTypeManager;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
 import org.apache.jackrabbit.oak.api.Root;
@@ -100,7 +100,7 @@ public final class NodeTypeRegistry {
 
     private void registerNodeTypes(InputStream stream, String systemId) {
         try {
-            Reader reader = new InputStreamReader(stream, Charsets.UTF_8);
+            Reader reader = new InputStreamReader(stream, StandardCharsets.UTF_8);
             // OAK-9134: nt:frozenNode is not implementing mix:referenceable from JCR 2.0.
             // This system property allows to add it back when initializing a repository.
             // PS: To keep supporting tests in fiddling this setting, the SystemPropertySupplier

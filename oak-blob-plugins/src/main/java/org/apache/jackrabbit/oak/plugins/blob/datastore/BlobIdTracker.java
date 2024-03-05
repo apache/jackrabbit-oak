@@ -23,7 +23,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Path;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
@@ -46,7 +46,6 @@ import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Predicates.alwaysTrue;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.transform;
 import static org.apache.jackrabbit.guava.common.collect.Lists.newArrayList;
@@ -678,7 +677,7 @@ public class BlobIdTracker implements Closeable, BlobTracker {
             close();
 
             processFile = new File(rootDir, prefix + IN_PROCESS.getFileNameSuffix());
-            writer = newWriter(processFile, UTF_8);
+            writer = newWriter(processFile, StandardCharsets.UTF_8);
             LOG.info("Created new process file and writer over {} ", processFile.getAbsolutePath());
         }
 

@@ -20,9 +20,9 @@
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
@@ -48,7 +48,7 @@ public class CSVFileBinaryResourceProviderTest {
         p.printRecord(null, null, "text/plain", null, "/c");
 
         File dataFile = temporaryFolder.newFile();
-        Files.write(sb, dataFile, Charsets.UTF_8);
+        Files.write(sb, dataFile, StandardCharsets.UTF_8);
 
         CSVFileBinaryResourceProvider provider = new CSVFileBinaryResourceProvider(dataFile, new MemoryBlobStore());
 

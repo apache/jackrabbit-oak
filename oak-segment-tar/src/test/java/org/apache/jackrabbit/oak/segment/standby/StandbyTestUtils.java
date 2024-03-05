@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.segment.standby;
 
 import static org.mockito.Mockito.mock;
 
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.hash.Hashing;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -77,7 +77,7 @@ public class StandbyTestUtils {
     }
     
     public static ByteBuf createBlobChunkBuffer(byte header, long blobLength, String blobId, byte[] data, byte mask) {
-        byte[] blobIdBytes = blobId.getBytes(Charsets.UTF_8);
+        byte[] blobIdBytes = blobId.getBytes(StandardCharsets.UTF_8);
         
         ByteBuf buf = Unpooled.buffer();
         buf.writeInt(1 + 1 + 8 + 4 + blobIdBytes.length + 8 + data.length);

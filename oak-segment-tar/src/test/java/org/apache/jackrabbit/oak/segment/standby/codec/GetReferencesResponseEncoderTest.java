@@ -20,7 +20,8 @@ package org.apache.jackrabbit.oak.segment.standby.codec;
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
+import java.nio.charset.StandardCharsets;
+
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -35,7 +36,7 @@ public class GetReferencesResponseEncoderTest {
         ByteBuf buffer = (ByteBuf) channel.readOutbound();
 
         String body = "a:b,c";
-        byte[] data = body.getBytes(Charsets.UTF_8);
+        byte[] data = body.getBytes(StandardCharsets.UTF_8);
 
         ByteBuf expected = Unpooled.buffer();
         expected.writeInt(data.length + 1);

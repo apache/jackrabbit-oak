@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.run;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.junit.Assert.assertEquals;
 
 import java.io.ByteArrayInputStream;
@@ -30,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -406,10 +406,10 @@ public class DataStoreCheckTest {
 
     public static void testIncorrectParams(List<String> argList, ArrayList<String> assertMsg) throws Exception {
         ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-        System.setErr(new PrintStream(buffer, true, UTF_8.toString()));
+        System.setErr(new PrintStream(buffer, true, StandardCharsets.UTF_8));
 
         DataStoreCheckCommand.checkDataStore(argList.toArray(new String[0]));
-        String message = buffer.toString(UTF_8.toString());
+        String message = buffer.toString(StandardCharsets.UTF_8);
         log.info("Assert message: {}", assertMsg);
         log.info("Message logged in System.err: {}", message);
 

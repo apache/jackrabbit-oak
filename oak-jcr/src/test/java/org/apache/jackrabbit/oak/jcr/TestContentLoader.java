@@ -20,6 +20,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import javax.jcr.Node;
 import javax.jcr.PathNotFoundException;
@@ -33,7 +34,6 @@ import javax.jcr.nodetype.NodeType;
 import javax.jcr.retention.RetentionPolicy;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.commons.JcrUtils;
 import org.apache.jackrabbit.commons.cnd.CndImporter;
 import org.apache.jackrabbit.commons.cnd.ParseException;
@@ -77,7 +77,7 @@ public class TestContentLoader {
         InputStream stream = TestContentLoader.class.getResourceAsStream("test_nodetypes.cnd");
         try {
             CndImporter.registerNodeTypes(
-                    new InputStreamReader(stream, Charsets.UTF_8), session);
+                    new InputStreamReader(stream, StandardCharsets.UTF_8), session);
         } finally {
             stream.close();
         }

@@ -23,10 +23,10 @@ import org.apache.jackrabbit.oak.segment.spi.persistence.GCJournalFile;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static java.nio.file.Files.newBufferedWriter;
 import static java.nio.file.Files.readAllLines;
 import static java.nio.file.StandardOpenOption.APPEND;
@@ -48,7 +48,7 @@ public class LocalGCJournalFile implements GCJournalFile {
 
     @Override
     public void writeLine(String line) throws IOException {
-        try (BufferedWriter w = newBufferedWriter(file.toPath(), UTF_8, WRITE, APPEND, CREATE, DSYNC)) {
+        try (BufferedWriter w = newBufferedWriter(file.toPath(), StandardCharsets.UTF_8, WRITE, APPEND, CREATE, DSYNC)) {
             w.write(line);
             w.newLine();
         }
@@ -57,7 +57,7 @@ public class LocalGCJournalFile implements GCJournalFile {
     @Override
     public List<String> readLines() throws IOException {
         if (file.exists()) {
-            return readAllLines(file.toPath(), UTF_8);
+            return readAllLines(file.toPath(), StandardCharsets.UTF_8);
         }
         return new ArrayList<String>();
     }

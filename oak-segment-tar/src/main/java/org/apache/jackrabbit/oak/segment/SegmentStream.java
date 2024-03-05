@@ -25,9 +25,9 @@ import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.ByteStreams;
 
 import org.apache.jackrabbit.oak.commons.Buffer;
@@ -95,7 +95,7 @@ public class SegmentStream extends InputStream {
 
     public String getString() {
         if (inline != null) {
-            return inline.decode(Charsets.UTF_8).toString();
+            return inline.decode(StandardCharsets.UTF_8).toString();
         } else if (length > Integer.MAX_VALUE) {
             throw new IllegalStateException("Too long value: " + length);
         } else {
@@ -103,7 +103,7 @@ public class SegmentStream extends InputStream {
             try {
                 byte[] data = new byte[(int) length];
                 ByteStreams.readFully(stream, data);
-                return new String(data, Charsets.UTF_8);
+                return new String(data, StandardCharsets.UTF_8);
             } catch (IOException e) {
                 throw new IllegalStateException("Unexpected IOException", e);
             } finally {

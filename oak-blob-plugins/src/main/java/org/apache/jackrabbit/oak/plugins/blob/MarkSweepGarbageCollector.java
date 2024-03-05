@@ -35,6 +35,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.LineNumberReader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayDeque;
 import java.util.Collections;
@@ -50,7 +51,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.StandardSystemProperty;
@@ -519,10 +519,10 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
         long deletedSize = 0;
         int numDeletedSizeAvailable = 0;
         try {
-            removesWriter = Files.newWriter(fs.getGarbage(), Charsets.UTF_8);
+            removesWriter = Files.newWriter(fs.getGarbage(), StandardCharsets.UTF_8);
             ArrayDeque<String> removesQueue = new ArrayDeque<String>();
             iterator =
-                    FileUtils.lineIterator(fs.getGcCandidates(), Charsets.UTF_8.name());
+                    FileUtils.lineIterator(fs.getGcCandidates(), StandardCharsets.UTF_8.name());
 
             Iterator<List<String>> partitions = Iterators.partition(iterator, getBatchCount());
             while (partitions.hasNext()) {
@@ -627,7 +627,7 @@ public class MarkSweepGarbageCollector implements BlobGarbageCollector {
      * @param logPath whether to log path in the file or not
      */
     protected void iterateNodeTree(GarbageCollectorFileState fs, final boolean logPath) throws IOException {
-        final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), Charsets.UTF_8);
+        final BufferedWriter writer = Files.newWriter(fs.getMarkedRefs(), StandardCharsets.UTF_8);
         final AtomicInteger count = new AtomicInteger();
         try {
             marker.collectReferences(

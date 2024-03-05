@@ -26,6 +26,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,7 +35,6 @@ import java.util.Properties;
 
 import javax.jcr.RepositoryException;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.apache.commons.io.FilenameUtils;
@@ -310,7 +310,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
             BufferedWriter w = null;
             try {
                 w = new BufferedWriter(
-                        new OutputStreamWriter(new FileOutputStream(mappingFile, true), Charsets.UTF_8));
+                        new OutputStreamWriter(new FileOutputStream(mappingFile, true), StandardCharsets.UTF_8));
                 for (Map.Entry<String, Long> e : newMappings.entrySet()) {
                     w.write(String.valueOf(e.getValue()));
                     w.write(SEPARATOR);
@@ -330,7 +330,7 @@ public class LengthCachingDataStore extends AbstractDataStore {
     private static Map<String, Long> loadMappingData(File mappingFile) throws FileNotFoundException {
         Map<String, Long> mapping = new HashMap<String, Long>();
         log.info("Reading mapping data from {}", mappingFile.getAbsolutePath());
-        LineIterator itr = new LineIterator(Files.newReader(mappingFile, Charsets.UTF_8));
+        LineIterator itr = new LineIterator(Files.newReader(mappingFile, StandardCharsets.UTF_8));
         try {
             while (itr.hasNext()) {
                 String line = itr.nextLine();

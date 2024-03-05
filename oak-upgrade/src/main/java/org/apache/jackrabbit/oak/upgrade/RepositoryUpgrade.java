@@ -37,6 +37,7 @@ import static org.apache.jackrabbit.oak.upgrade.cli.parser.OptionParserFactory.S
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Iterator;
@@ -58,7 +59,6 @@ import javax.jcr.nodetype.NodeTypeTemplate;
 import javax.jcr.nodetype.PropertyDefinitionTemplate;
 import javax.jcr.security.Privilege;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.collect.HashBiMap;
@@ -1025,7 +1025,7 @@ public class RepositoryUpgrade {
         if (name.length() <= Utils.NODE_NAME_LIMIT / 3) {
             return false;
         }
-        if (name.getBytes(Charsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
+        if (name.getBytes(StandardCharsets.UTF_8).length <= Utils.NODE_NAME_LIMIT) {
             return false;
         }
         return true;
@@ -1038,7 +1038,7 @@ public class RepositoryUpgrade {
         if (parentPath.length() < Utils.PATH_SHORT) {
             return false;
         }
-        if (parentPath.getBytes(Charsets.UTF_8).length < Utils.PATH_LONG) {
+        if (parentPath.getBytes(StandardCharsets.UTF_8).length < Utils.PATH_LONG) {
             return false;
         }
         return true;

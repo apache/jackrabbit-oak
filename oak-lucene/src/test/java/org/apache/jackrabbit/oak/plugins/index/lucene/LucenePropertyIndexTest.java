@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.Collection;
@@ -40,7 +41,6 @@ import java.util.concurrent.Executors;
 
 import javax.jcr.PropertyType;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.ComparisonChain;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.ImmutableSet;
@@ -3411,11 +3411,11 @@ public class LucenePropertyIndexTest extends AbstractQueryTest {
         }
 
         public AccessStateProvidingBlob(String content) {
-            this(content.getBytes(Charsets.UTF_8));
+            this(content.getBytes(StandardCharsets.UTF_8));
         }
 
         public AccessStateProvidingBlob(String content, String id) {
-            this(content.getBytes(Charsets.UTF_8));
+            this(content.getBytes(StandardCharsets.UTF_8));
             this.id = id;
         }
 
