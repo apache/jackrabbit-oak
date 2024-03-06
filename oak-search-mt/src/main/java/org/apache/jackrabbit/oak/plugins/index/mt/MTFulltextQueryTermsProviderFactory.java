@@ -22,14 +22,15 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.AttributeType;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.lucene.spi.FulltextQueryTermsProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
@@ -45,36 +46,52 @@ import org.slf4j.LoggerFactory;
  * Factory for {@link MTFulltextQueryTermsProvider}
  */
 @Component(
-        name = "org.apache.jackrabbit.oak.plugins.index.mt.MTFulltextQueryTermsProviderFactory",
-        label = "Apache Jackrabbit Oak Machine Translation Fulltext Query Terms Provider",
-        configurationFactory = true,
-        metatype = true,
-        policy = ConfigurationPolicy.REQUIRE
+        service = { FulltextQueryTermsProvider.class },
+        configurationPolicy = ConfigurationPolicy.REQUIRE
 )
-@Service(FulltextQueryTermsProvider.class)
+@Designate(
+        ocd = MTFulltextQueryTermsProviderFactory.Configuration.class,
+        factory = true )
 public class MTFulltextQueryTermsProviderFactory implements FulltextQueryTermsProvider {
+
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.plugins.index.mt.MTFulltextQueryTermsProviderFactory",
+            name = "Apache Jackrabbit Oak Machine Translation Fulltext Query Terms Provider"
+    )
+    @interface Configuration {
+
+        @AttributeDefinition(
+                name = "Joshua Config Path",
+                description = "The absolute filesystem path to Apache Joshua configuration file"
+        )
+        String path_to_config();
+
+        @AttributeDefinition(
+                name = "Node types",
+                description = "List of node types for which expanding the query via MT",
+                cardinality = 10
+        )
+        String[] node_types();
+
+        @AttributeDefinition(
+                name = "Minimum score",
+                description = "Minimum allowed score for a translated phrase/term to be used for expansion",
+                type = AttributeType.FLOAT
+        )
+        float min_score() default DEFAULT_MIN_SCORE;
+    }
 
     private static final float DEFAULT_MIN_SCORE = 0.5f;
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Property(label = "Joshua Config Path", description = "The absolute filesystem path to Apache Joshua configuration file")
-    private static final String CONFIG_PATH = "path.to.config";
-
-    @Property(label = "Node types", description = "List of node types for which expanding the query via MT", cardinality = 10)
-    private static final String NODE_TYPES = "node.types";
-
-    @Property(label = "Minimum score", description = "Minimum allowed score for a translated phrase/term to be used for expansion",
-            floatValue = DEFAULT_MIN_SCORE)
-    private static final String MIN_SCORE = "min.score";
-
     private MTFulltextQueryTermsProvider queryTermsProvider;
 
     @Activate
-    public void activate(Map<String, ?> config) throws Exception {
-        String pathToJoshuaConfig = PropertiesUtil.toString(config.get(CONFIG_PATH), ".");
-        String[] nts = PropertiesUtil.toStringArray(config.get(NODE_TYPES), new String[]{"Oak:unstructured"});
-        float minScore = (float) PropertiesUtil.toDouble(config.get(MIN_SCORE), DEFAULT_MIN_SCORE);
+    public void activate(Configuration config) {
+        String pathToJoshuaConfig = PropertiesUtil.toString(config.path_to_config(), ".");
+        String[] nts = PropertiesUtil.toStringArray(config.node_types(), new String[]{"Oak:unstructured"});
+        float minScore = (float) PropertiesUtil.toDouble(config.min_score(), DEFAULT_MIN_SCORE);
         log.info("activating MT FulltextQueryTermProvider from Joshua config at {} on {} nodetypes, minScore {}", pathToJoshuaConfig, nts, minScore);
         Decoder decoder = null;
         try {
@@ -97,7 +114,7 @@ public class MTFulltextQueryTermsProviderFactory implements FulltextQueryTermsPr
     }
 
     @Deactivate
-    public void deactivate() throws Exception {
+    public void deactivate() {
         if (queryTermsProvider != null) {
             log.debug("clearing resources");
             queryTermsProvider.clearResources();
