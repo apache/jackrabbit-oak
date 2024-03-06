@@ -194,7 +194,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             filters.add(Filters.not(Filters.regex(NodeDocument.ID, customRegexExcludePattern.get(0))));
         }
 
-
         if (filters.isEmpty()) {
             return null;
         } else if (filters.size() == 1) {
@@ -218,12 +217,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             }
             String regex = "^[0-9]{1,3}:" + Pattern.quote(path);
             if (negate) {
-//                https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
                 regex = negateRegex(regex);
             }
             patterns.add(Pattern.compile(regex));
         }
         return patterns;
+    }
+
+    static String negateRegex(String regex) {
+        // https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
+        return "^(?!.*" + regex + ").*$";
     }
 
     static List<Pattern> customExcludedPatterns(String customRegexPattern) {
@@ -234,10 +237,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
             return List.of(Pattern.compile(customRegexPattern));
         }
-    }
-
-    static String negateRegex(String regex) {
-        return "^(?!.*" + regex + ").*$";
     }
 
     /**
