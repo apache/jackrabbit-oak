@@ -38,7 +38,6 @@ public class AclGroupDeprecation {
 
         switch (TLOGLEVEL.toLowerCase(Locale.ENGLISH)) {
             case "error":
-            case "warn":
                 t = TLOGLEVEL.toLowerCase(Locale.ENGLISH);
                 break;
             default:
