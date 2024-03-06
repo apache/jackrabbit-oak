@@ -226,7 +226,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
     static String negateRegex(String regex) {
         // https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
-        return "^(?!.*" + regex + ").*$";
+        return "^(?!" + regex + ")";
     }
 
     static List<Pattern> customExcludedPatterns(String customRegexPattern) {
