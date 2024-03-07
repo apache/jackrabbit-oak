@@ -84,7 +84,6 @@ import org.apache.lucene.util.InfoStream;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.cm.Configuration;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -136,8 +135,6 @@ public class LuceneIndexProviderService {
             name = "Apache Jackrabbit Oak LuceneIndexProvider"
     )
     @interface Configuration {
-//        boolean enableCopyOnReadSupport() default true;
-//        boolean enableCopyOnWriteSupport() default true;
 
         @AttributeDefinition(
                 name = "Disable this component",
@@ -355,12 +352,15 @@ public class LuceneIndexProviderService {
     private PropertyIndexCleaner cleaner;
     private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
+    private boolean enableCopyOnRead = true;
+    private boolean enableCopyOnWrite = true;
+
     @Activate
     private void activate(BundleContext bundleContext, Configuration config) throws IOException {
         org.osgi.service.cm.Configuration configuration = configurationAdmin.getConfiguration("org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService");
         Dictionary<String, Object> properties = configuration.getProperties();
-        Object enableCopyOnReadSupport = properties.get("enableCopyOnReadSupport");
-        System.out.println("ACTIVATE: " + enableCopyOnReadSupport);
+        enableCopyOnRead = PropertiesUtil.toBoolean(properties.get("enableCopyOnReadSupport"), true);
+        enableCopyOnWrite = PropertiesUtil.toBoolean(properties.get("enableCopyOnWriteSupport"), true);
         asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdateImpl(
                 PropertiesUtil.toLong(config.luceneIndexStatsUpdateInterval(),
                         PROP_LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT) * 1000); // convert seconds to millis
@@ -512,8 +512,6 @@ public class LuceneIndexProviderService {
     }
 
     private void registerIndexEditor(BundleContext bundleContext, IndexTracker tracker, LuceneIndexMBean mBean, Configuration config) throws IOException {
-//        boolean enableCopyOnWrite = PropertiesUtil.toBoolean(config.enableCopyOnWriteSupport(), true);
-        boolean enableCopyOnWrite = true;
         if (enableCopyOnWrite){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
@@ -541,8 +539,6 @@ public class LuceneIndexProviderService {
     }
 
     private IndexTracker createTracker(BundleContext bundleContext, Configuration config) throws IOException {
-        //boolean enableCopyOnRead = PropertiesUtil.toBoolean(config.enableCopyOnReadSupport(), true);
-        boolean enableCopyOnRead = true;
         IndexTracker tracker;
         if (enableCopyOnRead){
             initializeIndexCopier(bundleContext, config);
