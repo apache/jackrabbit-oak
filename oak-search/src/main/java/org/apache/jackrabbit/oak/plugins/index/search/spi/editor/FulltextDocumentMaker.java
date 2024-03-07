@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -264,7 +263,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     dirty = true;
                 }
             } catch (Exception e) {
-                log.error("could not index similarity field for property {} and definition {}", property, pd);
+                log.error("could not index similarity field for property {} and definition {}",
+                    property.getName(), pd);
             }
         } else if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
@@ -317,7 +317,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                     indexSimilarityStrings(doc, pd, value);
                                 }
                             } catch (Exception e) {
-                                log.error("could not index similarity field for property {} and definition {}", property, pd);
+                                log.error(
+                                    "could not index similarity field for property {} : {} and definition {}",
+                                    property.getName(), truncateForLogging(property), pd);
                             }
                         }
                     }
@@ -334,6 +336,32 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
 
         return dirty;
+    }
+
+    private String getValueAsTruncatedString(Object val) {
+        String value = val.toString();
+        return value.length() <= 128 ? value
+            : value.substring(0, 128) + " ... [" + value.hashCode() + "]";
+    }
+
+    private String truncateForLogging(PropertyState property) {
+        Type<?> t = property.getType();
+        if (t.isArray()) {
+            Type<?> base = t.getBaseType();
+            StringBuilder sb = new StringBuilder();
+            sb.append("[");
+            for (int i = 0; i < property.count(); i++) {
+                sb.append(property.getValue(base, i));
+                if (i < property.count() - 1) {
+                    sb.append(", ");
+                }
+            }
+            sb.append("]");
+
+            return getValueAsTruncatedString(sb.toString());
+        }
+
+        return getValueAsTruncatedString(property.getValue(t));
     }
 
     /**
