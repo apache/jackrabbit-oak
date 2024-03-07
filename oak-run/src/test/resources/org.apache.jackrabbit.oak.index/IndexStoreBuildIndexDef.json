@@ -1,0 +1,25 @@
+{
+  "/oak:index/baseffs": {
+    "compatVersion": 2,
+    "reindexCount": 4,
+    "reindex": false,
+    "type": "lucene",
+    "async": [
+      "async"
+    ],
+    "includedPaths": [
+      "/"
+    ],
+    "jcr:primaryType": "oak:QueryIndexDefinition",
+    "evaluatePathRestrictions": true
+  }
+}
+
+
+
+
+
+
+
+
+

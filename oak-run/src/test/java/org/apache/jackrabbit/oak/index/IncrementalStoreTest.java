@@ -16,21 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.jackrabbit.oak.index.indexer.document.incrementalstore;
+package org.apache.jackrabbit.oak.index;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.collections4.set.ListOrderedSet;
+import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.sort.ExternalSort;
-import org.apache.jackrabbit.oak.index.indexer.document.flatfile.LZ4Compression;
+import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexer;
+import org.apache.jackrabbit.oak.index.indexer.document.DocumentStoreIndexerBase;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateHolder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.PathElementComparator;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.SimpleNodeStateHolder;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalFlatFileStoreNodeStateEntryWriter;
+import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.IncrementalFlatFileStoreStrategy;
+import org.apache.jackrabbit.oak.index.indexer.document.incrementalstore.MergeIncrementalFlatFileStore;
+import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStore;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadata;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreMetadataOperatorImpl;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils;
@@ -43,6 +49,8 @@ import org.apache.jackrabbit.oak.plugins.document.RevisionVector;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.plugins.index.IndexingReporter;
+import org.apache.jackrabbit.oak.plugins.index.importer.IndexDefinitionUpdater;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
 import org.apache.jackrabbit.oak.spi.blob.FileBlobStore;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -50,6 +58,8 @@ import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
+import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
@@ -60,27 +70,33 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
 import org.junit.rules.TemporaryFolder;
+import org.testcontainers.shaded.org.apache.commons.io.FileUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
+import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class IncrementalStoreIT {
+public class IncrementalStoreTest {
     @Rule
     public final MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
     @Rule
@@ -126,20 +142,34 @@ public class IncrementalStoreIT {
 
     @Test
     public void testWithNoCompression() throws Exception {
-        algorithm = Compression.NONE;
-        incrementalFFSTest();
+        System.setProperty(OAK_INDEXER_USE_ZIP, "false");
+        algorithm = IndexStoreUtils.compressionAlgorithm();
+        incrementalFFSTest(false);
+        System.clearProperty(OAK_INDEXER_USE_ZIP);
     }
 
     @Test
     public void testWithGzipCompression() throws Exception {
-        algorithm = Compression.GZIP;
-        incrementalFFSTest();
+        // LZ4 compression is used by default - so disbale that, fallback is gzip
+        System.setProperty(OAK_INDEXER_USE_LZ4, "false");
+        algorithm = IndexStoreUtils.compressionAlgorithm();
+        incrementalFFSTest(false);
+        System.clearProperty(OAK_INDEXER_USE_LZ4);
     }
 
     @Test
     public void testWithLz4Compression() throws Exception {
-        algorithm = new LZ4Compression();
-        incrementalFFSTest();
+        algorithm = IndexStoreUtils.compressionAlgorithm();
+        incrementalFFSTest(false);
+    }
+
+    @Test
+    public void testWithLz4CompressionWithCustomRegexFilter() throws Exception {
+        System.setProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex",
+                "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
+        algorithm = IndexStoreUtils.compressionAlgorithm();
+        incrementalFFSTest(true);
+        System.clearProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex");
     }
 
     /**
@@ -152,7 +182,7 @@ public class IncrementalStoreIT {
      *
      * @return
      */
-    public void incrementalFFSTest() throws Exception {
+    public void incrementalFFSTest(boolean customRegexFilter) throws Exception {
         Backend rwBackend = createNodeStore(false);
         createBaseContent(rwBackend.documentNodeStore);
         String initialCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
@@ -161,17 +191,26 @@ public class IncrementalStoreIT {
         Predicate<String> pathPredicate = s -> true;
         Set<String> basePreferredPathElements = Set.of();
 
-        Path initialFfsPath = createFFS(roBackend, pathPredicate, basePreferredPathElements, Collections.EMPTY_LIST, initialCheckpoint, "initial", getNodeStateAtCheckpoint1());
+        Path initialFfsPath = createFFS(roBackend, pathPredicate, basePreferredPathElements, Collections.EMPTY_LIST, initialCheckpoint, "initial", getNodeStateAtCheckpoint1(customRegexFilter));
 
         createIncrementalContent(rwBackend.documentNodeStore);
         String finalCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
         Backend roBackend1 = createNodeStore(true);
 
-        Path finalFfsPath = createFFS(roBackend1, pathPredicate, basePreferredPathElements, Collections.EMPTY_LIST, finalCheckpoint, "final", getNodeStateAtCheckpoint2());
-
+        Path finalFfsPath = createFFS(roBackend1, pathPredicate, basePreferredPathElements, Collections.EMPTY_LIST, finalCheckpoint, "final", getNodeStateAtCheckpoint2(customRegexFilter));
 
         Backend roBackend2 = createNodeStore(true);
-        File incrementalFile = createIncrementalStore(initialCheckpoint, roBackend2, pathPredicate, finalCheckpoint);
+        IndexStore indexStore = getDocumentIndexer(roBackend2, finalCheckpoint).buildStore(initialCheckpoint, finalCheckpoint);
+        File incrementalFile = new File(indexStore.getStorePath() + "/" + IndexStoreUtils.getSortedStoreFileName(algorithm));
+        File incrementalStoreMetadata = new File(indexStore.getStorePath() + "/" + IndexStoreUtils.getMetadataFileName(algorithm));
+
+        BufferedReader bufferedReaderIncrementalStoreMetadata = IndexStoreUtils.createReader(incrementalStoreMetadata, algorithm);
+        assertEquals(List.of(getMetadataJsonStringForIncrementalFFS(initialCheckpoint, finalCheckpoint, createIncrementalStrategy(roBackend2,
+                pathPredicate, initialCheckpoint, finalCheckpoint))),
+                bufferedReaderIncrementalStoreMetadata.lines().collect(Collectors.toList()));
+        bufferedReaderIncrementalStoreMetadata.close();
+
+
         File mergedFile = new File(incrementalFile.getParentFile(), algorithm.addSuffix("/merged.json"));
         assertTrue(mergedFile.createNewFile());
         MergeIncrementalFlatFileStore mergedStore = createMergedFile(initialFfsPath, incrementalFile, mergedFile);
@@ -189,14 +228,47 @@ public class IncrementalStoreIT {
 
         File finalFFSForIndexingFromMergedFFS = createFFSFromBaseFFSUsingPreferredPathElementsAndFilterPredicate(mergedFile, preferredPathElements, filterPredicateMergedFFS);
         Path finalFFSForIndexingFromMongo = createFFS(roBackend2, filterPredicate, preferredPathElements, Collections.EMPTY_LIST, finalCheckpoint, "final",
-                getNodeStatesWithPrefferedPathsAndPathPredicatesOverBaseFFSAfterMerging());
+                getNodeStatesWithPrefferedPathsAndPathPredicatesOverBaseFFSAfterMerging(customRegexFilter));
 
         assertEquals(IndexStoreUtils.createReader(finalFFSForIndexingFromMongo.toFile(), algorithm).lines().collect(Collectors.toList()),
                 IndexStoreUtils.createReader(finalFFSForIndexingFromMergedFFS, algorithm).lines().collect(Collectors.toList()));
     }
 
+    private DocumentStoreIndexerBase getDocumentIndexer(Backend roBackend, String checkpoint) throws IOException {
+        NodeStore store = roBackend.documentNodeStore;
+        BlobStore blobStore = roBackend.blobStore;
+        MongoDocumentStore mongoDs = roBackend.mongoDocumentStore;
+        MongoDatabase mongoDatabase = roBackend.mongoDatabase;
 
-    private Path createFFS(Backend roBackend, Predicate<String> pathPredicate, Set<String> preferredPathElements, List<PathFilter> pathFilters, String checkpoint, String identifier, String[] nodeStateAtCheckpoint) throws IOException {
+        Whiteboard whiteboard = new DefaultWhiteboard();
+        if (mongoDs != null) {
+            whiteboard.register(MongoDocumentStore.class, mongoDs, Map.of());
+        }
+        if (mongoDatabase != null) {
+            whiteboard.register(MongoDatabase.class, mongoDatabase, Map.of());
+        }
+        whiteboard.register(StatisticsProvider.class, StatisticsProvider.NOOP, Map.of());
+        whiteboard.register(IndexingReporter.class, IndexingReporter.NOOP, Map.of());
+
+        File workDir = FileUtils.getTempDirectory();
+        String referenceIndexFilePath = workDir + "/refIndexFile.json";
+        FileWriter fw = new FileWriter(referenceIndexFilePath);
+        fw.append(IOUtils.toString(
+                getClass().getClassLoader().getResourceAsStream("org.apache.jackrabbit.oak.index/IndexStoreBuildIndexDef.json"),
+                StandardCharsets.UTF_8));
+        fw.close();
+        IndexDefinitionUpdater indexDefinitionUpdater = new IndexDefinitionUpdater(new File(referenceIndexFilePath));
+
+
+        ExtendedIndexHelper indexHelper = new ExtendedIndexHelper(store, blobStore, whiteboard, workDir, workDir, newArrayList(indexDefinitionUpdater.getIndexPaths()));
+        IndexerSupport indexerSupport = new IndexerSupport(indexHelper, checkpoint);
+        indexerSupport.setIndexDefinitions(new File(referenceIndexFilePath));
+
+        return new DocumentStoreIndexer(indexHelper, indexerSupport);
+    }
+
+
+    private Path createFFS(Backend roBackend, Predicate<String> pathPredicate, Set<String> preferredPathElements, List<PathFilter> pathFilters, String checkpoint, String identifier, List<String> nodeStateAtCheckpoint) throws IOException {
         PipelinedStrategy pipelinedStrategy = createPipelinedStrategy(roBackend, pathPredicate, preferredPathElements, pathFilters, checkpoint);
 
         File baseFFSAtCheckpoint1 = pipelinedStrategy.createSortedStoreFile();
@@ -206,7 +278,7 @@ public class IncrementalStoreIT {
         try (BufferedReader bufferedReaderBaseFFSAtCheckpoint1 = IndexStoreUtils.createReader(baseFFSAtCheckpoint1, algorithm);
              BufferedReader bufferedReaderMetadataAtCheckpoint1 = IndexStoreUtils.createReader(metadataAtCheckpoint1, algorithm);
         ) {
-            assertEquals(Arrays.asList(nodeStateAtCheckpoint),
+            assertEquals(nodeStateAtCheckpoint,
                     bufferedReaderBaseFFSAtCheckpoint1.lines().collect(Collectors.toList()));
 
             assertEquals(List.of("{\"checkpoint\":\"" + checkpoint + "\",\"storeType\":\"FlatFileStore\"," +
@@ -275,21 +347,6 @@ public class IncrementalStoreIT {
         assertEquals(mergedIndexStoreMetadata.getStrategy(), mergedStore.getStrategyName());
     }
 
-    private File createIncrementalStore(String initialCheckpoint, Backend roBacked, Predicate<String> pathPredicate, String finalCheckpoint) throws IOException {
-        IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy = createIncrementalStrategy(roBacked,
-                pathPredicate, initialCheckpoint, finalCheckpoint);
-        File incrementalFile = incrementalFlatFileStoreStrategy.createSortedStoreFile();
-        File incrementalStoreMetadata = incrementalFlatFileStoreStrategy.createMetadataFile();
-        try (
-                BufferedReader bufferedReaderIncrementalStoreMetadata = IndexStoreUtils.createReader(incrementalStoreMetadata, algorithm)
-        ) {
-            assertEquals(List.of(getMetadataJsonStringForIncrementalFFS(initialCheckpoint, finalCheckpoint, incrementalFlatFileStoreStrategy)),
-                    bufferedReaderIncrementalStoreMetadata.lines().collect(Collectors.toList()));
-
-        }
-        return incrementalFile;
-    }
-
     @NotNull
     private static String getMetadataJsonStringForIncrementalFFS(String initialCheckpoint, String finalCheckpoint, IncrementalFlatFileStoreStrategy incrementalFlatFileStoreStrategy) {
         return "{\"beforeCheckpoint\":\"" + initialCheckpoint + "\",\"afterCheckpoint\":\"" + finalCheckpoint + "\"," +
@@ -329,6 +386,7 @@ public class IncrementalStoreIT {
 
     private void createBaseContent(NodeStore rwNodeStore) throws CommitFailedException {
         @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+        rootBuilder.child("oak:index");
         @NotNull NodeBuilder contentBuilder = rootBuilder.child("content");
         contentBuilder.child("2022").child("02").setProperty("p1", "v202202");
         contentBuilder.child("2022").child("02").child("28").setProperty("p1", "v20220228");
@@ -352,6 +410,10 @@ public class IncrementalStoreIT {
         contentDamBuilder.child("2023").child("04").child("29").setProperty("p1", "v20230429");
         contentDamBuilder.child("2023").child("04").child("30").setProperty("p1", "v20230430");
         contentDamBuilder.child("2023").child("05").child("30").setProperty("p1", "v20230530");
+        contentDamBuilder.child("2024").child("jcr:content").child("renditions").child("foo.metadata.xml").child("jcr:content");
+        contentDamBuilder.child("2025").child("jcr:content").child("metadata").child("fooBar");
+        contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar1").child("jcr:content");
+        contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar2").child("jcr:content");
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
@@ -366,14 +428,17 @@ public class IncrementalStoreIT {
         contentDamBuilder.child("2023").child("02").child("28").setProperty("p1", "v20230228");
         contentDamBuilder.child("2023").child("04").child("29").setProperty("p1", "v20230429");
         contentDamBuilder.child("2023").child("04").child("30").setProperty("p1", "v20230430");
+        contentDamBuilder.child("2024").child("jcr:content").child("renditions").setProperty("foo", "bar").child("foo.metadata.xml").child("jcr:content").setProperty("foo", "bar");
+        contentDamBuilder.child("2025").child("jcr:content").child("metadata").child("fooBar").setProperty("foo", "bar");
+        contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar2").child("jcr:content").setProperty("foo", "bar");
+        contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar3").child("jcr:content").setProperty("foo", "bar");
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
 
     @NotNull
-    private static String[] getNodeStateAtCheckpoint1() {
-        return new String[]{
-                "/|{}",
+    private static List<String> getNodeStateAtCheckpoint1(boolean customRegexFilter) {
+        List<String> expectedPathsAtCheckpoint1 = new ArrayList<>(List.of("/|{}",
                 "/content|{}",
                 "/content/2022|{}",
                 "/content/2022/02|{\"p1\":\"v202202\"}",
@@ -404,14 +469,41 @@ public class IncrementalStoreIT {
                 "/content/dam/2023/04/29|{\"p1\":\"v20230429\"}",
                 "/content/dam/2023/04/30|{\"p1\":\"v20230430\"}",
                 "/content/dam/2023/05|{}",
-                "/content/dam/2023/05/30|{\"p1\":\"v20230530\"}"
+                "/content/dam/2023/05/30|{\"p1\":\"v20230530\"}",
+                "/content/dam/2024|{}",
+                "/content/dam/2024/jcr:content|{}",
+                "/content/dam/2024/jcr:content/renditions|{}",
+                "/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
+                "/content/dam/2024/jcr:content/renditions/foo.metadata.xml/jcr:content|{}",
+                "/content/dam/2025|{}",
+                "/content/dam/2025/jcr:content|{}",
+                "/content/dam/2025/jcr:content/metadata|{}",
+                "/content/dam/2025/jcr:content/metadata/fooBar|{}",
+                "/content/dam/2026|{}",
+                "/content/dam/2026/jcr:content|{}",
+                "/content/dam/2026/jcr:content/renditions|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1/jcr:content|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{}",
+                "/oak:index|{}"));
 
-        };
+        if (customRegexFilter) {
+            expectedPathsAtCheckpoint1.removeAll(List.of("/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
+                    "/content/dam/2024/jcr:content/renditions/foo.metadata.xml/jcr:content|{}",
+                    "/content/dam/2025/jcr:content/metadata/fooBar|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1/jcr:content|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{}"));
+        }
+
+        return expectedPathsAtCheckpoint1;
     }
 
     @NotNull
-    private static String[] getNodeStateAtCheckpoint2() {
-        return new String[]{"/|{}",
+    private static List<String> getNodeStateAtCheckpoint2(boolean customRegexFilter) {
+        List<String> expectedPathsAtCheckpoint2 = new ArrayList<>(List.of("/|{}",
                 "/content|{}",
                 "/content/2022|{}",
                 "/content/2022/02|{\"p1\":\"v202202\"}",
@@ -442,12 +534,45 @@ public class IncrementalStoreIT {
                 "/content/dam/2023/04/30|{\"p1\":\"v20230430\"}",
                 "/content/dam/2023/05|{}",
                 "/content/dam/2023/05/30|{\"p1\":\"v20230530\"}",
-        };
+                "/content/dam/2024|{}",
+                "/content/dam/2024/jcr:content|{}",
+                "/content/dam/2024/jcr:content/renditions|{\"foo\":\"bar\"}",
+                "/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
+                "/content/dam/2024/jcr:content/renditions/foo.metadata.xml/jcr:content|{\"foo\":\"bar\"}",
+                "/content/dam/2025|{}",
+                "/content/dam/2025/jcr:content|{}",
+                "/content/dam/2025/jcr:content/metadata|{}",
+                "/content/dam/2025/jcr:content/metadata/fooBar|{\"foo\":\"bar\"}",
+                "/content/dam/2026|{}",
+                "/content/dam/2026/jcr:content|{}",
+                "/content/dam/2026/jcr:content/renditions|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1/jcr:content|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{\"foo\":\"bar\"}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3/jcr:content|{\"foo\":\"bar\"}",
+                "/oak:index|{}"
+        ));
+
+        if (customRegexFilter) {
+            expectedPathsAtCheckpoint2.removeAll(List.of("/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
+                    "/content/dam/2024/jcr:content/renditions/foo.metadata.xml/jcr:content|{\"foo\":\"bar\"}",
+                    "/content/dam/2025/jcr:content/metadata/fooBar|{\"foo\":\"bar\"}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1/jcr:content|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{\"foo\":\"bar\"}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3/jcr:content|{\"foo\":\"bar\"}"));
+        }
+
+        return expectedPathsAtCheckpoint2;
+
     }
 
-    private static String[] getNodeStatesWithPrefferedPathsAndPathPredicatesOverBaseFFSAfterMerging() {
-        return new String[]{
-                "/content/dam|{}",
+    private static List<String> getNodeStatesWithPrefferedPathsAndPathPredicatesOverBaseFFSAfterMerging(boolean customRegexFilter) {
+        List<String> expectedPaths = new ArrayList<>(List.of("/content/dam|{}",
                 "/content/dam/1000|{}",
                 "/content/dam/1000/12|{\"p1\":\"v100012\",\"p2\":\"v100012\"}",
                 "/content/dam/2022|{}",
@@ -470,7 +595,40 @@ public class IncrementalStoreIT {
                 "/content/dam/2023/03|{\"p1\":\"v202301\"}",
                 "/content/dam/2023/05|{}",
                 "/content/dam/2023/05/30|{\"p1\":\"v20230530\"}",
-        };
+                "/content/dam/2024|{}",
+                "/content/dam/2024/jcr:content|{}",
+                "/content/dam/2024/jcr:content/renditions|{\"foo\":\"bar\"}",
+                "/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
+                "/content/dam/2024/jcr:content/renditions/foo.metadata.xml/jcr:content|{\"foo\":\"bar\"}",
+                "/content/dam/2025|{}",
+                "/content/dam/2025/jcr:content|{}",
+                "/content/dam/2025/jcr:content/metadata|{}",
+                "/content/dam/2025/jcr:content/metadata/fooBar|{\"foo\":\"bar\"}",
+                "/content/dam/2026|{}",
+                "/content/dam/2026/jcr:content|{}",
+                "/content/dam/2026/jcr:content/renditions|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1/jcr:content|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{\"foo\":\"bar\"}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3|{}",
+                "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3/jcr:content|{\"foo\":\"bar\"}"
+
+        ));
+
+        if (customRegexFilter) {
+            expectedPaths.removeAll(List.of("/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
+                    "/content/dam/2024/jcr:content/renditions/foo.metadata.xml/jcr:content|{\"foo\":\"bar\"}",
+                    "/content/dam/2025/jcr:content/metadata/fooBar|{\"foo\":\"bar\"}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1/jcr:content|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{\"foo\":\"bar\"}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3|{}",
+                    "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3/jcr:content|{\"foo\":\"bar\"}"));
+        }
+
+        return expectedPaths;
     }
 
     private Backend createNodeStore(boolean readOnly) {
@@ -482,7 +640,8 @@ public class IncrementalStoreIT {
         }
         builder.setAsyncDelay(1);
         DocumentNodeStore documentNodeStore = builder.getNodeStore();
-        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase());
+        BlobStore blobStore = new MemoryBlobStore();
+        return new Backend((MongoDocumentStore) builder.getDocumentStore(), documentNodeStore, c.getDatabase(), blobStore);
     }
 
 
@@ -490,11 +649,13 @@ public class IncrementalStoreIT {
         final MongoDocumentStore mongoDocumentStore;
         final DocumentNodeStore documentNodeStore;
         final MongoDatabase mongoDatabase;
+        final BlobStore blobStore;
 
-        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase) {
+        public Backend(MongoDocumentStore mongoDocumentStore, DocumentNodeStore documentNodeStore, MongoDatabase mongoDatabase, BlobStore blobStore) {
             this.mongoDocumentStore = mongoDocumentStore;
             this.documentNodeStore = documentNodeStore;
             this.mongoDatabase = mongoDatabase;
+            this.blobStore = blobStore;
         }
     }
 
