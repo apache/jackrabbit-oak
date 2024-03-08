@@ -16,9 +16,9 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider;
 import org.apache.jackrabbit.oak.plugins.index.IndexUpdateCallback;
@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
 import org.apache.jackrabbit.oak.spi.commit.Editor;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,8 +38,10 @@ import org.jetbrains.annotations.Nullable;
  * @see org.apache.jackrabbit.oak.plugins.index.solr.index.SolrIndexEditorProvider
  * @see org.apache.jackrabbit.oak.plugins.index.IndexEditorProvider
  */
-@Component(metatype = false, immediate = true)
-@Service(value = IndexEditorProvider.class)
+@Component(
+        immediate = true,
+        service = { IndexEditorProvider.class }
+)
 public class SolrIndexEditorProviderService implements IndexEditorProvider {
 
     @Reference
