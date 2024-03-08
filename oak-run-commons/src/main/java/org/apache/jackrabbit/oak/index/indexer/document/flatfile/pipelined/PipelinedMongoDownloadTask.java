@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -188,11 +189,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         List<Pattern> filterPatterns = toFilterPatterns(mongoFilterPaths.excluded, true);
         filterPatterns.forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
-        var customRegexExcludePattern = customExcludedPatterns(customExcludeEntriesRegex);
-        // TODO: find a way to negate the custom regex pattern
-        if (!customRegexExcludePattern.isEmpty()) {
-            filters.add(Filters.not(Filters.regex(NodeDocument.ID, customRegexExcludePattern.get(0))));
-        }
+        Optional<Pattern> customRegexExcludePattern = compileCustomExcludedPatterns(customExcludeEntriesRegex);
+        customRegexExcludePattern.ifPresent(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
         if (filters.isEmpty()) {
             return null;
@@ -216,26 +214,35 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 path = path + "/";
             }
             String regex = "^[0-9]{1,3}:" + Pattern.quote(path);
+            Pattern pattern;
             if (negate) {
-                regex = negateRegex(regex);
+                pattern = compileExcludedDirectoryRegex(regex);
+            } else {
+                pattern = Pattern.compile(regex);
             }
-            patterns.add(Pattern.compile(regex));
+            patterns.add(pattern);
         }
         return patterns;
     }
 
-    static String negateRegex(String regex) {
+//    static String negateRegex(String regex) {
+//        // https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
+//        return "^(?!" + regex + ")";
+//    }
+
+    static Pattern compileExcludedDirectoryRegex(String regex) {
         // https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
-        return "^(?!" + regex + ")";
+        return Pattern.compile("^(?!" + regex + ")");
     }
 
-    static List<Pattern> customExcludedPatterns(String customRegexPattern) {
+    static Optional<Pattern> compileCustomExcludedPatterns(String customRegexPattern) {
         if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
             LOG.info("Mongo custom regex is disabled");
-            return List.of();
+            return Optional.empty();
         } else {
             LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
-            return List.of(Pattern.compile(customRegexPattern));
+            var negatedRegex = "^(?!.*(" + customRegexPattern + ")$)";
+            return Optional.of(Pattern.compile(negatedRegex));
         }
     }
 
