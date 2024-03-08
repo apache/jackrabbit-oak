@@ -181,7 +181,10 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         }
         log.info("Starting to delete container. containerName={}", containerName);
         Properties props = getAzureConfig();
-        CloudBlobContainer container = Utils.getBlobContainer(Utils.getConnectionStringFromProperties(props), containerName);
+        props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
+
+        CloudBlobContainer container = AzureDataStoreAccessManager.Builder.builder(containerName).initializeWithProperties(props)
+                .build().getBlobContainer();
         boolean result = container.deleteIfExists();
         log.info("Container deleted. containerName={} existed={}", containerName, result);
     }

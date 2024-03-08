@@ -148,7 +148,7 @@ public class AzureBlobStoreBackendTest {
         assertReferenceSecret(azureBlobStoreBackend);
     }
 
-    /* make sure that blob1.txt and blob2.txt are uploaded to AZURE_ACCOUNT_NAME/oak container before
+    /* make sure that blob1.txt and blob2.txt are uploaded to AZURE_ACCOUNT_NAME/blobstore container before
      * executing this test
      * */
     @Test

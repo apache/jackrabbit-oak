@@ -253,16 +253,16 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
     }
 
     private void initAzureDSConfig() {
-        azureDataStoreAccessManager = new AzureDataStoreAccessManager();
-        azureDataStoreAccessManager.setAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""));
-        azureDataStoreAccessManager.setAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""));
-        azureDataStoreAccessManager.setContainerName(properties.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME));
-        azureDataStoreAccessManager.setBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""));
-        azureDataStoreAccessManager.setSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""));
-        azureDataStoreAccessManager.setAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""));
-        azureDataStoreAccessManager.setTenantId(properties.getProperty(AzureConstants.AZURE_TENANT_ID, ""));
-        azureDataStoreAccessManager.setClientId(properties.getProperty(AzureConstants.AZURE_CLIENT_ID, ""));
-        azureDataStoreAccessManager.setClientSecret(properties.getProperty(AzureConstants.AZURE_CLIENT_SECRET, ""));
+        AzureDataStoreAccessManager.Builder builder = AzureDataStoreAccessManager.Builder.builder(properties.getProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME))
+                .withAzureConnectionString(properties.getProperty(AzureConstants.AZURE_CONNECTION_STRING, ""))
+                .withAccountName(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_NAME, ""))
+                .withBlobEndpoint(properties.getProperty(AzureConstants.AZURE_BLOB_ENDPOINT, ""))
+                .withSasToken(properties.getProperty(AzureConstants.AZURE_SAS, ""))
+                .withAccountKey(properties.getProperty(AzureConstants.AZURE_STORAGE_ACCOUNT_KEY, ""))
+                .withTenantId(properties.getProperty(AzureConstants.AZURE_TENANT_ID, ""))
+                .withClientId(properties.getProperty(AzureConstants.AZURE_CLIENT_ID, ""))
+                .withClientSecret(properties.getProperty(AzureConstants.AZURE_CLIENT_SECRET, ""));
+        azureDataStoreAccessManager = builder.build();
     }
 
     @Override
@@ -1160,11 +1160,6 @@ public class AzureBlobStoreBackend extends AbstractSharedBackend {
                                    Map<String, String> additionalQueryParams,
                                    SharedAccessBlobHeaders optionalHeaders,
                                    String domain) {
-        SharedAccessBlobPolicy policy = new SharedAccessBlobPolicy();
-        Date expiry = Date.from(Instant.now().plusSeconds(expirySeconds));
-        policy.setSharedAccessExpiryTime(expiry);
-        policy.setPermissions(permissions);
-
         if (Strings.isNullOrEmpty(domain)) {
             LOG.warn("Can't generate presigned URI - no Azure domain provided (is Azure account name configured?)");
             return null;
