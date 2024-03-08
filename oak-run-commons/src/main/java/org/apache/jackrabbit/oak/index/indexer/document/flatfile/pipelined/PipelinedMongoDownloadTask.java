@@ -160,7 +160,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>();
 
-        List<Pattern> includedPatterns = toFilterPatterns(mongoFilterPaths.included, false);
+        List<Pattern> includedPatterns = compileIncludedDirectoriesRegex(mongoFilterPaths.included);
         if (!includedPatterns.isEmpty()) {
             // The conditions above on the _id field is not enough to match all JCR nodes in the given paths because nodes
             // with paths longer than a certain threshold, are represented by Mongo documents where the _id field is replaced
@@ -186,7 +186,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // This is done because excluding also the top level path would add extra complexity to the filter and
         // would not have any measurable impact on performance because it only downloads a few extra documents, one
         // for each excluded subtree. The transform stage will anyway filter out these paths.
-        List<Pattern> filterPatterns = toFilterPatterns(mongoFilterPaths.excluded, true);
+        List<Pattern> filterPatterns = compileExcludedDirectoriesRegex(mongoFilterPaths.excluded);
         filterPatterns.forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
         Optional<Pattern> customRegexExcludePattern = compileCustomExcludedPatterns(customExcludeEntriesRegex);
@@ -201,7 +201,15 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static List<Pattern> toFilterPatterns(List<String> paths, boolean negate) {
+    private static List<Pattern> compileIncludedDirectoriesRegex(List<String> includedPaths) {
+        return compileDirectoryRegex(includedPaths, false);
+    }
+
+    private static List<Pattern> compileExcludedDirectoriesRegex(List<String> excludedPaths) {
+        return compileDirectoryRegex(excludedPaths, true);
+    }
+
+    private static List<Pattern> compileDirectoryRegex(List<String> paths, boolean negate) {
         if (paths.isEmpty()) {
             return List.of();
         }
@@ -224,11 +232,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
         return patterns;
     }
-
-//    static String negateRegex(String regex) {
-//        // https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
-//        return "^(?!" + regex + ")";
-//    }
 
     static Pattern compileExcludedDirectoryRegex(String regex) {
         // https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
