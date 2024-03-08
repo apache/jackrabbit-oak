@@ -84,6 +84,7 @@ import org.apache.lucene.util.InfoStream;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -94,7 +95,6 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
-import org.osgi.service.cm.ConfigurationAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -273,9 +273,6 @@ public class LuceneIndexProviderService {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Reference
-    private ConfigurationAdmin configurationAdmin;
-    
     @Reference(
             cardinality = ReferenceCardinality.OPTIONAL,
             policyOption = ReferencePolicyOption.GREEDY,
@@ -356,9 +353,8 @@ public class LuceneIndexProviderService {
     private boolean enableCopyOnWrite = true;
 
     @Activate
-    private void activate(BundleContext bundleContext, Configuration config) throws IOException {
-        org.osgi.service.cm.Configuration configuration = configurationAdmin.getConfiguration("org.apache.jackrabbit.oak.plugins.index.lucene.LuceneIndexProviderService");
-        Dictionary<String, Object> properties = configuration.getProperties();
+    private void activate(BundleContext bundleContext, ComponentContext componentContext, Configuration config) throws IOException {
+        Dictionary<String, Object> properties = componentContext.getProperties();
         enableCopyOnRead = PropertiesUtil.toBoolean(properties.get("enableCopyOnReadSupport"), true);
         enableCopyOnWrite = PropertiesUtil.toBoolean(properties.get("enableCopyOnWriteSupport"), true);
         asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdateImpl(
