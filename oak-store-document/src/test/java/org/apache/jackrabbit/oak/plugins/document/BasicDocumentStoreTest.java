@@ -494,6 +494,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testMaxProperty() {
+        assumeMaxMemory(4 * 1024);
+
         int min = 0;
         int max = 1024 * 1024 * 32;
         int test = 0;
@@ -532,6 +534,8 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testMaxUpdateProperty() {
+        assumeMaxMemory(4 * 1024);
+
         int min = 0;
         int max = 1024 * 1024 * 32;
         int test = 0;
@@ -574,6 +578,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testMaxAddProperty() {
+        assumeMaxMemory(4 * 1024);
 
         String id = this.getClass().getName() + ".testMaxAddProperty";
         UpdateOp up = new UpdateOp(id, true);
@@ -605,6 +610,7 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
 
     @Test
     public void testMaxAddPropertyUpdate() {
+        assumeMaxMemory(4 * 1024);
 
         String id = this.getClass().getName() + ".testMaxAddPropertyUpdate";
         UpdateOp up = new UpdateOp(id, true);
@@ -1334,5 +1340,11 @@ public class BasicDocumentStoreTest extends AbstractDocumentStoreTest {
         UpdateOp op = new UpdateOp(id, true);
         op.set(NodeDocument.MODIFIED_IN_SECS, modified);
         return op;
+    }
+
+    private static void assumeMaxMemory(int mb) {
+        long max = Runtime.getRuntime().maxMemory();
+        long required = mb * 1024L * 1024L;
+        assumeTrue("test requires " + required + " bytes of max memory, but only has " + max, max >= required);
     }
 }
