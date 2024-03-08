@@ -74,6 +74,7 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private static final String DYNAMIC_BOOST_TAG_NAME = "name";
     private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
+    static final int LOG_TRUNCATION_LENGTH = 128;
 
     private final FulltextBinaryTextExtractor textExtractor;
     protected final IndexDefinition definition;
@@ -338,15 +339,20 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         return dirty;
     }
 
-    private String getValueAsTruncatedString(Object val) {
+    static String getValueAsTruncatedString(Object val) {
         String value = val.toString();
-        return value.length() <= 128 ? value
-            : value.substring(0, 128) + " ... [" + value.hashCode() + "]";
+        boolean isArray = value.startsWith("[") && value.endsWith("]");
+        return value.length() <= LOG_TRUNCATION_LENGTH ? value
+            : value.substring(0, LOG_TRUNCATION_LENGTH) + "..." + (isArray ? "]" : "");
     }
 
-    private String truncateForLogging(PropertyState property) {
+    static String truncateForLogging(PropertyState property) {
         Type<?> t = property.getType();
         if (t.isArray()) {
+            if (property.count() == 0) {
+                return "[]";
+            }
+
             Type<?> base = t.getBaseType();
             StringBuilder sb = new StringBuilder();
             sb.append("[");
