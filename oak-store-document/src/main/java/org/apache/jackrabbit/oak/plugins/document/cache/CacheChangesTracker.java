@@ -63,7 +63,8 @@ public class CacheChangesTracker implements Closeable {
             if (lazyBloomFilter.filter == null) {
                 LOG.debug("Disposing CacheChangesTracker for {}, no filter was needed", keyFilter);
             } else {
-                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter, "TBD");
+                LOG.debug("Disposing CacheChangesTracker for {}, filter fpp was: {}", keyFilter,
+                        lazyBloomFilter.filter.expectedFpp());
             }
         }
     }

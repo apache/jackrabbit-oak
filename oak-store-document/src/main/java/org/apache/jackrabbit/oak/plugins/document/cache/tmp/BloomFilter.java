@@ -101,6 +101,15 @@ public class BloomFilter {
     }
 
     /**
+     * Get the expected false positive rate for the current entries in the
+     * filter. This will first calculate the estimated entry count, and then
+     * calculate the false positive probability from there.
+     */
+    public double expectedFpp() {
+        return calculateFpp(getEstimatedEntryCount(), getBitCount(), getK());
+    }
+
+    /**
      * Add an entry.
      *
      * @param hash the hash value (need to be a high quality hash code, with all
