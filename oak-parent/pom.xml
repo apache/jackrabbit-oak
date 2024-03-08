@@ -69,7 +69,7 @@
     <guava.osgi.import>com.google.common.*;version="[15.0,20)"</guava.osgi.import>
     <derby.version>10.14.2.0</derby.version>
     <jackson.version>2.16.2</jackson.version>
-    <testcontainers.version>1.19.0</testcontainers.version>
+    <testcontainers.version>1.19.7</testcontainers.version>
     <groovy.version>2.5.23</groovy.version>
     <!-- determines the bytecode version (i.e. the minimum JRE required to run the build artifact) -->
     <javaTargetVersion>8</javaTargetVersion>
