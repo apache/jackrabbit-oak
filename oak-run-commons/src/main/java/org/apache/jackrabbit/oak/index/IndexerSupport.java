@@ -30,7 +30,6 @@ import java.util.function.Function;
 import org.apache.commons.io.FileUtils;
 import org.apache.felix.inventory.Format;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -211,7 +210,6 @@ public class IndexerSupport {
     }
 
     /**
-     *
      * @param indexDefinitions
      * @return set of preferred path elements referred from the given set of index definitions.
      */
@@ -224,7 +222,6 @@ public class IndexerSupport {
     }
 
     /**
-     *
      * @param indexDefinitions set of IndexDefinition to be used to calculate the Path Predicate
      * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
      * @param <T>
@@ -235,11 +232,10 @@ public class IndexerSupport {
     }
 
     /**
-     *
      * @param pattern Pattern for a custom excludes regex based on which paths would be filtered out
      * @param typeToRepositoryPath Function to convert type <T> to valid repository path of type <String>
      * @param <T>
-     * @return filter predicate based on a matcher for a custom excludes regex based on which paths would be filtered out
+     * @return Return a predicate that should test true for all paths that do not match the provided regex pattern.
      */
     public <T> Predicate<T> getFilterPredicateBasedOnCustomRegex(Pattern pattern, Function<T, String> typeToRepositoryPath) {
         return t -> !pattern.matcher(typeToRepositoryPath.apply(t)).find();

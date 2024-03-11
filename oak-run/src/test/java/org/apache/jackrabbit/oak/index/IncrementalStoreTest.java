@@ -150,7 +150,7 @@ public class IncrementalStoreTest {
 
     @Test
     public void testWithGzipCompression() throws Exception {
-        // LZ4 compression is used by default - so disbale that, fallback is gzip
+        // LZ4 compression is used by default - so disable that, fallback is gzip
         System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(false);
