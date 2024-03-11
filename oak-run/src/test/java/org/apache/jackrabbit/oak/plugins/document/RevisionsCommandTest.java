@@ -136,7 +136,7 @@ public class RevisionsCommandTest {
 
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
 
         MongoConnection c = connectionFactory.getConnection();
@@ -161,7 +161,7 @@ public class RevisionsCommandTest {
     public void detailedGC() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
@@ -170,7 +170,7 @@ public class RevisionsCommandTest {
     public void detailedGCWithoutDryRun() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "false"));
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "false", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
     }
@@ -179,7 +179,7 @@ public class RevisionsCommandTest {
     public void detailedGCWithDryRun() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "true"));
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "true", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
@@ -188,7 +188,7 @@ public class RevisionsCommandTest {
     public void embeddedVerification() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC"));
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
         assertTrue(output.contains("EmbeddedVerification is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
@@ -197,7 +197,7 @@ public class RevisionsCommandTest {
     public void detailedGCWithoutEmbeddedVerification() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "false"));
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "false", "--entireRepo"));
         assertTrue(output.contains("EmbeddedVerification is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
     }
@@ -206,9 +206,34 @@ public class RevisionsCommandTest {
     public void detailedGCWithEmbeddedVerification() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "true"));
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "true", "--entireRepo"));
         assertTrue(output.contains("EmbeddedVerification is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithEmbeddedWithoutEntireRepoOrPath() {
+        ns.dispose();
+
+        String errOutput = captureSystemErr(new RevisionsCmd("detailedGC", "--verify", "true"));
+        assertTrue(errOutput.contains("--path or --entireRepo option is required for detailedGC command"));
+    }
+
+    @Test
+    public void detailedGCWithEmbeddedWithPath() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "true", "--path", "/"));
+        assertTrue(output.contains("EmbeddedVerification is enabled : true"));
+        assertTrue(output.contains("running detailedGC on the document: /"));
+    }
+
+    @Test
+    public void detailedGCWithEmbeddedWithNonExistingPath() {
+        ns.dispose();
+
+        String errOutput = captureSystemErr(new RevisionsCmd("detailedGC", "--verify", "true", "--path", "/non-existing-path"));
+        assertTrue(errOutput.contains("Document not found: /non-existing-path"));
     }
 
     @Test

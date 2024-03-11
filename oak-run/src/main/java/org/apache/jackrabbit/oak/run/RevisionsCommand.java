@@ -59,7 +59,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Boolean.TRUE;
-import static java.lang.Integer.getInteger;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
@@ -88,8 +87,8 @@ public class RevisionsCommand implements Command {
             "  reset          clear all persisted metadata",
             "  sweep          clean up uncommitted changes",
             "  detailedGC     perform detailed garbage collection i.e. remove unmerged branch commits, old ",
-            "                 revisions, deleted properties etc. Use the optional --path argument to perform the ",
-            "                 detailedGC only on the specific document"
+            "                 revisions, deleted properties etc. Use the --entireRepo to run it on the entire",
+            "                 repository, or --path argument to perform the detailedGC only on the specific document"
     );
 
     private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
@@ -115,6 +114,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> detailedGCOnly;
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
+        final OptionSpec<?> entireRepo;
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
 
@@ -149,6 +149,8 @@ public class RevisionsCommand implements Command {
                     .accepts("verbose", "print INFO messages to the console");
             path = parser
                     .accepts("path", "path to the document to be cleaned up").withRequiredArg();
+            entireRepo = parser
+                    .accepts("entireRepo", "run detailedGC on the entire repository");
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -211,6 +213,10 @@ public class RevisionsCommand implements Command {
         boolean isVerbose() {
             return options.has(verbose);
         }
+
+        boolean isEntireRepo() {
+            return options.has(entireRepo);
+        }
     }
 
     @Override
@@ -230,11 +236,15 @@ public class RevisionsCommand implements Command {
             } else if (RevisionsOptions.CMD_SWEEP.equals(subCmd)) {
                 sweep(options, closer);
             } else if (RevisionsOptions.CMD_DETAILED_GC.equals(subCmd)) {
+                boolean entireRepo = options.isEntireRepo();
                 String path = options.getPath();
-                if (path != null && !path.isEmpty()) {
+                if (entireRepo) {
+                    collect(options, closer, true);
+                } else if (path != null && !path.isEmpty()) {
                     collectDocument(options, closer, path);
                 } else {
-                    collect(options, closer, true);
+                    System.err.println("--path or --entireRepo option is required for " +
+                        RevisionsOptions.CMD_DETAILED_GC + " command");
                 }
             } else {
                 System.err.println("unknown revisions command: " + subCmd);
@@ -486,6 +496,7 @@ public class RevisionsCommand implements Command {
             return;
         }
 
+        System.out.println("running detailedGC on the document: " + path);
         DocumentStore documentStore = builder.getDocumentStore();
         builder.setReadOnlyMode();
         useMemoryBlobStore(builder);
@@ -496,6 +507,10 @@ public class RevisionsCommand implements Command {
         gc.setGCMonitor(new LoggingGCMonitor(LOG));
         // Run detailedGC on the given document
         NodeDocument workingDocument = documentStore.find(NODES, getIdFromPath(path));
+        if (workingDocument == null) {
+            System.err.println("Document not found: " + path);
+            return;
+        }
         gc.collectGarbageOnDocument(documentNodeStore, workingDocument, options.isVerbose());
 
         //TODO: Probably we should output some details of detailedGCStats. Could be done after OAK-10378
