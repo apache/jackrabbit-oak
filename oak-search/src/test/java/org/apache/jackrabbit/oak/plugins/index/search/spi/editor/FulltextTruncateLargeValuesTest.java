@@ -14,11 +14,10 @@ import org.apache.jackrabbit.oak.plugins.memory.MultiStringPropertyState;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.junit.Test;
 
-public class LuceneTruncateLargeValuesTest {
+public class FulltextTruncateLargeValuesTest {
 
     @Test
-    public void testSingleValuePropertyTruncation() {
-        // empty string
+    public void testSingleValueTruncation() {
         PropertyState emptyStringProperty = StringPropertyState.stringProperty("empty", "");
         assertEquals("", FulltextDocumentMaker.truncateForLogging(emptyStringProperty));
 
@@ -33,26 +32,29 @@ public class LuceneTruncateLargeValuesTest {
             FulltextDocumentMaker.truncateForLogging(exactSizeString));
 
         // Truncation here as the value exceeds the truncation size
-        PropertyState longerString = StringPropertyState.stringProperty("exceed",
+        PropertyState exceedingTruncationSizeString = StringPropertyState.stringProperty(
+            "exceedingTruncationSize",
             "a".repeat(LOG_TRUNCATION_LENGTH + 10));
         assertEquals("a".repeat(LOG_TRUNCATION_LENGTH) + "...",
-            FulltextDocumentMaker.truncateForLogging(longerString));
+            FulltextDocumentMaker.truncateForLogging(exceedingTruncationSizeString));
     }
 
     @Test
-    public void testTruncateForLogging() {
+    public void testMultiValueTruncation() {
         // empty list property
         PropertyState emptyListProperty = MultiStringPropertyState.emptyProperty("empty",
             Type.STRINGS);
         assertEquals("[]", FulltextDocumentMaker.truncateForLogging(emptyListProperty));
 
-        // 200 elements of "x". This list's string representation is longer than the truncation length.
-        // So it will be a string "[x, x, x, x...]" whose length is the truncation length + 1 since we
-        // append a "]" at the end.
+        // 200 elements of "x". This list's string representation "[x, x, x, x...]" has a length
+        // longer than the truncation limit.
         List<String> manyRepeated = Collections.nCopies(200, "x");
         PropertyState simpleMultiStringProperty = MultiStringPropertyState.stringProperty(
             "repeated", manyRepeated);
-        String expected = manyRepeated.toString().substring(0, LOG_TRUNCATION_LENGTH) + "..." + "]";
+        // expect the string to be a string "[x, x, x, x...]" that has a length of 128.
+        String expected =
+            Collections.nCopies(120, "x").toString().substring(0, LOG_TRUNCATION_LENGTH) + "..."
+                + "]";
         assertEquals(expected, FulltextDocumentMaker.truncateForLogging(simpleMultiStringProperty));
 
         List<Long> numbers = LongStream.rangeClosed(0, 1000).boxed().collect(Collectors.toList());
@@ -61,7 +63,6 @@ public class LuceneTruncateLargeValuesTest {
         expected = numbers.toString().substring(0, LOG_TRUNCATION_LENGTH) + "..." + "]";
         assertEquals(expected, FulltextDocumentMaker.truncateForLogging(listLongProperty));
 
-        // few
         List<String> longStrings = List.of("x".repeat(100), "y".repeat(20), "z".repeat(100));
         PropertyState longStringsInList = MultiStringPropertyState.stringProperty("longStrings",
             longStrings);
