@@ -74,8 +74,16 @@ History
                 2022-12 +-+ 1.46 | 1.22.13
   min JDK 11 -> 2023-03 +-+ 1.50 | 1.22.14
                 2023-06 +-+ 1.52 | 1.22.15
-                2023-09 +-+ 1.56 | 1.22.17
-Guava shaded -> 2023-11 +-+ 1.58 | 1.22.18
+Guava shaded -> 2023-09 +-+ 1.56 | 1.22.17
                 2023-12 +-+ 1.60 |
 ~~~
 
+The comments on the left side refer to backwards-incompatible changes, which,
+by default, are not ported to maintenance branches.
+
+"JDK 14 comp" refers to issue [OAK-7358](https://issues.apache.org/jira/browse/OAK-7358),
+which was necessary to keep compatiblity with JDK 14.
+
+"Guava shaded" refers to issue [OAK-10323](https://issues.apache.org/jira/browse/OAK-10323),
+which was necessary to remove all API usages of the Guava library (Oak now internally
+uses a shaded copy of Guava, which is not visible in Oak APIs anymore).
