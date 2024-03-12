@@ -28,8 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -76,7 +74,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
 
     private static final String DYNAMIC_BOOST_TAG_NAME = "name";
     private static final String DYNAMIC_BOOST_TAG_CONFIDENCE = "confidence";
-    static final int LOG_TRUNCATION_LENGTH = 128;
 
     private final FulltextBinaryTextExtractor textExtractor;
     protected final IndexDefinition definition;
@@ -321,8 +318,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                 }
                             } catch (Exception e) {
                                 log.error(
-                                    "could not index similarity field for property {} : {} and definition {}",
-                                    property.getName(), truncateForLogging(property), pd);
+                                    "could not index similarity field for property {} and definition {}",
+                                    property.getName(), pd);
                             }
                         }
                     }
@@ -339,39 +336,6 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
         }
 
         return dirty;
-    }
-
-    static String getValueAsTruncatedString(Object val) {
-        String value = val.toString().trim();
-        boolean isArray = value.startsWith("[") && value.endsWith("]");
-        if (value.length() <= LOG_TRUNCATION_LENGTH) {
-            return value;
-        }
-
-        String truncatedValue = value.substring(0, LOG_TRUNCATION_LENGTH) + "...";
-
-        if (isArray) {
-            truncatedValue += "]";
-        }
-
-        return truncatedValue;
-    }
-
-    static String truncateForLogging(PropertyState property) {
-        Type<?> t = property.getType();
-        if (t.isArray()) {
-            if (property.count() == 0) {
-                return "[]";
-            }
-
-            Type<?> base = t.getBaseType();
-
-            return getValueAsTruncatedString(IntStream.range(0, property.count())
-                                                      .mapToObj(i -> property.getValue(base, i))
-                                                      .collect(Collectors.toList()).toString());
-        }
-
-        return getValueAsTruncatedString(property.getValue(t));
     }
 
     /**
