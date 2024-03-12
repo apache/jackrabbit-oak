@@ -135,13 +135,13 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
                 description = "each item should be in the form TypeString=FieldName (e.g. STRING=text_general)",
                 cardinality = 13
         )
-        String[] type_mappings();
+        String[] type_mappings() default OakSolrConfigurationDefaults.TYPE_MAPPINGS;
 
         @AttributeDefinition(
                 name = "mappings from JCR property names to Solr fields",
                 description = "each item should be in the form PropertyName=FieldName (e.g. jcr:title=text_en)"
         )
-        String[] property_mappings();
+        String[] property_mappings() default OakSolrConfigurationDefaults.PROPERTY_MAPPINGS;
 
         @AttributeDefinition(
                 name = "collapse jcr:content nodes"

@@ -36,6 +36,8 @@ public class OakSolrConfigurationDefaults {
     public static final boolean PRIMARY_TYPES = false;
     public static final Collection<String> IGNORED_PROPERTIES = Collections.unmodifiableCollection(
             Arrays.asList("rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"));
+    public static final String TYPE_MAPPINGS = "";
+    public static final String PROPERTY_MAPPINGS = "";
     public static final boolean COLLAPSE_JCR_CONTENT_NODES = false;
     public static final String COLLAPSED_PATH_FIELD = "path_collapsed";
     public static final String PATH_DEPTH_FIELD = "path_depth";
