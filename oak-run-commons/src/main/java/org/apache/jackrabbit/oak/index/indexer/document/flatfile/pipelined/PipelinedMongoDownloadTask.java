@@ -60,7 +60,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -189,8 +188,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         List<Pattern> filterPatterns = compileExcludedDirectoriesRegex(mongoFilterPaths.excluded);
         filterPatterns.forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
-        Optional<Pattern> customRegexExcludePattern = compileCustomExcludedPatterns(customExcludeEntriesRegex);
-        customRegexExcludePattern.ifPresent(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
+        Pattern customRegexExcludePattern = compileCustomExcludedPatterns(customExcludeEntriesRegex);
+        if (customRegexExcludePattern != null) {
+            filters.add(Filters.regex(NodeDocument.ID, customRegexExcludePattern));
+        }
 
         if (filters.isEmpty()) {
             return null;
@@ -238,14 +239,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         return Pattern.compile("^(?!" + regex + ")");
     }
 
-    static Optional<Pattern> compileCustomExcludedPatterns(String customRegexPattern) {
+    static Pattern compileCustomExcludedPatterns(String customRegexPattern) {
         if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
             LOG.info("Mongo custom regex is disabled");
-            return Optional.empty();
+            return null;
         } else {
             LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
             var negatedRegex = "^(?!.*(" + customRegexPattern + ")$)";
-            return Optional.of(Pattern.compile(negatedRegex));
+            return Pattern.compile(negatedRegex);
         }
     }
 
