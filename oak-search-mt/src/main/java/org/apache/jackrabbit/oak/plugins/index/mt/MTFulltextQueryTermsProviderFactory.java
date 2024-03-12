@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Factory for {@link MTFulltextQueryTermsProvider}
+ * @deprecated see OAK-10694
  */
 @Component(
         service = { FulltextQueryTermsProvider.class },
@@ -52,6 +53,7 @@ import org.slf4j.LoggerFactory;
 @Designate(
         ocd = MTFulltextQueryTermsProviderFactory.Configuration.class,
         factory = true )
+@Deprecated(forRemoval = true)
 public class MTFulltextQueryTermsProviderFactory implements FulltextQueryTermsProvider {
 
     @ObjectClassDefinition(
