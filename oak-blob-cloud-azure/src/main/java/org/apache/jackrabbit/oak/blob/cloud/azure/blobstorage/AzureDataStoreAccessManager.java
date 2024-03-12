@@ -42,6 +42,7 @@ import java.security.InvalidKeyException;
 import java.time.Instant;
 import java.util.Date;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Properties;
 
 public class AzureDataStoreAccessManager {
@@ -221,10 +222,37 @@ public class AzureDataStoreAccessManager {
                                                       SharedAccessBlobPolicy policy,
                                                       SharedAccessBlobHeaders optionalHeaders,
                                                       Date expiry) throws StorageException {
+        fillEmptyHeaders(optionalHeaders);
         UserDelegationKey userDelegationKey = blob.getServiceClient().getUserDelegationKey(Date.from(Instant.now().minusSeconds(900)),
                 expiry);
         return optionalHeaders == null ? blob.generateUserDelegationSharedAccessSignature(userDelegationKey, policy) :
                 blob.generateUserDelegationSharedAccessSignature(userDelegationKey, policy, optionalHeaders, null, null);
+    }
+
+    /* set empty headers as blank string due to a bug in Azure SDK
+     * Azure SDK considers null headers as 'null' string which corrupts the string to sign and generates an invalid
+     * sas token
+     * */
+    private void fillEmptyHeaders(SharedAccessBlobHeaders sharedAccessBlobHeaders) {
+        final String EMPTY_STRING = "";
+        Optional.ofNullable(sharedAccessBlobHeaders)
+                .ifPresent(headers -> {
+                    if (StringUtils.isBlank(headers.getCacheControl())) {
+                        headers.setCacheControl(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentDisposition())) {
+                        headers.setContentDisposition(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentEncoding())) {
+                        headers.setContentEncoding(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentLanguage())) {
+                        headers.setContentLanguage(EMPTY_STRING);
+                    }
+                    if (StringUtils.isBlank(headers.getContentType())) {
+                        headers.setContentType(EMPTY_STRING);
+                    }
+                });
     }
 
     @NotNull
