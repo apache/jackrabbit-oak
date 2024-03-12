@@ -51,9 +51,11 @@ public class FulltextTruncateLargeValuesTest {
         List<String> manyRepeated = Collections.nCopies(200, "x");
         PropertyState simpleMultiStringProperty = MultiStringPropertyState.stringProperty(
             "repeated", manyRepeated);
+
         // expect the string to be a string "[x, x, x, x...]" that has a length of 128.
         String expected =
-            Collections.nCopies(120, "x").toString().substring(0, LOG_TRUNCATION_LENGTH) + "..."
+            Collections.nCopies(120, "x").toString().substring(0, LOG_TRUNCATION_LENGTH).trim()
+                + "..."
                 + "]";
         assertEquals(expected, FulltextDocumentMaker.truncateForLogging(simpleMultiStringProperty));
 
