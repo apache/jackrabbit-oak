@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.jcr.PropertyType;
 
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -340,10 +342,19 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
     }
 
     static String getValueAsTruncatedString(Object val) {
-        String value = val.toString();
+        String value = val.toString().trim();
         boolean isArray = value.startsWith("[") && value.endsWith("]");
-        return value.length() <= LOG_TRUNCATION_LENGTH ? value
-            : value.substring(0, LOG_TRUNCATION_LENGTH) + "..." + (isArray ? "]" : "");
+        if (value.length() <= LOG_TRUNCATION_LENGTH) {
+            return value;
+        }
+
+        String truncatedValue = value.substring(0, LOG_TRUNCATION_LENGTH) + "...";
+
+        if (isArray) {
+            truncatedValue += "]";
+        }
+
+        return truncatedValue;
     }
 
     static String truncateForLogging(PropertyState property) {
@@ -354,17 +365,10 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
             }
 
             Type<?> base = t.getBaseType();
-            StringBuilder sb = new StringBuilder();
-            sb.append("[");
-            for (int i = 0; i < property.count(); i++) {
-                sb.append(property.getValue(base, i));
-                if (i < property.count() - 1) {
-                    sb.append(", ");
-                }
-            }
-            sb.append("]");
 
-            return getValueAsTruncatedString(sb.toString());
+            return getValueAsTruncatedString(IntStream.range(0, property.count())
+                                                      .mapToObj(i -> property.getValue(base, i))
+                                                      .collect(Collectors.toList()).toString());
         }
 
         return getValueAsTruncatedString(property.getValue(t));
