@@ -38,10 +38,24 @@
                 <configuration>
                     <instructions combine.self="override">
                         <Import-Package>
-                          !com.google.*,
-                          !org.checkerframework.*,
-                          !android.os,
-                          *
+                            com.microsoft.aad.msal4j*;resolution:=optional,
+                            com.nimbusds.common.contenttype;resolution:=optional,
+                            com.nimbusds.jose*;resolution:=optional,
+                            com.nimbusds.jwt;resolution:=optional,
+                            com.nimbusds.jwt.util;resolution:=optional,
+                            com.nimbusds.oauth2.sdk*;resolution:=optional,
+                            com.nimbusds.jwt.proc;resolution:=optional,
+                            com.nimbusds.langtag;resolution:=optional,
+                            com.nimbusds.openid.connect.sdk*;resolution:=optional,
+                            com.nimbusds.secevent.sdk*;resolution:=optional,
+                            com.sun.jna*;resolution:=optional,
+                            !com.google.*,
+                            !org.checkerframework.*,
+                            !android.os,
+                            !org.reactivestreams.*,
+                            !reactor.core.*,
+                            !reactor.util.*,
+                            *
                         </Import-Package>
                         <Export-Package>
                             org.apache.jackrabbit.oak.blob.cloud.azure.blobstorage
@@ -50,7 +64,11 @@
                         <Embed-Dependency>
                             azure-storage,
                             azure-keyvault-core,
+                            azure-core,
                             azure-identity,
+                            azure-identity-broker,
+                            azure-json,
+                            azure-xml,
                             guava,
                             jsr305
                         </Embed-Dependency>
@@ -148,6 +166,22 @@
         <dependency>
             <groupId>com.azure</groupId>
             <artifactId>azure-identity</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-identity-broker</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-json</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.azure</groupId>
+            <artifactId>azure-xml</artifactId>
         </dependency>
         <!-- Azure Guava dependency -->
         <dependency>
