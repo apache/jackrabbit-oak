@@ -47,7 +47,9 @@ import org.slf4j.LoggerFactory;
 /**
  * {@link FulltextQueryTermsProvider} that performs machine translation on full text returning a query containing
  * translated tokens.
+ * @deprecated see OAK-10694
  */
+@Deprecated(forRemoval = true)
 public class MTFulltextQueryTermsProvider implements FulltextQueryTermsProvider {
 
     private final Logger log = LoggerFactory.getLogger(getClass());
