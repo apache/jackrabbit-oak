@@ -38,6 +38,10 @@
                 <configuration>
                     <instructions combine.self="override">
                         <Import-Package>
+                            com.fasterxml.jackson.annotation;resolution:=optional,
+                            com.fasterxml.jackson.databind*;resolution:=optional,
+                            com.fasterxml.jackson.dataformat.xml;resolution:=optional,
+                            com.fasterxml.jackson.datatype*;resolution:=optional,
                             com.microsoft.aad.msal4j*;resolution:=optional,
                             com.nimbusds.common.contenttype;resolution:=optional,
                             com.nimbusds.jose*;resolution:=optional,
