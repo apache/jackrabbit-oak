@@ -53,8 +53,8 @@ import java.util.stream.IntStream;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.LONG_PATH_ID_PATTERN;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -299,14 +299,14 @@ public class PipelinedMongoDownloadTaskTest {
 
     @Test
     public void createCustomExcludeEntriesFilter() {
-        assertTrue(PipelinedMongoDownloadTask.customExcludedPatterns(null).isEmpty());
-        assertTrue(PipelinedMongoDownloadTask.customExcludedPatterns("").isEmpty());
+        assertNull(PipelinedMongoDownloadTask.compileCustomExcludedPatterns(null));
+        assertNull(PipelinedMongoDownloadTask.compileCustomExcludedPatterns(""));
 
-        Pattern p = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
-        var actualListOfPatterns = PipelinedMongoDownloadTask.customExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
-        assertEquals(1, actualListOfPatterns.size());
+        Pattern p = Pattern.compile("^(?!.*(^[0-9]{1,3}:/a/b.*$)$)");
+        var actualListOfPatterns = PipelinedMongoDownloadTask.compileCustomExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
+        assertNotNull(actualListOfPatterns);
 
-        assertEquals(p.toString(), actualListOfPatterns.get(0).toString());
+        assertEquals(p.toString(), actualListOfPatterns.toString());
     }
 
     @Test
@@ -328,11 +328,10 @@ public class PipelinedMongoDownloadTaskTest {
                 null
         );
         // The generated filter should not include any condition to include the descendants of /
-        var expected =
-                Filters.nin(NodeDocument.ID,
-                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded1/")),
-                        Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/content/excluded2/"))
-                );
+        var expected = Filters.and(
+                Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.compileExcludedDirectoryRegex("^[0-9]{1,3}:" + Pattern.quote("/excluded1/"))),
+                Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.compileExcludedDirectoryRegex("^[0-9]{1,3}:" + Pattern.quote("/content/excluded2/"))
+                ));
         assertBsonEquals(expected, actual);
     }
 
@@ -357,7 +356,9 @@ public class PipelinedMongoDownloadTaskTest {
                 MongoFilterPaths.DOWNLOAD_ALL,
                 "^[0-9]{1,3}:/a/b.*$"
         );
-        Bson expectedFilter = Filters.nin(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:/a/b.*$"));
+        var customExcludedPattern = PipelinedMongoDownloadTask.compileCustomExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
+        assertNotNull(customExcludedPattern);
+        Bson expectedFilter = Filters.regex(NodeDocument.ID, customExcludedPattern);
         assertBsonEquals(expectedFilter, actual);
     }
 
@@ -368,11 +369,12 @@ public class PipelinedMongoDownloadTaskTest {
                 "^[0-9]{1,3}:/a/b.*$"
         );
 
-        Pattern excludesPattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
+        Pattern excludesPattern = PipelinedMongoDownloadTask.compileCustomExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
+        assertNotNull(excludesPattern);
         var expected =
                 Filters.and(
                         Filters.in(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/")), LONG_PATH_ID_PATTERN),
-                        Filters.nin(NodeDocument.ID, excludesPattern)
+                        Filters.regex(NodeDocument.ID, excludesPattern)
                 );
         assertBsonEquals(expected, actual);
     }
@@ -384,14 +386,15 @@ public class PipelinedMongoDownloadTaskTest {
                 "^[0-9]{1,3}:/a/b.*$"
         );
 
-        Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
+        Pattern excludePattern = PipelinedMongoDownloadTask.compileCustomExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
+        assertNotNull(excludePattern);
         var expected =
                 Filters.and(
                         Filters.in(NodeDocument.ID,
                                 Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/parent/")),
                                 LONG_PATH_ID_PATTERN
                         ),
-                        Filters.nin(NodeDocument.ID, excludePattern)
+                        Filters.regex(NodeDocument.ID, excludePattern)
                 );
         assertBsonEquals(expected, actual);
     }
@@ -403,9 +406,12 @@ public class PipelinedMongoDownloadTaskTest {
                 "^[0-9]{1,3}:/a/b.*$"
         );
 
-        Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
-        var expected =
-                Filters.nin(NodeDocument.ID, Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/")), excludePattern);
+        Pattern excludePattern = PipelinedMongoDownloadTask.compileCustomExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
+        assertNotNull(excludePattern);
+        var expected = Filters.and(
+                Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.compileExcludedDirectoryRegex("^[0-9]{1,3}:" + Pattern.quote("/excluded/"))),
+                Filters.regex(NodeDocument.ID, excludePattern)
+        );
         assertBsonEquals(expected, actual);
     }
 
@@ -416,10 +422,11 @@ public class PipelinedMongoDownloadTaskTest {
                 "^[0-9]{1,3}:/a/b.*$"
         );
 
-        Pattern excludePattern = Pattern.compile("^[0-9]{1,3}:/a/b.*$");
-        var expected = Filters.nin(NodeDocument.ID,
-                Pattern.compile("^[0-9]{1,3}:" + Pattern.quote("/excluded/")),
-                excludePattern
+        Pattern excludePattern = PipelinedMongoDownloadTask.compileCustomExcludedPatterns("^[0-9]{1,3}:/a/b.*$");
+        assertNotNull(excludePattern);
+        var expected = Filters.and(
+                Filters.regex(NodeDocument.ID, PipelinedMongoDownloadTask.compileExcludedDirectoryRegex("^[0-9]{1,3}:" + Pattern.quote("/excluded/"))),
+                Filters.regex(NodeDocument.ID, excludePattern)
         );
         assertBsonEquals(expected, actual);
     }

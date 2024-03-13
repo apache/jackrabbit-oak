@@ -159,7 +159,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>();
 
-        List<Pattern> includedPatterns = toFilterPatterns(mongoFilterPaths.included);
+        List<Pattern> includedPatterns = compileIncludedDirectoriesRegex(mongoFilterPaths.included);
         if (!includedPatterns.isEmpty()) {
             // The conditions above on the _id field is not enough to match all JCR nodes in the given paths because nodes
             // with paths longer than a certain threshold, are represented by Mongo documents where the _id field is replaced
@@ -185,13 +185,12 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         // This is done because excluding also the top level path would add extra complexity to the filter and
         // would not have any measurable impact on performance because it only downloads a few extra documents, one
         // for each excluded subtree. The transform stage will anyway filter out these paths.
-        ArrayList<Pattern> excludedPatterns = new ArrayList<>();
-        excludedPatterns.addAll(toFilterPatterns(mongoFilterPaths.excluded));
-        // Custom regex filter to exclude paths
-        excludedPatterns.addAll(customExcludedPatterns(customExcludeEntriesRegex));
+        List<Pattern> filterPatterns = compileExcludedDirectoriesRegex(mongoFilterPaths.excluded);
+        filterPatterns.forEach(p -> filters.add(Filters.regex(NodeDocument.ID, p)));
 
-        if (!excludedPatterns.isEmpty()) {
-            filters.add(Filters.nin(NodeDocument.ID, excludedPatterns));
+        Pattern customRegexExcludePattern = compileCustomExcludedPatterns(customExcludeEntriesRegex);
+        if (customRegexExcludePattern != null) {
+            filters.add(Filters.regex(NodeDocument.ID, customRegexExcludePattern));
         }
 
         if (filters.isEmpty()) {
@@ -203,7 +202,15 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
-    private static List<Pattern> toFilterPatterns(List<String> paths) {
+    private static List<Pattern> compileIncludedDirectoriesRegex(List<String> includedPaths) {
+        return compileDirectoryRegex(includedPaths, false);
+    }
+
+    private static List<Pattern> compileExcludedDirectoriesRegex(List<String> excludedPaths) {
+        return compileDirectoryRegex(excludedPaths, true);
+    }
+
+    private static List<Pattern> compileDirectoryRegex(List<String> paths, boolean negate) {
         if (paths.isEmpty()) {
             return List.of();
         }
@@ -215,19 +222,31 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             if (!path.endsWith("/")) {
                 path = path + "/";
             }
-            String quotedPath = Pattern.quote(path);
-            patterns.add(Pattern.compile("^[0-9]{1,3}:" + quotedPath));
+            String regex = "^[0-9]{1,3}:" + Pattern.quote(path);
+            Pattern pattern;
+            if (negate) {
+                pattern = compileExcludedDirectoryRegex(regex);
+            } else {
+                pattern = Pattern.compile(regex);
+            }
+            patterns.add(pattern);
         }
         return patterns;
     }
 
-    static List<Pattern> customExcludedPatterns(String customRegexPattern) {
+    static Pattern compileExcludedDirectoryRegex(String regex) {
+        // https://stackoverflow.com/questions/1240275/how-to-negate-specific-word-in-regex
+        return Pattern.compile("^(?!" + regex + ")");
+    }
+
+    static Pattern compileCustomExcludedPatterns(String customRegexPattern) {
         if (customRegexPattern == null || customRegexPattern.trim().isEmpty()) {
             LOG.info("Mongo custom regex is disabled");
-            return List.of();
+            return null;
         } else {
             LOG.info("Excluding nodes with paths matching regex: {}", customRegexPattern);
-            return List.of(Pattern.compile(customRegexPattern));
+            var negatedRegex = "^(?!.*(" + customRegexPattern + ")$)";
+            return Pattern.compile(negatedRegex);
         }
     }
 
@@ -343,7 +362,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, excludePathsString);
         if (excludePathsString.isEmpty()) {
             this.customExcludedPaths = List.of();
-        } else  if (!regexPathFiltering) {
+        } else if (!regexPathFiltering) {
             LOG.info("Ignoring custom excluded paths because regex path filtering is disabled");
             this.customExcludedPaths = List.of();
         } else {
