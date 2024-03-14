@@ -40,7 +40,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPat
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assume.assumeTrue;
 
@@ -122,6 +122,33 @@ public class RevisionsCommandTest {
     }
 
     @Test
+    public void resetDetailedGCWithDetailedGC() throws Exception {
+        // need to set detailedGCEnabled to true, so let's bounce the default one
+        ns.dispose();
+        // and create it fresh with detailedGCEnabled==true
+        ns = createDocumentNodeStore(true);
+        ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
+
+        Document doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(doc);
+        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--resetDetailedGC", "true", "--entireRepo"));
+        assertTrue(output.contains("ResetDetailedGC is enabled : true"));
+
+        MongoConnection c = connectionFactory.getConnection();
+        assertNotNull(c);
+        ns = builderProvider.newBuilder().setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
+        doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
+        assertNotNull(doc);
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+    }
+
+    @Test
     public void resetDryRunFields() throws Exception {
         // need to set detailedGCEnabled to true, so let's bounce the default one
         ns.dispose();
@@ -163,6 +190,7 @@ public class RevisionsCommandTest {
 
         String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("ResetDetailedGC is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
     }
 
@@ -181,6 +209,24 @@ public class RevisionsCommandTest {
 
         String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "true", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithoutResetDetailedGC() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--resetDetailedGC", "false", "--entireRepo"));
+        assertTrue(output.contains("ResetDetailedGC is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithResetDetailedGC() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--resetDetailedGC", "true", "--entireRepo"));
+        assertTrue(output.contains("ResetDetailedGC is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
@@ -237,7 +283,7 @@ public class RevisionsCommandTest {
     }
 
     @Test
-    public void sweep() throws Exception {
+    public void sweep() {
         int clusterId = ns.getClusterId();
         String output = captureSystemErr(new Sweep(clusterId));
         assertThat(output, containsString("cannot sweep revisions for active clusterId"));
@@ -312,13 +358,13 @@ public class RevisionsCommandTest {
 
         public RevisionsCmd(String... args) {
             this.args = ImmutableList.<String>builder().add(MongoUtils.URL)
-                    .add(args).build().asList();
+                    .add(args).build();
         }
 
         @Override
         public void run() {
             try {
-                new RevisionsCommand().execute(args.toArray(new String[args.size()]));
+                new RevisionsCommand().execute(args.toArray(new String[0]));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

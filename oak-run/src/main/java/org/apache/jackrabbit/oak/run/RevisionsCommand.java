@@ -17,7 +17,6 @@
 package org.apache.jackrabbit.oak.run;
 
 import org.apache.jackrabbit.guava.common.base.Joiner;
-import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.io.Closer;
 
 import java.io.IOException;
@@ -58,8 +57,11 @@ import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
+import static java.util.List.of;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.commons.lang3.StringUtils.isNotEmpty;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreHelper.createVersionGC;
 import static org.apache.jackrabbit.oak.plugins.document.FormatVersion.versionOf;
@@ -91,7 +93,7 @@ public class RevisionsCommand implements Command {
             "                 repository, or --path argument to perform the detailedGC only on the specific document"
     );
 
-    private static final ImmutableList<String> LOGGER_NAMES = ImmutableList.of(
+    private static final List<String> LOGGER_NAMES = of(
             "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
             "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper"
     );
@@ -110,8 +112,8 @@ public class RevisionsCommand implements Command {
         final OptionSpec<Long> olderThan;
         final OptionSpec<Double> delay;
         final OptionSpec<?> continuous;
-        final OptionSpec<?> detailedGC;
         final OptionSpec<?> detailedGCOnly;
+        final OptionSpec<Boolean> resetDetailedGC;
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
         final OptionSpec<?> entireRepo;
@@ -141,8 +143,6 @@ public class RevisionsCommand implements Command {
                     .withRequiredArg().ofType(Boolean.class).defaultsTo(TRUE);
             continuous = parser
                     .accepts("continuous", "run continuously (collect only)");
-            detailedGC = parser
-                    .accepts("detailedGC", "enable detailedGC (collect only)");
             detailedGCOnly = parser
                     .accepts("detailedGCOnly", "apply only to detailedGC (reset only)");
             verbose = parser
@@ -151,6 +151,9 @@ public class RevisionsCommand implements Command {
                     .accepts("path", "path to the document to be cleaned up").withRequiredArg();
             entireRepo = parser
                     .accepts("entireRepo", "run detailedGC on the entire repository");
+            resetDetailedGC = parser
+                    .accepts("resetDetailedGC", "reset detailedGC after running DetailedGC")
+                    .withRequiredArg().ofType(Boolean.class).defaultsTo(FALSE);
         }
 
         public RevisionsOptions parse(String[] args) {
@@ -160,7 +163,7 @@ public class RevisionsCommand implements Command {
 
         String getSubCmd() {
             List<String> args = getOtherArgs();
-            if (args.size() > 0) {
+            if (!args.isEmpty()) {
                 return args.get(0);
             }
             return "info";
@@ -202,12 +205,12 @@ public class RevisionsCommand implements Command {
             return path.value(options);
         }
 
-        boolean isDetailedGCEnabled() {
-            return options.has(detailedGC);
-        }
-
         boolean isResetDetailedGCOnly() {
             return options.has(detailedGCOnly);
+        }
+
+        boolean resetDetailedGC() {
+            return resetDetailedGC.value(options);
         }
 
         boolean isVerbose() {
@@ -240,7 +243,7 @@ public class RevisionsCommand implements Command {
                 String path = options.getPath();
                 if (entireRepo) {
                     collect(options, closer, true);
-                } else if (path != null && !path.isEmpty()) {
+                } else if (isNotEmpty(path)) {
                     collectDocument(options, closer, path);
                 } else {
                     System.err.println("--path or --entireRepo option is required for " +
@@ -288,9 +291,6 @@ public class RevisionsCommand implements Command {
                     version);
             System.exit(1);
         }
-        if (options.isDetailedGCEnabled()) {
-            builder.setDetailedGCEnabled(true);
-        }
         if (options.isEmbeddedVerificationEnabled()) {
             builder.setEmbeddedVerificationEnabled(true);
         }
@@ -303,6 +303,7 @@ public class RevisionsCommand implements Command {
         // and a GC support with a writable DocumentStore
         System.out.println("DryRun is enabled : " + options.isDryRun());
         System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
+        System.out.println("ResetDetailedGC is enabled : " + options.resetDetailedGC());
         VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isDetailedGCEnabled(builder),
                 options.isDryRun(), isEmbeddedVerificationEnabled(builder));
 
@@ -381,6 +382,9 @@ public class RevisionsCommand implements Command {
             finished.release();
             if (options.isDryRun()) {
                 gc.resetDryRun();
+            }
+            if (options.resetDetailedGC()) {
+                gc.resetDetailedGC();
             }
             executor.shutdownNow();
         }
