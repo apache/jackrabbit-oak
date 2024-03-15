@@ -273,7 +273,7 @@ public class VersionGarbageCollectorIT {
         long maxAge = 1; //hours
         long delta = TimeUnit.MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
-        clock.waitUntil(Revision.getCurrentTimestamp() + maxAge);
+        clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedDocGCCount);
 
@@ -555,7 +555,7 @@ public class VersionGarbageCollectorIT {
             }
             store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
             // increase the clock to create new revision for next batch
-            clock.waitUntil(Revision.getCurrentTimestamp() + (k * 5));
+            clock.waitUntil(getCurrentTimestamp() + (k * 5));
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
@@ -2065,7 +2065,7 @@ public class VersionGarbageCollectorIT {
         merge(store1, builder);
 
         String id = Utils.getIdFromPath("/test");
-        long start = Revision.getCurrentTimestamp();
+        long start = getCurrentTimestamp();
         // simulate continuous writes once a second for one day
         // collect garbage older than one hour
         int hours = 24;
