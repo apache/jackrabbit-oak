@@ -17,13 +17,6 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal;
 
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Properties;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.api.security.principal.PrincipalManager;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.namepath.NamePathMapper;
@@ -51,6 +44,13 @@ import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.Option;
 
 import java.security.Principal;
 import java.util.Collections;
@@ -58,7 +58,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.apache.jackrabbit.oak.spi.security.RegistrationConstants.OAK_SECURITY_NAME;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDENTITIES;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED;
 import static org.apache.jackrabbit.oak.spi.security.authentication.external.impl.ExternalIdentityConstants.VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE;
@@ -75,34 +74,57 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
  * @see <a href="https://issues.apache.org/jira/browse/OAK-4101">OAK-4101</a>
  */
 @Component(
-        metatype = true,
-        label = "Apache Jackrabbit Oak External PrincipalConfiguration",
-        immediate = true
+        immediate = true,
+        service = {
+                PrincipalConfiguration.class,
+                SecurityConfiguration.class
+        }
 )
-@Service({PrincipalConfiguration.class, SecurityConfiguration.class})
-@Properties({
-        @Property(name = ExternalIdentityConstants.PARAM_PROTECT_EXTERNAL_IDS,
-                label = "External Identity Protection",
-                description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!",
-                boolValue = ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS),
-        @Property(name = PARAM_PROTECT_EXTERNAL_IDENTITIES,
-                label = "External User and Group Protection",
+@Designate(
+        ocd = ExternalPrincipalConfiguration.Configuration.class
+)
+public class ExternalPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration",
+            name = "Apache Jackrabbit Oak External PrincipalConfiguration"
+    )
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "External Identity Protection",
+                description = "If disabled rep:externalId properties won't be properly protected (backwards compatible behavior). NOTE: for security reasons it is strongly recommend to keep the protection enabled!"
+        )
+        boolean protectExternalId() default ExternalIdentityConstants.DEFAULT_PROTECT_EXTERNAL_IDS;
+
+        @AttributeDefinition(
+                name = "External User and Group Protection",
                 description = "If 'None' is selected the synchronized external users/groups won't be protected (backwards compatible behavior) and can be edited like local users/groups. NOTE: in order to avoid having inconsistencies between the IDP that defines the external identities and local synced identities it is recommend to enable the protection. With option 'Warn' the protection is disabled but warnings will be logged.",
                 options = {
-                    @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE),
-                    @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN),
-                    @PropertyOption(name = VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED, value = VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED)
-                }),
-        @Property(name = ExternalIdentityConstants.PARAM_SYSTEM_PRINCIPAL_NAMES, 
-                label = "System Principal Names", 
-                description = "Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check. Note that this configuration does not grant the required permission to perform the operation.", 
-                value = {}, 
-                cardinality = 10),
-        @Property(name = OAK_SECURITY_NAME,
-                propertyPrivate= true, 
-                value = "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration")
-})
-public class ExternalPrincipalConfiguration extends ConfigurationBase implements PrincipalConfiguration {
+                        @Option(
+                                label = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE,
+                                value = VALUE_PROTECT_EXTERNAL_IDENTITIES_NONE
+                        ),
+                        @Option(
+                                label = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN,
+                                value = VALUE_PROTECT_EXTERNAL_IDENTITIES_WARN
+                        ),
+                        @Option(
+                                label = VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED,
+                                value = VALUE_PROTECT_EXTERNAL_IDENTITIES_PROTECTED
+                        )
+                }
+        )
+        String protectExternalIdentities();
+
+        @AttributeDefinition(
+                name = "System Principal Names",
+                description = "Names of additional 'SystemUserPrincipal' instances that are excluded from the protection check. Note that this configuration does not grant the required permission to perform the operation.",
+                cardinality = 10
+        )
+        String[] systemPrincipalNames();
+
+        String oak_security_name() default "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration";
+    }
     
     private SyncConfigTracker syncConfigTracker;
     private SyncHandlerMappingTracker syncHandlerMappingTracker;
