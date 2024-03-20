@@ -1013,6 +1013,7 @@ public class VersionGarbageCollector {
                         break;
                     }
                     case OlderThan24AndBetweenCheckpointsMode : {
+                        collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
                         collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, phases, op);
                         break;
                     }
