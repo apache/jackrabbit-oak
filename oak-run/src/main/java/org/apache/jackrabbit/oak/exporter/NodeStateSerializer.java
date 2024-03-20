@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 
 import org.apache.jackrabbit.guava.common.io.Files;
 import com.google.gson.stream.JsonWriter;
@@ -36,7 +37,6 @@ import org.apache.jackrabbit.oak.plugins.blob.serializer.FSBlobSerializer;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
 
-import static org.apache.jackrabbit.guava.common.base.Charsets.UTF_8;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkArgument;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkState;
 
@@ -75,7 +75,7 @@ public class NodeStateSerializer {
             checkState(dir.mkdirs(), "Cannot create directory [%s]", dir.getAbsolutePath());
         }
         File file = new File(dir, getFileName());
-        try (Writer writer = Files.newWriter(file, UTF_8)){
+        try (Writer writer = Files.newWriter(file, StandardCharsets.UTF_8)){
             serialize(writer, createBlobSerializer(dir));
         }
         closeSerializer();
@@ -126,7 +126,7 @@ public class NodeStateSerializer {
     }
 
     private String getFilter() throws IOException {
-        return filterFile != null ? Files.toString(filterFile, UTF_8) : filter;
+        return filterFile != null ? Files.toString(filterFile, StandardCharsets.UTF_8) : filter;
     }
 
     public String getFileName() {

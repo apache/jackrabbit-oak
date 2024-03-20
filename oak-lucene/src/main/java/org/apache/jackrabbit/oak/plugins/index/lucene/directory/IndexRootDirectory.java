@@ -23,13 +23,13 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.collect.ArrayListMultimap;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -213,7 +213,7 @@ public class IndexRootDirectory {
     }
 
     static String getPathHash(String indexPath) {
-        return Hashing.sha256().hashString(indexPath, Charsets.UTF_8).toString();
+        return Hashing.sha256().hashString(indexPath, StandardCharsets.UTF_8).toString();
     }
 
     /**

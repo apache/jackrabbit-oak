@@ -22,8 +22,8 @@ package org.apache.jackrabbit.oak.plugins.tika;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
 import org.apache.jackrabbit.guava.common.collect.FluentIterable;
@@ -72,7 +72,7 @@ class CSVFileBinaryResourceProvider implements BinaryResourceProvider, Closeable
 
     @Override
     public FluentIterable<BinaryResource> getBinaries(final String path) throws IOException {
-        CSVParser parser = CSVParser.parse(dataFile, Charsets.UTF_8, FORMAT);
+        CSVParser parser = CSVParser.parse(dataFile, StandardCharsets.UTF_8, FORMAT);
         closer.register(parser);
         return FluentIterable.from(parser)
                 .transform(new RecordTransformer())

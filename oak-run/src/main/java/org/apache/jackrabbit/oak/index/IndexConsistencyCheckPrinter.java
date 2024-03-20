@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.index;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.commons.io.output.WriterOutputStream;
 import org.apache.felix.inventory.Format;
@@ -63,7 +63,7 @@ class IndexConsistencyCheckPrinter implements InventoryPrinter {
             }
 
             IndexConsistencyChecker checker = new IndexConsistencyChecker(root, indexPath, indexHelper.getWorkDir());
-            checker.setPrintStream(new PrintStream(new WriterOutputStream(pw, Charsets.UTF_8)));
+            checker.setPrintStream(new PrintStream(new WriterOutputStream(pw, StandardCharsets.UTF_8)));
             try {
                 IndexConsistencyChecker.Result result = checker.check(level);
                 result.dump(pw);

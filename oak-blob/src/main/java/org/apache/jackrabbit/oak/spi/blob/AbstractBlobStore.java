@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.ref.WeakReference;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -43,7 +44,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.BaseEncoding;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.commons.cache.Cache;
@@ -325,7 +325,7 @@ public abstract class AbstractBlobStore implements GarbageCollectableBlobStore,
      *      java.util.Map, boolean)
      */
     public void setReferenceKeyPlainText(String textKey) {
-        setReferenceKey(textKey.getBytes(Charsets.UTF_8));
+        setReferenceKey(textKey.getBytes(StandardCharsets.UTF_8));
     }
 
     protected void usesBlobId(String blobId) {

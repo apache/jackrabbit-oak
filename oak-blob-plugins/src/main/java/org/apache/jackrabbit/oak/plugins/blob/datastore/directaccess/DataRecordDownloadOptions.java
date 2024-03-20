@@ -27,7 +27,6 @@ import org.apache.jackrabbit.oak.api.blob.BlobDownloadOptions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Joiner;
 import org.apache.jackrabbit.guava.common.base.Strings;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -158,7 +157,7 @@ public class DataRecordDownloadOptions {
     private String formatContentDispositionHeader(@NotNull final String dispositionType,
                                                   @NotNull final String fileName,
                                                   @Nullable final String rfc8187EncodedFileName) {
-        Charset ISO_8859_1 = Charsets.ISO_8859_1;
+        Charset ISO_8859_1 = StandardCharsets.ISO_8859_1;
         String iso_8859_1_fileName = new String(
                 ISO_8859_1.encode(fileName).array(),
                 ISO_8859_1

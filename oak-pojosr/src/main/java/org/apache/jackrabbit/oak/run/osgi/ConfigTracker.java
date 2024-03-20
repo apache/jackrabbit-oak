@@ -21,11 +21,11 @@ package org.apache.jackrabbit.oak.run.osgi;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.base.Splitter;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
@@ -113,7 +113,7 @@ class ConfigTracker extends ServiceTracker<ConfigurationAdmin, ConfigurationAdmi
                 continue;
             }
 
-            String content = Files.toString(jsonFile, Charsets.UTF_8);
+            String content = Files.toString(jsonFile, StandardCharsets.UTF_8);
             JSONObject json = (JSONObject) JSONValue.parse(content);
             configs.putAll(json);
         }

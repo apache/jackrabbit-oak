@@ -20,8 +20,8 @@
 package org.apache.jackrabbit.oak.plugins.tika;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.io.Files;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class TikaHelperTest {
                 "    </parser>\n" +
                 "  </parsers>\n" +
                 "</properties>";
-        Files.write(configText, config, Charsets.UTF_8);
+        Files.write(configText, config, StandardCharsets.UTF_8);
         TikaHelper tika = new TikaHelper(config);
         assertFalse(tika.isIndexed("application/xml"));
     }

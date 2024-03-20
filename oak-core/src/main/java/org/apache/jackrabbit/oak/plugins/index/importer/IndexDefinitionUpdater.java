@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.index.importer;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jackrabbit.guava.common.base.Charsets;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
@@ -58,7 +58,7 @@ public class IndexDefinitionUpdater {
 
     public IndexDefinitionUpdater(File file) throws IOException {
         checkArgument(file.exists() && file.canRead(), "File [%s] cannot be read", file);
-        this.indexNodeStates = getIndexDefnStates(FileUtils.readFileToString(file, Charsets.UTF_8));
+        this.indexNodeStates = getIndexDefnStates(FileUtils.readFileToString(file, StandardCharsets.UTF_8));
     }
 
     public IndexDefinitionUpdater(String json) throws IOException {
