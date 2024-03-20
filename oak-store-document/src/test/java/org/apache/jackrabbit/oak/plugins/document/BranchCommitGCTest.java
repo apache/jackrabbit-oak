@@ -22,8 +22,6 @@ import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.stats.Clock;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -41,11 +39,8 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.build;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.mergedBranchCommit;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.unmergedBranchCommit;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -97,9 +92,13 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        assertEquals(3, stats.updatedDetailedGCDocsCount);
+        assertEquals(2, stats.updatedDetailedGCDocsCount);
         assertEquals(2, stats.deletedDocGCCount);
-        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(0, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedInternalPropsCount);
 
         // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -107,6 +106,10 @@ public class BranchCommitGCTest {
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(0, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(0, stats.deletedInternalPropsCount);
         assertNotExists("1:/a");
         assertNotExists("1:/b");
         assertBranchRevisionRemovedFromAllDocuments(store, br);
@@ -130,6 +133,8 @@ public class BranchCommitGCTest {
             b.child("b");
         });
 
+        assertEquals(1, countCollisionsOnRoot());
+
         store.runBackgroundOperations();
 
         mergedBranchCommit(b -> {
@@ -139,15 +144,27 @@ public class BranchCommitGCTest {
 
         store.runBackgroundOperations();
 
+        int collisionsBeforeGC = countCollisionsOnRoot();
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
-
         assertTrue("stats.updatedDetailedGCDocsCount expected 1 or less, was: " + stats.updatedDetailedGCDocsCount,
                 stats.updatedDetailedGCDocsCount <= 1);
         assertEquals(2, stats.deletedDocGCCount);
-        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        if (collisionsBeforeGC == 1) {
+            // expects a collision to have happened - which was cleaned up - hence a _bc (but not the _revision I guess)
+            assertEquals(0, stats.deletedPropRevsCount);
+            // the collisions cleaned up - with the 1 collision and a _bc
+            assertEquals(0, stats.deletedPropsCount);
+            assertEquals(1, stats.deletedInternalPropsCount);
+        } else {
+            // in this case classic collision cleanup already took care of everything, nothing left
+            assertEquals(0, stats.deletedPropRevsCount);
+            // the collisions cleaned up - even though empty
+            assertEquals(1, stats.deletedPropsCount);
+        }
 
         assertNotExists("1:/a");
         assertNotExists("1:/b");
@@ -158,6 +175,13 @@ public class BranchCommitGCTest {
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
+    }
+
+    private int countCollisionsOnRoot() {
+        NodeDocument r = store.getDocumentStore().find(Collection.NODES, "0:/");
+        SortedMap<Revision, String> colls = r.getLocalMap(NodeDocument.COLLISIONS);
+        int countCollisions = colls.size();
+        return countCollisions;
     }
 
     @Test
@@ -192,10 +216,13 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
+        // 6 deleted props: 0:/[_collisions], 1:/foo[p, a], 1:/bar[_bc,prop,_revisions]
+        assertEquals(3, stats.deletedPropsCount);
+        assertEquals(3, stats.deletedInternalPropsCount);
+        assertEquals(1, stats.deletedPropRevsCount);
+        assertEquals(17, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
         assertEquals(3, stats.updatedDetailedGCDocsCount);
-        // deleted properties are : 1:/foo -> prop, a, _collisions & p && 1:/bar -> _bc
-        assertEquals(5, stats.deletedPropsCount);
-        assertEquals(4, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
         assertBranchRevisionRemovedFromAllDocuments(store, br3);
@@ -226,7 +253,12 @@ public class BranchCommitGCTest {
 
         assertEquals(3, stats.updatedDetailedGCDocsCount);
         assertEquals(2, stats.deletedDocGCCount);
-        assertEquals(2, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropsCount);
+        assertEquals(1, stats.deletedInternalPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(0, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         assertNotExists("1:/a");
         assertNotExists("1:/b");
@@ -237,6 +269,10 @@ public class BranchCommitGCTest {
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(0, stats.deletedInternalPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(0, stats.deletedInternalPropRevsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
     }
@@ -273,7 +309,9 @@ public class BranchCommitGCTest {
         assertTrue("should have been 2 or more, was: " + stats.updatedDetailedGCDocsCount,
                 stats.updatedDetailedGCDocsCount >= 2);
         assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(2, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(4, stats.deletedPropRevsCount);
+        assertEquals(12, stats.deletedInternalPropRevsCount);
 
         assertExists("1:/a");
         assertExists("1:/b");
@@ -284,6 +322,7 @@ public class BranchCommitGCTest {
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
     }
@@ -330,7 +369,9 @@ public class BranchCommitGCTest {
 
         assertEquals(3, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(4, stats.deletedUnmergedBCCount);
+        assertEquals(8, stats.deletedPropRevsCount);
+        assertEquals(20, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
 
         assertExists("1:/a");
         assertExists("1:/b");
@@ -340,6 +381,7 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
@@ -366,8 +408,10 @@ public class BranchCommitGCTest {
 
         // first gc round now deletes it, via orphaned node deletion
         assertEquals(1, stats.deletedDocGCCount);
-        assertEquals(4, stats.updatedDetailedGCDocsCount);
-        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertEquals(3, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(1, stats.deletedPropRevsCount);
+        assertEquals(4, stats.deletedInternalPropRevsCount);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -376,6 +420,7 @@ public class BranchCommitGCTest {
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropRevsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
@@ -397,9 +442,12 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
-        assertEquals(2, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedPropsCount);
-        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedInternalPropsCount);
+        assertEquals(1, stats.deletedPropRevsCount);
+        assertEquals(4, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(2, stats.updatedDetailedGCDocsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
@@ -414,9 +462,13 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
-        assertEquals(2, stats.updatedDetailedGCDocsCount);
+        assertEquals(1, stats.updatedDetailedGCDocsCount);
+        // 1 deleted prop: 1:/foo[a]
         assertEquals(1, stats.deletedPropsCount);
-        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedInternalPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(2, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
@@ -447,7 +499,9 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertEquals(10, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(10, stats.deletedPropRevsCount);
+        assertEquals(20, stats.deletedInternalPropRevsCount);
 
         doc = store.getDocumentStore().find(Collection.NODES, "1:/foo");
         Long finalModified = doc.getModified();
@@ -487,7 +541,9 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertEquals(10, stats.deletedUnmergedBCCount);
+        assertEquals(10, stats.deletedPropRevsCount);
+        assertEquals(20, stats.deletedInternalPropRevsCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
         for (RevisionVector br : brs) {
             assertBranchRevisionRemovedFromAllDocuments(store, br);
         }
@@ -504,6 +560,7 @@ public class BranchCommitGCTest {
         assertEquals(0, stats.updatedDetailedGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertEquals(0, stats.deletedPropsCount);
+        assertEquals(0, stats.deletedPropRevsCount);
 
         RevisionVector br = unmergedBranchCommit(b -> {
             b.setProperty("rootProp", "v");
@@ -533,7 +590,9 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
 
         assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertEquals(1, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertEquals(0, stats.deletedPropRevsCount);
+        assertEquals(6, stats.deletedInternalPropRevsCount);
         // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
         {
             // some flakyness diagnostics
@@ -545,7 +604,10 @@ public class BranchCommitGCTest {
             assertNotNull(d);
             assertEquals(0, d.getLocalMap("a").size());
         }
-        assertEquals(3, stats.deletedPropsCount);
+        // deleted props: 0:/[rootProp], 1:/foo[a]
+        assertEquals(2, stats.deletedPropsCount);
+        // deleted prop : 0:/ _collision
+        assertEquals(1, stats.deletedInternalPropsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
