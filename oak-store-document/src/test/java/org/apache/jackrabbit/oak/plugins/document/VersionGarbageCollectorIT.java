@@ -134,6 +134,27 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
 
+    private class GCCounts {
+        RDGCType mode;
+        int deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
+                deletedPropRevsCount, deletedInternalPropRevsCount,
+                deletedUnmergedBCCount, updatedDetailedGCDocsCount;
+
+        public GCCounts(RDGCType mode, int deletedDocGCCount, int deletedPropsCount,
+                int deletedInternalPropsCount, int deletedPropRevsCount,
+                int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+                int updatedDetailedGCDocsCount) {
+            this.mode = mode;
+            this.deletedDocGCCount = deletedDocGCCount;
+            this.deletedPropsCount = deletedPropsCount;
+            this.deletedInternalPropsCount = deletedInternalPropsCount;
+            this.deletedPropRevsCount = deletedPropRevsCount;
+            this.deletedInternalPropRevsCount = deletedInternalPropRevsCount;
+            this.deletedUnmergedBCCount = deletedUnmergedBCCount;
+            this.updatedDetailedGCDocsCount = updatedDetailedGCDocsCount;
+        }
+    }
+
     private final DocumentStoreFixture fixture;
 
     private Clock clock;
@@ -1001,6 +1022,25 @@ public class VersionGarbageCollectorIT {
         assertFalse(jcrContent.hasProperty("prop0"));
     }
 
+    private void assertStatsCountsEqual(VersionGCStats stats, GCCounts... counts) {
+        GCCounts c = null;
+        for (GCCounts a : counts) {
+            if (a.mode == VersionGarbageCollector.revisionDetailedGcType) {
+                c = a;
+                break;
+            }
+        }
+        assertNotNull(stats);
+        assertNotNull(c);
+        assertEquals(c.deletedDocGCCount, stats.deletedDocGCCount);
+        assertEquals(c.deletedPropsCount, stats.deletedPropsCount);
+        assertEquals(c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
+        assertEquals(c.deletedPropRevsCount, stats.deletedPropRevsCount);
+        assertEquals(c.deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
+        assertEquals(c.deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
+        assertEquals(c.updatedDetailedGCDocsCount, stats.updatedDetailedGCDocsCount);
+    }
+
     private void assertStatsCountsEqual(VersionGCStats stats,
             int deletedDocGCCount,
             int deletedPropsCount,
@@ -1560,7 +1600,42 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAgeMillis + 1);
 
         VersionGCStats stats = gc(gc, maxAgeHours, HOURS);
-        assertStatsCountsEqual(stats, 0, 2, 2, 3, 11, 0, 2);
+        // below is an example of how the different modes result in different cleanups
+        // this might help us narrow down differences in the modes
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 2, 2, 3, 11, 0, 2),
+                keepOneUser(0, 2, 0, 3,  0, 0, 1),
+                betweenChkp(0, 2, 1, 2, 13, 3, 2));
+    }
+
+    private GCCounts keepOneFull(int deletedDocGCCount, int deletedPropsCount,
+            int deletedInternalPropsCount, int deletedPropRevsCount,
+            int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+            int updatedDetailedGCDocsCount) {
+        return new GCCounts(RDGCType.KeepOneFullMode, deletedDocGCCount,
+                deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
+                deletedInternalPropRevsCount, deletedUnmergedBCCount,
+                updatedDetailedGCDocsCount);
+    }
+
+    private GCCounts keepOneUser(int deletedDocGCCount, int deletedPropsCount,
+            int deletedInternalPropsCount, int deletedPropRevsCount,
+            int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+            int updatedDetailedGCDocsCount) {
+        return new GCCounts(RDGCType.KeepOneCleanupUserPropertiesOnlyMode,
+                deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
+                deletedPropRevsCount, deletedInternalPropRevsCount,
+                deletedUnmergedBCCount, updatedDetailedGCDocsCount);
+    }
+
+    private GCCounts betweenChkp(int deletedDocGCCount, int deletedPropsCount,
+            int deletedInternalPropsCount, int deletedPropRevsCount,
+            int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+            int updatedDetailedGCDocsCount) {
+        return new GCCounts(RDGCType.OlderThan24AndBetweenCheckpointsMode,
+                deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
+                deletedPropRevsCount, deletedInternalPropRevsCount,
+                deletedUnmergedBCCount, updatedDetailedGCDocsCount);
     }
 
     @Test
