@@ -21,50 +21,56 @@ package org.apache.jackrabbit.oak.spi.blob.osgi;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.Map;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.jackrabbit.oak.spi.blob.BlobStore;
-import org.apache.jackrabbit.oak.spi.blob.split.DefaultSplitBlobStore;
-import org.apache.jackrabbit.oak.spi.blob.split.WrappingSplitBlobStore;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.ComponentPropertyType;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Option;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
+import org.apache.jackrabbit.oak.spi.blob.BlobStore;
+import org.apache.jackrabbit.oak.spi.blob.split.DefaultSplitBlobStore;
+import org.apache.jackrabbit.oak.spi.blob.split.WrappingSplitBlobStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static org.apache.jackrabbit.oak.spi.blob.osgi.SplitBlobStoreService.BlobStoreType.*;
 
-@Component(policy = ConfigurationPolicy.REQUIRE)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
 public class SplitBlobStoreService {
     private static final Logger log = LoggerFactory.getLogger(SplitBlobStoreService.class);
 
-    @Property
     private static final String PROP_HOME = "repository.home";
 
-    @Property(options = { @PropertyOption(name = "External", value = "EXTERNAL"),
-            @PropertyOption(name = "Internal - Segment", value = "SEGMENT"),
-            @PropertyOption(name = "Internal - Document", value = "DOCUMENT") })
     private static final String PROP_OLD_BLOB_STORE_TYPE = "split.old.blobstore.type";
 
     public static final String PROP_SPLIT_BLOBSTORE = "split.blobstore";
 
+    @ComponentPropertyType
+    @interface Config {
+        @AttributeDefinition
+        String repository_home();
+        @AttributeDefinition(options = { @Option(label = "External", value = "EXTERNAL"),
+                @Option(label = "Internal - Segment", value = "SEGMENT"),
+                @Option(label = "Internal - Document", value = "DOCUMENT") })
+        String split_old_blobstore_type();
+    }
+
     public static final String ONLY_STANDALONE_TARGET = "(&(!(split.blobstore=old))(!(split.blobstore=new)))";
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC, target = "(split.blobstore=old)")
-    private BlobStore oldBlobStore;
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, target = "(split.blobstore=old)")
+    private volatile BlobStore oldBlobStore;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL_UNARY, policy = ReferencePolicy.DYNAMIC, target = "(split.blobstore=new)")
-    private BlobStore newBlobStore;
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, target = "(split.blobstore=new)")
+    private volatile BlobStore newBlobStore;
 
     private BundleContext ctx;
 
@@ -75,7 +81,7 @@ public class SplitBlobStoreService {
     private BlobStoreType oldBlobStoreType;
 
     @Activate
-    protected void activate(ComponentContext context, Map<String, Object> config) throws InvalidSyntaxException {
+    protected void activate(ComponentContext context, Config config) throws InvalidSyntaxException {
         String oldTypeName = lookup(context, PROP_OLD_BLOB_STORE_TYPE);
         if (oldTypeName == null) {
             oldBlobStoreType = BlobStoreType.EXTERNAL;
