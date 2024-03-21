@@ -39,7 +39,6 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.jackrabbit.oak.api.jmx.CacheStatsMBean;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.cache.CacheStats;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.document.spi.JournalPropertyService;
 import org.apache.jackrabbit.oak.plugins.index.AsyncIndexInfoService;
@@ -84,7 +83,6 @@ import org.apache.lucene.util.InfoStream;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
-import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
@@ -107,7 +105,7 @@ import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.registerM
 import static org.apache.jackrabbit.oak.spi.whiteboard.WhiteboardUtils.scheduleWithFixedDelay;
 
 @SuppressWarnings("UnusedDeclaration")
-@Component(property = { "enableCopyOnReadSupport:Boolean=true", "enableCopyOnWriteSupport:Boolean=true" } )
+@Component
 @Designate(ocd = LuceneIndexProviderService.Configuration.class)
 public class LuceneIndexProviderService {
 
@@ -262,6 +260,10 @@ public class LuceneIndexProviderService {
                 description = "Interval (in seconds) for calculation of File System metrics for Lucene Index such as Local Index Directory Size"
         )
         long propIndexFSStatsIntervalInSecs() default PROP_INDEX_FS_STATS_INTERVAL_IN_SECS_DEFAULT;
+
+        boolean enableCopyOnReadSupport() default true;
+
+        boolean enableCopyOnWriteSupport() default true;
     }
 
     public static final String REPOSITORY_HOME = "repository.home";
@@ -349,19 +351,11 @@ public class LuceneIndexProviderService {
     private PropertyIndexCleaner cleaner;
     private AsyncIndexesSizeStatsUpdate asyncIndexesSizeStatsUpdate;
 
-    private boolean enableCopyOnRead = true;
-    private boolean enableCopyOnWrite = true;
-
     @Activate
-    private void activate(BundleContext bundleContext, ComponentContext componentContext, Configuration config) throws IOException {
-        Dictionary<String, Object> properties = componentContext.getProperties();
-        enableCopyOnRead = PropertiesUtil.toBoolean(properties.get("enableCopyOnReadSupport"), true);
-        enableCopyOnWrite = PropertiesUtil.toBoolean(properties.get("enableCopyOnWriteSupport"), true);
-        asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdateImpl(
-                PropertiesUtil.toLong(config.luceneIndexStatsUpdateInterval(),
-                        PROP_LUCENE_INDEX_STATS_UPDATE_INTERVAL_DEFAULT) * 1000); // convert seconds to millis
-        boolean disabled = PropertiesUtil.toBoolean(config.disabled(), PROP_DISABLED_DEFAULT);
-        hybridIndex = PropertiesUtil.toBoolean(config.enableHybridIndexing(), PROP_ENABLE_HYBRID_INDEXING_DEFAULT);
+    private void activate(BundleContext bundleContext, Configuration config) throws IOException {
+        asyncIndexesSizeStatsUpdate = new AsyncIndexesSizeStatsUpdateImpl(config.luceneIndexStatsUpdateInterval() * 1000L); // convert seconds to millis
+        boolean disabled = config.disabled(), PROP_DISABLED_DEFAULT;
+        hybridIndex = config.enableHybridIndexing();
 
         if (disabled) {
             log.info("Component disabled by configuration");
@@ -372,15 +366,13 @@ public class LuceneIndexProviderService {
         configureBooleanClauseLimit(config);
         initializeFactoryClassLoaders(getClass().getClassLoader());
         if (System.getProperty(BufferedOakDirectory.ENABLE_WRITING_SINGLE_BLOB_INDEX_FILE_PARAM) == null) {
-            BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(PropertiesUtil.toBoolean(
-                    config.enableSingleBlobIndexFiles(),
-                    PROP_ENABLE_SINGLE_BLOB_INDEX_FILES_DEFAULT));
+            BufferedOakDirectory.setEnableWritingSingleBlobIndexFile(config.enableSingleBlobIndexFiles());
         } else {
             log.info("Not setting config for single blob for an index file as it's set by command line!");
         }
 
         whiteboard = new OsgiWhiteboard(bundleContext);
-        threadPoolSize = PropertiesUtil.toInteger(config.threadPoolSize(), PROP_THREAD_POOL_SIZE_DEFAULT);
+        threadPoolSize = config.threadPoolSize();
         initializeIndexDir(bundleContext, config);
         initializeExtractedTextCache(bundleContext, config, statisticsProvider);
         tracker = createTracker(bundleContext, config);
@@ -408,7 +400,7 @@ public class LuceneIndexProviderService {
         registerIndexEditor(bundleContext, tracker, mBean, config);
 
         LuceneIndexFileSystemStatistics luceneIndexFSStats = new LuceneIndexFileSystemStatistics(statisticsProvider, indexCopier);
-        registerLuceneFileSystemStats(luceneIndexFSStats, PropertiesUtil.toLong(config.propIndexFSStatsIntervalInSecs(), PROP_INDEX_FS_STATS_INTERVAL_IN_SECS_DEFAULT));
+        registerLuceneFileSystemStats(luceneIndexFSStats, config.propIndexFSStatsIntervalInSecs());
     }
 
     private File getIndexCheckDir() {
@@ -464,7 +456,7 @@ public class LuceneIndexProviderService {
     }
 
     void initializeIndexDir(BundleContext bundleContext, Configuration config) {
-        String indexDirPath = PropertiesUtil.toString(config.localIndexDir(), null);
+        String indexDirPath = config.localIndexDir();
         if (Strings.isNullOrEmpty(indexDirPath)) {
             String repoHome = bundleContext.getProperty(REPOSITORY_HOME);
             if (repoHome != null){
@@ -499,7 +491,7 @@ public class LuceneIndexProviderService {
     }
 
     private void initializeLogging(Configuration config) {
-        boolean debug = PropertiesUtil.toBoolean(config.debug(), PROP_DEBUG_DEFAULT);
+        boolean debug = config.debug();
         if (debug) {
             InfoStream.setDefault(LoggingInfoStream.INSTANCE);
             log.info("Registered LoggingInfoStream with Lucene. Lucene logs can be enabled " +
@@ -508,7 +500,7 @@ public class LuceneIndexProviderService {
     }
 
     private void registerIndexEditor(BundleContext bundleContext, IndexTracker tracker, LuceneIndexMBean mBean, Configuration config) throws IOException {
-        if (enableCopyOnWrite){
+        if (config.enableCopyOnWriteSupport()){
             initializeIndexCopier(bundleContext, config);
             editorProvider = new LuceneIndexEditorProvider(indexCopier, tracker, extractedTextCache,
                     augmentorFactory,  mountInfoProvider, activeDeletedBlobCollector, mBean, statisticsProvider);
@@ -536,7 +528,7 @@ public class LuceneIndexProviderService {
 
     private IndexTracker createTracker(BundleContext bundleContext, Configuration config) throws IOException {
         IndexTracker tracker;
-        if (enableCopyOnRead){
+        if (config.enableCopyOnReadSupport()){
             initializeIndexCopier(bundleContext, config);
             log.info("Enabling CopyOnRead support. Index files would be copied under {}", indexDir.getAbsolutePath());
             if (hybridIndex) {
@@ -555,8 +547,7 @@ public class LuceneIndexProviderService {
         if(indexCopier != null){
             return;
         }
-        boolean prefetchEnabled = PropertiesUtil.toBoolean(config.prefetchIndexFiles(),
-                PROP_PREFETCH_INDEX_FILES_DEFAULT);
+        boolean prefetchEnabled = config.prefetchIndexFiles();
 
         if (prefetchEnabled){
             log.info("Prefetching of index files enabled. Index would be opened after copying all new files locally");
@@ -603,7 +594,7 @@ public class LuceneIndexProviderService {
     }
 
     private void registerObserver(BundleContext bundleContext, Configuration config) {
-        boolean enableAsyncIndexOpen = PropertiesUtil.toBoolean(config.enableOpenIndexAsync(), PROP_OPEN_INDEX_ASYNC_DEFAULT);
+        boolean enableAsyncIndexOpen = config.enableOpenIndexAsync();
         Observer observer = indexProvider;
         if (enableAsyncIndexOpen) {
             backgroundObserver = new BackgroundObserver(indexProvider, getExecutorService(), 5);
@@ -624,8 +615,8 @@ public class LuceneIndexProviderService {
             return;
         }
 
-        int queueSize = PropertiesUtil.toInteger(config.hybridQueueSize(), PROP_HYBRID_QUEUE_SIZE_DEFAULT);
-        long queueOfferTimeoutMillis = PropertiesUtil.toLong(config.hybridQueueTimeout(), PROP_HYBRID_QUEUE_TIMEOUT_DEFAULT);
+        int queueSize = config.hybridQueueSize();
+        long queueOfferTimeoutMillis = config.hybridQueueTimeout();
         documentQueue = new DocumentQueue(queueSize, queueOfferTimeoutMillis, tracker, getExecutorService(), statisticsProvider);
         LocalIndexObserver localIndexObserver = new LocalIndexObserver(documentQueue, statisticsProvider);
         regs.add(bundleContext.registerService(Observer.class.getName(), localIndexObserver, null));
@@ -687,12 +678,9 @@ public class LuceneIndexProviderService {
     }
 
     private void initializeExtractedTextCache(BundleContext bundleContext, Configuration config, StatisticsProvider statisticsProvider) {
-        int cacheSizeInMB = PropertiesUtil.toInteger(config.extractedTextCacheSizeInMB(),
-                PROP_EXTRACTED_TEXT_CACHE_SIZE_IN_MB_DEFAULT);
-        int cacheExpiryInSecs = PropertiesUtil.toInteger(config.extractedTextCacheExpiryInSecs(),
-                PROP_EXTRACTED_TEXT_CACHE_EXPIRY_IN_SECS_DEFAULT);
-        boolean alwaysUsePreExtractedCache = PropertiesUtil.toBoolean(config.alwaysUsePreExtractedCache(),
-                PROP_ALWAYS_USE_PRE_EXTRACTED_TEXT_DEFAULT);
+        int cacheSizeInMB = config.extractedTextCacheSizeInMB();
+        int cacheExpiryInSecs = config.extractedTextCacheExpiryInSecs();
+        boolean alwaysUsePreExtractedCache = config.alwaysUsePreExtractedCache();
 
         extractedTextCache = new ExtractedTextCache(
                 cacheSizeInMB * ONE_MB,
@@ -727,8 +715,7 @@ public class LuceneIndexProviderService {
     }
 
     private void configureBooleanClauseLimit(Configuration config) {
-        int booleanClauseLimit = PropertiesUtil.toInteger(config.booleanClauseLimit(),
-                PROP_BOOLEAN_CLAUSE_LIMIT_DEFAULT);
+        int booleanClauseLimit = config.booleanClauseLimit();
         if (booleanClauseLimit != BooleanQuery.getMaxClauseCount()){
             BooleanQuery.setMaxClauseCount(booleanClauseLimit);
             log.info("Changed the Max boolean clause limit to {}", booleanClauseLimit);
@@ -736,8 +723,7 @@ public class LuceneIndexProviderService {
     }
 
     private void configureIndexDefinitionStorage(Configuration config) {
-        boolean disableStorage = PropertiesUtil.toBoolean(config.disableStoredIndexDefinition(),
-                PROP_DISABLE_STORED_INDEX_DEFINITION_DEFAULT);
+        boolean disableStorage = config.disableStoredIndexDefinition();
         if (disableStorage){
             log.info("Feature to ensure that index definition matches the index state is disabled. Change in " +
                     "index definition would now affect query plans and might lead to inconsistent results.");
@@ -767,9 +753,7 @@ public class LuceneIndexProviderService {
     }
 
     private void initializeActiveBlobCollector(Whiteboard whiteboard, Configuration config) {
-        boolean activeDeletionEnabled = PropertiesUtil.toBoolean(
-                config.deletedBlobsCollectionEnabled(),
-                PROP_DELETED_BLOBS_COLLECTION_ENABLED_DEFAULT);
+        boolean activeDeletionEnabled = config.deletedBlobsCollectionEnabled();
         if (activeDeletionEnabled && blobStore!= null) {
             File blobCollectorWorkingDir = new File(indexDir, "deleted-blobs");
             activeDeletedBlobCollector = ActiveDeletedBlobCollectorFactory.newInstance(blobCollectorWorkingDir,
@@ -789,8 +773,7 @@ public class LuceneIndexProviderService {
     }
 
     private void registerPropertyIndexCleaner(Configuration config, BundleContext bundleContext) {
-        int cleanerInterval = PropertiesUtil.toInteger(config.propIndexCleanerIntervalInSecs(),
-                PROP_INDEX_CLEANER_INTERVAL_IN_SECS_DEFAULT);
+        int cleanerInterval = config.propIndexCleanerIntervalInSecs();
 
         if (cleanerInterval <= 0) {
             log.info("Property index cleaner would not be registered");
