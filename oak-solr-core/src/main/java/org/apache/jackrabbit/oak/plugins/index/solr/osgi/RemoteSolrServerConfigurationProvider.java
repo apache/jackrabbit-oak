@@ -36,8 +36,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Component(
         immediate = true,
-        service = { SolrServerConfigurationProvider.class },
-        property = { "name=remote" }
+        service = { SolrServerConfigurationProvider.class }
 )
 @Designate(
         ocd = RemoteSolrServerConfigurationProvider.Configuration.class
@@ -88,6 +87,8 @@ public class RemoteSolrServerConfigurationProvider implements SolrServerConfigur
                 name = "Solr configuration directory"
         )
         String solr_conf_dir() default SolrServerConfigurationDefaults.CONFIGURATION_DIRECTORY;
+
+        String name() default "remote";
     }
 
     private String solrHttpUrl;

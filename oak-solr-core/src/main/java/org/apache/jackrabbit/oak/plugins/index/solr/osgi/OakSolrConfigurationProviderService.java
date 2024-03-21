@@ -86,7 +86,7 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
         String path_depth_field() default OakSolrConfigurationDefaults.PATH_DEPTH_FIELD;
 
         @AttributeDefinition(
-                name = "commit policy",
+                name = "Property commit.policy",
                 options = {
                         @Option(value = "HARD",
                                 label = "Hard commit"

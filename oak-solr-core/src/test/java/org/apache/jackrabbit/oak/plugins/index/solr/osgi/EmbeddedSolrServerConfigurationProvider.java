@@ -38,8 +38,7 @@ import org.jetbrains.annotations.NotNull;
  */
 @Component(
         immediate = true,
-        service = { SolrServerConfigurationProvider.class },
-        property = { "name=embedded" }
+        service = { SolrServerConfigurationProvider.class }
 )
 @Designate( ocd = EmbeddedSolrServerConfigurationProvider.Configuration.class )
 public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfigurationProvider<EmbeddedSolrServerProvider> {
@@ -58,6 +57,8 @@ public class EmbeddedSolrServerConfigurationProvider implements SolrServerConfig
                 name = "Solr Core name"
         )
         String solr_core_name() default SolrServerConfigurationDefaults.CORE_NAME;
+
+        String name() default "embedded";
     }
 
     private String solrHome;

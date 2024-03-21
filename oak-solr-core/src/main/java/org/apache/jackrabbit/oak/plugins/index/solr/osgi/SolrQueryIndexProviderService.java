@@ -33,7 +33,6 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.aggregate.AggregateIndexProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.query.SolrQueryIndexProvider;
@@ -91,7 +90,7 @@ public class SolrQueryIndexProviderService {
     @SuppressWarnings("UnusedDeclaration")
     @Activate
     protected void activate(ComponentContext componentContext, Configuration configuration) {
-        boolean queryTimeAggregation = PropertiesUtil.toBoolean(configuration.query_aggregation() , QUERY_TIME_AGGREGATION_DEFAULT);
+        boolean queryTimeAggregation = configuration.query_aggregation();
         if (solrServerProvider != null && oakSolrConfigurationProvider != null) {
             QueryIndexProvider solrQueryIndexProvider = new SolrQueryIndexProvider(solrServerProvider,
                     oakSolrConfigurationProvider, nodeAggregator);

@@ -29,7 +29,6 @@ import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.nodestate.NodeStateSolrServersObserver;
 import org.apache.jackrabbit.oak.spi.commit.BackgroundObserver;
@@ -72,7 +71,7 @@ public class NodeStateSolrServersObserverService {
     @Activate
     protected void activate(ComponentContext componentContext, Configuration configuration) throws Exception {
 
-        boolean enabled = PropertiesUtil.toBoolean(configuration.enabled(), false);
+        boolean enabled = configuration.enabled();
 
         if (enabled) {
             BundleContext bundleContext = componentContext.getBundleContext();

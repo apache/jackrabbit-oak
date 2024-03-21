@@ -72,7 +72,7 @@ public class SolrServerProviderService implements SolrServerProvider {
     )
     @interface Configuration {
         @AttributeDefinition(
-                name = "server type",
+                name = "Property server.type",
                 options = {
                         @Option(value = "none",
                                 label = "None"
