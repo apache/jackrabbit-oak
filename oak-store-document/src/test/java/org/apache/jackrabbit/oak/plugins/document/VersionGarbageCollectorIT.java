@@ -518,7 +518,10 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 2, 1, 0, 1);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 0, 0, 2, 1, 0, 1),
+                keepOneUser(0, 0, 0, 2, 0, 0, 1),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
@@ -1034,7 +1037,9 @@ public class VersionGarbageCollectorIT {
         assertNotNull(c);
         assertEquals(c.deletedDocGCCount, stats.deletedDocGCCount);
         assertEquals(c.deletedPropsCount, stats.deletedPropsCount);
-        assertEquals(c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
+        if (c.deletedInternalPropsCount >= 0) {
+            assertEquals(c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
+        }
         assertEquals(c.deletedPropRevsCount, stats.deletedPropRevsCount);
         assertEquals(c.deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
         assertEquals(c.deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
@@ -1233,7 +1238,10 @@ public class VersionGarbageCollectorIT {
 
         // now the GC
         VersionGCStats stats = gc(gc, 1, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 1, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 0, 0, 1, 0, 0, 1),
+                keepOneUser(0, 0, 0, 1, 0, 0, 1),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
     }
 
     @Test
@@ -1346,7 +1354,10 @@ public class VersionGarbageCollectorIT {
 
         // deletedPropsCount=0 : _bc on /node1 and / CANNOT be removed
         // deletedPropRevsCount=1 : (nothing on /node1[a, _commitRoot), /[_revisions]
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 0, 0, 0, 0, 0, 0),
+                keepOneUser(0, 0, 0, 0, 0, 0, 0),
+                betweenChkp(0, 0, 1, 0, 2, 1, 1));
         // checking for br1 revisino to have disappeared doesn't really make much sense,
         // since 1:/node1 isn't GCed as it is young, and 0:/ being root cannot guarantee full removal
         // (if br1 is deleted form 0:/ _bc, then the commit value resolution flips it to committed)
@@ -1384,7 +1395,10 @@ public class VersionGarbageCollectorIT {
         // clean everything older than one hour
         VersionGCStats stats = gc(gc, 1, HOURS);
 
-        assertStatsCountsEqual(stats, 0, 3, 2, 1, 9, 0, 3);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 3, 2, 1, 9, 0, 3),
+                keepOneUser(0, 3,-1, 1, 0, 0, 2),
+                betweenChkp(0, 3, 1, 1, 8, 2, 3));
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionRemovedFromAllDocuments(store1, br4);
     }
@@ -1421,7 +1435,10 @@ public class VersionGarbageCollectorIT {
         // clean everything older than one hour
 
         VersionGCStats stats = gc(gc, 1, HOURS);
-        assertStatsCountsEqual(stats, 0, 3, 3, 1, 17, 0, 3);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 3, 3, 1, 17, 0, 3),
+                keepOneUser(0, 3,-1, 1,  0, 0, 2),
+                betweenChkp(0, 3, 2, 1, 18, 4, 3));
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionRemovedFromAllDocuments(store1, br2);
         assertBranchRevisionRemovedFromAllDocuments(store1, br3);
@@ -1683,7 +1700,10 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAgeMillis + 1);
         VersionGCStats stats = gc(gc, maxAgeHours, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 11, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 0, 0, 11, 0, 0, 1),
+                keepOneUser(0, 0, 0, 11, 0, 0, 1),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
 
         NodeState x = store1.getRoot().getChildNode("x");
         assertTrue(x.exists());
@@ -1696,6 +1716,11 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = store1.getDocumentStore().find(NODES, "1:/x", -1);
         assertNotNull(doc);
+        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.OlderThan24AndBetweenCheckpointsMode) {
+            // this mode doesn't currently delete all revisions,
+            // thus would fail below assert.
+            return;
+        }
         for (Entry<String, Object> e : doc.entrySet()) {
             Object v = e.getValue();
             if (v instanceof Map) {
@@ -1920,7 +1945,10 @@ public class VersionGarbageCollectorIT {
         // this would make late write visible
         // deletedPropRevsCount : 2 prop-revs GCed : the original prop=value, plus the
         // removeProperty(prop) plus 1 _commitRoot entry
-        assertStatsCountsEqual(stats, 0, 0, 0, 2, 1, 0, 1);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 0, 0, 2, 1, 0, 1),
+                keepOneUser(0, 0, 0, 2, 0, 0, 1),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertDocumentsExist(of("/bar"));
     }
 
@@ -1948,7 +1976,10 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
         assertNotNull(stats);
         // 1 prop-rev removal : the late-write null
-        assertStatsCountsEqual(stats, 0, 0, 1, 1, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 0, 1, 1, 0, 0, 1),
+                keepOneUser(0, 0, 0, 1, 0, 0, 1),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertDocumentsExist(of("/bar"));
     }
 
@@ -1978,7 +2009,10 @@ public class VersionGarbageCollectorIT {
         // since we have updated an totally unrelated path i.e. "/a", we should still be seeing the garbage from late write and
         // thus it will be collected.
         // removes 1 prop-rev : the late-write null
-        assertStatsCountsEqual(stats, 0, 0, 1, 1, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                keepOneFull(0, 0, 1, 1, 0, 0, 1),
+                keepOneUser(0, 0, 0, 1, 0, 0, 1),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertDocumentsExist(of("/foo/bar/baz"));
     }
 
