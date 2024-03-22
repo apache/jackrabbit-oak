@@ -1930,7 +1930,7 @@ public class IndexPlannerTest {
 
     private static Directory createSampleDirectory(long numOfDocs, Iterable<Document> docs) throws IOException {
         Directory dir = new RAMDirectory();
-        IndexWriterConfig config = new IndexWriterConfig(VERSION, LuceneIndexConstants.ANALYZER);
+        IndexWriterConfig config = new IndexWriterConfig(LuceneIndexConstants.ANALYZER);
         IndexWriter writer = new  IndexWriter(dir, config);
         for (int i = 0; i < numOfDocs; i++) {
             Document doc = new Document();

@@ -223,7 +223,7 @@ public class NRTIndex implements Closeable {
                     indexWriter.deleteAll();
                 }
                 // don't merge, as anyway only keep two generations
-                indexWriter.close(false);
+                indexWriter.close();
             }
             time = System.nanoTime() - time;
             if (time > 100_000_000) {

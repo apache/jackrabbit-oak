@@ -153,11 +153,6 @@ public class IndexDefinitionBuilder {
         return this;
     }
 
-    public IndexDefinitionBuilder codec(String codecName){
-        tree.setProperty(FulltextIndexConstants.CODEC_NAME, checkNotNull(codecName));
-        return this;
-    }
-
     public IndexDefinitionBuilder mergePolicy(String mergePolicy) {
         tree.setProperty(FulltextIndexConstants.MERGE_POLICY_NAME, checkNotNull(mergePolicy));
         return this;

@@ -85,11 +85,11 @@ public class FSDirectoryFactoryTest {
         FSDirectoryFactory factory = new FSDirectoryFactory(temporaryFolder.getRoot());
 
         Directory dir = factory.newInstance(defn, idx, ":data", false);
-        File fsDir1 = ((FSDirectory)dir).getDirectory();
+        File fsDir1 = ((FSDirectory)dir).getDirectory().toFile();
         dir.close();
 
         Directory dir2 = factory.newInstance(defn, idx, ":data", false);
-        File fsDir2 = ((FSDirectory)dir2).getDirectory();
+        File fsDir2 = ((FSDirectory)dir2).getDirectory().toFile();
         dir2.close();
 
         assertEquals(fsDir1, fsDir2);

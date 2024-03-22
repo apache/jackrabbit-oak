@@ -674,7 +674,6 @@ public class LuceneIndexProviderService {
             //so switch the TCCL so that static initializer picks up the right
             //classloader
             initializeFactoryClassLoaders0(classLoader);
-            initializeClasses();
         } catch (Throwable t) {
             log.warn("Error occurred while initializing the Lucene " +
                     "Factories", t);
@@ -690,15 +689,6 @@ public class LuceneIndexProviderService {
         TokenizerFactory.reloadTokenizers(classLoader);
         CharFilterFactory.reloadCharFilters(classLoader);
         TokenFilterFactory.reloadTokenFilters(classLoader);
-    }
-
-    private void initializeClasses() {
-        // prevent LUCENE-6482
-        // (also done in IndexDefinition, just to be save)
-        OakCodec ensureLucene46CodecLoaded = new OakCodec();
-        // to ensure the JVM doesn't optimize away object creation
-        // (probably not really needed; just to be save)
-        log.debug("Lucene46Codec is loaded: {}", ensureLucene46CodecLoaded);
     }
 
     private void initializeExtractedTextCache(BundleContext bundleContext, Map<String, ?> config, StatisticsProvider statisticsProvider) {

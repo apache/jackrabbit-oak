@@ -21,6 +21,7 @@ package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Arrays;
 
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.lucene.store.Directory;
@@ -59,7 +60,7 @@ public class IndexSanityChecker {
         } else {
             //Remove local files which are not found in remote
             for (String fileName : local.listAll()) {
-                if (!remote.fileExists(fileName)) {
+                if (Arrays.stream(remote.listAll()).noneMatch(fileName::equals)) {
                     local.deleteFile(fileName);
                 }
             }
@@ -135,15 +136,15 @@ public class IndexSanityChecker {
         
         /**
          * Record the time spend to check the sanity of indexes
-         * @param milis the time in miliseconds
+         * @param millis the time in milliseconds
          */
-        public void addDuration(long milis) {
-            totalDurationInMs += milis;
+        public void addDuration(long millis) {
+            totalDurationInMs += millis;
         }
         
         /**
          * Return the accumulated time for checking the sanity of indexes
-         * @return the total duration in miliseconds
+         * @return the total duration in milliseconds
          */
         public long getAccumulatedDuration() {
             return totalDurationInMs;

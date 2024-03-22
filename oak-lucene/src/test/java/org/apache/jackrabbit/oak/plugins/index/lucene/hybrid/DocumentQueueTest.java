@@ -349,8 +349,6 @@ public class DocumentQueueTest {
     private void createIndexDefinition(String idxName, FulltextIndexConstants.IndexingMode indexingMode) {
         NodeBuilder idx = newLucenePropertyIndexDefinition(builder.child("oak:index"),
                 idxName, ImmutableSet.of("foo"), "async");
-        //Disable compression
-        //idx.setProperty("codec", "oakCodec");
         TestUtil.enableIndexingMode(idx, indexingMode);
     }
 

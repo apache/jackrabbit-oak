@@ -251,7 +251,7 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
                     dir = unwrap(dir);
 
                     if (dir instanceof FSDirectory) {
-                        return ((FSDirectory) dir).getDirectory().getAbsolutePath();
+                        return ((FSDirectory) dir).getDirectory().toString();
                     }
                     return null;
                 }
@@ -277,7 +277,7 @@ public class LuceneWritesOnSegmentStatsTest extends AbstractQueryTest {
 
     @Test
     public void testLuceneIndexSegmentStats() throws Exception {
-        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().codec(codec).mergePolicy(mergePolicy);
+        IndexDefinitionBuilder idxb = new LuceneIndexDefinitionBuilder().noAsync().mergePolicy(mergePolicy);
         idxb.indexRule("nt:base").property("foo").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         idxb.indexRule("nt:base").property("bin").analyzed().nodeScopeIndex().ordered().useInExcerpt().propertyIndex();
         Tree idx = root.getTree("/").getChild("oak:index").addChild("lucenePropertyIndex");

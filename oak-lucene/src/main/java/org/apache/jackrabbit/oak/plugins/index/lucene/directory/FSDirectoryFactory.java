@@ -54,7 +54,7 @@ public class FSDirectoryFactory implements DirectoryFactory {
         }
         meta.addDirectoryMapping(dirName, subDir.getName());
         DirectoryUtils.writeMeta(indexDir, meta);
-        return FSDirectory.open(subDir, NoLockFactory.getNoLockFactory());
+        return FSDirectory.open(subDir.toPath(), NoLockFactory.INSTANCE);
     }
 
     @Override

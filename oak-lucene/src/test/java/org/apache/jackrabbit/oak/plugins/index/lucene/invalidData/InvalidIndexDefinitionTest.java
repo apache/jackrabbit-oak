@@ -48,7 +48,6 @@ import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.query.QueryIndexProvider;
 import org.apache.jackrabbit.oak.spi.security.OpenSecurityProvider;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
-import org.apache.lucene.codecs.Codec;
 import org.hamcrest.core.IsCollectionContaining;
 import org.junit.Test;
 
@@ -84,16 +83,6 @@ public class InvalidIndexDefinitionTest extends AbstractQueryTest {
         String query = "select [jcr:path] from [nt:base] where isdescendantnode('/tmp') and upper([test]) = 'HELLO'";
         assertThat(explain(query), containsString("lucene:test"));
         assertQuery(query, Lists.newArrayList("/tmp/testNode"));
-    }
-    
-    @Test(expected = IllegalArgumentException.class)
-    public void invalidCodec() throws CommitFailedException {
-        Tree def = createIndexNodeAndData();
-        // An incorrect value throws an exception, for example:
-        // java.lang.IllegalArgumentException: A SPI class of type org.apache.lucene.codecs.Codec with name 'Lucene46x' does not exist.
-        String codecValue = Codec.getDefault().getName() + "x";
-        def.setProperty(LuceneIndexConstants.CODEC_NAME, codecValue);
-        root.commit();
     }
 
     @Test(expected = IllegalArgumentException.class)

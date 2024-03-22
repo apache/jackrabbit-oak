@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.plugins.index.lucene.directory;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Random;
 
 import org.apache.lucene.store.Directory;
@@ -46,8 +47,8 @@ public class IndexSanityCheckerTest {
 
         assertTrue(new IndexSanityChecker("/foo", local, remote).check(stats));
 
-        assertTrue(local.fileExists("t1"));
-        assertTrue(remote.fileExists("t1"));
+        assertTrue(fileExists(local,"t1"));
+        assertTrue(fileExists(remote, "t1"));
     }
 
     @Test
@@ -63,11 +64,11 @@ public class IndexSanityCheckerTest {
 
         assertFalse(new IndexSanityChecker("/foo", local, remote).check(stats));
 
-        assertTrue(remote.fileExists("t3"));
+        assertTrue(fileExists(remote, "t3"));
 
         //In case of size mismatch all local files would be removed
-        assertFalse(local.fileExists("t1"));
-        assertFalse(local.fileExists("t3"));
+        assertFalse(fileExists(local, "t1"));
+        assertFalse(fileExists(local, "t3"));
     }
 
     @Test
@@ -80,10 +81,10 @@ public class IndexSanityCheckerTest {
 
         //t1 exist in local but not in remote
         //it must be removed
-        assertFalse(local.fileExists("t1"));
+        assertFalse(fileExists(local, "t1"));
 
         //t3 should remain present
-        assertTrue(remote.fileExists("t3"));
+        assertTrue(fileExists(remote, "t3"));
     }
 
     private byte[] writeFile(Directory dir, String name, int size) throws IOException {
@@ -102,5 +103,9 @@ public class IndexSanityCheckerTest {
         byte[] data = new byte[size];
         rnd.nextBytes(data);
         return data;
+    }
+
+    private boolean fileExists(Directory dir, String name) throws IOException {
+        return Arrays.asList(dir.listAll()).contains(name);
     }
 }

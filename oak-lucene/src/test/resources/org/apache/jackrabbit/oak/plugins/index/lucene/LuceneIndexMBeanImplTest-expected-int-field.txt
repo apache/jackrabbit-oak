@@ -1,11 +1,11 @@
-160 (total for field int)
-20 0
-20 0
-20 0
-20 0
+80 (total for field int)
 20 0
 20 0
 20 0
 2 9
 2 8
 2 7
+2 6
+2 5
+2 4
+2 3

@@ -79,8 +79,8 @@ public final class TokenizerChain extends Analyzer {
     }
 
     @Override
-    protected TokenStreamComponents createComponents(String fieldName, Reader reader) {
-        Tokenizer tk = tokenizer.create(reader);
+    protected TokenStreamComponents createComponents(String fieldName) {
+        Tokenizer tk = tokenizer.create();
         TokenStream ts = tk;
         for (TokenFilterFactory filter : filters) {
             ts = filter.create(ts);

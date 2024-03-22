@@ -21,6 +21,7 @@ import java.util.Iterator;
 
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.BufferedIndexInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.WeakIdentityMap;
 
@@ -57,6 +58,12 @@ class OakIndexInput extends IndexInput {
             clones.put(clonedIndexInput, Boolean.TRUE);
         }
         return clonedIndexInput;
+    }
+
+    @Override
+    public IndexInput slice(String sliceDescription, long offset, long length) {
+        checkNotClosed();
+        return BufferedIndexInput.wrap(sliceDescription, this, offset, length);
     }
 
     @Override

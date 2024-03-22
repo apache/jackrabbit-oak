@@ -39,7 +39,6 @@ import org.apache.jackrabbit.oak.plugins.index.search.IndexFormatVersion;
 import org.apache.jackrabbit.oak.plugins.index.search.PropertyDefinition;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
-import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
@@ -82,7 +81,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class LuceneIndexDefinitionTest {
-    private Codec oakCodec = new OakCodec();
 
     private NodeState root = INITIAL_CONTENT;
 
@@ -151,23 +149,6 @@ public class LuceneIndexDefinitionTest {
         assertTrue(rule.isIndexed("bar"));
 
         assertEquals(PropertyType.DATE, rule.getConfig("foo").getType());
-    }
-
-    @Test
-    public void codecConfig() throws Exception{
-        LuceneIndexDefinition defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-        assertNotNull(defn.getCodec());
-        assertEquals(oakCodec.getName(), defn.getCodec().getName());
-
-        builder.setProperty(FulltextIndexConstants.FULL_TEXT_ENABLED, false);
-        defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-        assertNull(defn.getCodec());
-
-        Codec simple = Codec.getDefault();
-        builder.setProperty(LuceneIndexConstants.CODEC_NAME, simple.getName());
-        defn = new LuceneIndexDefinition(root, builder.getNodeState(), "/foo");
-        assertNotNull(defn.getCodec());
-        assertEquals(simple.getName(), defn.getCodec().getName());
     }
 
     @Test

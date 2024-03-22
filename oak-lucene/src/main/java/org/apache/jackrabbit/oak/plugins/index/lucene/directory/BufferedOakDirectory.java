@@ -32,7 +32,6 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.Lock;
-import org.apache.lucene.store.LockFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -135,21 +134,12 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     @Override
-    public boolean fileExists(String name) throws IOException {
-        LOG.debug("[{}]fileExists({})", definition.getIndexPath(), name);
-        if (bufferedForDelete.contains(name)) {
-            return false;
-        }
-        return buffered.fileExists(name) || base.fileExists(name);
-    }
-
-    @Override
     public void deleteFile(String name) throws IOException {
         LOG.debug("[{}]deleteFile({})", definition.getIndexPath(), name);
-        if (base.fileExists(name)) {
+        if (fileExists(base, name)) {
             bufferedForDelete.add(name);
         }
-        if (buffered.fileExists(name)) {
+        if (fileExists(buffered, name)) {
             buffered.deleteFile(name);
             fileDeleted();
         }
@@ -164,7 +154,7 @@ public final class BufferedOakDirectory extends Directory {
             throw new FileNotFoundException(msg);
         }
         Directory dir = base;
-        if (buffered.fileExists(name)) {
+        if (fileExists(buffered, name)) {
             dir = buffered;
         }
         return dir.fileLength(name);
@@ -186,6 +176,13 @@ public final class BufferedOakDirectory extends Directory {
     }
 
     @Override
+    public void renameFile(String source, String dest) throws IOException {
+        LOG.debug("[{}]renameFile({}, {})", definition.getIndexPath(), source, dest);
+        buffered.renameFile(source, dest);
+        base.renameFile(source, dest);
+    }
+
+    @Override
     public IndexInput openInput(String name, IOContext context)
             throws IOException {
         LOG.debug("[{}]openInput({})", definition.getIndexPath(), name);
@@ -195,7 +192,7 @@ public final class BufferedOakDirectory extends Directory {
             throw new FileNotFoundException(msg);
         }
         Directory dir = base;
-        if (buffered.fileExists(name)) {
+        if (fileExists(buffered, name)) {
             dir = buffered;
         }
         return dir.openInput(name, context);
@@ -204,11 +201,6 @@ public final class BufferedOakDirectory extends Directory {
     @Override
     public Lock makeLock(String name) {
         return base.makeLock(name);
-    }
-
-    @Override
-    public void clearLock(String name) throws IOException {
-        base.clearLock(name);
     }
 
     @Override
@@ -224,16 +216,6 @@ public final class BufferedOakDirectory extends Directory {
             base.deleteFile(name);
         }
         base.close();
-    }
-
-    @Override
-    public void setLockFactory(LockFactory lockFactory) throws IOException {
-        base.setLockFactory(lockFactory);
-    }
-
-    @Override
-    public LockFactory getLockFactory() {
-        return base.getLockFactory();
     }
 
     private void fileDeleted() throws IOException {
@@ -254,5 +236,9 @@ public final class BufferedOakDirectory extends Directory {
         bufferedBuilder = squeeze(bufferedBuilder.getNodeState()).builder();
         buffered = new OakDirectory(bufferedBuilder, dataNodeName,
                 definition, false, blobFactory, blobDeletionCallback, isEnableWritingSingleBlobIndexFile());
+    }
+
+    private boolean fileExists(Directory d, String fileName) throws IOException {
+        return Arrays.asList(d.listAll()).contains(fileName);
     }
 }

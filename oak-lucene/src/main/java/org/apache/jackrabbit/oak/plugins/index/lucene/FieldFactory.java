@@ -30,12 +30,17 @@ import org.apache.jackrabbit.oak.plugins.index.lucene.util.fv.SimSearchUtils;
 import org.apache.jackrabbit.oak.plugins.index.search.FieldNames;
 import org.apache.jackrabbit.oak.plugins.index.search.spi.binary.BlobByteSource;
 import org.apache.jackrabbit.util.ISO8601;
-import org.apache.lucene.document.*;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.TextField;
 
 import static org.apache.lucene.document.Field.Store.NO;
 import static org.apache.lucene.document.Field.Store.YES;
-import static org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_AND_FREQS_AND_POSITIONS;
-import static org.apache.lucene.index.FieldInfo.IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS;
+import static org.apache.lucene.index.IndexOptions.DOCS_AND_FREQS_AND_POSITIONS;
+import static org.apache.lucene.index.IndexOptions.DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS;
 
 /**
  * A factory for Lucene Field instances with frequently used fields.
@@ -57,14 +62,12 @@ public final class FieldFactory {
     };
 
     static {
-        OAK_TYPE.setIndexed(true);
         OAK_TYPE.setOmitNorms(true);
         OAK_TYPE.setStored(true);
         OAK_TYPE.setIndexOptions(DOCS_AND_FREQS_AND_POSITIONS_AND_OFFSETS);
         OAK_TYPE.setTokenized(true);
         OAK_TYPE.freeze();
 
-        OAK_TYPE_NOT_STORED.setIndexed(true);
         OAK_TYPE_NOT_STORED.setOmitNorms(true);
         OAK_TYPE_NOT_STORED.setStored(false);
         OAK_TYPE_NOT_STORED.setIndexOptions(DOCS_AND_FREQS_AND_POSITIONS);

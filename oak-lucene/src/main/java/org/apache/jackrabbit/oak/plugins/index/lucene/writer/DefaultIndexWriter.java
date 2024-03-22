@@ -24,6 +24,7 @@ import static org.apache.jackrabbit.oak.plugins.index.lucene.TermFactory.newPath
 import static org.apache.jackrabbit.oak.plugins.index.lucene.writer.IndexWriterUtils.getIndexWriterConfig;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
@@ -277,12 +278,12 @@ class DefaultIndexWriter implements LuceneIndexWriter {
 
         log.trace("Writer for directory {} - docs: {}, ramDocs: {}", definition, docs, ram);
 
-        String[] files = directory.listAll();
+        List<String> files = Arrays.asList(directory.listAll());
         long overallSize = 0;
         StringBuilder sb = new StringBuilder();
         for (String f : files) {
             sb.append(f).append(":");
-            if (directory.fileExists(f)) {
+            if (files.contains(f)) {
                 long size = directory.fileLength(f);
                 overallSize += size;
                 sb.append(size);
@@ -292,7 +293,6 @@ class DefaultIndexWriter implements LuceneIndexWriter {
             sb.append(", ");
         }
         log.trace("Directory overall size: {}, files: {}",
-                org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(overallSize),
-                sb.toString());
+                org.apache.jackrabbit.oak.commons.IOUtils.humanReadableByteCount(overallSize), sb);
     }
 }

@@ -201,7 +201,7 @@ public class IndexCopierCleanupTest {
         Directory cor1 = copier.getCoRDir(remoteSnapshowCow1);
         // local listing
         assertEquals(Sets.newHashSet("a", "b", "c", "d"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+                Sets.newHashSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
         // reader listing
         assertEquals(Sets.newHashSet("a", "b"),
                 Sets.newHashSet(cor1.listAll()));
@@ -222,7 +222,7 @@ public class IndexCopierCleanupTest {
         Directory cor2 = copier.getCoRDir(remoteSnapshotCow2);
         // local listing
         assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+                Sets.newHashSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
         // reader listing
         assertEquals(Sets.newHashSet("c", "d"),
                 Sets.newHashSet(cor2.listAll()));
@@ -232,7 +232,7 @@ public class IndexCopierCleanupTest {
 
         // nothing should get deleted as CoR1 sees "a", "b" and everything else is newer
         assertEquals(Sets.newHashSet("a", "b", "c", "d", "e", "f"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+                Sets.newHashSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
     }
 
     @Test
@@ -349,7 +349,7 @@ public class IndexCopierCleanupTest {
         copier.getCoRDir().close();
 
         assertEquals(Sets.newHashSet("within-margin", "a"),
-                Sets.newHashSet(new SimpleFSDirectory(localFSDir).listAll()));
+                Sets.newHashSet(new SimpleFSDirectory(localFSDir.toPath()).listAll()));
     }
 
     @Test
@@ -495,7 +495,7 @@ public class IndexCopierCleanupTest {
 
     private static class DelayCopyingSimpleFSDirectory extends SimpleFSDirectory {
         DelayCopyingSimpleFSDirectory(File dir) throws IOException {
-            super(dir);
+            super(dir.toPath());
         }
 
         static void updateLastModified(Directory dir, String name) throws IOException {
@@ -516,7 +516,7 @@ public class IndexCopierCleanupTest {
 
         void updateLastModified(String name) throws IOException {
             try {
-                updateLastModified(directory, name);
+                updateLastModified(directory.toFile(), name);
 
                 CLOCK.waitUntil(CLOCK.getTime() + SAFE_MARGIN_FOR_DELETION + MARGIN_BUFFER_FOR_FS_GRANULARITY);
             } catch (InterruptedException ie) {
@@ -553,11 +553,11 @@ public class IndexCopierCleanupTest {
         }
 
         @Override
-        public void copy(Directory to, String src, String dest, IOContext context) throws IOException {
-            super.copy(to, src, dest, context);
+        public void copyFrom(Directory dir, String src, String dest, IOContext context) throws IOException {
+            super.copyFrom(dir, src, dest, context);
 
-            if (to instanceof DelayCopyingSimpleFSDirectory) {
-                ((DelayCopyingSimpleFSDirectory)to).updateLastModified(dest);
+            if (dir instanceof DelayCopyingSimpleFSDirectory) {
+                ((DelayCopyingSimpleFSDirectory)dir).updateLastModified(dest);
             }
         }
 
