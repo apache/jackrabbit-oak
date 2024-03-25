@@ -1533,18 +1533,25 @@ public class VersionGarbageCollector {
                 }
             }
             // "_bc"
-            for (Revision revision : doc.getLocalBranchCommits()) {
-                if (!allRequiredRevs.contains(revision)) {
-                    Operation has = updateOp.getChanges().get(new Key(NodeDocument.BRANCH_COMMITS, revision));
-                    if (has != null) {
-                        // then skip
-                        continue;
-                    }
 
-                    NodeDocument.removeBranchCommit(updateOp, revision);
-                    deletedRevsCount++;
-                }
-            }
+deletedRevsCount += getDeletedRevsCount(doc.getLocalBranchCommits(), updateOp, allRequiredRevs, BRANCH_COMMITS, NodeDocument::removeBranchCommit);
+return deletedRevsCount;
+}
+
+            private int getDeletedRevsCount(Set<Revision> revisionSet, UpdateOp updateOp, Set<Revision> allRequiredRevs, String updateOpKey, BiConsumer<UpdateOp, Revision> op) {
+
+            return revisionSet.stream().filter(r -> !allRequiredRevs.contains(r))
+                    .mapToInt(r -> {
+                        Operation has = updateOp.getChanges().get(new Key(updateOpKey, r));
+                        if (has != null) {
+                            // then skip
+                            return 0;
+                        }
+
+                        op.accept(updateOp, r);
+                        return 1;
+                    }).sum();
+        }
             return deletedRevsCount;
         }
 
