@@ -945,7 +945,7 @@ public final class NodeDocument extends Document {
     Revision localCommitRevisionOfProperty(@NotNull DocumentNodeStore nodeStore,
                                            @NotNull RevisionVector readRevision,
                                            @NotNull String key) {
-        Map<Revision, String> validRevisions = Maps.newHashMap();
+        Map<Revision, String> validRevisions = new HashMap<>();
         Branch branch = nodeStore.getBranches().getBranch(readRevision);
         LastRevs lastRevs = createLastRevs(readRevision,
                 nodeStore, branch, null);
