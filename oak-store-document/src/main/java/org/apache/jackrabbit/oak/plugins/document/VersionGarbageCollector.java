@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -1398,7 +1399,7 @@ public class VersionGarbageCollector {
             for (PropertyState prop : traversedMainNode.getProperties()) {
                 final String escapedPropName = Utils.escapePropertyName(prop.getName());
                 deletedRevsCount += removeUnusedPropertyEntries(doc, traversedMainNode, updateOp, escapedPropName,
-                        (r) -> { updateOp.removeMapEntry(escapedPropName, r); return null;},
+                        (r) -> updateOp.removeMapEntry(escapedPropName, r),
                         allKeepRevs);
             }
 
@@ -1432,14 +1433,14 @@ public class VersionGarbageCollector {
                     continue;
                 }
                 deletedRevsCount += removeUnusedPropertyEntries(doc, traversedNode, updateOp, escapedPropName,
-                        (r) -> { updateOp.removeMapEntry(escapedPropName, r); return null;},
+                        (r) -> updateOp.removeMapEntry(escapedPropName, r),
                         allKeepRevs);
             }
 
             // phase 3 : "_deleted"
             int numDeleted = removeUnusedPropertyEntries(doc, traversedMainNode,
                     updateOp, NodeDocument.DELETED,
-                    (r) -> { NodeDocument.removeDeleted(updateOp, r); return null;} ,
+                    (r) -> NodeDocument.removeDeleted(updateOp, r),
                     allKeepRevs);
             deletedRevsCount += numDeleted;
             return deletedRevsCount;
@@ -1545,7 +1546,7 @@ public class VersionGarbageCollector {
 
         private int removeUnusedPropertyEntries(NodeDocument doc,
                 DocumentNodeState traversedMainNode, UpdateOp updateOp,
-                String propertyKey, Function<Revision, Void> removeRevision,
+                String propertyKey, Consumer<Revision> removeRevision,
                 Set<Revision> allKeepRevs) {
             // we need to use the traversedNode.getLastRevision() as the readRevision,
             // as that is what was originally used in getNodeAtRevision when traversing
@@ -1583,7 +1584,7 @@ public class VersionGarbageCollector {
                             log.trace("removeUnusedPropertyEntries : removing property key {} with revision {} from doc {}",
                                     propertyKey, localRev, doc.getId());
                         }
-                        removeRevision.apply(localRev);
+                        removeRevision.accept(localRev);
                         count++;
                     }
                 }
