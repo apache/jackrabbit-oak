@@ -239,7 +239,7 @@ public class UtilsTest {
     @Test
     public void embeddedVerificationEnabledDefaultValue() {
         boolean embeddedVerificationEnabled = isEmbeddedVerificationEnabled(newDocumentNodeStoreBuilder());
-        assertFalse("Embedded Verification is enabled by default", embeddedVerificationEnabled);
+        assertTrue("Embedded Verification is enabled by default", embeddedVerificationEnabled);
     }
 
     @Test
