@@ -1399,10 +1399,7 @@ public class VersionGarbageCollector {
             }
 
             // phase 2 : bundled nodes only
-            final Map<Path, DocumentNodeState> bundledNodeStates = new HashMap<>();
-            for (DocumentNodeState dns : traversedMainNode.getAllBundledNodesStates()) {
-                bundledNodeStates.put(dns.getPath(), dns);
-            }
+            final Map<Path, DocumentNodeState> bundledNodeStates = stream(traversedMainNode.getAllBundledNodesStates().spliterator(), false).collect(toMap(DocumentNodeState::getPath, identity()));
             // remember that getAllBundledProperties returns unescaped keys
             for (String propName : traversedMainNode.getAllBundledProperties().keySet()) {
                 final int lastSlash = propName.lastIndexOf("/");
