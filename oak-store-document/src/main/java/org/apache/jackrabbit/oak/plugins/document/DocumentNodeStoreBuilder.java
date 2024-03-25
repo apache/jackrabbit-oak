@@ -170,7 +170,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
     private boolean detailedGCEnabled;
-    private boolean embeddedVerificationEnabled;
+    private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
     /**
