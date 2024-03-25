@@ -12,8 +12,4 @@ atlassian-ide-plugin.xml
 derby.log
 .java-version
 oak-shaded-guava/dependency-reduced-pom.xml
-<<<<<<< HEAD
 .DS_Store
-=======
-.DS_Store
->>>>>>> 5387b42c7e (OAK-8646 : added metrics for unmergedbranch commits & improved junit coverage)
