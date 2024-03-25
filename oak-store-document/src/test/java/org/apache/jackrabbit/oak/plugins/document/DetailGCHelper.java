@@ -91,7 +91,7 @@ public class DetailGCHelper {
             for (Entry<String, Object> e : target.data.entrySet()) {
                 String k = e.getKey();
                 final boolean internal = k.startsWith("_");
-                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.revisionDetailedGcType != RDGCType.KeepOneCleanupUserPropertiesOnlyMode);
+                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.revisionDetailedGcType != RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE);
                 if (internal && !dgcSupportsInternalPropCleanup) {
                     // skip
                     continue;

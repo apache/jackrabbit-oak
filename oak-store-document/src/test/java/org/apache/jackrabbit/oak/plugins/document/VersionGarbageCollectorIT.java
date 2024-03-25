@@ -1057,15 +1057,15 @@ public class VersionGarbageCollectorIT {
         assertNotNull(stats);
         assertEquals(deletedDocGCCount, stats.deletedDocGCCount);
         assertEquals(deletedPropsCount, stats.deletedPropsCount);
-        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.KeepOneFullMode) {
+        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.KEEP_ONE_FULL_MODE) {
             assertEquals(deletedInternalPropsCount, stats.deletedInternalPropsCount);
         }
         assertEquals(deletedPropRevsCount, stats.deletedPropRevsCount);
-        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.KeepOneFullMode) {
+        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.KEEP_ONE_FULL_MODE) {
             assertEquals(deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
         }
         assertEquals(deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
-        if (VersionGarbageCollector.revisionDetailedGcType != RDGCType.KeepOneCleanupUserPropertiesOnlyMode) {
+        if (VersionGarbageCollector.revisionDetailedGcType != RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE) {
             // TODO: unfortunately, in cleanup-user-props-only mode the expected count below
             // is inaccurate. So either we extend this assert methods to get values per mode,
             // or we ignore this for now. not nice but should only be temporary
@@ -1629,7 +1629,7 @@ public class VersionGarbageCollectorIT {
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
             int updatedDetailedGCDocsCount) {
-        return new GCCounts(RDGCType.KeepOneFullMode, deletedDocGCCount,
+        return new GCCounts(RDGCType.KEEP_ONE_FULL_MODE, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
                 updatedDetailedGCDocsCount);
@@ -1639,7 +1639,7 @@ public class VersionGarbageCollectorIT {
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
             int updatedDetailedGCDocsCount) {
-        return new GCCounts(RDGCType.KeepOneCleanupUserPropertiesOnlyMode,
+        return new GCCounts(RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE,
                 deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
                 deletedPropRevsCount, deletedInternalPropRevsCount,
                 deletedUnmergedBCCount, updatedDetailedGCDocsCount);
@@ -1649,7 +1649,7 @@ public class VersionGarbageCollectorIT {
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
             int updatedDetailedGCDocsCount) {
-        return new GCCounts(RDGCType.OlderThan24AndBetweenCheckpointsMode,
+        return new GCCounts(RDGCType.OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE,
                 deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
                 deletedPropRevsCount, deletedInternalPropRevsCount,
                 deletedUnmergedBCCount, updatedDetailedGCDocsCount);
@@ -1716,7 +1716,7 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = store1.getDocumentStore().find(NODES, "1:/x", -1);
         assertNotNull(doc);
-        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.OlderThan24AndBetweenCheckpointsMode) {
+        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE) {
             // this mode doesn't currently delete all revisions,
             // thus would fail below assert.
             return;
