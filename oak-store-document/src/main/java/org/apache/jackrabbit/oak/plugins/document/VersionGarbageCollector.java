@@ -36,6 +36,7 @@ import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -1402,7 +1403,9 @@ public class VersionGarbageCollector {
             }
 
             // phase 2 : bundled nodes only
-            final Map<Path, DocumentNodeState> bundledNodeStates = stream(traversedMainNode.getAllBundledNodesStates().spliterator(), false).collect(toMap(DocumentNodeState::getPath, identity()));
+            final Map<Path, DocumentNodeState> bundledNodeStates = stream(
+                    traversedMainNode.getAllBundledNodesStates().spliterator(), false)
+                            .collect(toMap(DocumentNodeState::getPath, identity()));
             // remember that getAllBundledProperties returns unescaped keys
             for (String propName : traversedMainNode.getAllBundledProperties().keySet()) {
                 final int lastSlash = propName.lastIndexOf("/");
@@ -1447,14 +1450,18 @@ public class VersionGarbageCollector {
                 final DocumentNodeState traversedMainNode,
                 final Set<Revision> toKeepUserPropRevs,
                 int deletedRevsCount) {
-            boolean hasUnmergedBranchCommits = doc.getLocalBranchCommits().stream().anyMatch(r -> !isCommitted(nodeStore.getCommitValue(r, doc)));
+            boolean hasUnmergedBranchCommits = doc.getLocalBranchCommits().stream()
+                    .anyMatch(r -> !isCommitted(nodeStore.getCommitValue(r, doc)));
             if (deletedRevsCount == 0 && !hasUnmergedBranchCommits) {
                 return deletedRevsCount;
             }
             // if we did some rev deletion OR there are unmerged BCs, then let's deep-dive
             Set<Revision> allRequiredRevs = new HashSet<>(toKeepUserPropRevs);
             // "_collisions"
-            deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(), updateOp, allRequiredRevs, COLLISIONS, NodeDocument::removeCollision);
+            deletedRevsCount += getDeletedRevsCount(
+                    doc.getLocalMap(NodeDocument.COLLISIONS).keySet(), updateOp,
+                    allRequiredRevs, NodeDocument.COLLISIONS,
+                    NodeDocument::removeCollision);
             // "_revisions"
             for (Entry<Revision, String> e : doc.getLocalRevisions().entrySet()) {
                 Revision revision = e.getKey();
@@ -1512,15 +1519,17 @@ public class VersionGarbageCollector {
                 deletedRevsCount++;
             }
             // "_commitRoot"
-            deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(), updateOp, allRequiredRevs, COMMIT_ROOT, NodeDocument::removeCommitRoot);
+            deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(),
+                    updateOp, allRequiredRevs, NodeDocument.COMMIT_ROOT,
+                    NodeDocument::removeCommitRoot);
             // "_bc"
+            deletedRevsCount += getDeletedRevsCount(doc.getLocalBranchCommits(), updateOp,
+                    allRequiredRevs, NodeDocument.BRANCH_COMMITS,
+                    NodeDocument::removeBranchCommit);
+            return deletedRevsCount;
+        }
 
-deletedRevsCount += getDeletedRevsCount(doc.getLocalBranchCommits(), updateOp, allRequiredRevs, BRANCH_COMMITS, NodeDocument::removeBranchCommit);
-return deletedRevsCount;
-}
-
-            private int getDeletedRevsCount(Set<Revision> revisionSet, UpdateOp updateOp, Set<Revision> allRequiredRevs, String updateOpKey, BiConsumer<UpdateOp, Revision> op) {
-
+        private int getDeletedRevsCount(Set<Revision> revisionSet, UpdateOp updateOp, Set<Revision> allRequiredRevs, String updateOpKey, BiConsumer<UpdateOp, Revision> op) {
             return revisionSet.stream().filter(r -> !allRequiredRevs.contains(r))
                     .mapToInt(r -> {
                         Operation has = updateOp.getChanges().get(new Key(updateOpKey, r));
@@ -1532,8 +1541,6 @@ return deletedRevsCount;
                         op.accept(updateOp, r);
                         return 1;
                     }).sum();
-        }
-            return deletedRevsCount;
         }
 
         private int removeUnusedPropertyEntries(NodeDocument doc,
