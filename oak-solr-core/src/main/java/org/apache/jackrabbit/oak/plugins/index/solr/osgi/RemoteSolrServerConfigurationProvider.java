@@ -16,50 +16,80 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.RemoteSolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.RemoteSolrServerProvider;
+
 import org.jetbrains.annotations.NotNull;
-import org.osgi.service.component.ComponentContext;
 
 /**
  * {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider} for remote Solr installations.
  */
-@Component(metatype = true, immediate = true, label = "Apache Jackrabbit Oak Solr remote server configuration")
-@Service(SolrServerConfigurationProvider.class)
-@Property(name = "name", value = "remote", propertyPrivate = true)
+@Component(
+        immediate = true,
+        service = { SolrServerConfigurationProvider.class }
+)
+@Designate(
+        ocd = RemoteSolrServerConfigurationProvider.Configuration.class
+)
 public class RemoteSolrServerConfigurationProvider implements SolrServerConfigurationProvider<RemoteSolrServerProvider> {
 
-    @Property(value = SolrServerConfigurationDefaults.HTTP_URL, label = "Solr HTTP URL")
-    private static final String SOLR_HTTP_URL = "solr.http.url";
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.plugins.index.solr.osgi.RemoteSolrServerConfigurationProvider",
+            name = "Apache Jackrabbit Oak Solr remote server configuration"
+    )
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Solr HTTP URL"
+        )
+        String solr_http_url() default SolrServerConfigurationDefaults.HTTP_URL;
 
-    @Property(value = SolrServerConfigurationDefaults.ZK_HOST, label = "ZooKeeper host")
-    private static final String SOLR_ZK_HOST = "solr.zk.host";
+        @AttributeDefinition(
+                name = "ZooKeeper host"
+        )
+        String solr_zk_host() default SolrServerConfigurationDefaults.ZK_HOST;
 
-    @Property(value = SolrServerConfigurationDefaults.COLLECTION, label = "Solr collection")
-    private static final String SOLR_COLLECTION = "solr.collection";
+        @AttributeDefinition(
+                name = "Solr collection"
+        )
+        String solr_collection() default SolrServerConfigurationDefaults.COLLECTION;
 
-    @Property(intValue = SolrServerConfigurationDefaults.SOCKET_TIMEOUT, label = "Socket timeout (ms)")
-    private static final String SOCKET_TIMEOUT = "solr.socket.timeout";
+        @AttributeDefinition(
+                name = "Socket timeout (ms)"
+        )
+        int solr_socket_timeout() default SolrServerConfigurationDefaults.SOCKET_TIMEOUT;
 
-    @Property(intValue = SolrServerConfigurationDefaults.CONNECTION_TIMEOUT, label = "Connection timeout (ms)")
-    private static final String CONNECTION_TIMEOUT = "solr.connection.timeout";
+        @AttributeDefinition(
+                name = "Connection timeout (ms)"
+        )
+        int solr_connection_timeout() default SolrServerConfigurationDefaults.CONNECTION_TIMEOUT;
 
-    @Property(intValue = SolrServerConfigurationDefaults.SHARDS_NO, label = "No. of collection shards")
-    private static final String SOLR_SHARDS_NO = "solr.shards.no";
+        @AttributeDefinition(
+                name = "No. of collection shards"
+        )
+        int solr_shards_no() default SolrServerConfigurationDefaults.SHARDS_NO;
 
-    @Property(intValue = SolrServerConfigurationDefaults.REPLICATION_FACTOR, label = "Replication factor")
-    private static final String SOLR_REPLICATION_FACTOR = "solr.replication.factor";
+        @AttributeDefinition(
+                name = "Replication factor"
+        )
+        int solr_replication_factor() default SolrServerConfigurationDefaults.REPLICATION_FACTOR;
 
-    @Property(value = SolrServerConfigurationDefaults.CONFIGURATION_DIRECTORY, label = "Solr configuration directory")
-    private static final String SOLR_CONF_DIR = "solr.conf.dir";
+        @AttributeDefinition(
+                name = "Solr configuration directory"
+        )
+        String solr_conf_dir() default SolrServerConfigurationDefaults.CONFIGURATION_DIRECTORY;
+
+        String name() default "remote";
+    }
 
     private String solrHttpUrl;
     private String solrZkHost;
@@ -70,15 +100,15 @@ public class RemoteSolrServerConfigurationProvider implements SolrServerConfigur
     private RemoteSolrServerConfiguration remoteSolrServerConfiguration;
 
     @Activate
-    protected void activate(ComponentContext componentContext) throws Exception {
-        solrHttpUrl = String.valueOf(componentContext.getProperties().get(SOLR_HTTP_URL));
-        solrZkHost = String.valueOf(componentContext.getProperties().get(SOLR_ZK_HOST));
-        solrCollection = String.valueOf(componentContext.getProperties().get(SOLR_COLLECTION));
-        solrShardsNo = Integer.valueOf(componentContext.getProperties().get(SOLR_SHARDS_NO).toString());
-        solrReplicationFactor = Integer.valueOf(componentContext.getProperties().get(SOLR_REPLICATION_FACTOR).toString());
-        solrConfDir = String.valueOf(componentContext.getProperties().get(SOLR_CONF_DIR));
-        int socketTimeout = Integer.valueOf(componentContext.getProperties().get(SOCKET_TIMEOUT).toString());
-        int connectionTimeout = Integer.valueOf(componentContext.getProperties().get(CONNECTION_TIMEOUT).toString());
+    protected void activate(Configuration configuration) throws Exception {
+        solrHttpUrl = configuration.solr_http_url();
+        solrZkHost = configuration.solr_zk_host();
+        solrCollection = configuration.solr_collection();
+        solrShardsNo = configuration.solr_shards_no();
+        solrReplicationFactor = configuration.solr_replication_factor();
+        solrConfDir = configuration.solr_conf_dir();
+        int socketTimeout = configuration.solr_socket_timeout();
+        int connectionTimeout = configuration.solr_connection_timeout();
         remoteSolrServerConfiguration = new RemoteSolrServerConfiguration(solrZkHost, solrCollection, solrShardsNo,
                 solrReplicationFactor, solrConfDir, socketTimeout, connectionTimeout, solrHttpUrl);
     }

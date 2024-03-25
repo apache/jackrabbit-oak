@@ -19,57 +19,74 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.Reference;
-import org.apache.felix.scr.annotations.ReferenceCardinality;
-import org.apache.felix.scr.annotations.ReferencePolicy;
-import org.apache.felix.scr.annotations.References;
-import org.apache.felix.scr.annotations.Service;
+
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Option;
+
+import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.SolrServerConfigurationProvider;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.OakSolrServer;
 import org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider;
+
 import org.apache.solr.client.solrj.SolrClient;
+
 import org.jetbrains.annotations.Nullable;
-import org.osgi.service.component.ComponentContext;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.server.SolrServerProvider}
  */
-@Component(metatype = true, label = "Apache Jackrabbit Oak Solr server provider", immediate = true)
-@References({
-        @Reference(name = "solrServerConfigurationProvider",
-                referenceInterface = SolrServerConfigurationProvider.class,
-                cardinality = ReferenceCardinality.MANDATORY_MULTIPLE,
-                policy = ReferencePolicy.DYNAMIC,
-                bind = "bindSolrServerConfigurationProvider",
-                unbind = "unbindSolrServerConfigurationProvider",
-                updated = "updatedSolrServerConfigurationProvider"
-        )
-})
-@Service(SolrServerProvider.class)
+@Component(
+        immediate = true,
+        service = { SolrServerProvider.class },
+        reference = {
+                @Reference(
+                        name = "solrServerConfigurationProvider",
+                        service = SolrServerConfigurationProvider.class,
+                        cardinality = ReferenceCardinality.AT_LEAST_ONE,
+                        policy = ReferencePolicy.DYNAMIC,
+                        bind = "bindSolrServerConfigurationProvider",
+                        unbind = "unbindSolrServerConfigurationProvider",
+                        updated = "updatedSolrServerConfigurationProvider"
+                )
+        }
+)
+@Designate(
+        ocd = SolrServerProviderService.Configuration.class
+)
 public class SolrServerProviderService implements SolrServerProvider {
 
-    private final Logger log = LoggerFactory.getLogger(getClass());
-
-    @Property(options = {
-            @PropertyOption(name = "none",
-                    value = "None"
-            ),
-            @PropertyOption(name = "embedded",
-                    value = "Embedded Solr"
-            ),
-            @PropertyOption(name = "remote",
-                    value = "Remote Solr"
-            )},
-            value = "none"
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.plugins.index.solr.osgi.SolrServerProviderService",
+            name = "Apache Jackrabbit Oak Solr server provider"
     )
-    private static final String SERVER_TYPE = "server.type";
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "Property server.type",
+                options = {
+                        @Option(value = "none",
+                                label = "None"
+                        ),
+                        @Option(value = "embedded",
+                                label = "Embedded Solr"
+                        ),
+                        @Option(value = "remote",
+                                label = "Remote Solr"
+                        )}
+        )
+        OakSolrConfiguration.ServerType server_type() default OakSolrConfiguration.ServerType.none;
+    }
+    private final Logger log = LoggerFactory.getLogger(getClass());
 
     private final Map<String, SolrServerConfigurationProvider> solrServerConfigurationProviders = new HashMap<String, SolrServerConfigurationProvider>();
 
@@ -78,8 +95,8 @@ public class SolrServerProviderService implements SolrServerProvider {
     private SolrClient cachedSolrServer;
 
     @Activate
-    protected void activate(ComponentContext context) throws Exception {
-        serverType = String.valueOf(context.getProperties().get(SERVER_TYPE));
+    protected void activate(Configuration configuration) throws Exception {
+        serverType = configuration.server_type().toString();
     }
 
     @Deactivate

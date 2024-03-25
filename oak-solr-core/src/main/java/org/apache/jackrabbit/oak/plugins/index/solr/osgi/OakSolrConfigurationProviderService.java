@@ -19,99 +19,140 @@ package org.apache.jackrabbit.oak.plugins.index.solr.osgi;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Property;
-import org.apache.felix.scr.annotations.PropertyOption;
-import org.apache.felix.scr.annotations.PropertyUnbounded;
-import org.apache.felix.scr.annotations.Service;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.apache.jackrabbit.oak.api.Type;
-import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfiguration;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationDefaults;
 import org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider;
 import org.apache.jackrabbit.oak.spi.query.Filter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.osgi.service.component.ComponentContext;
+import org.osgi.service.metatype.annotations.Option;
 
 /**
  * OSGi service for {@link org.apache.jackrabbit.oak.plugins.index.solr.configuration.OakSolrConfigurationProvider}
  */
-@Component(label = "Apache Jackrabbit Oak Solr indexing / search configuration", metatype = true, immediate = true)
-@Service(OakSolrConfigurationProvider.class)
+@Component(
+        immediate = true,
+        service = { OakSolrConfigurationProvider.class }
+)
+@Designate(
+        ocd = OakSolrConfigurationProviderService.Configuration.class
+)
 public class OakSolrConfigurationProviderService implements OakSolrConfigurationProvider {
 
-    @Property(value = OakSolrConfigurationDefaults.DESC_FIELD_NAME, label = "field for descendants search")
-    private static final String PATH_DESCENDANTS_FIELD = "path.desc.field";
+    @ObjectClassDefinition(
+            id = "org.apache.jackrabbit.oak.plugins.index.solr.osgi.OakSolrConfigurationProviderService",
+            name = "Apache Jackrabbit Oak Solr indexing / search configuration" )
+    @interface Configuration {
+        @AttributeDefinition(
+                name = "field for descendants search"
+        )
+        String path_desc_field() default OakSolrConfigurationDefaults.DESC_FIELD_NAME;
 
-    @Property(value = OakSolrConfigurationDefaults.CHILD_FIELD_NAME, label = "field for children search")
-    private static final String PATH_CHILDREN_FIELD = "path.child.field";
+        @AttributeDefinition(
+                name = "field for children search"
+        )
+        String path_child_field() default OakSolrConfigurationDefaults.CHILD_FIELD_NAME;
 
-    @Property(value = OakSolrConfigurationDefaults.ANC_FIELD_NAME, label = "field for parent search")
-    private static final String PATH_PARENT_FIELD = "path.parent.field";
+        @AttributeDefinition(
+                name = "field for parent search"
+        )
+        String path_parent_field() default OakSolrConfigurationDefaults.ANC_FIELD_NAME;
 
-    @Property(value = OakSolrConfigurationDefaults.PATH_FIELD_NAME, label = "field for path search")
-    private static final String PATH_EXACT_FIELD = "path.exact.field";
+        @AttributeDefinition(
+                name = "field for path search"
+        )
+        String path_exact_field() default OakSolrConfigurationDefaults.PATH_FIELD_NAME;
 
-    @Property(value = OakSolrConfigurationDefaults.CATCHALL_FIELD, label = "catch all field")
-    private static final String CATCH_ALL_FIELD = "catch.all.field";
+        @AttributeDefinition(
+                name = "catch all field"
+        )
+        String catch_all_field() default OakSolrConfigurationDefaults.CATCHALL_FIELD;
 
-    @Property(value = OakSolrConfigurationDefaults.COLLAPSED_PATH_FIELD, label = "field for collapsing jcr:content paths")
-    private static final String COLLAPSED_PATH_FIELD = "collapsed.path.field";
+        @AttributeDefinition(
+                name = "field for collapsing jcr:content paths"
+        )
+        String collapsed_path_field() default OakSolrConfigurationDefaults.COLLAPSED_PATH_FIELD;
 
-    @Property(value = OakSolrConfigurationDefaults.PATH_DEPTH_FIELD, label = "field for path depth")
-    private static final String PATH_DEPTH_FIELD = "path.depth.field";
+        @AttributeDefinition(
+                name = "field for path depth"
+        )
+        String path_depth_field() default OakSolrConfigurationDefaults.PATH_DEPTH_FIELD;
 
-    @Property(options = {
-            @PropertyOption(name = "HARD",
-                    value = "Hard commit"
-            ),
-            @PropertyOption(name = "SOFT",
-                    value = "Soft commit"
-            ),
-            @PropertyOption(name = "AUTO",
-                    value = "Auto commit"
-            )},
-            value = "SOFT"
-    )
-    private static final String COMMIT_POLICY = "commit.policy";
+        @AttributeDefinition(
+                name = "Property commit.policy",
+                options = {
+                        @Option(value = "HARD",
+                                label = "Hard commit"
+                        ),
+                        @Option(value = "SOFT",
+                                label = "Soft commit"
+                        ),
+                        @Option(value = "AUTO",
+                                label = "Auto commit"
+                        )}
+        )
+        OakSolrConfiguration.CommitPolicy commit_policy() default OakSolrConfiguration.CommitPolicy.SOFT;
 
-    @Property(intValue = OakSolrConfigurationDefaults.ROWS, label = "rows")
-    private static final String ROWS = "rows";
+        @AttributeDefinition(
+                name = "rows"
+        )
+        int rows() default OakSolrConfigurationDefaults.ROWS;
 
-    @Property(boolValue = OakSolrConfigurationDefaults.PATH_RESTRICTIONS, label = "path restrictions")
-    private static final String PATH_RESTRICTIONS = "path.restrictions";
+        @AttributeDefinition(
+                name = "path restrictions"
+        )
+        boolean path_restrictions() default OakSolrConfigurationDefaults.PATH_RESTRICTIONS;
 
-    @Property(boolValue = OakSolrConfigurationDefaults.PROPERTY_RESTRICTIONS, label = "property restrictions")
-    private static final String PROPERTY_RESTRICTIONS = "property.restrictions";
+        @AttributeDefinition(
+                name = "property restrictions"
+        )
+        boolean property_restrictions() default OakSolrConfigurationDefaults.PROPERTY_RESTRICTIONS;
 
-    @Property(boolValue = OakSolrConfigurationDefaults.PRIMARY_TYPES, label = "primary types restrictions")
-    private static final String PRIMARY_TYPES_RESTRICTIONS = "primarytypes.restrictions";
+        @AttributeDefinition(
+                name = "primary types restrictions"
+        )
+        boolean primarytypes_restrictions() default OakSolrConfigurationDefaults.PRIMARY_TYPES;
 
-    @Property(value = {"rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"},
-            label = "ignored properties", unbounded = PropertyUnbounded.ARRAY)
-    private static final String IGNORED_PROPERTIES = "ignored.properties";
+        @AttributeDefinition(
+                name = "ignored properties"
+        )
+        String[] ignored_properties() default {"rep:members", "rep:authorizableId", "jcr:uuid", "rep:principalName", "rep:password"};
 
-    @Property(value = {}, label = "used properties", unbounded = PropertyUnbounded.ARRAY)
-    private static final String USED_PROPERTIES = "used.properties";
+        @AttributeDefinition(
+                name = "used properties"
+        )
+        String[] used_properties();
 
-    @Property(value = OakSolrConfigurationDefaults.TYPE_MAPPINGS, cardinality = 13, description =
-            "each item should be in the form TypeString=FieldName (e.g. STRING=text_general)", label =
-            "mappings from Oak Types to Solr fields")
-    private static final String TYPE_MAPPINGS = "type.mappings";
+        @AttributeDefinition(
+                name = "mappings from Oak Types to Solr fields",
+                description = "each item should be in the form TypeString=FieldName (e.g. STRING=text_general)",
+                cardinality = 13
+        )
+        String[] type_mappings() default OakSolrConfigurationDefaults.TYPE_MAPPINGS;
 
-    @Property(value = OakSolrConfigurationDefaults.PROPERTY_MAPPINGS, unbounded = PropertyUnbounded.ARRAY, description =
-            "each item should be in the form PropertyName=FieldName (e.g. jcr:title=text_en)", label =
-            "mappings from JCR property names to Solr fields")
-    private static final String PROPERTY_MAPPINGS = "property.mappings";
+        @AttributeDefinition(
+                name = "mappings from JCR property names to Solr fields",
+                description = "each item should be in the form PropertyName=FieldName (e.g. jcr:title=text_en)"
+        )
+        String[] property_mappings() default OakSolrConfigurationDefaults.PROPERTY_MAPPINGS;
 
-    @Property(boolValue = OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES, label = "collapse jcr:content nodes")
-    private static final String COLLAPSE_JCR_CONTENT_NODES = "collapse.jcrcontent.nodes";
+        @AttributeDefinition(
+                name = "collapse jcr:content nodes"
+        )
+        boolean collapse_jcrcontent_nodes() default OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_NODES;
 
-    @Property(boolValue = OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_PARENTS, label = "collapse jcr:content parents")
-    private static final String COLLAPSE_JCR_CONTENT_PARENTS = "collapse.jcrcontent.parents";
+        @AttributeDefinition(
+                name = "collapse jcr:content parents"
+        )
+        boolean collapse_jcrcontent_parents() default OakSolrConfigurationDefaults.COLLAPSE_JCR_CONTENT_PARENTS;
+    }
 
     private String pathChildrenFieldName;
     private String pathParentFieldName;
@@ -135,25 +176,25 @@ public class OakSolrConfigurationProviderService implements OakSolrConfiguration
     private OakSolrConfiguration oakSolrConfiguration;
 
     @Activate
-    protected void activate(ComponentContext componentContext) throws Exception {
-        pathChildrenFieldName = String.valueOf(componentContext.getProperties().get(PATH_CHILDREN_FIELD));
-        pathParentFieldName = String.valueOf(componentContext.getProperties().get(PATH_PARENT_FIELD));
-        pathExactFieldName = String.valueOf(componentContext.getProperties().get(PATH_EXACT_FIELD));
-        collapsedPathField= String.valueOf(componentContext.getProperties().get(COLLAPSED_PATH_FIELD));
-        pathDescendantsFieldName = String.valueOf(componentContext.getProperties().get(PATH_DESCENDANTS_FIELD));
-        catchAllField = String.valueOf(componentContext.getProperties().get(CATCH_ALL_FIELD));
-        depthField = String.valueOf(componentContext.getProperties().get(PATH_DEPTH_FIELD));
-        rows = Integer.parseInt(String.valueOf(componentContext.getProperties().get(ROWS)));
-        commitPolicy = OakSolrConfiguration.CommitPolicy.valueOf(String.valueOf(componentContext.getProperties().get(COMMIT_POLICY)));
-        useForPathRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PATH_RESTRICTIONS)));
-        useForPropertyRestrictions = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PROPERTY_RESTRICTIONS)));
-        useForPrimaryTypes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(PRIMARY_TYPES_RESTRICTIONS)));
-        typeMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(TYPE_MAPPINGS));
-        ignoredProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(IGNORED_PROPERTIES));
-        usedProperties = PropertiesUtil.toStringArray(componentContext.getProperties().get(USED_PROPERTIES));
-        propertyMappings = PropertiesUtil.toStringArray(componentContext.getProperties().get(PROPERTY_MAPPINGS));
-        collapseJcrContentNodes = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_NODES)));
-        collapseJcrContentParents = Boolean.valueOf(String.valueOf(componentContext.getProperties().get(COLLAPSE_JCR_CONTENT_PARENTS)));
+    protected void activate(Configuration configuration) {
+        pathChildrenFieldName = configuration.path_child_field();
+        pathParentFieldName = configuration.path_parent_field();
+        pathExactFieldName = configuration.path_exact_field();
+        collapsedPathField = configuration.collapsed_path_field();
+        pathDescendantsFieldName = configuration.path_desc_field();
+        catchAllField = configuration.catch_all_field();
+        depthField = configuration.path_depth_field();
+        rows = configuration.rows();
+        commitPolicy = configuration.commit_policy();
+        useForPathRestrictions = configuration.path_restrictions();
+        useForPropertyRestrictions = configuration.property_restrictions();
+        useForPrimaryTypes = configuration.primarytypes_restrictions();
+        typeMappings = configuration.type_mappings();
+        ignoredProperties = configuration.ignored_properties();
+        usedProperties = configuration.used_properties();
+        propertyMappings = configuration.property_mappings();
+        collapseJcrContentNodes = configuration.collapse_jcrcontent_nodes();
+        collapseJcrContentParents = configuration.collapse_jcrcontent_parents();
     }
 
     @Deactivate
