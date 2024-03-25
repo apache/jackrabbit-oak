@@ -1393,15 +1393,15 @@ public class VersionGarbageCollector {
                 final GCPhases phases, final UpdateOp updateOp,
                 final DocumentNodeState traversedMainNode,
                 final Set<Revision> allKeepRevs) {
-            int deletedRevsCount = 0;
-
             // phase 1 : non bundled nodes only
-            for (PropertyState prop : traversedMainNode.getProperties()) {
-                final String escapedPropName = Utils.escapePropertyName(prop.getName());
-                deletedRevsCount += removeUnusedPropertyEntries(doc, traversedMainNode, updateOp, escapedPropName,
-                        (r) -> updateOp.removeMapEntry(escapedPropName, r),
-                        allKeepRevs);
-            }
+            int deletedRevsCount = stream(
+                    traversedMainNode.getProperties().spliterator(), false)
+                            .map(p -> Utils.escapePropertyName(p.getName()))
+                            .mapToInt(p -> removeUnusedPropertyEntries(doc,
+                                    traversedMainNode, updateOp, p,
+                                    r -> updateOp.removeMapEntry(p, r),
+                                    allKeepRevs))
+                            .sum();
 
             // phase 2 : bundled nodes only
             final Map<Path, DocumentNodeState> bundledNodeStates = stream(
