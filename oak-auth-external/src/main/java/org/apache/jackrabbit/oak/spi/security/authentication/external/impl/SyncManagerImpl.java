@@ -17,10 +17,6 @@
 
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
-import org.apache.felix.scr.annotations.Activate;
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.Deactivate;
-import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.osgi.OsgiWhiteboard;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncHandler;
 import org.apache.jackrabbit.oak.spi.security.authentication.external.SyncManager;
@@ -28,14 +24,21 @@ import org.apache.jackrabbit.oak.spi.whiteboard.AbstractServiceTracker;
 import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
 import org.jetbrains.annotations.NotNull;
 import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
 
 /**
  * {@code SyncManagerImpl} is used to manage registered sync handlers. This class automatically
  * tracks the SyncHandlers that are registered via OSGi but can also be used in non-OSGi environments by manually
  * adding and removing the handlers.
  */
-@Component(immediate = true)
-@Service
+@Component(
+        immediate = true,
+        service = {
+                SyncManager.class
+        }
+)
 public class SyncManagerImpl extends AbstractServiceTracker<SyncHandler> implements SyncManager {
 
     /**
