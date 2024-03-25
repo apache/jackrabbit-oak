@@ -1521,17 +1521,7 @@ public class VersionGarbageCollector {
                 deletedRevsCount++;
             }
             // "_commitRoot"
-            for (Revision revision : doc.getLocalCommitRoot().keySet()) {
-                if (!allRequiredRevs.contains(revision)) {
-                    Operation has = updateOp.getChanges().get(new Key(NodeDocument.COMMIT_ROOT, revision));
-                    if (has != null) {
-                        // then skip
-                        continue;
-                    }
-                    NodeDocument.removeCommitRoot(updateOp, revision);
-                    deletedRevsCount++;
-                }
-            }
+            deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(), updateOp, allRequiredRevs, COMMIT_ROOT, NodeDocument::removeCommitRoot);
             // "_bc"
 
 deletedRevsCount += getDeletedRevsCount(doc.getLocalBranchCommits(), updateOp, allRequiredRevs, BRANCH_COMMITS, NodeDocument::removeBranchCommit);
