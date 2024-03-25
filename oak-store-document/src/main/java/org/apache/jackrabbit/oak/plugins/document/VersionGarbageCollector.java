@@ -29,11 +29,15 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -55,6 +59,7 @@ import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
+import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.commons.TimeDurationFormatter;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
@@ -68,8 +73,11 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
+import static java.util.stream.StreamSupport.stream;
 import static org.apache.jackrabbit.guava.common.base.StandardSystemProperty.LINE_SEPARATOR;
 import static org.apache.jackrabbit.guava.common.base.Stopwatch.createUnstarted;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.all;
@@ -138,6 +146,14 @@ public class VersionGarbageCollector {
      * Property name to _id till when last detailed-GC run happened in dryRun mode only
      */
     static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
+
+    static enum RDGCType {
+        KEEP_ONE_FULL_MODE,
+        KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE,
+        OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
+    }
+
+    final static RDGCType revisionDetailedGcType = RDGCType.KEEP_ONE_FULL_MODE;
 
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
@@ -337,6 +353,9 @@ public class VersionGarbageCollector {
         int updatedDetailedGCDocsCount;
         int skippedDetailedGCDocsCount;
         int deletedPropsCount;
+        int deletedInternalPropsCount;
+        int deletedPropRevsCount;
+        int deletedInternalPropRevsCount;
         int deletedUnmergedBCCount;
         final TimeDurationFormatter df = TimeDurationFormatter.forLogging();
         final Stopwatch active = Stopwatch.createUnstarted();
@@ -417,6 +436,9 @@ public class VersionGarbageCollector {
                     ", updatedDetailedGCDocsCount=" + updatedDetailedGCDocsCount +
                     ", skippedDetailedGCDocsCount=" + skippedDetailedGCDocsCount +
                     ", deletedPropsCount=" + deletedPropsCount +
+                    ", deletedInternalPropsCount=" + deletedInternalPropsCount +
+                    ", deletedPropRevsCount=" + deletedPropRevsCount +
+                    ", deletedInternalPropRevsCount=" + deletedInternalPropRevsCount +
                     ", deletedUnmergedBCCount=" + deletedUnmergedBCCount +
                     ", iterationCount=" + iterationCount +
                     ", timeDetailedGCActive=" + df.format(detailedGCActiveElapsed, MICROSECONDS) +
@@ -443,6 +465,9 @@ public class VersionGarbageCollector {
             this.updatedDetailedGCDocsCount += run.updatedDetailedGCDocsCount;
             this.skippedDetailedGCDocsCount += run.skippedDetailedGCDocsCount;
             this.deletedPropsCount += run.deletedPropsCount;
+            this.deletedInternalPropsCount += run.deletedInternalPropsCount;
+            this.deletedPropRevsCount += run.deletedPropRevsCount;
+            this.deletedInternalPropRevsCount += run.deletedInternalPropRevsCount;
             this.deletedUnmergedBCCount += run.deletedUnmergedBCCount;
             if (run.iterationCount > 0) {
                 // run is cumulative with times in elapsed fields
@@ -913,6 +938,20 @@ public class VersionGarbageCollector {
          * In order to calculate the correct no. of updated documents & deleted properties, we save them in a map
          */
         private final Map<String, Integer> deletedPropsCountMap;
+        private final Map<String, Integer> deletedInternalPropsCountMap;
+
+        /**
+         * Map of documentId => total no. of deleted property revisions.
+         * <p>
+         *
+         * The document can be updated between collecting and deletion phases.
+         * This would lead to document not getting deleted (since now modified date & mod count would have changed)
+         * SO the Bulk API wouldn't update this doc.
+         * <p>
+         * In order to calculate the correct no. of updated documents & deleted property revisions, we save them in a map
+         */
+        private final Map<String, Integer> deletedPropRevsCountMap;
+        private final Map<String, Integer> deletedInternalPropRevsCountMap;
 
         /**
          * {@link Set} of unmergedBranchCommit Revisions to calculate the no. of unmergedBranchCommits that would be
@@ -933,6 +972,9 @@ public class VersionGarbageCollector {
             this.updateOpList = new ArrayList<>();
             this.orphanOrDeletedRemovalMap = new HashMap<>();
             this.deletedPropsCountMap = new HashMap<>();
+            this.deletedInternalPropsCountMap = new HashMap<>();
+            this.deletedPropRevsCountMap = new HashMap<>();
+            this.deletedInternalPropRevsCountMap = new HashMap<>();
             this.deletedUnmergedBCSet = new HashSet<>();
             this.timer = createUnstarted();
             // clusterId is not used
@@ -964,8 +1006,23 @@ public class VersionGarbageCollector {
             } else {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
-                collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-                collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, phases, op);
+                switch(revisionDetailedGcType) {
+                    case KEEP_ONE_FULL_MODE : {
+                        collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, false);
+                        combineInternalPropRemovals(doc, op);
+                        break;
+                    }
+                    case KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE : {
+                        collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, true);
+                        combineInternalPropRemovals(doc, op);
+                        break;
+                    }
+                    case OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE : {
+                        collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
+                        collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, phases, op);
+                        break;
+                    }
+                }
                 // only add if there are changes for this doc
                 if (op.hasChanges()) {
                     garbageDocsCount++;
@@ -976,6 +1033,40 @@ public class VersionGarbageCollector {
             }
             if (log.isDebugEnabled()) {
                 log.debug("UpdateOp for {} is {}", doc.getId(), op);
+            }
+        }
+
+        private void combineInternalPropRemovals(final NodeDocument doc,
+                final UpdateOp op) {
+            // now for any of the handled system properties (the normal properties would
+            // already be cleaned up by cleanupDeletedProperties), the resulting
+            // sub document could in theory become empty after removing all unmerged branch
+            // commit revisions is done later.
+            // so we need to go through all of them and check if we'd have removed
+            // the entirety - and then, instead of individually remove revisions, just
+            // delete the entire property.
+            if (op.hasChanges()) {
+                final int deletedSystemPropsCount = getSystemRemoveMapEntryCounts(op)
+                        .entrySet().stream()
+                        .filter(e -> filterEmptyProps(doc, e.getKey(), e.getValue()))
+                        .mapToInt(e -> {
+                            final String prop = e.getKey();
+                            int countBefore = op.getChanges().entrySet().size();
+                            boolean removed = op.getChanges().entrySet().removeIf(opEntry -> Objects.equals(prop, opEntry.getKey().getName()));
+                            int countAfter = op.getChanges().entrySet().size();
+                            if (removed) {
+                                if (prop.startsWith("_")) {
+                                    deletedInternalPropRevsCountMap.merge(doc.getId(), (countAfter - countBefore), Integer::sum);
+                                } else {
+                                    deletedPropRevsCountMap.merge(doc.getId(), (countAfter - countBefore), Integer::sum);
+                                }
+                            }
+                            op.remove(prop);
+                            return 1;})
+                        .sum();
+
+                // update the deleted properties count Map to calculate the total no. of deleted properties
+                deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
             }
         }
 
@@ -1096,7 +1187,7 @@ public class VersionGarbageCollector {
                         .sum();
 
                 // update the deleted properties count Map to calculate the total no. of deleted properties
-                deletedPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
+                deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
             }
             phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
         }
@@ -1180,13 +1271,19 @@ public class VersionGarbageCollector {
          */
         private void removeUnmergedBCRevision(final Revision unmergedBCRevision, final NodeDocument doc,
                                               final UpdateOp updateOp) {
+            int internalRevEntriesCount = 0;
+            int revEntriesCount = 0;
             // caller ensures the provided revision is an unmerged branch commit
+            if (doc.getLocalBranchCommits().contains(unmergedBCRevision)) {
+                internalRevEntriesCount++;
+            }
             NodeDocument.removeBranchCommit(updateOp, unmergedBCRevision);
 
             // phase 1 : remove unmerged bc revisions from _deleted - unmerged branch
             // commits can only be in the local set
             final String unmergedDeleted = doc.getLocalDeleted().get(unmergedBCRevision);
             if (unmergedDeleted != null) {
+                internalRevEntriesCount++;
                 NodeDocument.removeDeleted(updateOp, unmergedBCRevision);
 
                 // phase 2: the document could now effectively be "deleted" the actual
@@ -1213,12 +1310,15 @@ public class VersionGarbageCollector {
             }
             // phase 3 : go through other system properties
             if (doc.getLocalCommitRoot().containsKey(unmergedBCRevision)) {
+                internalRevEntriesCount++;
                 NodeDocument.removeCommitRoot(updateOp, unmergedBCRevision);
             }
             if (doc.getLocalRevisions().containsKey(unmergedBCRevision)) {
+                internalRevEntriesCount++;
                 NodeDocument.removeRevision(updateOp, unmergedBCRevision);
             }
             if (doc.getLocalMap(NodeDocument.COLLISIONS).containsKey(unmergedBCRevision)) {
+                internalRevEntriesCount++;
                 NodeDocument.removeCollision(updateOp, unmergedBCRevision);
             }
             // phase 4 : go through normal properties
@@ -1233,8 +1333,16 @@ public class VersionGarbageCollector {
                 }
                 if (doc.getLocalMap(propName).containsKey(unmergedBCRevision)) {
                     updateOp.removeMapEntry(propName, unmergedBCRevision);
+                    revEntriesCount++;
                 }
             };
+            if (internalRevEntriesCount > 0) {
+                deletedInternalPropRevsCountMap.merge(doc.getId(), internalRevEntriesCount, Integer::sum);
+            }
+            if (revEntriesCount > 0) {
+                deletedPropRevsCountMap.merge(doc.getId(), revEntriesCount, Integer::sum);
+            }
+
         }
 
         private void collectRevisionsOlderThan24hAndBetweenCheckpoints(final NodeDocument doc,
@@ -1245,6 +1353,246 @@ public class VersionGarbageCollector {
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
             }
         }
+
+        /**
+         * Remove all property revisions in the local document that are no longer used.
+         * This includes bundled properties. It also includes related entries that
+         * become obsolete as a result - i.e. _commitRoot and _bc (though the latter
+         * is never removed on root)
+         */
+        private void collectUnusedPropertyRevisions(final NodeDocument doc,
+                final GCPhases phases, final UpdateOp updateOp,
+                final DocumentNodeState traversedMainNode,
+                final boolean ignoreInternalProperties) {
+
+            if (!phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
+                // cancelled
+                return;
+            }
+            final Set<Revision> allKeepRevs = new HashSet<>();
+            // phase A : collectUnusedUserPropertyRevisions
+            int deletedTotalRevsCount = collectUnusedUserPropertyRevisions(doc, phases, updateOp, traversedMainNode, allKeepRevs);
+            int deletedUserRevsCount = deletedTotalRevsCount;
+            // phase B : collectUnusedInternalPropertyRevisions
+            if (!ignoreInternalProperties) {
+                deletedTotalRevsCount = collectUnusedInternalPropertyRevisions(doc, phases, updateOp, traversedMainNode, allKeepRevs, deletedTotalRevsCount);
+            }
+
+            // then some accounting...
+            int deletedInternalRevsCount = deletedTotalRevsCount - deletedUserRevsCount;
+            if (deletedUserRevsCount != 0) {
+                deletedPropRevsCountMap.merge(doc.getId(), deletedUserRevsCount, Integer::sum);
+            }
+            if (deletedInternalRevsCount != 0) {
+                deletedInternalPropRevsCountMap.merge(doc.getId(), deletedInternalRevsCount, Integer::sum);
+            }
+            phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
+        }
+
+        private int collectUnusedUserPropertyRevisions(final NodeDocument doc,
+                final GCPhases phases, final UpdateOp updateOp,
+                final DocumentNodeState traversedMainNode,
+                final Set<Revision> allKeepRevs) {
+            // phase 1 : non bundled nodes only
+            int deletedRevsCount = stream(
+                    traversedMainNode.getProperties().spliterator(), false)
+                            .map(p -> Utils.escapePropertyName(p.getName()))
+                            .mapToInt(p -> removeUnusedPropertyEntries(doc,
+                                    traversedMainNode, updateOp, p,
+                                    r -> updateOp.removeMapEntry(p, r),
+                                    allKeepRevs))
+                            .sum();
+
+            // phase 2 : bundled nodes only
+            final Map<Path, DocumentNodeState> bundledNodeStates = stream(
+                    traversedMainNode.getAllBundledNodesStates().spliterator(), false)
+                            .collect(toMap(DocumentNodeState::getPath, identity()));
+            // remember that getAllBundledProperties returns unescaped keys
+            for (String propName : traversedMainNode.getAllBundledProperties().keySet()) {
+                final int lastSlash = propName.lastIndexOf("/");
+                if (lastSlash == -1) {
+                    // then it is an unbundled property which was already handled in phase 1
+                    continue;
+                }
+                final String escapedPropName = Utils.escapePropertyName(propName);
+                // bundled values are of format sub/tree/propertyKey
+                // to extract this we need the last index of "/"
+                final String unbundledSubtreeName = propName.substring(0, lastSlash);
+                final String unbundledPropName = propName.substring(lastSlash + 1);
+                final String unbundledPath = traversedMainNode.getPath().toString() + "/" + unbundledSubtreeName;
+                final DocumentNodeState traversedNode = bundledNodeStates.get(Path.fromString(unbundledPath));
+                if (traversedNode == null) {
+                    log.error("collectUnusedPropertyRevisions : could not find traversed node for bundled key {} unbundledPath {} in doc {}",
+                            propName, unbundledPath, doc.getId());
+                    continue;
+                }
+                final PropertyState traversedProperty = traversedNode.getProperty(unbundledPropName);
+                if (traversedProperty == null) {
+                    log.error("collectUnusedPropertyRevisions : could not get property {} from traversed node {}",
+                            unbundledPropName, traversedNode.getPath());
+                    continue;
+                }
+                deletedRevsCount += removeUnusedPropertyEntries(doc, traversedNode, updateOp, escapedPropName,
+                        (r) -> updateOp.removeMapEntry(escapedPropName, r),
+                        allKeepRevs);
+            }
+
+            // phase 3 : "_deleted"
+            int numDeleted = removeUnusedPropertyEntries(doc, traversedMainNode,
+                    updateOp, NodeDocument.DELETED,
+                    (r) -> NodeDocument.removeDeleted(updateOp, r),
+                    allKeepRevs);
+            deletedRevsCount += numDeleted;
+            return deletedRevsCount;
+        }
+
+        private int collectUnusedInternalPropertyRevisions(final NodeDocument doc,
+                final GCPhases phases, final UpdateOp updateOp,
+                final DocumentNodeState traversedMainNode,
+                final Set<Revision> toKeepUserPropRevs,
+                int deletedRevsCount) {
+            boolean hasUnmergedBranchCommits = doc.getLocalBranchCommits().stream()
+                    .anyMatch(r -> !isCommitted(nodeStore.getCommitValue(r, doc)));
+            if (deletedRevsCount == 0 && !hasUnmergedBranchCommits) {
+                return deletedRevsCount;
+            }
+            // if we did some rev deletion OR there are unmerged BCs, then let's deep-dive
+            Set<Revision> allRequiredRevs = new HashSet<>(toKeepUserPropRevs);
+            // "_collisions"
+            deletedRevsCount += getDeletedRevsCount(
+                    doc.getLocalMap(NodeDocument.COLLISIONS).keySet(), updateOp,
+                    allRequiredRevs, NodeDocument.COLLISIONS,
+                    NodeDocument::removeCollision);
+            // "_revisions"
+            for (Entry<Revision, String> e : doc.getLocalRevisions().entrySet()) {
+                Revision revision = e.getKey();
+                if (allRequiredRevs.contains(revision)) {
+                    // if it is still referenced locally, keep it
+                    continue;
+                }
+                final boolean isRoot = doc.getId().equals(Utils.getIdFromPath(Path.ROOT));
+                // local bcs only considered for removal
+                final boolean isBC = !doc.getLocalBranchCommits().contains(revision);
+                final boolean newerThanSweep = nodeStore.getSweepRevisions().isRevisionNewer(revision);
+                if (newerThanSweep) {
+                    //TODO wondering if we should at all do any DGC on documents newer than sweep
+                    if (isBC) {
+                        // analysed further down, we can remove them if unmerged
+                    } else {
+                        // for normal commits, we need to keep them -> also add to allRequiredRevs
+                        allRequiredRevs.add(revision);
+                        continue;
+                    }
+                }
+                // committed revisions are hard to delete, as determining
+                // whether or not they are orphaned is difficult.
+                // child nodes could be having _commitRoots pointing to this doc
+                // and this revision - in which case it wouldn't be orphaned.
+                // without scanning the children (or having knowledge about
+                // which revisions are referenced by children) it is unsafe
+                // to delete committed revisions.
+                // if they are uncommitted, then they are garbage, as then they
+                // are either normal commits (thus a not finished commit)
+                // or an unmerged branch commit. In both cases they are garbage.
+                boolean isCommitted = isCommitted(nodeStore.getCommitValue(revision, doc));
+                if (isCommitted) {
+                    if (isRoot) {
+                        // root : cannot remove since it could be referenced and required by a child
+                        // also add to allRequiredRevs
+                        allRequiredRevs.add(revision);
+                        continue;
+                    } else if (!isBC) {
+                        // non root and normal : cannot remove, same as above,
+                        // it could be referenced and required by a child 
+                        // also add to allRequiredRevs
+                        allRequiredRevs.add(revision);
+                        continue;
+                    } else {
+                        // non root and bc : can remove, as non root bc cannot be referenced by child
+                    }
+                }
+                Operation has = updateOp.getChanges().get(new Key(NodeDocument.REVISIONS, revision));
+                if (has != null) {
+                    // then skip
+                    continue;
+                }
+                NodeDocument.removeRevision(updateOp, revision);
+                deletedRevsCount++;
+            }
+            // "_commitRoot"
+            deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(),
+                    updateOp, allRequiredRevs, NodeDocument.COMMIT_ROOT,
+                    NodeDocument::removeCommitRoot);
+            // "_bc"
+            deletedRevsCount += getDeletedRevsCount(doc.getLocalBranchCommits(), updateOp,
+                    allRequiredRevs, NodeDocument.BRANCH_COMMITS,
+                    NodeDocument::removeBranchCommit);
+            return deletedRevsCount;
+        }
+
+        private int getDeletedRevsCount(Set<Revision> revisionSet, UpdateOp updateOp, Set<Revision> allRequiredRevs, String updateOpKey, BiConsumer<UpdateOp, Revision> op) {
+            return revisionSet.stream().filter(r -> !allRequiredRevs.contains(r))
+                    .mapToInt(r -> {
+                        Operation has = updateOp.getChanges().get(new Key(updateOpKey, r));
+                        if (has != null) {
+                            // then skip
+                            return 0;
+                        }
+
+                        op.accept(updateOp, r);
+                        return 1;
+                    }).sum();
+        }
+
+        private int removeUnusedPropertyEntries(NodeDocument doc,
+                DocumentNodeState traversedMainNode, UpdateOp updateOp,
+                String propertyKey, Consumer<Revision> removeRevision,
+                Set<Revision> allKeepRevs) {
+            // we need to use the traversedNode.getLastRevision() as the readRevision,
+            // as that is what was originally used in getNodeAtRevision when traversing
+            final Revision keepCommitRev = doc.localCommitRevisionOfProperty(nodeStore,
+                    traversedMainNode.getLastRevision(), propertyKey);
+            if (keepCommitRev == null) {
+                // could be due to node not existing or current value being in a split
+                // doc - while the former is unexpected, the latter might happen.
+                // in both cases let's skip this property
+                if (log.isDebugEnabled()) {
+                    log.debug("removeUnusedPropertyEntries : no visible revision for property {} in doc {}",
+                            propertyKey, doc.getId());
+                }
+                return 0;
+            }
+            // if we get a revision it is from the local map.
+            // paranoia check that
+            final SortedMap<Revision, String> localMap = doc.getLocalMap(propertyKey);
+            if (!localMap.containsKey(keepCommitRev)) {
+                // this is unexpected - log and skip this property
+                log.error("removeUnusedPropertyEntries : revision {} for property {} not found in doc {}",
+                        keepCommitRev, propertyKey, doc.getId());
+                return 0;
+            }
+            int count = 0;
+            // in this case we are good to delete all but the keepRevision
+            for (Revision localRev : localMap.keySet()) {
+                if (!keepCommitRev.equals(localRev)) {
+                    // if the localRev is a branch commit, it might be unmerged,
+                    // in which case it might already have been marked for removal
+                    // via collectUnmergedBranchCommits. Checking for that next.
+                    Operation c = updateOp.getChanges().get(new Key(propertyKey, localRev));
+                    if (c == null) {
+                        if (log.isTraceEnabled()) {
+                            log.trace("removeUnusedPropertyEntries : removing property key {} with revision {} from doc {}",
+                                    propertyKey, localRev, doc.getId());
+                        }
+                        removeRevision.accept(localRev);
+                        count++;
+                    }
+                }
+            }
+            allKeepRevs.add(keepCommitRev);
+            return count;
+        }
+
 
         int getGarbageCount() {
             return totalGarbageDocsCount;
@@ -1325,10 +1673,18 @@ public class VersionGarbageCollector {
 
                     if (!updateOpList.isEmpty()) {
                         List<NodeDocument> oldDocs = ds.findAndUpdate(NODES, updateOpList);
+
+
                         int deletedProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropsCountMap.getOrDefault(d.getId(), 0)).sum();
+                        int deletedInternalProps = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedInternalPropsCountMap.getOrDefault(d.getId(), 0)).sum();
+                        int deletedRevEntriesCount = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropRevsCountMap.getOrDefault(d.getId(), 0)).sum();
+                        int deletedInternalRevEntriesCount = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedInternalPropRevsCountMap.getOrDefault(d.getId(), 0)).sum();
                         int updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
                         stats.updatedDetailedGCDocsCount += updatedDocs;
                         stats.deletedPropsCount += deletedProps;
+                        stats.deletedInternalPropsCount += deletedInternalProps;
+                        stats.deletedPropRevsCount += deletedRevEntriesCount;
+                        stats.deletedInternalPropRevsCount += deletedInternalRevEntriesCount;
                         stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
 
                         if (log.isDebugEnabled()) {
@@ -1349,6 +1705,9 @@ public class VersionGarbageCollector {
                 updateOpList.clear();
                 orphanOrDeletedRemovalMap.clear();
                 deletedPropsCountMap.clear();
+                deletedInternalPropsCountMap.clear();
+                deletedPropRevsCountMap.clear();
+                deletedInternalPropRevsCountMap.clear();
                 deletedUnmergedBCSet.clear();
                 garbageDocsCount = 0;
                 delayOnModifications(timer.stop().elapsed(MILLISECONDS), cancel);

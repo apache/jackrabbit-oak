@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.RDGCType;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -25,7 +26,9 @@ import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
@@ -67,17 +70,35 @@ public class DetailGCHelper {
         return result;
     }
 
-    public static void assertBranchRevisionRemovedFromAllDocuments(final DocumentNodeStore store, final RevisionVector br) {
+    public static void assertBranchRevisionRemovedFromAllDocuments(
+            final DocumentNodeStore store, final RevisionVector br,
+            final String... exceptIds) {
         assertTrue(br.isBranch());
         Revision br1 = br.getRevision(1);
         assert br1 != null;
         Revision r1 = br1.asTrunkRevision();
+        Set<String> except = Set.of(exceptIds);
         for (NodeDocument nd : Utils.getAllDocuments(store.getDocumentStore())) {
-            if (Objects.equals(nd.getId(), "0:/")) {
-                NodeDocument target = new NodeDocument(store.getDocumentStore());
-                nd.deepCopy(target);
+            if (nd.getId().equals(Utils.getIdFromPath(Path.ROOT))
+                    || except.contains(nd.getId())) {
+                // skip root and the provided ids
+                continue;
             }
-            assertFalse("document not fully cleaned up: " + nd.asString(), nd.asString().contains(r1.toString()));
+            NodeDocument target = new NodeDocument(store.getDocumentStore());
+            nd.deepCopy(target);
+            // ignore the _revisions entry, as we cannot always cleanup everything in there
+            target.remove(NodeDocument.REVISIONS);
+            for (Entry<String, Object> e : target.data.entrySet()) {
+                String k = e.getKey();
+                final boolean internal = k.startsWith("_");
+                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.revisionDetailedGcType != RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE);
+                if (internal && !dgcSupportsInternalPropCleanup) {
+                    // skip
+                    continue;
+                }
+                assertFalse("document not cleaned up for prop " + k + " : " + e,
+                        e.toString().contains(r1.toString()));
+            }
         }
     }
 
