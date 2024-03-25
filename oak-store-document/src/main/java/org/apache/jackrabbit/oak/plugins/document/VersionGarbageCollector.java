@@ -1447,12 +1447,7 @@ public class VersionGarbageCollector {
                 final DocumentNodeState traversedMainNode,
                 final Set<Revision> toKeepUserPropRevs,
                 int deletedRevsCount) {
-            boolean hasUnmergedBranchCommits = false;
-            for (Revision localBc : doc.getLocalBranchCommits()) {
-                if (!isCommitted(nodeStore.getCommitValue(localBc, doc))) {
-                    hasUnmergedBranchCommits = true;
-                }
-            }
+            boolean hasUnmergedBranchCommits = doc.getLocalBranchCommits().stream().anyMatch(r -> !isCommitted(nodeStore.getCommitValue(r, doc)));
             if (deletedRevsCount == 0 && !hasUnmergedBranchCommits) {
                 return deletedRevsCount;
             }
