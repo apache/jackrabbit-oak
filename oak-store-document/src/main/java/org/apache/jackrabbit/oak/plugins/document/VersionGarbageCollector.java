@@ -1560,8 +1560,10 @@ public class VersionGarbageCollector {
                 // could be due to node not existing or current value being in a split
                 // doc - while the former is unexpected, the latter might happen.
                 // in both cases let's skip this property
-                log.debug("removeUnusedPropertyEntries : no visible revision for property {} in doc {}",
-                        propertyKey, doc.getId());
+                if (log.isDebugEnabled()) {
+                    log.debug("removeUnusedPropertyEntries : no visible revision for property {} in doc {}",
+                            propertyKey, doc.getId());
+                }
                 return 0;
             }
             // if we get a revision it is from the local map.
@@ -1582,8 +1584,10 @@ public class VersionGarbageCollector {
                     // via collectUnmergedBranchCommits. Checking for that next.
                     Operation c = updateOp.getChanges().get(new Key(propertyKey, localRev));
                     if (c == null) {
-                        log.trace("removeUnusedPropertyEntries : removing property key {} with revision {} from doc {}",
-                                propertyKey, localRev, doc.getId());
+                        if (log.isTraceEnabled()) {
+                            log.trace("removeUnusedPropertyEntries : removing property key {} with revision {} from doc {}",
+                                    propertyKey, localRev, doc.getId());
+                        }
                         removeRevision.apply(localRev);
                         count++;
                     }
