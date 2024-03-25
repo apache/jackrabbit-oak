@@ -1453,17 +1453,8 @@ public class VersionGarbageCollector {
             }
             // if we did some rev deletion OR there are unmerged BCs, then let's deep-dive
             Set<Revision> allRequiredRevs = new HashSet<>(toKeepUserPropRevs);
-            for (Revision revision : doc.getLocalMap(NodeDocument.COLLISIONS).keySet()) {
-                if (!allRequiredRevs.contains(revision)) {
-                    Operation has = updateOp.getChanges().get(new Key(NodeDocument.COLLISIONS, revision));
-                    if (has != null) {
-                        // then skip
-                        continue;
-                    }
-                    NodeDocument.removeCollision(updateOp, revision);
-                    deletedRevsCount++;
-                }
-            }
+            // "_collisions"
+            deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(), updateOp, allRequiredRevs, COLLISIONS, NodeDocument::removeCollision);
             // "_revisions"
             for (Entry<Revision, String> e : doc.getLocalRevisions().entrySet()) {
                 Revision revision = e.getKey();
