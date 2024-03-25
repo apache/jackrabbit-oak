@@ -63,7 +63,7 @@ public class MongoDocumentNodeStoreBuilderTest {
     @Test
     public void embeddedVerificationEnabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertFalse(builder.isEmbeddedVerificationEnabled());
+        assertTrue(builder.isEmbeddedVerificationEnabled());
     }
 
     @Test
