@@ -65,7 +65,7 @@
     <h2.version>2.1.214</h2.version>
     <tika.version>1.28.5</tika.version>
     <derby.version>10.15.2.0</derby.version>
-    <jackson.version>2.16.1</jackson.version>
+    <jackson.version>2.16.2</jackson.version>
     <testcontainers.version>1.19.7</testcontainers.version>
     <pax-exam.version>4.13.1</pax-exam.version>
     <groovy.version>2.5.23</groovy.version>
