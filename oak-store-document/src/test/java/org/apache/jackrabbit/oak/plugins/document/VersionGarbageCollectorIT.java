@@ -519,6 +519,7 @@ public class VersionGarbageCollectorIT {
 
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 0, 2, 1, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
@@ -1239,6 +1240,7 @@ public class VersionGarbageCollectorIT {
         // now the GC
         VersionGCStats stats = gc(gc, 1, HOURS);
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
@@ -1355,6 +1357,7 @@ public class VersionGarbageCollectorIT {
         // deletedPropsCount=0 : _bc on /node1 and / CANNOT be removed
         // deletedPropRevsCount=1 : (nothing on /node1[a, _commitRoot), /[_revisions]
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 0, 0, 0, 0, 0),
                 keepOneUser(0, 0, 0, 0, 0, 0, 0),
                 betweenChkp(0, 0, 1, 0, 2, 1, 1));
@@ -1396,6 +1399,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, 1, HOURS);
 
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 3, 0, 0, 0, 0, 2),
                 keepOneFull(0, 3, 2, 1, 9, 0, 3),
                 keepOneUser(0, 3,-1, 1, 0, 0, 2),
                 betweenChkp(0, 3, 1, 1, 8, 2, 3));
@@ -1436,6 +1440,7 @@ public class VersionGarbageCollectorIT {
 
         VersionGCStats stats = gc(gc, 1, HOURS);
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 3, 0, 0,  0, 0, 2),
                 keepOneFull(0, 3, 3, 1, 17, 0, 3),
                 keepOneUser(0, 3,-1, 1,  0, 0, 2),
                 betweenChkp(0, 3, 2, 1, 18, 4, 3));
@@ -1620,9 +1625,24 @@ public class VersionGarbageCollectorIT {
         // below is an example of how the different modes result in different cleanups
         // this might help us narrow down differences in the modes
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 2, 0, 0,  0, 0, 1),
                 keepOneFull(0, 2, 2, 3, 11, 0, 2),
                 keepOneUser(0, 2, 0, 3,  0, 0, 1),
                 betweenChkp(0, 2, 1, 2, 13, 3, 2));
+    }
+
+    private GCCounts noOldPropGc(int deletedDocGCCount, int deletedPropsCount,
+            int deletedInternalPropsCount, int deletedPropRevsCount,
+            int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+            int updatedDetailedGCDocsCount) {
+        assertEquals(0, deletedInternalPropsCount);
+        assertEquals(0, deletedPropRevsCount);
+        assertEquals(0, deletedInternalPropRevsCount);
+        assertEquals(0, deletedUnmergedBCCount);
+        return new GCCounts(RDGCType.NO_OLD_PROP_REV_GC, deletedDocGCCount,
+                deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
+                deletedInternalPropRevsCount, deletedUnmergedBCCount,
+                updatedDetailedGCDocsCount);
     }
 
     private GCCounts keepOneFull(int deletedDocGCCount, int deletedPropsCount,
@@ -1701,6 +1721,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(getCurrentTimestamp() + maxAgeMillis + 1);
         VersionGCStats stats = gc(gc, maxAgeHours, HOURS);
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0,  0, 0, 0, 0),
                 keepOneFull(0, 0, 0, 11, 0, 0, 1),
                 keepOneUser(0, 0, 0, 11, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
@@ -1716,7 +1737,8 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = store1.getDocumentStore().find(NODES, "1:/x", -1);
         assertNotNull(doc);
-        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE) {
+        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
+                || VersionGarbageCollector.revisionDetailedGcType == RDGCType.NO_OLD_PROP_REV_GC) {
             // this mode doesn't currently delete all revisions,
             // thus would fail below assert.
             return;
@@ -1946,6 +1968,7 @@ public class VersionGarbageCollectorIT {
         // deletedPropRevsCount : 2 prop-revs GCed : the original prop=value, plus the
         // removeProperty(prop) plus 1 _commitRoot entry
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 0, 2, 1, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
@@ -1977,6 +2000,7 @@ public class VersionGarbageCollectorIT {
         assertNotNull(stats);
         // 1 prop-rev removal : the late-write null
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 1, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
@@ -2010,6 +2034,7 @@ public class VersionGarbageCollectorIT {
         // thus it will be collected.
         // removes 1 prop-rev : the late-write null
         assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 1, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));

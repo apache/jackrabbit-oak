@@ -148,12 +148,13 @@ public class VersionGarbageCollector {
     static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
 
     static enum RDGCType {
+        NO_OLD_PROP_REV_GC,
         KEEP_ONE_FULL_MODE,
         KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE,
         OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
     }
 
-    final static RDGCType revisionDetailedGcType = RDGCType.KEEP_ONE_FULL_MODE;
+    final static RDGCType revisionDetailedGcType = RDGCType.NO_OLD_PROP_REV_GC;
 
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
@@ -1007,6 +1008,10 @@ public class VersionGarbageCollector {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
                 switch(revisionDetailedGcType) {
+                    case NO_OLD_PROP_REV_GC : {
+                        // this mode does neither unusedproprev, nor unmergedBC
+                        break;
+                    }
                     case KEEP_ONE_FULL_MODE : {
                         collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, false);
                         combineInternalPropRemovals(doc, op);

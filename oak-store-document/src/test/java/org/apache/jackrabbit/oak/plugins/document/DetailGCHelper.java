@@ -74,6 +74,11 @@ public class DetailGCHelper {
             final DocumentNodeStore store, final RevisionVector br,
             final String... exceptIds) {
         assertTrue(br.isBranch());
+        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.NO_OLD_PROP_REV_GC) {
+            // then we must skip these asserts, as we cannot guarantee
+            // that all revisions are cleaned up in this mode
+            return;
+        }
         Revision br1 = br.getRevision(1);
         assert br1 != null;
         Revision r1 = br1.asTrunkRevision();
