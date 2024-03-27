@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -46,6 +47,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.size;
@@ -130,6 +132,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
 @RunWith(Parameterized.class)
 public class VersionGarbageCollectorIT {
@@ -145,6 +148,21 @@ public class VersionGarbageCollectorIT {
                 int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
                 int updatedDetailedGCDocsCount) {
             this.mode = mode;
+            assertTrue(deletedDocGCCount != -1);
+            assertTrue(deletedPropsCount != -1);
+            assertTrue(deletedInternalPropsCount != -1);
+            assertTrue(deletedPropRevsCount != -1);
+            assertTrue(deletedInternalPropRevsCount != -1);
+            assertTrue(deletedUnmergedBCCount != -1);
+            assertTrue(updatedDetailedGCDocsCount != -1);
+            if (mode == RDGCType.NO_OLD_PROP_REV_GC) {
+                assertEquals(0, deletedPropRevsCount);
+                assertEquals(0, deletedInternalPropRevsCount);
+                assertEquals(0, deletedUnmergedBCCount);
+            } else if (mode == RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE) {
+                assertEquals(0, deletedInternalPropsCount);
+                assertEquals(0, deletedInternalPropRevsCount);
+            }
             this.deletedDocGCCount = deletedDocGCCount;
             this.deletedPropsCount = deletedPropsCount;
             this.deletedInternalPropsCount = deletedInternalPropsCount;
@@ -155,7 +173,11 @@ public class VersionGarbageCollectorIT {
         }
     }
 
-    private final DocumentStoreFixture fixture;
+    @Parameter(0)
+    public DocumentStoreFixture fixture;
+
+    @Parameter(1)
+    public RDGCType gcType;
 
     private Clock clock;
 
@@ -169,17 +191,22 @@ public class VersionGarbageCollectorIT {
 
     private ExecutorService execService;
 
-    public VersionGarbageCollectorIT(DocumentStoreFixture fixture) {
-        this.fixture = fixture;
-    }
+    private RDGCType originalGcType;
 
-    @Parameterized.Parameters(name="{0}")
-    public static Collection<Object[]> fixtures() throws IOException {
-        return AbstractDocumentStoreTest.fixtures();
+    @Parameterized.Parameters(name="{index}: {0} with {1}")
+    public static java.util.Collection<Object[]> params() throws IOException {
+        java.util.Collection<Object[]> params = new LinkedList<>();
+        for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
+            DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
+            for (RDGCType gcType : RDGCType.values()) {
+                params.add(new Object[] {f, gcType});
+            }
+        }
+        return params;
     }
 
     @Before
-    public void setUp() throws InterruptedException {
+    public void setUp() throws Exception {
         execService = Executors.newCachedThreadPool();
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
@@ -195,10 +222,14 @@ public class VersionGarbageCollectorIT {
         // test using a virtual clock
         MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
         gc = store1.getVersionGarbageCollector();
+
+        originalGcType = VersionGarbageCollector.getRevisionDetailedGcType();
+        writeStaticField(VersionGarbageCollector.class, "revisionDetailedGcType", gcType, true);
     }
 
     @After
     public void tearDown() throws Exception {
+        writeStaticField(VersionGarbageCollector.class, "revisionDetailedGcType", originalGcType, true);
         if (store2 != null) {
             store2.dispose();
         }
@@ -451,7 +482,11 @@ public class VersionGarbageCollectorIT {
         // 6. Now run gc after checkpoint and see removed properties gets collected
         clock.waitUntil(clock.getTime() + delta*2);
         VersionGCStats stats = gc(gc, delta, MILLISECONDS);
-        assertStatsCountsEqual(stats, 0, 1, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 0, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 0, 0, 1));
         assertTrue(stats.ignoredGCDueToCheckPoint);
         assertTrue(stats.ignoredDetailedGCDueToCheckPoint);
         assertTrue(stats.canceled);
@@ -484,7 +519,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -497,13 +532,17 @@ public class VersionGarbageCollectorIT {
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 1, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 0, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 0, 0, 1));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         //4. Check that a revived property (deleted and created again) does not get gc
@@ -559,7 +598,11 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 50_000, 0, 0, 0, 0, 5_000);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 50_000, 0, 0, 0, 0, 5_000),
+                keepOneFull(0, 50_000, 0, 0, 0, 0, 5_000),
+                keepOneUser(0, 50_000, 0, 0, 0, 0, 5_000),
+                betweenChkp(0, 50_000, 0, 0, 0, 0, 5_000));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
@@ -601,7 +644,11 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 50_000, 0, 0, 0, 0, 5_000);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 50_000, 0, 0, 0, 0, 5_000),
+                keepOneFull(0, 50_000, 0, 0, 0, 0, 5_000),
+                keepOneUser(0, 50_000, 0, 0, 0, 0, 5_000),
+                betweenChkp(0, 50_000, 0, 0, 0, 0, 5_000));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
@@ -663,7 +710,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -677,7 +724,11 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 10, 0, 0, 0, 0, 10);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 10, 0, 0, 0, 0, 10),
+                keepOneFull(0, 10, 0, 0, 0, 0, 10),
+                keepOneUser(0, 10, 0, 0, 0, 0, 10),
+                betweenChkp(0, 10, 0, 0, 0, 0, 10));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         //3. now reCreate those properties again
@@ -701,7 +752,11 @@ public class VersionGarbageCollectorIT {
         // increment the clock again by more than 2 hours + delta
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 10, 0, 0, 0, 0, 10);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 10, 0, 0, 0, 0, 10),
+                keepOneFull(0, 10, 0, 0, 0, 0, 10),
+                keepOneUser(0, 10, 0, 0, 0, 0, 10),
+                betweenChkp(0, 10, 0, 0, 0, 0, 10));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
@@ -771,7 +826,11 @@ public class VersionGarbageCollectorIT {
         // increment the clock again by more than 2 hours + delta
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 10, 0, 0, 0, 0, 10);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 10, 0, 0, 0, 0, 10),
+                keepOneFull(0, 10, 0, 0, 0, 0, 10),
+                keepOneUser(0, 10, 0, 0, 0, 0, 10),
+                betweenChkp(0, 10, 0, 0, 0, 0, 10));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
@@ -793,7 +852,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -808,13 +867,17 @@ public class VersionGarbageCollectorIT {
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 10, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 10, 0, 0, 0, 0, 1),
+                keepOneFull(0, 10, 0, 0, 0, 0, 1),
+                keepOneUser(0, 10, 0, 0, 0, 0, 1),
+                betweenChkp(0, 10, 0, 0, 0, 0, 1));
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b4 = store1.getRoot().builder();
@@ -825,7 +888,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
     }
 
     @Test
@@ -848,7 +911,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -863,13 +926,17 @@ public class VersionGarbageCollectorIT {
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 10, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 10, 0, 0, 0, 0, 1),
+                keepOneFull(0, 10, 0, 0, 0, 0, 1),
+                keepOneUser(0, 10, 0, 0, 0, 0, 1),
+                betweenChkp(0, 10, 0, 0, 0, 0, 1));
 
         //4. Check that a revived property (deleted and created again) does not get gc
         NodeBuilder b4 = store1.getRoot().builder();
@@ -880,7 +947,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
     }
 
     @Test
@@ -912,7 +979,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -927,13 +994,17 @@ public class VersionGarbageCollectorIT {
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //3. Check that deleted property does get collected post maxAge
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 10, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 10, 0, 0, 0, 0, 1),
+                keepOneFull(0, 10, 0, 0, 0, 0, 1),
+                keepOneUser(0, 10, 0, 0, 0, 0, 1),
+                betweenChkp(0, 10, 0, 0, 0, 0, 1));
     }
 
     @Test
@@ -975,7 +1046,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         x = store1.getRoot().getChildNode("x");
         assertTrue(x.exists());
@@ -999,7 +1070,7 @@ public class VersionGarbageCollectorIT {
         //Clock cannot move back (it moved forward in #1) so double the maxAge
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         x = store1.getRoot().getChildNode("x");
         assertTrue(x.exists());
@@ -1014,7 +1085,11 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 10, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 10, 0, 0, 0, 0, 1),
+                keepOneFull(0, 10, 0, 0, 0, 0, 1),
+                keepOneUser(0, 10, 0, 0, 0, 0, 1),
+                betweenChkp(0, 10, 0, 0, 0, 0, 1));
 
         x = store1.getRoot().getChildNode("x");
         assertTrue(x.exists());
@@ -1024,6 +1099,12 @@ public class VersionGarbageCollectorIT {
         assertTrue(jcrContent.exists());
         assertTrue(jcrContent.hasProperty("prop10"));
         assertFalse(jcrContent.hasProperty("prop0"));
+    }
+
+    static void assertStatsCountsZero(VersionGCStats stats) {
+        GCCounts c = new GCCounts(VersionGarbageCollector.getRevisionDetailedGcType(),
+                0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsEqual(stats, c);
     }
 
     static void assertStatsCountsEqual(VersionGCStats stats, GCCounts... counts) {
@@ -1038,40 +1119,11 @@ public class VersionGarbageCollectorIT {
         assertNotNull(c);
         assertEquals(c.deletedDocGCCount, stats.deletedDocGCCount);
         assertEquals(c.deletedPropsCount, stats.deletedPropsCount);
-        if (c.deletedInternalPropsCount >= 0) {
-            assertEquals(c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
-        }
+        assertEquals(c.deletedInternalPropsCount, stats.deletedInternalPropsCount);
         assertEquals(c.deletedPropRevsCount, stats.deletedPropRevsCount);
         assertEquals(c.deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
         assertEquals(c.deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
         assertEquals(c.updatedDetailedGCDocsCount, stats.updatedDetailedGCDocsCount);
-    }
-
-    private void assertStatsCountsEqual(VersionGCStats stats,
-            int deletedDocGCCount,
-            int deletedPropsCount,
-            int deletedInternalPropsCount,
-            int deletedPropRevsCount,
-            int deletedInternalPropRevsCount,
-            int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
-        assertNotNull(stats);
-        assertEquals(deletedDocGCCount, stats.deletedDocGCCount);
-        assertEquals(deletedPropsCount, stats.deletedPropsCount);
-        if (VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.KEEP_ONE_FULL_MODE) {
-            assertEquals(deletedInternalPropsCount, stats.deletedInternalPropsCount);
-        }
-        assertEquals(deletedPropRevsCount, stats.deletedPropRevsCount);
-        if (VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.KEEP_ONE_FULL_MODE) {
-            assertEquals(deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
-        }
-        assertEquals(deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
-        if (VersionGarbageCollector.getRevisionDetailedGcType() != RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE) {
-            // TODO: unfortunately, in cleanup-user-props-only mode the expected count below
-            // is inaccurate. So either we extend this assert methods to get values per mode,
-            // or we ignore this for now. not nice but should only be temporary
-            assertEquals(updatedDetailedGCDocsCount, stats.updatedDetailedGCDocsCount);
-        }
     }
 
     @Test
@@ -1161,7 +1213,7 @@ public class VersionGarbageCollectorIT {
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -1295,7 +1347,7 @@ public class VersionGarbageCollectorIT {
         NodeState node1 = store2.getRoot().getChildNode("node1");
         assertEquals("1", node1.getProperty("a").getValue(Type.STRING));
         assertFalse(node1.hasProperty("b"));
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
     }
 
     @Test
@@ -1401,7 +1453,7 @@ public class VersionGarbageCollectorIT {
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 3, 0, 0, 0, 0, 2),
                 keepOneFull(0, 3, 2, 1, 9, 0, 3),
-                keepOneUser(0, 3,-1, 1, 0, 0, 2),
+                keepOneUser(0, 3, 0, 1, 0, 0, 2),
                 betweenChkp(0, 3, 1, 1, 8, 2, 3));
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionRemovedFromAllDocuments(store1, br4);
@@ -1442,7 +1494,7 @@ public class VersionGarbageCollectorIT {
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 3, 0, 0,  0, 0, 2),
                 keepOneFull(0, 3, 3, 1, 17, 0, 3),
-                keepOneUser(0, 3,-1, 1,  0, 0, 2),
+                keepOneUser(0, 3, 0, 1,  0, 0, 2),
                 betweenChkp(0, 3, 2, 1, 18, 4, 3));
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionRemovedFromAllDocuments(store1, br2);
@@ -1778,7 +1830,11 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
 
         VersionGCStats stats = gc(gc, maxAge*2, HOURS);
-        assertStatsCountsEqual(stats, 0, 1, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 0, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 0, 0, 1));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
         // 4. Save values of detailedGC settings collection fields
@@ -1804,7 +1860,7 @@ public class VersionGarbageCollectorIT {
         final String oldestModifiedDryRunDocId = stats.oldestModifiedDocId;
         final long oldestModifiedDocDryRunTimeStamp = stats.oldestModifiedDocTimeStamp;
 
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
         assertTrue(stats.detailedGCDryRunMode);
 
@@ -1849,7 +1905,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(gc, 1, HOURS);
-        assertStatsCountsEqual(stats, 0, 0, 0, 0, 0, 0, 0);
+        assertStatsCountsZero(stats);
         assertTrue(stats.detailedGCDryRunMode);
 
         assertBranchRevisionNotRemovedFromAllDocuments(store1, br1);
@@ -1891,7 +1947,11 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
         assertFalse(store1.getRoot().getChildNode("bar").hasProperty("prop"));
         assertNotNull(stats);
-        assertStatsCountsEqual(stats, 0, 1, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 0, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 0, 0, 1));
         assertDocumentsExist(of("/bar"));
     }
 
@@ -1928,7 +1988,11 @@ public class VersionGarbageCollectorIT {
         // since we have updated a totally unrelated path i.e. "/a",
         // we should still be seeing the garbage from late write and
         // thus it will be collected.
-        assertStatsCountsEqual(stats, 0, 1, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 0, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 0, 0, 1));
 
         assertDocumentsExist(of("/foo/bar/baz"));
     }
@@ -2066,7 +2130,11 @@ public class VersionGarbageCollectorIT {
         assertNotNull(stats);
         // we should be able to remove the property since we have updated an related path that has lead to an update
         // of common ancestor and this would make late write visible
-        assertStatsCountsEqual(stats, 0, 1, 0, 0, 0, 0, 1);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 0, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 0, 0, 1));
 
         assertDocumentsExist(of("/bar"));
     }
