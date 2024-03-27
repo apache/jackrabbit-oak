@@ -1768,7 +1768,7 @@ public class VersionGarbageCollector {
             final NodeState actual = newDoc.getNodeAtRevision(nodeStore, lastRev, lastRevision);
             // use more thorough version of equals to ensure properties are checked
             // (the faster state.equals() would stop if lastRev matches,
-            // but as we're fiddling with immuability rule of a document,
+            // but as we're fiddling with immutability rule of a document,
             // we need to do a full check)
             return AbstractNodeState.equals(traversedState, actual);
         }
