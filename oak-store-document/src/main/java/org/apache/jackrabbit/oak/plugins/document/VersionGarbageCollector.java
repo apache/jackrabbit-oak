@@ -155,7 +155,11 @@ public class VersionGarbageCollector {
         OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
     }
 
-    final static RDGCType revisionDetailedGcType = RDGCType.NO_OLD_PROP_REV_GC;
+    private static RDGCType revisionDetailedGcType = RDGCType.NO_OLD_PROP_REV_GC;
+
+    static RDGCType getRevisionDetailedGcType() {
+        return revisionDetailedGcType;
+    }
 
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;

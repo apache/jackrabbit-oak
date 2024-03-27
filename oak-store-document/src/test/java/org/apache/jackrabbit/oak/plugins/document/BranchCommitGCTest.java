@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.plugins.document;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.RDGCType;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -26,7 +27,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
 
+import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,15 +42,26 @@ import java.util.function.Consumer;
 
 import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.build;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.noOldPropGc;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.keepOneFull;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.keepOneUser;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.betweenChkp;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsEqual;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+@RunWith(Parameterized.class)
 public class BranchCommitGCTest {
+
+    public static Object[] testCase(DocumentStoreFixture fixture, VersionGarbageCollector.RDGCType gcType) {
+        return new Object[] { fixture, gcType };
+    }
 
     @Rule
     public DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
@@ -54,8 +70,28 @@ public class BranchCommitGCTest {
     private VersionGarbageCollector gc;
     private VersionGarbageCollector.VersionGCStats stats;
 
+    @Parameterized.Parameters(name="{index}: {0} with {1}")
+    public static java.util.Collection<Object[]> params() throws IOException {
+        java.util.Collection<Object[]> params = new LinkedList<>();
+        for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
+            DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
+            for (RDGCType gcType : RDGCType.values()) {
+                params.add(testCase(f, gcType));
+            }
+        }
+        return params;
+    }
+
+    @Parameter(0)
+    public DocumentStoreFixture fixture;
+
+    @Parameter(1)
+    public RDGCType gcType;
+
+    private RDGCType originalGcType;
+
     @Before
-    public void setUp() throws InterruptedException {
+    public void setUp() throws Exception {
         clock = new Clock.Virtual();
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
@@ -63,6 +99,8 @@ public class BranchCommitGCTest {
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED).setDetailedGCEnabled(true)
                 .setAsyncDelay(0).getNodeStore();
         gc = store.getVersionGarbageCollector();
+        originalGcType = VersionGarbageCollector.getRevisionDetailedGcType();
+        writeStaticField(VersionGarbageCollector.class, "revisionDetailedGcType", gcType, true);
     }
 
     @After
@@ -72,6 +110,7 @@ public class BranchCommitGCTest {
             store.dispose();
         }
         Revision.resetClockToDefault();
+        writeStaticField(VersionGarbageCollector.class, "revisionDetailedGcType", originalGcType, true);
     }
 
     @Test
@@ -92,24 +131,20 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertEquals(2, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(0, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedPropsCount);
-        assertEquals(0, stats.deletedInternalPropsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(2, 0, 0, 0, 0, 0, 2),
+                keepOneFull(2, 0, 0, 0, 0, 0, 2),
+                keepOneUser(2, 0, 0, 0, 0, 0, 2),
+                betweenChkp(2, 0, 1, 0, 2, 1, 3));
 
         // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(0, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(0, stats.deletedInternalPropsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 0, 0, 0, 0),
+                keepOneUser(0, 0, 0, 0, 0, 0, 0),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertNotExists("1:/a");
         assertNotExists("1:/b");
         assertBranchRevisionRemovedFromAllDocuments(store, br);
@@ -149,21 +184,22 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
-        assertTrue("stats.updatedDetailedGCDocsCount expected 1 or less, was: " + stats.updatedDetailedGCDocsCount,
-                stats.updatedDetailedGCDocsCount <= 1);
-        assertEquals(2, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
+
         if (collisionsBeforeGC == 1) {
             // expects a collision to have happened - which was cleaned up - hence a _bc (but not the _revision I guess)
-            assertEquals(0, stats.deletedPropRevsCount);
             // the collisions cleaned up - with the 1 collision and a _bc
-            assertEquals(0, stats.deletedPropsCount);
-            assertEquals(1, stats.deletedInternalPropsCount);
+            assertStatsCountsEqual(stats,
+                    noOldPropGc(2, 0, 0, 0, 0, 0, 0),
+                    keepOneFull(2, 0,-1, 0, 2, 0, 1),
+                    keepOneUser(2, 0, 0, 0, 0, 0, 0),
+                    betweenChkp(2, 0, 1, 0, 3, 1, 1));
         } else {
             // in this case classic collision cleanup already took care of everything, nothing left
-            assertEquals(0, stats.deletedPropRevsCount);
-            // the collisions cleaned up - even though empty
-            assertEquals(1, stats.deletedPropsCount);
+            assertStatsCountsEqual(stats,
+                    noOldPropGc(2, 0, 0, 0, 0, 0, 0),
+                    keepOneFull(2, 1, 0, 0, 0, 0, 0),
+                    keepOneUser(2, 1, 0, 0, 0, 0, 0),
+                    betweenChkp(2, 1, 0, 0, 0, 0, 0));
         }
 
         assertNotExists("1:/a");
@@ -217,12 +253,11 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         // 6 deleted props: 0:/[_collisions], 1:/foo[p, a], 1:/bar[_bc,prop,_revisions]
-        assertEquals(3, stats.deletedPropsCount);
-        assertEquals(3, stats.deletedInternalPropsCount);
-        assertEquals(1, stats.deletedPropRevsCount);
-        assertEquals(17, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(3, stats.updatedDetailedGCDocsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 3, 0, 0, 0, 0, 2),
+                keepOneFull(0, 3, 3, 1,17, 0, 3),
+                keepOneUser(0, 3, 0, 1, 0, 0, 2),
+                betweenChkp(0, 3, 2, 1,18, 4, 3));
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
         assertBranchRevisionRemovedFromAllDocuments(store, br3);
@@ -251,14 +286,11 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        assertEquals(3, stats.updatedDetailedGCDocsCount);
-        assertEquals(2, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(0, stats.deletedPropsCount);
-        assertEquals(1, stats.deletedInternalPropsCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(0, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedPropRevsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(2, 0, 0, 0, 0, 0, 2),
+                keepOneFull(2, 0, 1, 0, 0, 0, 3),
+                keepOneUser(2, 0, 0, 0, 0, 0, 2),
+                betweenChkp(2, 0, 2, 0, 5, 2, 3));
 
         assertNotExists("1:/a");
         assertNotExists("1:/b");
@@ -266,13 +298,11 @@ public class BranchCommitGCTest {
         // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(0, stats.deletedInternalPropsCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(0, stats.deletedInternalPropRevsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 0, 0, 0, 0),
+                keepOneUser(0, 0, 0, 0, 0, 0, 0),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
     }
@@ -306,23 +336,22 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        assertTrue("should have been 2 or more, was: " + stats.updatedDetailedGCDocsCount,
-                stats.updatedDetailedGCDocsCount >= 2);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(4, stats.deletedPropRevsCount);
-        assertEquals(12, stats.deletedInternalPropRevsCount);
-
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 1, 4,12, 0, 3),
+                keepOneUser(0, 0, 0, 4, 0, 0, 2),
+                betweenChkp(0, 0, 1, 0,18, 2, 3));
         assertExists("1:/a");
         assertExists("1:/b");
 
         // now do another gc to get those documents actually deleted
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(0, stats.deletedPropRevsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 0, 0, 0, 0),
+                keepOneUser(0, 0, 0, 0, 0, 0, 0),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
     }
@@ -367,22 +396,22 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
-        assertEquals(3, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(8, stats.deletedPropRevsCount);
-        assertEquals(20, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 1, 8,20, 0, 3),
+                keepOneUser(0, 0, 0, 8, 0, 0, 2),
+                betweenChkp(0, 0, 1, 0,35, 4, 3));
         assertExists("1:/a");
         assertExists("1:/b");
 
         // now do another gc to get those documents actually deleted
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 0, 0, 0, 0),
+                keepOneUser(0, 0, 0, 0, 0, 0, 0),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
         assertBranchRevisionRemovedFromAllDocuments(store, br2);
         assertBranchRevisionRemovedFromAllDocuments(store, br3);
@@ -407,20 +436,21 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         // first gc round now deletes it, via orphaned node deletion
-        assertEquals(1, stats.deletedDocGCCount);
-        assertEquals(3, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(1, stats.deletedPropRevsCount);
-        assertEquals(4, stats.deletedInternalPropRevsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(1, 0, 0, 0, 0, 0, 1),
+                keepOneFull(1, 0, 0, 1, 4, 0, 3),
+                keepOneUser(1, 0, 0, 1, 0, 0, 2),
+                betweenChkp(1, 0, 0, 0, 7, 1, 4));
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // now do second gc round - should not have anything left to clean up though
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedDocGCCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(0, stats.deletedPropRevsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 0, 0, 0, 0),
+                keepOneUser(0, 0, 0, 0, 0, 0, 0),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
@@ -442,12 +472,11 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
-        assertEquals(0, stats.deletedPropsCount);
-        assertEquals(0, stats.deletedInternalPropsCount);
-        assertEquals(1, stats.deletedPropRevsCount);
-        assertEquals(4, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(2, stats.updatedDetailedGCDocsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 1, 4, 0, 2),
+                keepOneUser(0, 0, 0, 1, 0, 0, 1),
+                betweenChkp(0, 0, 0, 1, 4, 1, 2));
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
@@ -462,13 +491,12 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
-        assertEquals(1, stats.updatedDetailedGCDocsCount);
         // 1 deleted prop: 1:/foo[a]
-        assertEquals(1, stats.deletedPropsCount);
-        assertEquals(0, stats.deletedInternalPropsCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(2, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 2, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 4, 1, 2));
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
@@ -498,10 +526,11 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
-        assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(10, stats.deletedPropRevsCount);
-        assertEquals(20, stats.deletedInternalPropRevsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 1,10,20, 0, 2),
+                keepOneUser(0, 0, 0,10, 0, 0, 1),
+                betweenChkp(0, 0, 1, 0,59,10, 2));
 
         doc = store.getDocumentStore().find(Collection.NODES, "1:/foo");
         Long finalModified = doc.getModified();
@@ -540,10 +569,11 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
-        assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertEquals(10, stats.deletedPropRevsCount);
-        assertEquals(20, stats.deletedInternalPropRevsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 1,10,20, 0, 2),
+                keepOneUser(0, 0, 0,10, 0, 0, 1),
+                betweenChkp(0, 0, 2, 0,59,10, 2));
         for (RevisionVector br : brs) {
             assertBranchRevisionRemovedFromAllDocuments(store, br);
         }
@@ -589,25 +619,29 @@ public class BranchCommitGCTest {
         // clean everything older than one hour
         stats = gc.gc(1, HOURS);
 
-        assertEquals(2, stats.updatedDetailedGCDocsCount);
-        assertEquals(0, stats.deletedUnmergedBCCount);
-        assertEquals(0, stats.deletedPropRevsCount);
-        assertEquals(6, stats.deletedInternalPropRevsCount);
+        // deleted props: 0:/[rootProp], 1:/foo[a]
+        // deleted internal prop : 0:/ _collision
         // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 2, 0, 0, 0, 0, 2),
+                keepOneFull(0, 2, 1, 0, 6, 0, 2),
+                keepOneUser(0, 2, 0, 0, 0, 0, 2),
+                betweenChkp(0, 2, 1, 0, 5, 1, 2));
         {
             // some flakyness diagnostics
             NodeDocument d = store.getDocumentStore().find(Collection.NODES, "0:/", -1);
             assertNotNull(d);
             assertEquals(0, d.getLocalMap("rootProp").size());
-            assertEquals(0, d.getLocalMap("_collisions").size());
+            if (VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.KEEP_ONE_FULL_MODE
+                    || VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE) {
+                assertEquals(0, d.getLocalMap("_collisions").size());
+            } else {
+                assertEquals(1, d.getLocalMap("_collisions").size());
+            }
             d = store.getDocumentStore().find(Collection.NODES, "1:/foo", -1);
             assertNotNull(d);
             assertEquals(0, d.getLocalMap("a").size());
         }
-        // deleted props: 0:/[rootProp], 1:/foo[a]
-        assertEquals(2, stats.deletedPropsCount);
-        // deleted prop : 0:/ _collision
-        assertEquals(1, stats.deletedInternalPropsCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
     }
 
