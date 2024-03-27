@@ -1521,6 +1521,17 @@ public class VersionGarbageCollectorIT {
     }
 
     /**
+     * Same as {@link #lateWriteCreateChildGC()} except with a long path
+     * (where the id becomes a hash)
+     */
+    @Test
+    public void lateWriteCreateChildGCLargePath() throws Exception {
+        String longPath = repeat("p", PATH_LONG + 1);
+        String path = "/grand/parent/" + longPath + "/longPathChild";
+        doLateWriteCreateChildrenGC(of("/grand/parent"), of(path), 2, "/d");
+    }
+
+    /**
      * Tests whether DetailedGC can delete a large amount of randomly
      * created orphans (that were added in a late-write manner)
      */
