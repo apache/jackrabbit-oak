@@ -57,6 +57,7 @@ import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.DelegatingGCMonitor;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
+import org.apache.jackrabbit.oak.spi.state.AbstractNodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.apache.jackrabbit.oak.api.PropertyState;
@@ -1639,16 +1640,45 @@ public class VersionGarbageCollector {
                                     update.getId());
                             continue;
                         }
+                        NodeState traversedParent = null;
+                        NodeState traversedState = root;
+                        for (String name : oldDoc.getPath().elements()) {
+                            traversedParent = traversedState;
+                            traversedState = traversedState.getChildNode(name);
+                        }
+
                         NodeDocument newDoc = Collection.NODES.newDocument(ds);
                         oldDoc.deepCopy(newDoc);
                         UpdateUtils.applyChanges(newDoc, update);
-                        if (!verify(oldDoc, newDoc, update)) {
+                        // for the time being, verify both with classic and traversed
+                        if (!verifyViaTraversedState(traversedState, traversedParent,
+                                newDoc)) {
                             // verification failure
                             // let's skip this document
+                            if (log.isDebugEnabled()) {
+                                log.debug("removeGarbage.verify : verifyViaTraversedState failed for {}",
+                                    newDoc.getId());
+                            }
                             it.remove();
                             stats.skippedDetailedGCDocsCount++;
                         }
                     };
+                    for (Entry<String, Long> e : orphanOrDeletedRemovalMap.entrySet()) {
+                        NodeState traversedState = root;
+                        for (String name : Path.fromString(Utils.getPathFromId(e.getKey())).elements()) {
+                            traversedState = traversedState.getChildNode(name);
+                        }
+                        if (!verifyDeletion(traversedState)) {
+                            // verification failure
+                            // let's skip this document
+                            if (log.isDebugEnabled()) {
+                                log.debug("removeGarbage.verify : verifyDeletion failed for {}",
+                                    e.getKey());
+                            }
+                            it.remove();
+                            stats.skippedDetailedGCDocsCount++;
+                        }
+                    }
                 }
                 if (!isDetailedGCDryRun) {
                     // only delete these in case it is not a dryRun
@@ -1714,7 +1744,48 @@ public class VersionGarbageCollector {
             }
         }
 
-        private boolean verify(NodeDocument oldDoc, NodeDocument newDoc, UpdateOp update) {
+        private boolean verifyViaTraversedState(NodeState traversedState, NodeState traversedParent,
+                NodeDocument newDoc) {
+            final Path path = newDoc.getPath();
+            final Revision lastRevision = nodeStore.getPendingModifications().get(path);
+            if (traversedParent == null && !newDoc.getPath().isRoot()) {
+                log.error("verify : no parent but not root for path : {}", newDoc.getPath());
+                return false;
+            }
+            final RevisionVector lastRev;
+            if (traversedParent == null && newDoc.getPath().isRoot()) {
+                if (!(traversedState instanceof DocumentNodeState)) {
+                    log.error("verify : traversedState not a DocumentNodeState : {}",
+                            traversedState.getClass());
+                    return false;
+                }
+                lastRev = ((DocumentNodeState) traversedState).getLastRevision();
+            } else {
+                if (!traversedParent.exists()) {
+                    // if the parent doesn't exist we shouldn't reach this point at all
+                    log.error("verify : no parent but not marked for removal for path : {}", newDoc.getPath());
+                    return false;
+                }
+                if (!(traversedParent instanceof DocumentNodeState)) {
+                    log.error("verify : traversedParent not a DocumentNodeState : {}",
+                            traversedParent.getClass());
+                    return false;
+                }
+                lastRev = ((DocumentNodeState) traversedParent).getLastRevision();
+            }
+            final NodeState actual = newDoc.getNodeAtRevision(nodeStore, lastRev, lastRevision);
+            // use more thorough version of equals to ensure properties are checked
+            // (the faster state.equals() would stop if lastRev matches,
+            // but as we're fiddling with immutability rule of a document,
+            // we need to do a full check)
+            return AbstractNodeState.equals(traversedState, actual);
+        }
+
+        private boolean verifyDeletion(NodeState traversedState) {
+            return !traversedState.exists();
+        }
+
+        private boolean verifyViaHeadRevision(NodeDocument oldDoc, NodeDocument newDoc, UpdateOp update) {
             if (oldDoc.entrySet().equals(newDoc.entrySet())) {
                 return true;
             }
@@ -1731,7 +1802,7 @@ public class VersionGarbageCollector {
                         + " with id : {}, oldNS exists : {}, newNS exists: {}, update: {}",
                         oldDoc.getId(), oldNS == null, newNS == null, update);
                 return false;
-            } else if (oldNS.equals(newNS)) {
+            } else if (AbstractNodeState.equals(oldNS, newNS)) {
                 // AbstractDocumentNodeState.equals says they are equal, so: fine
                 return true;
             } else {
