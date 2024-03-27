@@ -74,7 +74,7 @@ public class DetailGCHelper {
             final DocumentNodeStore store, final RevisionVector br,
             final String... exceptIds) {
         assertTrue(br.isBranch());
-        if (VersionGarbageCollector.revisionDetailedGcType == RDGCType.NO_OLD_PROP_REV_GC) {
+        if (VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.NO_OLD_PROP_REV_GC) {
             // then we must skip these asserts, as we cannot guarantee
             // that all revisions are cleaned up in this mode
             return;
@@ -96,7 +96,7 @@ public class DetailGCHelper {
             for (Entry<String, Object> e : target.data.entrySet()) {
                 String k = e.getKey();
                 final boolean internal = k.startsWith("_");
-                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.revisionDetailedGcType != RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE);
+                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.getRevisionDetailedGcType() != RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE);
                 if (internal && !dgcSupportsInternalPropCleanup) {
                     // skip
                     continue;
