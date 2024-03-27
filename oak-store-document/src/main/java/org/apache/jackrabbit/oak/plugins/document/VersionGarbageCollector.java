@@ -1655,6 +1655,10 @@ public class VersionGarbageCollector {
                                 newDoc)) {
                             // verification failure
                             // let's skip this document
+                            if (log.isDebugEnabled()) {
+                                log.debug("removeGarbage.verify : verifyViaTraversedState failed for {}",
+                                    newDoc.getId());
+                            }
                             it.remove();
                             stats.skippedDetailedGCDocsCount++;
                         }
@@ -1667,6 +1671,10 @@ public class VersionGarbageCollector {
                         if (!verifyDeletion(traversedState)) {
                             // verification failure
                             // let's skip this document
+                            if (log.isDebugEnabled()) {
+                                log.debug("removeGarbage.verify : verifyDeletion failed for {}",
+                                    e.getKey());
+                            }
                             it.remove();
                             stats.skippedDetailedGCDocsCount++;
                         }
