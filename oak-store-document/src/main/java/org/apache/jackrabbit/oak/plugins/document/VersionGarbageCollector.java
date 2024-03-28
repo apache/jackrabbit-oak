@@ -933,6 +933,9 @@ public class VersionGarbageCollector {
         /** contains the list of _ids of orphan or deleted documents to be removed in the current batch **/
         private final Map<String, Long> orphanOrDeletedRemovalMap;
 
+        /** contains the list of _ids of orphan or deleted documents to be removed, mapped to their path */
+        private final Map<String, Path> orphanOrDeletedRemovalPathMap;
+
         /**
          * Map of documentId => total no. of deleted properties.
          * <p>
@@ -977,6 +980,7 @@ public class VersionGarbageCollector {
             this.cancel = cancel;
             this.updateOpList = new ArrayList<>();
             this.orphanOrDeletedRemovalMap = new HashMap<>();
+            this.orphanOrDeletedRemovalPathMap = new HashMap<>();
             this.deletedPropsCountMap = new HashMap<>();
             this.deletedInternalPropsCountMap = new HashMap<>();
             this.deletedPropRevsCountMap = new HashMap<>();
@@ -1009,6 +1013,7 @@ public class VersionGarbageCollector {
                 totalGarbageDocsCount++;
                 monitor.info("Deleted orphaned or deleted doc [{}]", doc.getId());
                 orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
+                orphanOrDeletedRemovalPathMap.put(doc.getId(), doc.getPath());
             } else {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
@@ -1674,7 +1679,16 @@ public class VersionGarbageCollector {
                     };
                     for (Entry<String, Long> e : orphanOrDeletedRemovalMap.entrySet()) {
                         NodeState traversedState = root;
-                        for (String name : Path.fromString(Utils.getPathFromId(e.getKey())).elements()) {
+                        final String id = e.getKey();
+                        final Path path = orphanOrDeletedRemovalPathMap.get(id);
+                        if (path == null) {
+                            // rather a bug, so let's skip it
+                            log.error("removeGarbage.verify : no path available for id : {}", id);
+                            it.remove();
+                            stats.skippedDetailedGCDocsCount++;
+                            continue;
+                        }
+                        for (String name : path.elements()) {
                             traversedState = traversedState.getChildNode(name);
                         }
                         if (!verifyDeletion(traversedState)) {
@@ -1743,6 +1757,7 @@ public class VersionGarbageCollector {
                 // now reset delete metadata
                 updateOpList.clear();
                 orphanOrDeletedRemovalMap.clear();
+                orphanOrDeletedRemovalPathMap.clear();
                 deletedPropsCountMap.clear();
                 deletedInternalPropsCountMap.clear();
                 deletedPropRevsCountMap.clear();
