@@ -185,6 +185,7 @@ public class VersionGarbageCollector {
         this.isDetailedGCDryRun = isDetailedGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
+        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", revisionDetailedGcType);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
