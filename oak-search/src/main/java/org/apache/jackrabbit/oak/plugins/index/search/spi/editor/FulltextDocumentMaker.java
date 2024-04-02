@@ -263,8 +263,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     dirty = true;
                 }
             } catch (Exception e) {
-                log.error("could not index similarity field for property {} and definition {}",
-                    property.getName(), pd);
+                log.error(
+                    "could not index similarity field for property {} and definition {} for path {}",
+                    property.getName(), pd, path);
             }
         } else if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
@@ -318,8 +319,8 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                 }
                             } catch (Exception e) {
                                 log.error(
-                                    "could not index similarity field for property {} and definition {}",
-                                    property.getName(), pd);
+                                    "could not index similarity field for property {} and definition {} for path {}",
+                                    property.getName(), pd, path);
                             }
                         }
                     }
