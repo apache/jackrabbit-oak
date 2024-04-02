@@ -158,7 +158,6 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
      */
     static Bson computeMongoQueryFilter(@NotNull MongoFilterPaths mongoFilterPaths, String customExcludeEntriesRegex) {
         var filters = new ArrayList<Bson>();
-
         List<Pattern> includedPatterns = compileIncludedDirectoriesRegex(mongoFilterPaths.included);
         if (!includedPatterns.isEmpty()) {
             // The conditions above on the _id field is not enough to match all JCR nodes in the given paths because nodes
