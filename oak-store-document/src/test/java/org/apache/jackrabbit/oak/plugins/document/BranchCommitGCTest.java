@@ -130,7 +130,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 noOldPropGc(2, 0, 0, 0, 0, 0, 2),
-                keepOneFull(2, 0, 0, 0, 0, 0, 2),
+                keepOneFull(2, 0, 1, 0, 1, 0, 3),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
                 betweenChkp(2, 0, 1, 0, 2, 1, 3));
 
@@ -248,7 +248,7 @@ public class BranchCommitGCTest {
         // 6 deleted props: 0:/[_collisions], 1:/foo[p, a], 1:/bar[_bc,prop,_revisions]
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 3, 0, 0, 0, 0, 2),
-                keepOneFull(0, 3, 3, 1,17, 0, 3),
+                keepOneFull(0, 3, 2, 1,17, 0, 3),
                 keepOneUser(0, 3, 0, 1, 0, 0, 2),
                 betweenChkp(0, 3, 2, 1,18, 4, 3));
         assertBranchRevisionRemovedFromAllDocuments(store, br1);
@@ -281,7 +281,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 noOldPropGc(2, 0, 0, 0, 0, 0, 2),
-                keepOneFull(2, 0, 1, 0, 0, 0, 3),
+                keepOneFull(2, 0, 2, 0, 2, 0, 3),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
                 betweenChkp(2, 0, 2, 0, 5, 2, 3));
 
@@ -383,7 +383,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 1, 8,20, 0, 3),
+                keepOneFull(0, 0, 1, 8,24, 0, 3),
                 keepOneUser(0, 0, 0, 8, 0, 0, 2),
                 betweenChkp(0, 0, 1, 0,35, 4, 3));
         assertExists("1:/a");
@@ -419,7 +419,7 @@ public class BranchCommitGCTest {
         // first gc round now deletes it, via orphaned node deletion
         assertStatsCountsEqual(stats,
                 noOldPropGc(1, 0, 0, 0, 0, 0, 1),
-                keepOneFull(1, 0, 0, 1, 4, 0, 3),
+                keepOneFull(1, 0, 0, 1, 6, 0, 4),
                 keepOneUser(1, 0, 0, 1, 0, 0, 2),
                 betweenChkp(1, 0, 0, 0, 7, 1, 4));
 
@@ -471,7 +471,7 @@ public class BranchCommitGCTest {
         // 1 deleted prop: 1:/foo[a]
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 1, 0, 0, 0, 0, 1),
-                keepOneFull(0, 1, 0, 0, 2, 0, 1),
+                keepOneFull(0, 1, 0, 0, 4, 0, 2),
                 keepOneUser(0, 1, 0, 0, 0, 0, 1),
                 betweenChkp(0, 1, 0, 0, 4, 1, 2));
         assertBranchRevisionRemovedFromAllDocuments(store, br);
@@ -505,7 +505,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 1,10,20, 0, 2),
+                keepOneFull(0, 0, 1,10,40, 0, 2),
                 keepOneUser(0, 0, 0,10, 0, 0, 1),
                 betweenChkp(0, 0, 1, 0,59,10, 2));
 
@@ -548,7 +548,7 @@ public class BranchCommitGCTest {
 
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 1,10,20, 0, 2),
+                keepOneFull(0, 0, 2,10,30, 0, 2),
                 keepOneUser(0, 0, 0,10, 0, 0, 1),
                 betweenChkp(0, 0, 2, 0,59,10, 2));
         for (RevisionVector br : brs) {
@@ -601,7 +601,7 @@ public class BranchCommitGCTest {
         // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 2, 0, 0, 0, 0, 2),
-                keepOneFull(0, 2, 1, 0, 6, 0, 2),
+                keepOneFull(0, 2, 1, 0, 8, 0, 2),
                 keepOneUser(0, 2, 0, 0, 0, 0, 2),
                 betweenChkp(0, 2, 1, 0, 5, 1, 2));
         {

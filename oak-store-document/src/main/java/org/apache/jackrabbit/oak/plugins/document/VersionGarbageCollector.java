@@ -1488,7 +1488,7 @@ public class VersionGarbageCollector {
                 }
                 final boolean isRoot = doc.getId().equals(Utils.getIdFromPath(Path.ROOT));
                 // local bcs only considered for removal
-                final boolean isBC = !doc.getLocalBranchCommits().contains(revision);
+                final boolean isBC = doc.getLocalBranchCommits().contains(revision);
                 final boolean newerThanSweep = nodeStore.getSweepRevisions().isRevisionNewer(revision);
                 if (newerThanSweep) {
                     if (isBC) {
