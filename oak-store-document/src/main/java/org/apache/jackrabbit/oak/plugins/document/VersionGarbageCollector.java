@@ -155,10 +155,10 @@ public class VersionGarbageCollector {
         OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
     }
 
-    private static RDGCType revisionDetailedGcType = RDGCType.NO_OLD_PROP_REV_GC;
+    private static final RDGCType REVISION_DETAILED_GC_TYPE = RDGCType.NO_OLD_PROP_REV_GC;
 
     static RDGCType getRevisionDetailedGcType() {
-        return revisionDetailedGcType;
+        return REVISION_DETAILED_GC_TYPE;
     }
 
     private final DocumentNodeStore nodeStore;
@@ -185,7 +185,7 @@ public class VersionGarbageCollector {
         this.isDetailedGCDryRun = isDetailedGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
-        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", revisionDetailedGcType);
+        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", REVISION_DETAILED_GC_TYPE);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
@@ -1011,7 +1011,7 @@ public class VersionGarbageCollector {
             } else {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
-                switch(revisionDetailedGcType) {
+                switch(REVISION_DETAILED_GC_TYPE) {
                     case NO_OLD_PROP_REV_GC : {
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
@@ -1764,6 +1764,21 @@ public class VersionGarbageCollector {
                         // fix for sonar : converted to long before operation
                         detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
                     }
+                } else {
+                    // collect approx stats only in case of dryRun by assuming everything would succeed
+
+                    // for deleted properties, oldRevs & unmergedBC
+                    stats.updatedDetailedGCDocsCount += updateOpList.size();
+                    stats.deletedPropsCount += deletedPropsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedInternalPropsCount += deletedInternalPropsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedPropRevsCount += deletedPropRevsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedInternalPropRevsCount += deletedInternalPropRevsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
+
+                    // for orphan nodes.
+                    stats.updatedDetailedGCDocsCount += orphanOrDeletedRemovalMap.size();
+                    stats.deletedDocGCCount += orphanOrDeletedRemovalMap.size();
+//                    stats.deletedOrphanNodesCount += orphanOrDeletedRemovalMap.size();
                 }
             } finally {
                 // now reset delete metadata
