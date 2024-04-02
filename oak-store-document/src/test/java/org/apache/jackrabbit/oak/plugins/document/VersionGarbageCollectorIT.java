@@ -1281,6 +1281,7 @@ public class VersionGarbageCollectorIT {
         parent.child("child").setProperty("ck", "cv");
         store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
+        // now make a change that later can ge GCed on parent but not on child
         nb = store1.getRoot().builder();
         nb.child("parent").setProperty("pk", "pv2");
         nb.child("parent").child("child").setProperty("ck", "cv2");
@@ -1298,13 +1299,6 @@ public class VersionGarbageCollectorIT {
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
-
-        // now make a child change so that only parent (and root) gets GCed
-        nb = store1.getRoot().builder();
-        nb.child("parent").child("child").setProperty("ck", "cv2");
-        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
-        // now unlike usually, DONT do a store1.runBackgroundOperations() here
-        // this will leave the parent GC-able
 
         // check state of 2:/parent/child.ck before GC
         // invalidate a bunch of caches, in particular nodecache and commitvaluecache
