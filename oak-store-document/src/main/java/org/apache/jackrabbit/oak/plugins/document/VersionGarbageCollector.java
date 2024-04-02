@@ -1000,7 +1000,6 @@ public class VersionGarbageCollector {
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
 
             final UpdateOp op = new UpdateOp(requireNonNull(doc.getId()), false);
-            op.equals(MODIFIED_IN_SECS, doc.getModified());
 
             // traversed state == state of node at doc.id based on head revision
             NodeState traversedState = root;
@@ -1041,6 +1040,7 @@ public class VersionGarbageCollector {
                 }
                 // only add if there are changes for this doc
                 if (op.hasChanges()) {
+                    op.equals(MODIFIED_IN_SECS, doc.getModified());
                     garbageDocsCount++;
                     totalGarbageDocsCount++;
                     monitor.info("Collected [{}] garbage for doc [{}]", op.getChanges().size(), doc.getId());
