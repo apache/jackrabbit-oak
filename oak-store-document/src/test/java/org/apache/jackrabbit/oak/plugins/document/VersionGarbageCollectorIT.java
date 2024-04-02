@@ -1624,7 +1624,6 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
-    @Ignore(value = "OAK-10535 : fails currently as uncommitted revisions aren't yet removed")
     public void lateWriteRemoveChildGC_noSweep() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
         enableDetailGC(store1.getVersionGarbageCollector());
@@ -1643,7 +1642,11 @@ public class VersionGarbageCollectorIT {
         assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
         assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
         // should be 3 as it should clean up the _deleted from /a/b, /a/b/c and /a/b/c/d
-        assertEquals(3, stats.updatedDetailedGCDocsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 3, 3, 0, 3),
+                keepOneUser(0, 0, 0, 3, 0, 0, 3),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
     }
 
     /**
