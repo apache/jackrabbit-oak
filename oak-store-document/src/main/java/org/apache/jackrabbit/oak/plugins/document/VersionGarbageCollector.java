@@ -1826,36 +1826,6 @@ public class VersionGarbageCollector {
         private boolean verifyDeletion(NodeState traversedState) {
             return !traversedState.exists();
         }
-
-        private boolean verifyViaHeadRevision(NodeDocument oldDoc, NodeDocument newDoc, UpdateOp update) {
-            if (oldDoc.entrySet().equals(newDoc.entrySet())) {
-                return true;
-            }
-            // read both nodes at headRevision - with lastRevision with the ownHeadRevision
-            // (using own's headRevision as we're only interested at the state at headRevision time)
-            DocumentNodeState oldNS = oldDoc.getNodeAtRevision(nodeStore, headRevision, ownHeadRevision);
-            DocumentNodeState newNS = newDoc.getNodeAtRevision(nodeStore, headRevision, ownHeadRevision);
-            if (oldNS == null && newNS == null) {
-                // both don't exist - fine, that's considered equal
-                return true;
-            } else if (oldNS == null || newNS == null) {
-                // failure : one is deleted/missing, the other not
-                log.error("removeGarbage.verify : failure in DetailedGC"
-                        + " with id : {}, oldNS exists : {}, newNS exists: {}, update: {}",
-                        oldDoc.getId(), oldNS == null, newNS == null, update);
-                return false;
-            } else if (AbstractNodeState.equals(oldNS, newNS)) {
-                // AbstractDocumentNodeState.equals says they are equal, so: fine
-                return true;
-            } else {
-                // failure : they don't match
-                //TODO: not sure we should really log the whole document...
-                log.error("removeGarbage.verify : failure in DetailedGC"
-                        + " with id : {}, oldNS : {}, newNS : {}, update: {}",
-                        oldDoc.getId(), oldNS, newNS, update);
-                return false;
-            }
-        }
     }
     private void delayOnModifications(final long durationMs, final AtomicBoolean cancel) {
         long delayMs = round(durationMs * options.delayFactor);
