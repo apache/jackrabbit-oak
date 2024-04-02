@@ -46,6 +46,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.StreamSupport.stream;
+import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
 import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
@@ -96,6 +97,7 @@ import static org.junit.Assume.assumeTrue;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Predicate;
+import org.apache.jackrabbit.guava.common.cache.Cache;
 import org.apache.jackrabbit.guava.common.collect.AbstractIterator;
 import org.apache.jackrabbit.guava.common.collect.ImmutableList;
 import org.apache.jackrabbit.guava.common.collect.Iterators;
@@ -559,7 +561,7 @@ public class VersionGarbageCollectorIT {
         stats = gc(gc, maxAge*2, HOURS);
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 0, 2, 1, 0, 1),
+                keepOneFull(0, 0, 0, 2, 0, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
@@ -1263,6 +1265,77 @@ public class VersionGarbageCollectorIT {
 
     // OAK-10199 END
 
+    @SuppressWarnings("unchecked")
+    /**
+     * Test when a revision on a parent is becoming garbage on a property
+     * but not on "_revision" as it is (potentially but in this case indeed)
+     * still required by a child (2:/parent/child "ck").
+     * Note that this is not involving and branch commits.
+     */
+    @Test
+    public void parentWithGarbageGCChildIndependent() throws Exception { // rename me
+        assumeTrue(fixture.hasSinglePersistence());
+        NodeBuilder nb = store1.getRoot().builder();
+        NodeBuilder parent = nb.child("parent");
+        parent.setProperty("pk", "pv");
+        parent.child("child").setProperty("ck", "cv");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        store1.runBackgroundOperations();
+        nb = store1.getRoot().builder();
+        nb.child("parent").setProperty("pk", "pv2");
+        nb.child("parent").child("child").setProperty("ck", "cv2");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        nb = store1.getRoot().builder();
+        nb.child("parent").setProperty("pk", "pv3");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // not doing a bgops == sweep here to cause "cv2" revision
+        // not being considered as commited by sweep
+        // (the test goal is to cause that resolution to fail in case
+        // we would delete the parent's _revisions entry)
+
+        // enable the detailed gc flag
+        writeField(gc, "detailedGCEnabled", true, true);
+
+        // wait two hours
+        clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
+
+        // now make a child change so that only parent (and root) gets GCed
+        nb = store1.getRoot().builder();
+        nb.child("parent").child("child").setProperty("ck", "cv2");
+        store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
+        // now unlike usually, DONT do a store1.runBackgroundOperations() here
+        // this will leave the parent GC-able
+
+        // check state of 2:/parent/child.ck before GC
+        // invalidate a bunch of caches, in particular nodecache and commitvaluecache
+        store1.getNodeCache().invalidateAll();
+        store1.getNodeChildrenCache().invalidateAll();
+        CachingCommitValueResolver cvr = (CachingCommitValueResolver) readField(store1, "commitValueResolver", true);
+        Cache<Revision, String> commitValueCache = (Cache<Revision, String>) readField( cvr, "commitValueCache", true);
+        commitValueCache.invalidateAll();
+        PropertyState ckBefore = store1.getRoot().getChildNode("parent").getChildNode("child").getProperty("ck");
+        assertNotNull(ckBefore);
+
+        // now the GC
+        VersionGCStats stats = gc(gc, 1, HOURS);
+
+        // check state of 2:/parent/child.ck after GC - should match before GC state
+        // invalidate a bunch of caches, in particular nodecache and commitvaluecache
+        store1.getNodeCache().invalidateAll();
+        store1.getNodeChildrenCache().invalidateAll();
+        cvr = (CachingCommitValueResolver) readField(store1, "commitValueResolver", true);
+        commitValueCache = (Cache<Revision, String>) readField( cvr, "commitValueCache", true);
+        commitValueCache.invalidateAll();
+        PropertyState ckAfter = store1.getRoot().getChildNode("parent").getChildNode("child").getProperty("ck");
+        assertNotNull(ckAfter);
+        assertEquals(ckBefore.getValue(Type.STRING), ckAfter.getValue(Type.STRING));
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 3, 0, 0, 2),
+                keepOneUser(0, 0, 0, 3, 0, 0, 2),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
+    }
+
     @Test
     public void parentGCChildIndependent() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
@@ -1410,7 +1483,7 @@ public class VersionGarbageCollectorIT {
         // deletedPropRevsCount=1 : (nothing on /node1[a, _commitRoot), /[_revisions]
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 1, 0, 1, 0, 1),
                 keepOneUser(0, 0, 0, 0, 0, 0, 0),
                 betweenChkp(0, 0, 1, 0, 2, 1, 1));
         // checking for br1 revisino to have disappeared doesn't really make much sense,
@@ -1452,7 +1525,7 @@ public class VersionGarbageCollectorIT {
 
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 3, 0, 0, 0, 0, 2),
-                keepOneFull(0, 3, 2, 1, 9, 0, 3),
+                keepOneFull(0, 3, 1, 1, 9, 0, 3),
                 keepOneUser(0, 3, 0, 1, 0, 0, 2),
                 betweenChkp(0, 3, 1, 1, 8, 2, 3));
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
@@ -1493,7 +1566,7 @@ public class VersionGarbageCollectorIT {
         VersionGCStats stats = gc(gc, 1, HOURS);
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 3, 0, 0,  0, 0, 2),
-                keepOneFull(0, 3, 3, 1, 17, 0, 3),
+                keepOneFull(0, 3, 2, 1, 17, 0, 3),
                 keepOneUser(0, 3, 0, 1,  0, 0, 2),
                 betweenChkp(0, 3, 2, 1, 18, 4, 3));
         assertBranchRevisionRemovedFromAllDocuments(store1, br1);
@@ -1551,7 +1624,6 @@ public class VersionGarbageCollectorIT {
     }
 
     @Test
-    @Ignore(value = "OAK-10535 : fails currently as uncommitted revisions aren't yet removed")
     public void lateWriteRemoveChildGC_noSweep() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
         enableDetailGC(store1.getVersionGarbageCollector());
@@ -1570,7 +1642,11 @@ public class VersionGarbageCollectorIT {
         assertNotNull(store1.getDocumentStore().find(NODES, "4:/a/b/c/d"));
         assertTrue(getChildeNodeState(store1, "/a/b/c/d", true).exists());
         // should be 3 as it should clean up the _deleted from /a/b, /a/b/c and /a/b/c/d
-        assertEquals(3, stats.updatedDetailedGCDocsCount);
+        assertStatsCountsEqual(stats,
+                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                keepOneFull(0, 0, 0, 3, 3, 0, 3),
+                keepOneUser(0, 0, 0, 3, 0, 0, 3),
+                betweenChkp(0, 0, 0, 0, 0, 0, 0));
     }
 
     /**
@@ -2044,7 +2120,7 @@ public class VersionGarbageCollectorIT {
         // removeProperty(prop) plus 1 _commitRoot entry
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 0, 2, 1, 0, 1),
+                keepOneFull(0, 0, 0, 2, 0, 0, 1),
                 keepOneUser(0, 0, 0, 2, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertDocumentsExist(of("/bar"));
@@ -2076,7 +2152,7 @@ public class VersionGarbageCollectorIT {
         // 1 prop-rev removal : the late-write null
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 1, 1, 0, 0, 1),
+                keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertDocumentsExist(of("/bar"));
@@ -2110,7 +2186,7 @@ public class VersionGarbageCollectorIT {
         // removes 1 prop-rev : the late-write null
         assertStatsCountsEqual(stats,
                 noOldPropGc(0, 0, 0, 0, 0, 0, 0),
-                keepOneFull(0, 0, 1, 1, 0, 0, 1),
+                keepOneFull(0, 0, 0, 1, 0, 0, 1),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
                 betweenChkp(0, 0, 0, 0, 0, 0, 0));
         assertDocumentsExist(of("/foo/bar/baz"));
