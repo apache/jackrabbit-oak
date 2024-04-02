@@ -1491,10 +1491,27 @@ public class VersionGarbageCollector {
                 final boolean isBC = !doc.getLocalBranchCommits().contains(revision);
                 final boolean newerThanSweep = nodeStore.getSweepRevisions().isRevisionNewer(revision);
                 if (newerThanSweep) {
-                    //TODO wondering if we should at all do any DGC on documents newer than sweep
                     if (isBC) {
                         // analysed further down, we can remove them if unmerged
                     } else {
+                        // note that ideally we wouldn't ever get to handle a revision
+                        // that is younger than sweep, as sweep is usually only a few
+                        // seconds behind and GC usually 24h.
+                        // in edge cases however, it could happen.
+                        // hence we could try to avoid even that it happens at all
+                        // by taking sweep into account in the original query.
+                        // Except, that's not feasible with the current state of the document,
+                        // where "_modified" is cross-cluster, but sweep is per-clusterId.
+                        // So which ever value we'd choose in the original query, it wouldn't
+                        // precisely match the sweep revision vector in any case.
+                        // thus we should rather accept that we could in theory
+                        // get a revision that is newer than sweep, and act accordingly.
+                        // one way would be to try to distinguish branch commit vs normal commits.
+                        // another, simpler, way however is to simply skip these.
+                        // that, yes, opens the possibility of some garbage not being
+                        // cleaned up, should the document remain unchanged ever after.
+                        // but that seems low probability and justifyable.
+                        // so:
                         // for normal commits, we need to keep them -> also add to allRequiredRevs
                         allRequiredRevs.add(revision);
                         continue;
