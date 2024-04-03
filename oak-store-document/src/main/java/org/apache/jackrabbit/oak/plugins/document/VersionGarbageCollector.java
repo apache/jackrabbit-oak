@@ -148,7 +148,7 @@ public class VersionGarbageCollector {
      */
     static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
 
-    static enum RDGCType {
+    enum RDGCType {
         NO_OLD_PROP_REV_GC,
         KEEP_ONE_FULL_MODE,
         KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE,
@@ -1764,6 +1764,21 @@ public class VersionGarbageCollector {
                         // fix for sonar : converted to long before operation
                         detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
                     }
+                } else {
+                    // collect approx stats only in case of dryRun by assuming everything would succeed
+
+                    // for deleted properties, oldRevs & unmergedBC
+                    stats.updatedDetailedGCDocsCount += updateOpList.size();
+                    stats.deletedPropsCount += deletedPropsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedInternalPropsCount += deletedInternalPropsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedPropRevsCount += deletedPropRevsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedInternalPropRevsCount += deletedInternalPropRevsCountMap.values().stream().reduce(0, Integer::sum);
+                    stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
+
+                    // for orphan nodes.
+                    stats.updatedDetailedGCDocsCount += orphanOrDeletedRemovalMap.size();
+                    stats.deletedDocGCCount += orphanOrDeletedRemovalMap.size();
+//                    stats.deletedOrphanNodesCount += orphanOrDeletedRemovalMap.size();
                 }
             } finally {
                 // now reset delete metadata
