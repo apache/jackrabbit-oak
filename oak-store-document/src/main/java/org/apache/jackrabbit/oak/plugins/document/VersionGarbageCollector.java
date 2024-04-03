@@ -155,10 +155,10 @@ public class VersionGarbageCollector {
         OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
     }
 
-    private static RDGCType REVISION_DETAILED_GC_TYPE = RDGCType.NO_OLD_PROP_REV_GC;
+    private static RDGCType revisionDetailedGcType = RDGCType.NO_OLD_PROP_REV_GC;
 
     static RDGCType getRevisionDetailedGcType() {
-        return REVISION_DETAILED_GC_TYPE;
+        return revisionDetailedGcType;
     }
 
     private final DocumentNodeStore nodeStore;
@@ -185,7 +185,7 @@ public class VersionGarbageCollector {
         this.isDetailedGCDryRun = isDetailedGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
-        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", REVISION_DETAILED_GC_TYPE);
+        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", revisionDetailedGcType);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
@@ -1011,7 +1011,7 @@ public class VersionGarbageCollector {
             } else {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
-                switch(REVISION_DETAILED_GC_TYPE) {
+                switch(revisionDetailedGcType) {
                     case NO_OLD_PROP_REV_GC : {
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
