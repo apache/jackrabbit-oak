@@ -27,6 +27,7 @@ Technical task
     [OAK-6769] - Convert oak-search-mt to OSGi R7 annotations
     [OAK-10623] - oak-core: log a warning when it needs to remap/add a namespace
     [OAK-10673] - DocumentStore: add test for checking of removal on non-existing map entries
+    [OAK-10708] - DocumentNodeStore: error-log failures to update the journal
     [OAK-10709] - Deprecate oak-search-mt
 
 Bug
