@@ -86,7 +86,7 @@ public class RDBDocumentStoreJDBC {
     private final int queryHitsLimit, queryTimeLimit;
 
     private static final Long INITIALMODCOUNT = Long.valueOf(1);
-
+    
     public RDBDocumentStoreJDBC(RDBDocumentStoreDB dbInfo, RDBDocumentSerializer ser, int queryHitsLimit, int queryTimeLimit) {
         this.dbInfo = dbInfo;
         this.ser = ser;
@@ -554,7 +554,7 @@ public class RDBDocumentStoreJDBC {
 
     @NotNull
     public Iterator<RDBRow> queryAsIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
-                                            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
+            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
         return new ResultSetIterator(ch, tmd, minId, maxId, excludeKeyPatterns, conditions, limit, sortBy);
     }
 
@@ -573,7 +573,7 @@ public class RDBDocumentStoreJDBC {
         private long pstart;
 
         public ResultSetIterator(RDBConnectionHandler ch, RDBTableMetaData tmd, String minId, String maxId,
-                                 List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
+                List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
             long start = System.currentTimeMillis();
             try {
                 this.ch = ch;
@@ -695,7 +695,7 @@ public class RDBDocumentStoreJDBC {
 
     @NotNull
     private PreparedStatement prepareQuery(Connection connection, RDBTableMetaData tmd, String columns, String minId, String maxId,
-                                           List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
+            List<String> excludeKeyPatterns, List<QueryCondition> conditions, int limit, String sortBy) throws SQLException {
 
         StringBuilder selectClause = new StringBuilder();
 
@@ -912,7 +912,7 @@ public class RDBDocumentStoreJDBC {
     }
 
     public boolean update(Connection connection, RDBTableMetaData tmd, String id, Long modified, Number hasBinary,
-                          Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data) throws SQLException {
+            Boolean deletedOnce, Long modcount, Long cmodcount, Long oldmodcount, String data) throws SQLException {
 
         StringBuilder t = new StringBuilder();
         t.append("update " + tmd.getName() + " set ");

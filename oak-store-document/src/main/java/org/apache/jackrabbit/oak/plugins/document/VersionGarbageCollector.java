@@ -732,8 +732,6 @@ public class VersionGarbageCollector {
          * includes: deleted properties, revision information within documents, branch
          * commit related garbage.
          * <p>
-         * TODO: limit this to run only on a singleton instance, eg the cluster leader
-         * <p>
          * The "detailed garbage" collector can be instructed to do a full repository scan
          * - or incrementally based on where it last left off. When doing a full
          * repository scan (but not limited to that), it executes in (small) batches
@@ -924,7 +922,6 @@ public class VersionGarbageCollector {
 
     private class DetailedGC implements Closeable {
 
-        private final RevisionVector headRevision;
         private final long toModifiedMs;
         private final GCMonitor monitor;
         private final AtomicBoolean cancel;
@@ -971,11 +968,9 @@ public class VersionGarbageCollector {
         private int garbageDocsCount;
         private int totalGarbageDocsCount;
         private final Revision revisionForModified;
-        private final Revision ownHeadRevision;
         private final DocumentNodeState root;
 
         public DetailedGC(@NotNull RevisionVector headRevision, long toModifiedMs, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
-            this.headRevision = requireNonNull(headRevision);
             this.toModifiedMs = toModifiedMs;
             this.monitor = monitor;
             this.cancel = cancel;
@@ -990,7 +985,6 @@ public class VersionGarbageCollector {
             this.timer = createUnstarted();
             // clusterId is not used
             this.revisionForModified = Revision.newRevision(0);
-            this.ownHeadRevision = headRevision.getRevision(nodeStore.getClusterId());
             this.root = nodeStore.getRoot(headRevision);
         }
 
@@ -1847,23 +1841,24 @@ public class VersionGarbageCollector {
         GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
 
         final RevisionVector headRevision = store.getHeadRevision();
-        DetailedGC gc = new DetailedGC(headRevision, 0, gcMonitor, cancel);
+        try (DetailedGC gc = new DetailedGC(headRevision, 0, gcMonitor, cancel)) {
 
-        if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
-            gc.collectGarbage(doc, phases);
-            phases.stop(GCPhase.DETAILED_GC_COLLECT_GARBAGE);
-        }
-
-        if (verbose) {
-            gcMonitor.info("GarbageCollector will run [{}] operations", gc.updateOpList.size());
-            for (UpdateOp update : gc.updateOpList) {
-                gcMonitor.info(update.toString());
+            if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
+                gc.collectGarbage(doc, phases);
+                phases.stop(GCPhase.DETAILED_GC_COLLECT_GARBAGE);
             }
-        }
 
-        if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
-            gc.removeGarbage(phases.stats);
-            phases.stop(GCPhase.DETAILED_GC_CLEANUP);
+            if (verbose) {
+                gcMonitor.info("GarbageCollector will run [{}] operations", gc.updateOpList.size());
+                for (UpdateOp update : gc.updateOpList) {
+                    gcMonitor.info(update.toString());
+                }
+            }
+
+            if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
+                gc.removeGarbage(phases.stats);
+                phases.stop(GCPhase.DETAILED_GC_CLEANUP);
+            }
         }
     }
 
