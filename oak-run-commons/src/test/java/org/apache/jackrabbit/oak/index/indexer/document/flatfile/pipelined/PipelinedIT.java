@@ -760,7 +760,7 @@ public class PipelinedIT {
         createContent(rwNodeStore, false);
     }
 
-    private void createContent(NodeStore rwNodeStore, boolean addHiddenPropertiesAndNodes) throws CommitFailedException {
+    private void createContent(NodeStore rwNodeStore, boolean addHiddenNodesAndProps) throws CommitFailedException {
         @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
         @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
         contentDamBuilder.child("1000").child("12").setProperty("p1", "v100012");
@@ -778,7 +778,7 @@ public class PipelinedIT {
         contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
         contentDamBuilder.child("2023").child("02").child("28").setProperty("p1", "v20230228");
 
-        if (addHiddenPropertiesAndNodes) {
+        if (addHiddenNodesAndProps) {
             contentDamBuilder.child("2024").child(":01").setProperty("p1", "v20240101");
             contentDamBuilder.child("2024").child("02").setProperty(":p1", "v20240201").setProperty("p2", "v20240202");
         }
