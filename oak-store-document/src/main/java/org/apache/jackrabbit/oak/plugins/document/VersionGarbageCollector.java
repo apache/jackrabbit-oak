@@ -148,14 +148,14 @@ public class VersionGarbageCollector {
      */
     static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
 
-    static enum RDGCType {
+    enum RDGCType {
         NO_OLD_PROP_REV_GC,
         KEEP_ONE_FULL_MODE,
         KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE,
         OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
     }
 
-    private static final RDGCType REVISION_DETAILED_GC_TYPE = RDGCType.NO_OLD_PROP_REV_GC;
+    private static RDGCType REVISION_DETAILED_GC_TYPE = RDGCType.NO_OLD_PROP_REV_GC;
 
     static RDGCType getRevisionDetailedGcType() {
         return REVISION_DETAILED_GC_TYPE;
