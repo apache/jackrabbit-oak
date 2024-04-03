@@ -47,6 +47,7 @@ Bug
     [OAK-10652] - Repository writes in SegmentStoreMigrator blocked when migrating to Azure segment store
     [OAK-10653] - BasicDocumentStoreTest: handle DocumentStoreException on ds.create
     [OAK-10717] - oak-pojosr should be updated to o.a.felix.connect-0.2.0
+    [OAK-10735] - Binary data in logs related to the haystack property
 
 Story
 
