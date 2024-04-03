@@ -21,7 +21,6 @@ package org.apache.jackrabbit.oak.plugins.index.search.spi.editor;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -264,7 +263,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                     dirty = true;
                 }
             } catch (Exception e) {
-                log.error("could not index similarity field for property {} and definition {}", property, pd);
+                log.error(
+                    "could not index similarity field for property {} and definition {} for path {}",
+                    property.getName(), pd, path);
             }
         } else if (Type.BINARY.tag() == property.getType().tag()
                 && includeTypeForFullText) {
@@ -317,7 +318,9 @@ public abstract class FulltextDocumentMaker<D> implements DocumentMaker<D> {
                                     indexSimilarityStrings(doc, pd, value);
                                 }
                             } catch (Exception e) {
-                                log.error("could not index similarity field for property {} and definition {}", property, pd);
+                                log.error(
+                                    "could not index similarity field for property {} and definition {} for path {}",
+                                    property.getName(), pd, path);
                             }
                         }
                     }
