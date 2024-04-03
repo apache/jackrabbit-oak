@@ -81,12 +81,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String fieldName = reader.readName();
             Object value = readValue(reader, fieldName);
-            // Ignore hidden properties (property name starting with :)
-            // Hidden properties are not indexed and also ignored during async index updates.
-            // So it's safe to ignore them while building the FlatFileStore as well.
-            if (!fieldName.isEmpty() && fieldName.charAt(0) != ':') {
-                nodeDocument.put(fieldName, value);
-            }
+            nodeDocument.put(fieldName, value);
         }
         reader.readEndDocument();
         nodeDocument.put(SIZE_FIELD, estimatedSizeOfCurrentObject);
