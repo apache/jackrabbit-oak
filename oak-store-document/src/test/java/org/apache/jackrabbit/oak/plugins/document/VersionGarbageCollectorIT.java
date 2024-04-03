@@ -1941,7 +1941,10 @@ public class VersionGarbageCollectorIT {
         final String oldestModifiedDryRunDocId = stats.oldestModifiedDocId;
         final long oldestModifiedDocDryRunTimeStamp = stats.oldestModifiedDocTimeStamp;
 
-        assertStatsCountsZero(stats);
+        assertStatsCountsEqual(stats, noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                keepOneFull(0, 1, 0, 0, 0, 0, 1),
+                keepOneUser(0, 1, 0, 0, 0, 0, 1),
+                betweenChkp(0, 1, 0, 0, 0, 0, 1));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
         assertTrue(stats.detailedGCDryRunMode);
 
@@ -1986,7 +1989,10 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
         VersionGCStats stats = gc(gc, 1, HOURS);
-        assertStatsCountsZero(stats);
+        assertStatsCountsEqual(stats, noOldPropGc(0, 3, 0, 0, 0, 0, 2),
+                keepOneFull(0, 3, 2, 1, 17, 0, 3),
+                keepOneUser(0, 3, 0, 1, 0, 0, 2),
+                betweenChkp(0, 3, 2, 1, 18, 4, 3));
         assertTrue(stats.detailedGCDryRunMode);
 
         assertBranchRevisionNotRemovedFromAllDocuments(store1, br1);
