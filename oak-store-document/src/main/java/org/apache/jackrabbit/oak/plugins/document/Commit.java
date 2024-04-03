@@ -355,6 +355,7 @@ public class Commit {
             boolean success = store.create(JOURNAL, singletonList(doc.asUpdateOp(r)));
             if (!success) {
                 LOG.error("Failed to update journal for revision {}", r);
+                LOG.debug("Failed to update journal for revision {} with doc {}", r, doc);
             }
         }
 
