@@ -29,7 +29,6 @@ Technical task
     [OAK-10673] - DocumentStore: add test for checking of removal on non-existing map entries
     [OAK-10708] - DocumentNodeStore: error-log failures to update the journal
     [OAK-10709] - Deprecate oak-search-mt
-    [OAK-10733] - Filter out hidden properties from content in FlatFileStore
 
 Bug
 
