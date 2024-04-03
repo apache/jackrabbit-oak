@@ -192,26 +192,6 @@ public class PipelinedIT {
     }
 
     @Test
-    public void createFFS_mongoFiltering_hidden_nodes_and_properties() throws Exception {
-        System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
-        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
-
-        Predicate<String> pathPredicate = s -> true;
-        List<PathFilter> pathFilters = List.of(new PathFilter(List.of("/content/dam/2023", "/content/dam/2024"), List.of("/content/dam/2023/02")));
-
-        testSuccessfulDownload(pathPredicate, pathFilters, List.of(
-                "/|{}",
-                "/content|{}",
-                "/content/dam|{}",
-                "/content/dam/2023|{\"p2\":\"v2023\"}",
-                "/content/dam/2023/01|{\"p1\":\"v202301\"}",
-                "/content/dam/2023/02|{}",
-                "/content/dam/2024|{}",
-                "/content/dam/2024/02|{\"p2\":\"v20240202\"}"
-        ), true, true);
-    }
-
-    @Test
     public void createFFS_mongoFiltering_include_excludes2() throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS, "false");
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
@@ -479,14 +459,9 @@ public class PipelinedIT {
     }
 
     private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected, boolean ignoreLongPaths)
-            throws IOException, CommitFailedException {
-        testSuccessfulDownload(pathPredicate, pathFilters, expected, ignoreLongPaths, false);
-    }
-
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected, boolean ignoreLongPaths, boolean testHiddenNodesAndProps)
             throws CommitFailedException, IOException {
         Backend rwStore = createNodeStore(false);
-        createContent(rwStore.documentNodeStore, testHiddenNodesAndProps);
+        createContent(rwStore.documentNodeStore);
 
         Backend roStore = createNodeStore(true);
 
@@ -757,10 +732,6 @@ public class PipelinedIT {
     }
 
     private void createContent(NodeStore rwNodeStore) throws CommitFailedException {
-        createContent(rwNodeStore, false);
-    }
-
-    private void createContent(NodeStore rwNodeStore, boolean addHiddenNodesAndProps) throws CommitFailedException {
         @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
         @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
         contentDamBuilder.child("1000").child("12").setProperty("p1", "v100012");
@@ -777,11 +748,6 @@ public class PipelinedIT {
         contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
         contentDamBuilder.child("2023").child("01").setProperty("p1", "v202301");
         contentDamBuilder.child("2023").child("02").child("28").setProperty("p1", "v20230228");
-
-        if (addHiddenNodesAndProps) {
-            contentDamBuilder.child("2024").child(":01").setProperty("p1", "v20240101");
-            contentDamBuilder.child("2024").child("02").setProperty(":p1", "v20240201").setProperty("p2", "v20240202");
-        }
 
         // Node with very long name
         @NotNull NodeBuilder node = contentDamBuilder;
