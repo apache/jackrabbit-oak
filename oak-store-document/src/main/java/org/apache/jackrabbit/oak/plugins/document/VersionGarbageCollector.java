@@ -69,6 +69,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Math.round;
+import static java.lang.String.join;
 import static java.util.Collections.emptySet;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
@@ -92,6 +93,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_I
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
 import static org.slf4j.helpers.MessageFormatter.arrayFormat;
@@ -364,6 +366,7 @@ public class VersionGarbageCollector {
         int deletedPropRevsCount;
         int deletedInternalPropRevsCount;
         int deletedUnmergedBCCount;
+        int deletedOrphanNodesCount;
         final TimeDurationFormatter df = TimeDurationFormatter.forLogging();
         final Stopwatch active = Stopwatch.createUnstarted();
         final Stopwatch detailedGCActive = Stopwatch.createUnstarted();
@@ -377,18 +380,20 @@ public class VersionGarbageCollector {
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch collectDetailedGarbage = Stopwatch.createUnstarted();
+        final Stopwatch collectOrphanNodes = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedProps = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedOldRevs = Stopwatch.createUnstarted();
         final Stopwatch collectUnmergedBC = Stopwatch.createUnstarted();
         long activeElapsed, detailedGCActiveElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed,
                 collectAndDeleteSplitDocsElapsed, deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed,
-                detailedGCDocsElapsed, collectDetailedGarbageElapsed, collectDeletedPropsElapsed, deleteDetailedGCDocsElapsed,
-                collectDeletedOldRevsElapsed, collectUnmergedBCElapsed;
+                detailedGCDocsElapsed, collectDetailedGarbageElapsed, collectOrphanNodesElapsed, collectDeletedPropsElapsed,
+                deleteDetailedGCDocsElapsed, collectDeletedOldRevsElapsed, collectUnmergedBCElapsed;
 
         @Override
         public String toString() {
             String timings;
-            String fmt = "timeToCollectDeletedDocs=%s, timeToCheckDeletedDocs=%s, timeToSortDocIds=%s, timeTakenToUpdateResurrectedDocs=%s, timeTakenToDeleteDeletedDocs=%s, timeTakenToCollectAndDeleteSplitDocs=%s%s";
+            String fmt = "timeToCollectDeletedDocs=%s, timeToCheckDeletedDocs=%s, timeToSortDocIds=%s, timeTakenToUpdateResurrectedDocs=%s, timeTakenToDeleteDeletedDocs=%s, timeTakenToCollectAndDeleteSplitDocs=%s%s, " +
+                    "timeToRunDetailedGC=%s, which includes [timeToDeleteDetailedGarbage=%s and timeToCollectDetailedGarbage=%s, (of which timeToCollectOrphanNodes=%s timeToCollectDeletedProps=%s, timeToCollectOldRevs=%s, timeToCollectUnmergedBranchCommits=%s)]";
 
             // aggregated timings?
             if (iterationCount > 0) {
@@ -402,12 +407,14 @@ public class VersionGarbageCollector {
                         df.format(updateResurrectedDocumentsElapsed, MICROSECONDS),
                         df.format(deleteDeletedDocsElapsed, MICROSECONDS),
                         df.format(collectAndDeleteSplitDocsElapsed, MICROSECONDS),
+                        timeDeletingSplitDocs,
                         df.format(detailedGCDocsElapsed, MICROSECONDS),
                         df.format(deleteDetailedGCDocsElapsed, MICROSECONDS),
+                        df.format(collectDetailedGarbageElapsed, MICROSECONDS),
+                        df.format(collectOrphanNodesElapsed, MICROSECONDS),
                         df.format(collectDeletedPropsElapsed, MICROSECONDS),
                         df.format(collectDeletedOldRevsElapsed, MICROSECONDS),
-                        df.format(collectUnmergedBCElapsed, MICROSECONDS),
-                        timeDeletingSplitDocs);
+                        df.format(collectUnmergedBCElapsed, MICROSECONDS));
             } else {
                 String timeDeletingSplitDocs = "";
                 if (deleteSplitDocs.elapsed(MICROSECONDS) > 0) {
@@ -420,18 +427,19 @@ public class VersionGarbageCollector {
                         df.format(updateResurrectedDocuments.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(deleteDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectAndDeleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                        timeDeletingSplitDocs,
                         df.format(detailedGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(deleteDetailedGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDetailedGarbage.elapsed(MICROSECONDS), MICROSECONDS),
+                        df.format(collectOrphanNodes.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDeletedProps.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDeletedOldRevs.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(collectUnmergedBC.elapsed(MICROSECONDS), MICROSECONDS),
-                        timeDeletingSplitDocs);
+                        df.format(collectUnmergedBC.elapsed(MICROSECONDS), MICROSECONDS));
             }
 
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
-                    "detailedGCDryRunMode=" + detailedGCDryRunMode +
+                    ", detailedGCDryRunMode=" + detailedGCDryRunMode +
                     ", ignoredDetailedGCDueToCheckPoint=" + ignoredDetailedGCDueToCheckPoint +
                     ", canceled=" + canceled +
                     ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
@@ -439,7 +447,7 @@ public class VersionGarbageCollector {
                     ", splitDocGCCount=" + splitDocGCCount +
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", oldestModifiedDocId=" + oldestModifiedDocId +
-                    ", oldestModifiedDocTimeStamp=" + oldestModifiedDocTimeStamp +
+                    ", oldestModifiedDocTimeStamp=" + timestampToString(oldestModifiedDocTimeStamp) +
                     ", updatedDetailedGCDocsCount=" + updatedDetailedGCDocsCount +
                     ", skippedDetailedGCDocsCount=" + skippedDetailedGCDocsCount +
                     ", deletedPropsCount=" + deletedPropsCount +
@@ -447,6 +455,7 @@ public class VersionGarbageCollector {
                     ", deletedPropRevsCount=" + deletedPropRevsCount +
                     ", deletedInternalPropRevsCount=" + deletedInternalPropRevsCount +
                     ", deletedUnmergedBCCount=" + deletedUnmergedBCCount +
+                    ", deletedOrphanNodesCount=" + deletedOrphanNodesCount +
                     ", iterationCount=" + iterationCount +
                     ", timeDetailedGCActive=" + df.format(detailedGCActiveElapsed, MICROSECONDS) +
                     ", timeActive=" + df.format(activeElapsed, MICROSECONDS) +
@@ -476,6 +485,7 @@ public class VersionGarbageCollector {
             this.deletedPropRevsCount += run.deletedPropRevsCount;
             this.deletedInternalPropRevsCount += run.deletedInternalPropRevsCount;
             this.deletedUnmergedBCCount += run.deletedUnmergedBCCount;
+            this.deletedOrphanNodesCount += run.deletedOrphanNodesCount;
             if (run.iterationCount > 0) {
                 // run is cumulative with times in elapsed fields
                 this.activeElapsed += run.activeElapsed;
@@ -490,6 +500,7 @@ public class VersionGarbageCollector {
                 this.detailedGCDocsElapsed += run.detailedGCDocsElapsed;
                 this.deleteDetailedGCDocsElapsed += run.deleteDetailedGCDocsElapsed;
                 this.collectDetailedGarbageElapsed += run.collectDetailedGarbageElapsed;
+                this.collectOrphanNodesElapsed += run.collectOrphanNodesElapsed;
                 this.collectDeletedPropsElapsed += run.collectDeletedPropsElapsed;
                 this.collectDeletedOldRevsElapsed += run.collectDeletedOldRevsElapsed;
                 this.collectUnmergedBCElapsed += run.collectUnmergedBCElapsed;
@@ -507,6 +518,7 @@ public class VersionGarbageCollector {
                 this.detailedGCDocsElapsed += run.detailedGCDocs.elapsed(MICROSECONDS);
                 this.deleteDetailedGCDocsElapsed += run.deleteDetailedGCDocs.elapsed(MICROSECONDS);
                 this.collectDetailedGarbageElapsed += run.collectDetailedGarbage.elapsed(MICROSECONDS);
+                this.collectOrphanNodesElapsed += run.collectOrphanNodes.elapsed(MICROSECONDS);
                 this.collectDeletedPropsElapsed += run.collectDeletedProps.elapsed(MICROSECONDS);
                 this.collectDeletedOldRevsElapsed += run.collectDeletedOldRevs.elapsed(MICROSECONDS);
                 this.collectUnmergedBCElapsed += run.collectUnmergedBC.elapsed(MICROSECONDS);
@@ -523,6 +535,7 @@ public class VersionGarbageCollector {
         SPLITS_CLEANUP,
         DETAILED_GC,
         DETAILED_GC_COLLECT_GARBAGE,
+        DETAILED_GC_COLLECT_ORPHAN_NODES,
         DETAILED_GC_COLLECT_PROPS,
         DETAILED_GC_COLLECT_OLD_REVS,
         DETAILED_GC_COLLECT_UNMERGED_BC,
@@ -557,6 +570,7 @@ public class VersionGarbageCollector {
             this.watches.put(GCPhase.UPDATING, stats.updateResurrectedDocuments);
             this.watches.put(GCPhase.DETAILED_GC, stats.detailedGCDocs);
             this.watches.put(GCPhase.DETAILED_GC_COLLECT_GARBAGE, stats.collectDetailedGarbage);
+            this.watches.put(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES, stats.collectOrphanNodes);
             this.watches.put(GCPhase.DETAILED_GC_COLLECT_PROPS, stats.collectDeletedProps);
             this.watches.put(GCPhase.DETAILED_GC_COLLECT_OLD_REVS, stats.collectDeletedOldRevs);
             this.watches.put(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC, stats.collectUnmergedBC);
@@ -1001,14 +1015,7 @@ public class VersionGarbageCollector {
                 traversedState = traversedState.getChildNode(name);
             }
 
-            if (isDeletedOrOrphanedNode(traversedState)) {
-                // if this is an orphaned node, all that is needed is its removal
-                garbageDocsCount++;
-                totalGarbageDocsCount++;
-                monitor.info("Deleted orphaned or deleted doc [{}]", doc.getId());
-                orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
-                orphanOrDeletedRemovalPathMap.put(doc.getId(), doc.getPath());
-            } else {
+            if (!isDeletedOrOrphanedNode(traversedState, phases, doc)) {
                 // here the node is not orphaned which means that we can reach the node from root
                 collectDeletedProperties(doc, phases, op, traversedState);
                 switch(revisionDetailedGcType) {
@@ -1086,14 +1093,21 @@ public class VersionGarbageCollector {
          * parent node. But from a GC point of view this also includes regular
          * deletion cases that have not otherwise been deleted already (eg by DeletedDocsGC).
          *
-         * @param traversedState
+         * @param traversedState the state of current doc when we start traversing from root via lastRef
+         * @param phases GC phases
+         * @param doc current document node to check whether it is orphan or not
          * @return true if the node is orphaned (and/or can be removed), false
          *         otherwise
          */
-        private boolean isDeletedOrOrphanedNode(NodeState traversedState) {
-            // several different cases here, but ultimately they all lead back to:
-            return !traversedState.exists();
+        private boolean isDeletedOrOrphanedNode(final NodeState traversedState, final GCPhases phases, final NodeDocument doc) {
 
+            if (!phases.start(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES)) {
+                // gc has been cancelled
+                return false;
+            }
+
+            // several different cases here, but ultimately they all lead back to:
+            boolean isOrphan = !traversedState.exists();
             // if the node when reading at current headRevision (rather than traversed)
             // does not exist, then this is rather a regular deletion, nothing special.
             // that is usually handled in DeletedDocsGC - but if DetailedGC sees this,
@@ -1103,6 +1117,22 @@ public class VersionGarbageCollector {
             // does exist, then it could be either due to the parent node having
             // been deleted (true orphan) - or the node itself got late-write-added.
             // in both of these cases we should now delete it. That's all with above return.
+            if (!isOrphan) {
+                // nothing to do here
+                phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
+                return false;
+            }
+
+            // if this is an orphaned node, all that is needed is its removal
+            garbageDocsCount++;
+            totalGarbageDocsCount++;
+            monitor.info("Deleted orphaned or deleted doc [{}]", doc.getId());
+            orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
+            orphanOrDeletedRemovalPathMap.put(doc.getId(), doc.getPath());
+
+            phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
+            return true;
+
         }
 
         private boolean hasGarbage() {
@@ -1728,12 +1758,18 @@ public class VersionGarbageCollector {
                         final int removedSize = ds.remove(NODES, orphanOrDeletedRemovalMap);
                         stats.updatedDetailedGCDocsCount += removedSize;
                         stats.deletedDocGCCount += removedSize;
-                        detailedGCStats.documentsUpdated(removedSize);
-                        gcStats.documentsDeleted(removedSize);
+                        stats.deletedOrphanNodesCount += removedSize;
+
                         if (log.isDebugEnabled()) {
-                            log.debug("deleted [{}] documents (from intended {})",
-                                    removedSize, orphanOrDeletedRemovalMap.size());
+                            log.debug("deleted [{}] documents (from intended {})", removedSize, orphanOrDeletedRemovalMap.size());
                         }
+
+                        // save stats
+                        detailedGCStats.documentsUpdated(removedSize);
+                        detailedGCStats.orphanNodesDeleted(removedSize);
+                        gcStats.documentsDeleted(removedSize);
+                        // fix for sonar : converted to long before operation
+                        detailedGCStats.documentsUpdateSkipped((long)orphanOrDeletedRemovalMap.size() - removedSize);
                     }
 
                     if (!updateOpList.isEmpty()) {
@@ -1778,7 +1814,7 @@ public class VersionGarbageCollector {
                     // for orphan nodes.
                     stats.updatedDetailedGCDocsCount += orphanOrDeletedRemovalMap.size();
                     stats.deletedDocGCCount += orphanOrDeletedRemovalMap.size();
-//                    stats.deletedOrphanNodesCount += orphanOrDeletedRemovalMap.size();
+                    stats.deletedOrphanNodesCount += orphanOrDeletedRemovalMap.size();
                 }
             } finally {
                 // now reset delete metadata

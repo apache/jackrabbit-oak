@@ -35,6 +35,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
 
     static final String DETAILED_GC = "DetailedGC";
     static final String READ_DOC = "READ_DOC";
+    static final String DELETED_ORPHAN_NODE = "DELETED_ORPHAN_NODE";
     static final String DELETED_PROPERTY = "DELETED_PROPERTY";
     static final String DELETED_UNMERGED_BC = "DELETED_UNMERGED_BC";
     static final String UPDATED_DOC = "UPDATED_DOC";
@@ -42,6 +43,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     static final String DETAILED_GC_ACTIVE_TIMER = "DETAILED_GC_ACTIVE_TIMER";
     static final String DETAILED_GC_TIMER = "DETAILED_GC_TIMER";
     static final String COLLECT_DETAILED_GARBAGE_TIMER = "COLLECT_DETAILED_GARBAGE_TIMER";
+    static final String COLLECT_ORPHAN_NODES_TIMER = "COLLECT_ORPHAN_NODES_TIMER";
     static final String COLLECT_DELETED_PROPS_TIMER = "COLLECT_DELETED_PROPS_TIMER";
     static final String COLLECT_DELETED_OLD_REVS_TIMER = "COLLECT_DELETED_OLD_REVS_TIMER";
     static final String COLLECT_UNMERGED_BC_TIMER = "COLLECT_UNMERGED_BC_TIMER";
@@ -51,6 +53,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     static final String FAILURE_COUNTER = "FAILURE";
 
     private final MeterStats readDoc;
+    private final MeterStats deletedOrphanNode;
     private final MeterStats deletedProperty;
     private final MeterStats deletedUnmergedBC;
     private final MeterStats updatedDoc;
@@ -58,6 +61,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     private final TimerStats detailedGCActiveTimer;
     private final TimerStats detailedGCTimer;
     private final TimerStats collectDetailedGarbageTimer;
+    private final TimerStats collectOrphanNodesTimer;
     private final TimerStats collectDeletedPropsTimer;
     private final TimerStats collectDeletedOldRevsTimer;
     private final TimerStats collectUnmergedBCTimer;
@@ -69,6 +73,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     DetailedRevisionGCStatsCollectorImpl(StatisticsProvider provider) {
 
         readDoc = meter(provider, READ_DOC);
+        deletedOrphanNode = meter(provider, DELETED_ORPHAN_NODE);
         deletedProperty = meter(provider, DELETED_PROPERTY);
         deletedUnmergedBC = meter(provider, DELETED_UNMERGED_BC);
         updatedDoc = meter(provider, UPDATED_DOC);
@@ -77,6 +82,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
         detailedGCActiveTimer = timer(provider, DETAILED_GC_ACTIVE_TIMER);
         detailedGCTimer = timer(provider, DETAILED_GC_TIMER);
         collectDetailedGarbageTimer = timer(provider, COLLECT_DETAILED_GARBAGE_TIMER);
+        collectOrphanNodesTimer = timer(provider, COLLECT_ORPHAN_NODES_TIMER);
         collectDeletedPropsTimer = timer(provider, COLLECT_DELETED_PROPS_TIMER);
         collectDeletedOldRevsTimer = timer(provider, COLLECT_DELETED_OLD_REVS_TIMER);
         collectUnmergedBCTimer = timer(provider, COLLECT_UNMERGED_BC_TIMER);
@@ -91,6 +97,11 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     @Override
     public void documentRead() {
         readDoc.mark();
+    }
+
+    @Override
+    public void orphanNodesDeleted(long numNodes) {
+        deletedOrphanNode.mark(numNodes);
     }
 
     @Override
@@ -123,6 +134,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
         detailedGCActiveTimer.update(stats.detailedGCActiveElapsed, MICROSECONDS);
         detailedGCTimer.update(stats.detailedGCDocsElapsed, MICROSECONDS);
         collectDetailedGarbageTimer.update(stats.collectDetailedGarbageElapsed, MICROSECONDS);
+        collectOrphanNodesTimer.update(stats.collectOrphanNodesElapsed, MICROSECONDS);
         collectDeletedPropsTimer.update(stats.collectDeletedPropsElapsed, MICROSECONDS);
         collectDeletedOldRevsTimer.update(stats.collectDeletedOldRevsElapsed, MICROSECONDS);
         collectUnmergedBCTimer.update(stats.collectUnmergedBCElapsed, MICROSECONDS);

@@ -61,6 +61,7 @@ public class VersionGCStatsTest {
         assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS), cumulative.detailedGCDocsElapsed);
         assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS), cumulative.deleteDetailedGCDocsElapsed);
         assertEquals(stats.collectDetailedGarbage.elapsed(MICROSECONDS), cumulative.collectDetailedGarbageElapsed);
+        assertEquals(stats.collectOrphanNodes.elapsed(MICROSECONDS), cumulative.collectOrphanNodesElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS), cumulative.collectDeletedPropsElapsed);
         assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS), cumulative.collectDeletedOldRevsElapsed);
         assertEquals(stats.collectUnmergedBC.elapsed(MICROSECONDS), cumulative.collectUnmergedBCElapsed);
@@ -84,6 +85,7 @@ public class VersionGCStatsTest {
         assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.detailedGCDocsElapsed);
         assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDetailedGCDocsElapsed);
         assertEquals(stats.collectDetailedGarbage.elapsed(MICROSECONDS) * 2, cumulative.collectDetailedGarbageElapsed);
+        assertEquals(stats.collectOrphanNodes.elapsed(MICROSECONDS) * 2, cumulative.collectOrphanNodesElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedPropsElapsed);
         assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedOldRevsElapsed);
         assertEquals(stats.collectUnmergedBC.elapsed(MICROSECONDS) * 2, cumulative.collectUnmergedBCElapsed);
@@ -101,6 +103,7 @@ public class VersionGCStatsTest {
         c.call(stats.detailedGCDocs);
         c.call(stats.deleteDetailedGCDocs);
         c.call(stats.collectDetailedGarbage);
+        c.call(stats.collectOrphanNodes);
         c.call(stats.collectDeletedProps);
         c.call(stats.collectDeletedOldRevs);
         c.call(stats.collectUnmergedBC);

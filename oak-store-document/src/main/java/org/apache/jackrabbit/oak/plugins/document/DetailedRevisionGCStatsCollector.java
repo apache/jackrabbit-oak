@@ -32,6 +32,12 @@ public interface DetailedRevisionGCStatsCollector {
     void documentRead();
 
     /**
+     * No. of orphan nodes deleted during DetailedGC
+     * @param numNodes no. of orphan nodes deleted in current cycle
+     */
+    void orphanNodesDeleted(long numNodes);
+
+    /**
      * No. of properties deleted during DetailedGC
      * @param numProps no. of properties deleted in current cycle
      */
