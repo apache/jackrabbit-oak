@@ -16,8 +16,40 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import static java.util.concurrent.TimeUnit.HOURS;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
+import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.build;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.allOrphProp;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsEqual;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsZero;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.betweenChkp;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.btwnChkpUBC;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.gapOrphOnly;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.gapOrphProp;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.isModeOneOf;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.keepOneFull;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.keepOneUser;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.unmergedBcs;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.SortedMap;
+import java.util.function.Consumer;
+
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.RDGCType;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.GCCounts;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -30,32 +62,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameter;
-
-import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-import java.util.SortedMap;
-import java.util.function.Consumer;
-
-import static java.util.concurrent.TimeUnit.HOURS;
-import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
-import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.build;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.noOldPropGc;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.keepOneFull;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.keepOneUser;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.betweenChkp;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsEqual;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsZero;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
 public class BranchCommitGCTest {
@@ -72,7 +78,7 @@ public class BranchCommitGCTest {
         java.util.Collection<Object[]> params = new LinkedList<>();
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
-            for (RDGCType gcType : RDGCType.values()) {
+            for (DetailedGCMode gcType : DetailedGCMode.values()) {
                 params.add(new Object[] {f, gcType});
             }
         }
@@ -83,9 +89,9 @@ public class BranchCommitGCTest {
     public DocumentStoreFixture fixture;
 
     @Parameter(1)
-    public RDGCType gcType;
+    public DetailedGCMode detailedGcMode;
 
-    private RDGCType originalGcType;
+    private DetailedGCMode originalDetailedGcMode;
 
     @Before
     public void setUp() throws Exception {
@@ -96,13 +102,13 @@ public class BranchCommitGCTest {
                 .setLeaseCheckMode(LeaseCheckMode.DISABLED).setDetailedGCEnabled(true)
                 .setAsyncDelay(0).getNodeStore();
         gc = store.getVersionGarbageCollector();
-        originalGcType = VersionGarbageCollector.getRevisionDetailedGcType();
-        writeStaticField(VersionGarbageCollector.class, "revisionDetailedGcType", gcType, true);
+        originalDetailedGcMode = VersionGarbageCollector.getDetailedGcMode();
+        writeStaticField(VersionGarbageCollector.class, "detailedGcMode", detailedGcMode, true);
     }
 
     @After
     public void tearDown() throws Exception {
-        writeStaticField(VersionGarbageCollector.class, "revisionDetailedGcType", originalGcType, true);
+        writeStaticField(VersionGarbageCollector.class, "detailedGcMode", originalDetailedGcMode, true);
         assertNoEmptyProperties();
         if (store != null) {
             store.dispose();
@@ -129,18 +135,24 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
-                noOldPropGc(2, 0, 0, 0, 0, 0, 2),
+                gapOrphOnly(),
+                gapOrphProp(),
+                allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 1, 0, 1, 0, 3),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
-                betweenChkp(2, 0, 1, 0, 2, 1, 3));
+                betweenChkp(2, 0, 0, 0, 0, 0, 2),
+                unmergedBcs(2, 0, 1, 0, 1, 1, 3),
+                btwnChkpUBC(2, 0, 1, 0, 1, 1, 3));
 
         // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        assertNotExists("1:/a");
-        assertNotExists("1:/b");
-        assertBranchRevisionRemovedFromAllDocuments(store, br);
+        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS, DetailedGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+            assertNotExists("1:/a");
+            assertNotExists("1:/b");
+            assertBranchRevisionRemovedFromAllDocuments(store, br);
+        }
     }
 
     @Test
@@ -182,17 +194,29 @@ public class BranchCommitGCTest {
             // expects a collision to have happened - which was cleaned up - hence a _bc (but not the _revision I guess)
             // the collisions cleaned up - with the 1 collision and a _bc
             assertStatsCountsEqual(stats,
-                    noOldPropGc(2, 0, 0, 0, 0, 0, 0),
+                    new GCCounts(DetailedGCMode.NONE, 
+                                2, 0, 0, 0, 0, 0, 0),
+                    gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
+                    gapOrphProp(2, 0, 0, 0, 0, 0, 0),
+                    allOrphProp(2, 0, 0, 0, 0, 0, 0),
                     keepOneFull(2, 0, 1, 0, 2, 0, 1),
                     keepOneUser(2, 0, 0, 0, 0, 0, 0),
-                    betweenChkp(2, 0, 1, 0, 3, 1, 1));
+                    betweenChkp(2, 0, 0, 0, 0, 0, 0),
+                    unmergedBcs(2, 0, 1, 0, 2, 1, 1),
+                    btwnChkpUBC(2, 0, 1, 0, 2, 1, 1));
         } else {
             // in this case classic collision cleanup already took care of everything, nothing left
             assertStatsCountsEqual(stats,
-                    noOldPropGc(2, 0, 0, 0, 0, 0, 0),
+                    new GCCounts(DetailedGCMode.NONE, 
+                                2, 0, 0, 0, 0, 0, 0),
+                    gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
+                    gapOrphProp(2, 0, 0, 0, 0, 0, 0),
+                    allOrphProp(2, 0, 0, 0, 0, 0, 0),
                     keepOneFull(2, 1, 0, 0, 0, 0, 0),
                     keepOneUser(2, 1, 0, 0, 0, 0, 0),
-                    betweenChkp(2, 1, 0, 0, 0, 0, 0));
+                    betweenChkp(2, 0, 0, 0, 0, 0, 0),
+                    unmergedBcs(2, 0, 0, 0, 0, 0, 0),
+                    btwnChkpUBC(2, 0, 0, 0, 0, 0, 0));
         }
 
         assertNotExists("1:/a");
@@ -247,14 +271,20 @@ public class BranchCommitGCTest {
 
         // 6 deleted props: 0:/[_collisions], 1:/foo[p, a], 1:/bar[_bc,prop,_revisions]
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 3, 0, 0, 0, 0, 2),
+                gapOrphOnly(),
+                gapOrphProp(0, 3, 0, 0, 0, 0, 2),
+                allOrphProp(0, 3, 0, 0, 0, 0, 2),
                 keepOneFull(0, 3, 2, 1,17, 0, 3),
                 keepOneUser(0, 3, 0, 1, 0, 0, 2),
-                betweenChkp(0, 3, 2, 1,18, 4, 3));
-        assertBranchRevisionRemovedFromAllDocuments(store, br1);
-        assertBranchRevisionRemovedFromAllDocuments(store, br2);
-        assertBranchRevisionRemovedFromAllDocuments(store, br3);
-        assertBranchRevisionRemovedFromAllDocuments(store, br4);
+                betweenChkp(0, 3, 0, 0, 1, 0, 3),
+                unmergedBcs(0, 3, 2, 1,15, 4, 3),
+                btwnChkpUBC(0, 3, 2, 1,16, 4, 3));
+        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS)) {
+            assertBranchRevisionRemovedFromAllDocuments(store, br1);
+            assertBranchRevisionRemovedFromAllDocuments(store, br2);
+            assertBranchRevisionRemovedFromAllDocuments(store, br3);
+            assertBranchRevisionRemovedFromAllDocuments(store, br4);
+        }
     }
 
     @Test
@@ -280,20 +310,28 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
-                noOldPropGc(2, 0, 0, 0, 0, 0, 2),
+                gapOrphOnly(),
+                gapOrphProp(),
+                allOrphProp(2, 0, 0, 0, 0, 0, 2),
                 keepOneFull(2, 0, 2, 0, 2, 0, 3),
                 keepOneUser(2, 0, 0, 0, 0, 0, 2),
-                betweenChkp(2, 0, 2, 0, 5, 2, 3));
+                betweenChkp(2, 0, 0, 0, 0, 0, 2),
+                unmergedBcs(2, 0, 2, 0, 2, 2, 3),
+                btwnChkpUBC(2, 0, 2, 0, 2, 2, 3));
 
-        assertNotExists("1:/a");
-        assertNotExists("1:/b");
+        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS, DetailedGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+            assertNotExists("1:/a");
+            assertNotExists("1:/b");
+        }
 
         // now do another gc - should not have anything left to clean up though
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        assertBranchRevisionRemovedFromAllDocuments(store, br1);
-        assertBranchRevisionRemovedFromAllDocuments(store, br2);
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            assertBranchRevisionRemovedFromAllDocuments(store, br1);
+            assertBranchRevisionRemovedFromAllDocuments(store, br2);
+        }
     }
 
     @Test
@@ -326,10 +364,14 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                gapOrphOnly(),
+                gapOrphProp(),
+                allOrphProp(),
                 keepOneFull(0, 0, 1, 4,12, 0, 3),
                 keepOneUser(0, 0, 0, 4, 0, 0, 2),
-                betweenChkp(0, 0, 1, 0,18, 2, 3));
+                betweenChkp(),
+                unmergedBcs(0, 0, 1, 0,16, 2, 3),
+                btwnChkpUBC(0, 0, 1, 0,16, 2, 3));
         assertExists("1:/a");
         assertExists("1:/b");
 
@@ -337,8 +379,10 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        assertBranchRevisionRemovedFromAllDocuments(store, br1);
-        assertBranchRevisionRemovedFromAllDocuments(store, br2);
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            assertBranchRevisionRemovedFromAllDocuments(store, br1);
+            assertBranchRevisionRemovedFromAllDocuments(store, br2);
+        }
     }
 
     @Test
@@ -382,10 +426,14 @@ public class BranchCommitGCTest {
         VersionGarbageCollector.VersionGCStats stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
+                gapOrphProp(0, 0, 0, 0, 0, 0, 0),
+                allOrphProp(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 1, 8,24, 0, 3),
                 keepOneUser(0, 0, 0, 8, 0, 0, 2),
-                betweenChkp(0, 0, 1, 0,35, 4, 3));
+                betweenChkp(),
+                unmergedBcs(0, 0, 1, 0,32, 4, 3),
+                btwnChkpUBC(0, 0, 1, 0,32, 4, 3));
         assertExists("1:/a");
         assertExists("1:/b");
 
@@ -393,10 +441,12 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        assertBranchRevisionRemovedFromAllDocuments(store, br1);
-        assertBranchRevisionRemovedFromAllDocuments(store, br2);
-        assertBranchRevisionRemovedFromAllDocuments(store, br3);
-        assertBranchRevisionRemovedFromAllDocuments(store, br4);
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            assertBranchRevisionRemovedFromAllDocuments(store, br1);
+            assertBranchRevisionRemovedFromAllDocuments(store, br2);
+            assertBranchRevisionRemovedFromAllDocuments(store, br3);
+            assertBranchRevisionRemovedFromAllDocuments(store, br4);
+        }
     }
 
     @Test
@@ -418,17 +468,23 @@ public class BranchCommitGCTest {
 
         // first gc round now deletes it, via orphaned node deletion
         assertStatsCountsEqual(stats,
-                noOldPropGc(1, 0, 0, 0, 0, 0, 1),
+                gapOrphOnly(),
+                gapOrphProp(),
+                allOrphProp(1, 0, 0, 0, 0, 0, 1),
                 keepOneFull(1, 0, 0, 1, 6, 0, 4),
                 keepOneUser(1, 0, 0, 1, 0, 0, 2),
-                betweenChkp(1, 0, 0, 0, 7, 1, 4));
+                betweenChkp(1, 0, 0, 0, 0, 0, 1),
+                unmergedBcs(1, 0, 0, 0, 7, 1, 4),
+                btwnChkpUBC(1, 0, 0, 0, 7, 1, 4));
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // now do second gc round - should not have anything left to clean up though
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        assertBranchRevisionRemovedFromAllDocuments(store, br);
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            assertBranchRevisionRemovedFromAllDocuments(store, br);
+        }
     }
 
     @Test
@@ -450,11 +506,17 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                gapOrphOnly(),
+                gapOrphProp(),
+                allOrphProp(),
                 keepOneFull(0, 0, 0, 1, 4, 0, 2),
                 keepOneUser(0, 0, 0, 1, 0, 0, 1),
-                betweenChkp(0, 0, 0, 1, 4, 1, 2));
-        assertBranchRevisionRemovedFromAllDocuments(store, br);
+                betweenChkp(),
+                unmergedBcs(0, 0, 0, 1, 4, 1, 2),
+                btwnChkpUBC(0, 0, 0, 1, 4, 1, 2));
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            assertBranchRevisionRemovedFromAllDocuments(store, br);
+        }
     }
 
     @Test
@@ -470,11 +532,17 @@ public class BranchCommitGCTest {
 
         // 1 deleted prop: 1:/foo[a]
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 1, 0, 0, 0, 0, 1),
+                gapOrphOnly(),
+                gapOrphProp(0, 1, 0, 0, 0, 0, 1),
+                allOrphProp(0, 1, 0, 0, 0, 0, 1),
                 keepOneFull(0, 1, 0, 0, 4, 0, 2),
                 keepOneUser(0, 1, 0, 0, 0, 0, 1),
-                betweenChkp(0, 1, 0, 0, 4, 1, 2));
-        assertBranchRevisionRemovedFromAllDocuments(store, br);
+                betweenChkp(0, 1, 0, 0, 0, 0, 1),
+                unmergedBcs(0, 1, 0, 0, 4, 1, 2),
+                btwnChkpUBC(0, 1, 0, 0, 4, 1, 2));
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            assertBranchRevisionRemovedFromAllDocuments(store, br);
+        }
     }
 
     @Test
@@ -504,18 +572,24 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
+                gapOrphProp(0, 0, 0, 0, 0, 0, 0),
+                allOrphProp(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 1,10,40, 0, 2),
                 keepOneUser(0, 0, 0,10, 0, 0, 1),
-                betweenChkp(0, 0, 1, 0,59,10, 2));
+                betweenChkp(),
+                unmergedBcs(0, 0, 1, 0,50,10, 2),
+                btwnChkpUBC(0, 0, 1, 0,50,10, 2));
 
         doc = store.getDocumentStore().find(Collection.NODES, "1:/foo");
         Long finalModified = doc.getModified();
 
         assertEquals(originalModified, finalModified);
 
-        for (RevisionVector br : brs) {
-            assertBranchRevisionRemovedFromAllDocuments(store, br);
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            for (RevisionVector br : brs) {
+                assertBranchRevisionRemovedFromAllDocuments(store, br);
+            }
         }
     }
 
@@ -547,12 +621,18 @@ public class BranchCommitGCTest {
         stats = gc.gc(1, HOURS);
 
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 0, 0, 0, 0, 0, 0),
+                gapOrphOnly(0, 0, 0, 0, 0, 0, 0),
+                gapOrphProp(0, 0, 0, 0, 0, 0, 0),
+                allOrphProp(0, 0, 0, 0, 0, 0, 0),
                 keepOneFull(0, 0, 2,10,30, 0, 2),
                 keepOneUser(0, 0, 0,10, 0, 0, 1),
-                betweenChkp(0, 0, 2, 0,59,10, 2));
-        for (RevisionVector br : brs) {
-            assertBranchRevisionRemovedFromAllDocuments(store, br);
+                betweenChkp(),
+                unmergedBcs(0, 0, 2, 0,40,10, 2),
+                btwnChkpUBC(0, 0, 2, 0,40,10, 2));
+        if (!isModeOneOf(DetailedGCMode.NONE)) {
+            for (RevisionVector br : brs) {
+                assertBranchRevisionRemovedFromAllDocuments(store, br);
+            }
         }
     }
 
@@ -600,17 +680,26 @@ public class BranchCommitGCTest {
         // deleted internal prop : 0:/ _collision
         // deleted properties are 0:/ -> rootProp, _collisions & 1:/foo -> a
         assertStatsCountsEqual(stats,
-                noOldPropGc(0, 2, 0, 0, 0, 0, 2),
+                gapOrphOnly(),
+                gapOrphProp(0, 2, 0, 0, 0, 0, 2),
+                allOrphProp(0, 2, 0, 0, 0, 0, 2),
                 keepOneFull(0, 2, 1, 0, 8, 0, 2),
                 keepOneUser(0, 2, 0, 0, 0, 0, 2),
-                betweenChkp(0, 2, 1, 0, 5, 1, 2));
+                betweenChkp(0, 2, 0, 0, 0, 0, 2),
+                unmergedBcs(0, 2, 1, 0, 4, 1, 2),
+                btwnChkpUBC(0, 2, 1, 0, 4, 1, 2));
+        if (isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS)) {
+            return;
+        }
+
         {
             // some flakyness diagnostics
             NodeDocument d = store.getDocumentStore().find(Collection.NODES, "0:/", -1);
             assertNotNull(d);
             assertEquals(0, d.getLocalMap("rootProp").size());
-            if (VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.KEEP_ONE_FULL_MODE
-                    || VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE) {
+            if (VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS
+                    || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
+                    || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC) {
                 assertEquals(0, d.getLocalMap("_collisions").size());
             } else {
                 assertEquals(1, d.getLocalMap("_collisions").size());

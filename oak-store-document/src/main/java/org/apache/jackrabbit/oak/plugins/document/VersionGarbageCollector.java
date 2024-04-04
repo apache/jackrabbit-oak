@@ -38,6 +38,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -150,17 +151,50 @@ public class VersionGarbageCollector {
      */
     static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
 
-    enum RDGCType {
-        NO_OLD_PROP_REV_GC,
-        KEEP_ONE_FULL_MODE,
-        KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE,
-        OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE
+    /**
+     * During hardening of DetailedGC one can choose level type of garbage should be cleaned up.
+     * Ultimately the goal is to clean up all possible garbage. After hardening these modes
+     * might no longer be supported.
+     */
+    enum DetailedGCMode {
+        /** no detailed GC is done at all */
+        NONE,
+        /** GC only orphaned nodes with gaps in ancestor docs */
+        GAP_ORPHANS,
+        /** GC orphaned nodes with gaps in ancestor docs, plus empty properties */
+        GAP_ORPHANS_EMPTYPROPS,
+        /** GC any kind of orphaned nodes, plus empty properties */
+        ALL_ORPHANS_EMPTYPROPS,
+        /**
+         * GC any kind of orphaned nodes, empty properties plus keep 1 (== keep
+         * traversed) revision, applied to user properties only
+         */
+        ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS,
+        /**
+         * GC any kind of orphaned nodes, empty properties plus keep 1 (== keep
+         * traversed) revision, applied to all properties
+         */
+        ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS,
+        /**
+         * GC any kind of orphaned nodes, empty properties plus cleanup unmerged BCs
+         */
+        ORPHANS_EMPTYPROPS_UNMERGED_BC,
+        /**
+         * GC any kind of orphaned nodes, empty properties plus cleanup revisions, also
+         * between checkpoints
+         */
+        ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC,
+        /**
+         * GC any kind of orphaned nodes, empty properties, cleanup revisions, also
+         * between checkpoints, plus cleanup unmerged BCs
+         */
+        ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
     }
 
-    private static RDGCType revisionDetailedGcType = RDGCType.NO_OLD_PROP_REV_GC;
+    private static DetailedGCMode detailedGcMode = DetailedGCMode.GAP_ORPHANS_EMPTYPROPS;
 
-    static RDGCType getRevisionDetailedGcType() {
-        return revisionDetailedGcType;
+    static DetailedGCMode getDetailedGcMode() {
+        return detailedGcMode;
     }
 
     private final DocumentNodeStore nodeStore;
@@ -187,7 +221,7 @@ public class VersionGarbageCollector {
         this.isDetailedGCDryRun = isDetailedGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
-        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", revisionDetailedGcType);
+        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", detailedGcMode);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
@@ -1003,6 +1037,10 @@ public class VersionGarbageCollector {
         }
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
+            if (detailedGcMode == DetailedGCMode.NONE) {
+                // TODO we should avoid getting here in the first case then probably
+                return;
+            }
 
             detailedGCStats.documentRead();
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
@@ -1017,25 +1055,51 @@ public class VersionGarbageCollector {
 
             if (!isDeletedOrOrphanedNode(traversedState, phases, doc)) {
                 // here the node is not orphaned which means that we can reach the node from root
-                collectDeletedProperties(doc, phases, op, traversedState);
-                switch(revisionDetailedGcType) {
-                    case NO_OLD_PROP_REV_GC : {
+                switch(detailedGcMode) {
+                    case NONE : {
+                        // shouldn't be reached
+                        return;
+                    }
+                    case GAP_ORPHANS : {
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
                     }
-                    case KEEP_ONE_FULL_MODE : {
+                    case GAP_ORPHANS_EMPTYPROPS : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        // this mode does neither unusedproprev, nor unmergedBC
+                        break;
+                    }
+                    case ALL_ORPHANS_EMPTYPROPS : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        // this mode does neither unusedproprev, nor unmergedBC
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
                         collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, false);
                         combineInternalPropRemovals(doc, op);
                         break;
                     }
-                    case KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE : {
+                    case ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
                         collectUnusedPropertyRevisions(doc, phases, op, (DocumentNodeState) traversedState, true);
                         combineInternalPropRemovals(doc, op);
                         break;
                     }
-                    case OLDER_THAN_24H_AND_BETWEEN_CHECKPOINTS_MODE : {
+                    case ORPHANS_EMPTYPROPS_UNMERGED_BC : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
                         collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
-                        collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, phases, op);
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        collectUnmergedBranchCommits(doc, phases, op, toModifiedMs);
+                        collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
+                        break;
+                    }
+                    case ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC : {
+                        collectDeletedProperties(doc, phases, op, traversedState);
+                        collectRevisionsOlderThan24hAndBetweenCheckpoints(doc, toModifiedMs, phases, op);
                         break;
                     }
                 }
@@ -1121,6 +1185,29 @@ public class VersionGarbageCollector {
                 // nothing to do here
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
                 return false;
+            }
+            if (detailedGcMode == DetailedGCMode.GAP_ORPHANS
+                    || detailedGcMode == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS) {
+                // check the ancestor docs for gaps
+                boolean hasGaps = false;
+                boolean parentDocExists = true;
+                Path path = Path.ROOT;
+                for (String name : doc.getPath().elements()) {
+                    if (!parentDocExists) {
+                        hasGaps = true;
+                        break;
+                    }
+                    path = new Path(path, name);
+                    final NodeDocument d = nodeStore.getDocumentStore().find(NODES,
+                            Utils.getIdFromPath(path));
+                    parentDocExists = d != null;
+                }
+                if (!hasGaps) {
+                    // then it is not a gap orphan
+                    // nothing to do here then
+                    phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
+                    return false;
+                }
             }
 
             // if this is an orphaned node, all that is needed is its removal
@@ -1221,7 +1308,13 @@ public class VersionGarbageCollector {
                         .filter(e -> filterEmptyProps(doc, e.getKey(), e.getValue()))
                         .mapToInt(e -> {
                             final String prop = e.getKey();
+                            final int origCount = updateOp.getChanges().size();
                             updateOp.getChanges().entrySet().removeIf(opEntry -> Objects.equals(prop, opEntry.getKey().getName()));
+                            final int diff = origCount - updateOp.getChanges().size();
+                            //TODO: beautify once this is in DetailedGC branch
+                            if (diff > 0) {
+                                deletedInternalPropRevsCountMap.merge(doc.getId(), -diff, Integer::sum);
+                            }
                             updateOp.remove(prop);
                             return 1;})
                         .sum();
@@ -1385,13 +1478,30 @@ public class VersionGarbageCollector {
 
         }
 
-        private void collectRevisionsOlderThan24hAndBetweenCheckpoints(final NodeDocument doc,
+        private void collectRevisionsOlderThan24hAndBetweenCheckpoints(final NodeDocument doc, final long toModifiedMs,
                                                               final GCPhases phases, final UpdateOp updateOp) {
             if (phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
-                NodeDocumentRevisionCleaner cleaner = new NodeDocumentRevisionCleaner(nodeStore, doc);
+                NodeDocumentRevisionCleaner cleaner = new NodeDocumentRevisionCleaner(nodeStore, doc, toModifiedMs);
+                final int beforeRevs = countRevs(updateOp, false);
+                final int beforeIntRevs = countRevs(updateOp, true);
                 cleaner.collectOldRevisions(updateOp);
+                final int revsDiff = countRevs(updateOp, false) - beforeRevs;
+                if (revsDiff > 0) {
+                    deletedPropRevsCountMap.merge(doc.getId(), revsDiff, Integer::sum);
+                }
+                final int intRevsDiff = countRevs(updateOp, true) - beforeIntRevs;
+                if (intRevsDiff > 0) {
+                    deletedInternalPropRevsCountMap.merge(doc.getId(), intRevsDiff, Integer::sum);
+                }
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
             }
+        }
+
+        private int countRevs(UpdateOp updateOp, boolean internalProps) {
+            return stream(updateOp.getChanges().entrySet().spliterator(), false)
+                    .filter(e -> (e.getValue().type == Type.REMOVE_MAP_ENTRY))
+                    .filter(e -> (e.getKey().getName().startsWith("_") == internalProps))
+                    .mapToInt(x -> 1).sum();
         }
 
         /**

@@ -18,7 +18,11 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
+import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -26,6 +30,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.Map.Entry;
 
 /**
  * This is a prototype class of a very fine-grained revision cleaner that cleans even revisions
@@ -40,6 +45,7 @@ public class NodeDocumentRevisionCleaner {
     private final NodeDocument workingDocument;
     private final RevisionPropertiesClassifier revisionClassifier;
     private final RevisionCleanerUtility revisionCleaner;
+    private long toModifiedMs;
 
     /**
      * Constructor for NodeDocumentRevisionCleaner.
@@ -47,8 +53,18 @@ public class NodeDocumentRevisionCleaner {
      * @param workingDocument The document to clean up.
      */
     public NodeDocumentRevisionCleaner(DocumentNodeStore documentNodeStore, NodeDocument workingDocument) {
+        this(documentNodeStore, workingDocument, Instant.now().minus(24, ChronoUnit.HOURS).toEpochMilli());
+    }
+
+    /**
+     * Constructor for NodeDocumentRevisionCleaner.
+     * @param documentNodeStore The DocumentNodeStore instance.
+     * @param workingDocument The document to clean up.
+     */
+    public NodeDocumentRevisionCleaner(DocumentNodeStore documentNodeStore, NodeDocument workingDocument, long toModifiedMs) {
         this.workingDocument = workingDocument;
         this.documentNodeStore = documentNodeStore;
+        this.toModifiedMs = toModifiedMs;
 
         revisionClassifier = new RevisionPropertiesClassifier(workingDocument);
         revisionCleaner = new RevisionCleanerUtility(revisionClassifier);
@@ -68,11 +84,22 @@ public class NodeDocumentRevisionCleaner {
             for (Revision revision : entry.getValue()) {
                 TreeSet<String> properties = revisionClassifier.getPropertiesModifiedByRevision().get(revision);
                 if (properties != null) {
-                    for (String property : properties) {
+                    outer:for (String property : properties) {
+                        Map<Key, Operation> c = op.getChanges();
+                        for (Entry<Key, Operation> e : c.entrySet()) {
+                            if (e.getKey().equals(new Key(property, null)) && e.getValue().type == Type.REMOVE) {
+                                continue outer;
+                            }
+                        }
                         op.removeMapEntry(property, revision);
                     }
                 }
-                op.removeMapEntry("_revisions", revision);
+                RevisionVector sweepRevisions = documentNodeStore.getSweepRevisions();
+                boolean newerThanSweep = sweepRevisions == null ? false : sweepRevisions.isRevisionNewer(revision);
+                boolean isBC = workingDocument.getLocalBranchCommits().contains(revision);
+                if (!newerThanSweep && !isBC) {
+                    op.removeMapEntry("_revisions", revision);
+                }
             }
         }
     }
@@ -176,7 +203,7 @@ public class NodeDocumentRevisionCleaner {
         }
 
         private void preserveRevisionsNewerThanThreshold(long amount, ChronoUnit unit) {
-            long thresholdToPreserve = Instant.now().minus(amount, unit).toEpochMilli();
+            long thresholdToPreserve = toModifiedMs;//Instant.now().minus(amount, unit).toEpochMilli();
             for (TreeSet<Revision> revisionSet : candidateRevisionsToClean.values()) {
                 for (Revision revision : revisionSet) {
                     if (revision.getTimestamp() > thresholdToPreserve) {
