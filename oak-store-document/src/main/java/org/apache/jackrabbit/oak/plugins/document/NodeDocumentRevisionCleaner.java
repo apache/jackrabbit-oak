@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -45,6 +46,15 @@ public class NodeDocumentRevisionCleaner {
     private final RevisionPropertiesClassifier revisionClassifier;
     private final RevisionCleanerUtility revisionCleaner;
     private long toModifiedMs;
+
+    /**
+     * Constructor for NodeDocumentRevisionCleaner.
+     * @param documentNodeStore The DocumentNodeStore instance.
+     * @param workingDocument The document to clean up.
+     */
+    public NodeDocumentRevisionCleaner(DocumentNodeStore documentNodeStore, NodeDocument workingDocument) {
+        this(documentNodeStore, workingDocument, Instant.now().minus(24, ChronoUnit.HOURS).toEpochMilli());
+    }
 
     /**
      * Constructor for NodeDocumentRevisionCleaner.
@@ -84,7 +94,8 @@ public class NodeDocumentRevisionCleaner {
                         op.removeMapEntry(property, revision);
                     }
                 }
-                boolean newerThanSweep = documentNodeStore.getSweepRevisions().isRevisionNewer(revision);
+                RevisionVector sweepRevisions = documentNodeStore.getSweepRevisions();
+                boolean newerThanSweep = sweepRevisions == null ? false : sweepRevisions.isRevisionNewer(revision);
                 boolean isBC = workingDocument.getLocalBranchCommits().contains(revision);
                 if (!newerThanSweep && !isBC) {
                     op.removeMapEntry("_revisions", revision);
