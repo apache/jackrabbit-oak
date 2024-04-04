@@ -37,8 +37,10 @@ import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_DELETED_OLD_REVS_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_DELETED_PROPS_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_DETAILED_GARBAGE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_ORPHAN_NODES_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_UNMERGED_BC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COUNTER;
+import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_ORPHAN_NODE;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_PROPERTY;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_UNMERGED_BC;
 import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETE_DETAILED_GC_DOCS_TIMER;
@@ -85,6 +87,15 @@ public class DetailedRevisionGCStatsCollectorImplTest {
     }
 
     @Test
+    public void getOrphanNodesDeletedCount() throws IllegalAccessException {
+        Meter m = getMeter(DELETED_ORPHAN_NODE);
+        long count = m.getCount();
+        stats.orphanNodesDeleted(10);
+        assertEquals(count + 10, m.getCount());
+        assertEquals(count + 10, ((MeterStats) readField(stats, "deletedOrphanNode", true)).getCount());
+    }
+
+    @Test
     public void getPropertiesDeletedCount() throws IllegalAccessException {
         Meter m = getMeter(DELETED_PROPERTY);
         long count = m.getCount();
@@ -117,6 +128,7 @@ public class DetailedRevisionGCStatsCollectorImplTest {
         vgcs.detailedGCActiveElapsed = MILLISECONDS.toMicros(2);
         vgcs.detailedGCDocsElapsed = MILLISECONDS.toMicros(3);
         vgcs.collectDetailedGarbageElapsed = MILLISECONDS.toMicros(5);
+        vgcs.collectOrphanNodesElapsed = MILLISECONDS.toMicros(6);
         vgcs.collectDeletedPropsElapsed = MILLISECONDS.toMicros(7);
         vgcs.collectDeletedOldRevsElapsed = MILLISECONDS.toMicros(11);
         vgcs.collectUnmergedBCElapsed = MILLISECONDS.toMicros(13);
@@ -127,6 +139,7 @@ public class DetailedRevisionGCStatsCollectorImplTest {
         assertTimer(2, DETAILED_GC_ACTIVE_TIMER);
         assertTimer(3, DETAILED_GC_TIMER);
         assertTimer(5, COLLECT_DETAILED_GARBAGE_TIMER);
+        assertTimer(6, COLLECT_ORPHAN_NODES_TIMER);
         assertTimer(7, COLLECT_DELETED_PROPS_TIMER);
         assertTimer(11, COLLECT_DELETED_OLD_REVS_TIMER);
         assertTimer(13, COLLECT_UNMERGED_BC_TIMER);
