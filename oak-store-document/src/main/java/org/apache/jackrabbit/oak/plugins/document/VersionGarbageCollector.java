@@ -38,7 +38,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.base.Joiner;
@@ -1077,11 +1076,7 @@ public class VersionGarbageCollector {
                         // this mode does neither unusedproprev, nor unmergedBC
                         break;
                     }
-                    case GAP_ORPHANS_EMPTYPROPS : {
-                        collectDeletedProperties(doc, phases, op, traversedState);
-                        // this mode does neither unusedproprev, nor unmergedBC
-                        break;
-                    }
+                    case GAP_ORPHANS_EMPTYPROPS :
                     case ALL_ORPHANS_EMPTYPROPS : {
                         collectDeletedProperties(doc, phases, op, traversedState);
                         // this mode does neither unusedproprev, nor unmergedBC
@@ -1523,7 +1518,7 @@ public class VersionGarbageCollector {
         }
 
         private int countRevs(UpdateOp updateOp, boolean internalProps) {
-            return stream(updateOp.getChanges().entrySet().spliterator(), false)
+            return updateOp.getChanges().entrySet().stream()
                     .filter(e -> (e.getValue().type == Type.REMOVE_MAP_ENTRY))
                     .filter(e -> (e.getKey().getName().startsWith("_") == internalProps))
                     .mapToInt(x -> 1).sum();
