@@ -141,17 +141,6 @@ public class VersionGCRecommendations {
 
         detailedGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP);
         oldestModifiedDocId = (String) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP);
-        if (detailedGCTimestamp == 0) {
-            // it will only happen for the very first time, we run this detailedGC
-            log.info("No detailedGCTimestamp found, querying for the oldest modified candidate");
-            vgc.getOldestModifiedDoc(clock).ifPresentOrElse(
-                    d -> oldestModifiedDocTimeStamp.set(SECONDS.toMillis(ofNullable(d.getModified()).orElse(0L))),
-                    () -> oldestModifiedDocTimeStamp.set(0L));
-            oldestModifiedDocId = MIN_ID_VALUE;
-            log.info("detailedGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp.get()));
-        } else {
-            oldestModifiedDocTimeStamp.set(detailedGCTimestamp);
-        }
 
         detailedGCDryRunTimestamp = (long) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP);
         oldestModifiedDryRunDocId = (String) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP);
@@ -166,6 +155,18 @@ public class VersionGCRecommendations {
                 log.info("detailedGCDryRunTimestamp found: {}", timestampToString(oldestModifiedDryRunDocTimeStamp.get()));
             } else {
                 oldestModifiedDryRunDocTimeStamp.set(detailedGCDryRunTimestamp);
+            }
+        } else {
+            if (detailedGCTimestamp == 0) {
+                // it will only happen for the very first time, we run this detailedGC
+                log.info("No detailedGCTimestamp found, querying for the oldest modified candidate");
+                vgc.getOldestModifiedDoc(clock).ifPresentOrElse(
+                        d -> oldestModifiedDocTimeStamp.set(SECONDS.toMillis(ofNullable(d.getModified()).orElse(0L))),
+                        () -> oldestModifiedDocTimeStamp.set(0L));
+                oldestModifiedDocId = MIN_ID_VALUE;
+                log.info("detailedGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp.get()));
+            } else {
+                oldestModifiedDocTimeStamp.set(detailedGCTimestamp);
             }
         }
 

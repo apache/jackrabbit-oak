@@ -51,6 +51,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.collect.Sets;
 
 import org.apache.jackrabbit.oak.commons.sort.StringSort;
+import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type;
@@ -72,6 +73,7 @@ import org.slf4j.LoggerFactory;
 import static java.lang.Math.round;
 import static java.lang.String.join;
 import static java.util.Collections.emptySet;
+import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -89,8 +91,12 @@ import static org.apache.jackrabbit.guava.common.util.concurrent.Atomics.newRefe
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.BRANCH_COMMITS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
@@ -109,11 +115,12 @@ public class VersionGarbageCollector {
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
     private static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
+    private static final Logger DETAILED_GC_LOG = LoggerFactory.getLogger(VersionGarbageCollector.class.getName() + ".detailedGC");
 
     /**
      * Split document types which can be safely garbage collected
      */
-    private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
+    private static final Set<SplitDocType> GC_TYPES = EnumSet.of(
             DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH);
 
     /**
@@ -221,7 +228,7 @@ public class VersionGarbageCollector {
         this.isDetailedGCDryRun = isDetailedGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
-        log.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", detailedGcMode);
+        DETAILED_GC_LOG.info("<init> VersionGarbageCollector created with revisionDetailedGcType = {}", detailedGcMode);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
@@ -810,6 +817,9 @@ public class VersionGarbageCollector {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
                         lastDoc = null;
+                        if (DETAILED_GC_LOG.isDebugEnabled()) {
+                            DETAILED_GC_LOG.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
+                        }
                         Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, DETAILED_GC_BATCH_SIZE, fromId);
                         try {
                             for (NodeDocument doc : itr) {
@@ -817,7 +827,7 @@ public class VersionGarbageCollector {
                                 // continue with GC?
                                 if (cancel.get()) {
                                     foundDoc = false; // to exit while loop as well
-                                    log.info("Received GC cancel call. Terminating the GC Operation.");
+                                    DETAILED_GC_LOG.info("Received GC cancel call. Terminating the GC Operation.");
                                     break;
                                 }
                                 docsTraversed++;
@@ -840,7 +850,7 @@ public class VersionGarbageCollector {
                                 } else if (SECONDS.toMillis(modified) < fromModifiedMs) {
                                     monitor.warn(
                                             "collectDetailedGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
-                                            modified, fromModifiedMs, toModifiedMs);
+                                            modified, timestampToString(fromModifiedMs), timestampToString(toModifiedMs));
                                 }
                             }
                             // now remove the garbage in one go, if any
@@ -857,6 +867,9 @@ public class VersionGarbageCollector {
                             phases.stats.oldestModifiedDocTimeStamp = fromModifiedMs;
                             phases.stats.oldestModifiedDocId = fromId;
                             oldModifiedMs = fromModifiedMs;
+                            if (DETAILED_GC_LOG.isDebugEnabled()) {
+                                DETAILED_GC_LOG.debug("Fetched docs till [{}] with Id [{}]", timestampToString(fromModifiedMs), fromId);
+                            }
                         }
                         // if we didn't find any document i.e. either we are already at last document
                         // of current timeStamp or there is no document for this timeStamp
@@ -1112,8 +1125,9 @@ public class VersionGarbageCollector {
                     updateOpList.add(op);
                 }
             }
-            if (log.isDebugEnabled()) {
-                log.debug("UpdateOp for {} is {}", doc.getId(), op);
+            if (DETAILED_GC_LOG.isDebugEnabled() && op.hasChanges()) {
+                // only log in case of changes & debug level enabled
+                DETAILED_GC_LOG.debug("UpdateOp for {} is {}", doc.getId(), op);
             }
         }
 
@@ -1148,6 +1162,9 @@ public class VersionGarbageCollector {
 
                 // update the deleted properties count Map to calculate the total no. of deleted properties
                 deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
+                if (DETAILED_GC_LOG.isDebugEnabled()) {
+                    DETAILED_GC_LOG.debug("Collected {} internal prop revs for document {} in {} mode", deletedSystemPropsCount, doc.getId(), detailedGcMode);
+                }
             }
         }
 
@@ -1217,6 +1234,10 @@ public class VersionGarbageCollector {
             orphanOrDeletedRemovalMap.put(doc.getId(), doc.getModified());
             orphanOrDeletedRemovalPathMap.put(doc.getId(), doc.getPath());
 
+            if (DETAILED_GC_LOG.isDebugEnabled()) {
+                DETAILED_GC_LOG.debug("Collected {} deleted or orphaned node", doc.getId());
+            }
+
             phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
             return true;
 
@@ -1252,8 +1273,8 @@ public class VersionGarbageCollector {
 
                 deletedPropsCountMap.put(doc.getId(), deletedPropsCount);
 
-                if (log.isDebugEnabled()) {
-                    log.debug("Collected {} deleted properties for document {}", deletedPropsCount, doc.getId());
+                if (DETAILED_GC_LOG.isDebugEnabled() && deletedPropsCount > 0) {
+                    DETAILED_GC_LOG.debug("Collected {} deleted properties for document {}", deletedPropsCount, doc.getId());
                 }
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_PROPS);
             }
@@ -1291,8 +1312,8 @@ public class VersionGarbageCollector {
             olderUnmergedBranchCommits.forEach(bcRevision -> removeUnmergedBCRevision(bcRevision, doc, updateOp));
             deletedUnmergedBCSet.addAll(olderUnmergedBranchCommits);
 
-            if (log.isDebugEnabled()) {
-                log.debug("Collected {} unmerged branch commits for document {}", olderUnmergedBranchCommits.size(), doc.getId());
+            if (DETAILED_GC_LOG.isDebugEnabled()) {
+                DETAILED_GC_LOG.debug("Collected {} unmerged branch commits for document {}", olderUnmergedBranchCommits.size(), doc.getId());
             }
 
             // now for any of the handled system properties (the normal properties would
@@ -1343,7 +1364,7 @@ public class VersionGarbageCollector {
                 return m.size() == value;
             } else {
                 // unexpected and would likely indicate a bug, hence log.error
-                log.error("collectUnmergedBranchCommitDocument: property without sub-document as expected. " +
+                DETAILED_GC_LOG.error("collectUnmergedBranchCommitDocument: property without sub-document as expected. " +
                         "id={}, prop={}", doc.getId(), prop);
                 return false;
             }
@@ -1450,7 +1471,7 @@ public class VersionGarbageCollector {
                 internalRevEntriesCount++;
                 NodeDocument.removeRevision(updateOp, unmergedBCRevision);
             }
-            if (doc.getLocalMap(NodeDocument.COLLISIONS).containsKey(unmergedBCRevision)) {
+            if (doc.getLocalMap(COLLISIONS).containsKey(unmergedBCRevision)) {
                 internalRevEntriesCount++;
                 NodeDocument.removeCollision(updateOp, unmergedBCRevision);
             }
@@ -1474,6 +1495,10 @@ public class VersionGarbageCollector {
             }
             if (revEntriesCount > 0) {
                 deletedPropRevsCountMap.merge(doc.getId(), revEntriesCount, Integer::sum);
+            }
+
+            if (DETAILED_GC_LOG.isDebugEnabled()) {
+                DETAILED_GC_LOG.debug("Collected {} prop revs, {} internal prop revs for document {} in {} mode", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), detailedGcMode);
             }
 
         }
@@ -1521,11 +1546,11 @@ public class VersionGarbageCollector {
             }
             final Set<Revision> allKeepRevs = new HashSet<>();
             // phase A : collectUnusedUserPropertyRevisions
-            int deletedTotalRevsCount = collectUnusedUserPropertyRevisions(doc, phases, updateOp, traversedMainNode, allKeepRevs);
+            int deletedTotalRevsCount = collectUnusedUserPropertyRevisions(doc, updateOp, traversedMainNode, allKeepRevs);
             int deletedUserRevsCount = deletedTotalRevsCount;
             // phase B : collectUnusedInternalPropertyRevisions
             if (!ignoreInternalProperties) {
-                deletedTotalRevsCount = collectUnusedInternalPropertyRevisions(doc, phases, updateOp, traversedMainNode, allKeepRevs, deletedTotalRevsCount);
+                deletedTotalRevsCount = collectUnusedInternalPropertyRevisions(doc, updateOp, allKeepRevs, deletedTotalRevsCount);
             }
 
             // then some accounting...
@@ -1536,13 +1561,16 @@ public class VersionGarbageCollector {
             if (deletedInternalRevsCount != 0) {
                 deletedInternalPropRevsCountMap.merge(doc.getId(), deletedInternalRevsCount, Integer::sum);
             }
+
+            if (DETAILED_GC_LOG.isDebugEnabled()) {
+                DETAILED_GC_LOG.debug("Collected {} prop revs, {} internal prop revs for document {} in {} mode", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), detailedGcMode);
+            }
+
             phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
         }
 
-        private int collectUnusedUserPropertyRevisions(final NodeDocument doc,
-                final GCPhases phases, final UpdateOp updateOp,
-                final DocumentNodeState traversedMainNode,
-                final Set<Revision> allKeepRevs) {
+        private int collectUnusedUserPropertyRevisions(final NodeDocument doc, final UpdateOp updateOp,
+                                                       final DocumentNodeState traversedMainNode, final Set<Revision> allKeepRevs) {
             // phase 1 : non bundled nodes only
             int deletedRevsCount = stream(
                     traversedMainNode.getProperties().spliterator(), false)
@@ -1572,13 +1600,13 @@ public class VersionGarbageCollector {
                 final String unbundledPath = traversedMainNode.getPath().toString() + "/" + unbundledSubtreeName;
                 final DocumentNodeState traversedNode = bundledNodeStates.get(Path.fromString(unbundledPath));
                 if (traversedNode == null) {
-                    log.error("collectUnusedPropertyRevisions : could not find traversed node for bundled key {} unbundledPath {} in doc {}",
+                    DETAILED_GC_LOG.error("collectUnusedPropertyRevisions : could not find traversed node for bundled key {} unbundledPath {} in doc {}",
                             propName, unbundledPath, doc.getId());
                     continue;
                 }
                 final PropertyState traversedProperty = traversedNode.getProperty(unbundledPropName);
                 if (traversedProperty == null) {
-                    log.error("collectUnusedPropertyRevisions : could not get property {} from traversed node {}",
+                    DETAILED_GC_LOG.error("collectUnusedPropertyRevisions : could not get property {} from traversed node {}",
                             unbundledPropName, traversedNode.getPath());
                     continue;
                 }
@@ -1596,11 +1624,8 @@ public class VersionGarbageCollector {
             return deletedRevsCount;
         }
 
-        private int collectUnusedInternalPropertyRevisions(final NodeDocument doc,
-                final GCPhases phases, final UpdateOp updateOp,
-                final DocumentNodeState traversedMainNode,
-                final Set<Revision> toKeepUserPropRevs,
-                int deletedRevsCount) {
+        private int collectUnusedInternalPropertyRevisions(final NodeDocument doc, final UpdateOp updateOp,
+                                                           final Set<Revision> toKeepUserPropRevs, int deletedRevsCount) {
             boolean hasUnmergedBranchCommits = doc.getLocalBranchCommits().stream()
                     .anyMatch(r -> !isCommitted(nodeStore.getCommitValue(r, doc)));
             if (deletedRevsCount == 0 && !hasUnmergedBranchCommits) {
@@ -1610,8 +1635,8 @@ public class VersionGarbageCollector {
             Set<Revision> allRequiredRevs = new HashSet<>(toKeepUserPropRevs);
             // "_collisions"
             deletedRevsCount += getDeletedRevsCount(
-                    doc.getLocalMap(NodeDocument.COLLISIONS).keySet(), updateOp,
-                    allRequiredRevs, NodeDocument.COLLISIONS,
+                    doc.getLocalMap(COLLISIONS).keySet(), updateOp,
+                    allRequiredRevs, COLLISIONS,
                     NodeDocument::removeCollision);
             // "_revisions"
             for (Entry<Revision, String> e : doc.getLocalRevisions().entrySet()) {
@@ -1678,7 +1703,7 @@ public class VersionGarbageCollector {
                         // non root and bc : can remove, as non root bc cannot be referenced by child
                     }
                 }
-                Operation has = updateOp.getChanges().get(new Key(NodeDocument.REVISIONS, revision));
+                Operation has = updateOp.getChanges().get(new Key(REVISIONS, revision));
                 if (has != null) {
                     // then skip
                     continue;
@@ -1688,12 +1713,10 @@ public class VersionGarbageCollector {
             }
             // "_commitRoot"
             deletedRevsCount += getDeletedRevsCount(doc.getLocalCommitRoot().keySet(),
-                    updateOp, allRequiredRevs, NodeDocument.COMMIT_ROOT,
-                    NodeDocument::removeCommitRoot);
+                    updateOp, allRequiredRevs, COMMIT_ROOT, NodeDocument::removeCommitRoot);
             // "_bc"
             deletedRevsCount += getDeletedRevsCount(doc.getLocalBranchCommits(), updateOp,
-                    allRequiredRevs, NodeDocument.BRANCH_COMMITS,
-                    NodeDocument::removeBranchCommit);
+                    allRequiredRevs, BRANCH_COMMITS, NodeDocument::removeBranchCommit);
             return deletedRevsCount;
         }
 
@@ -1723,8 +1746,8 @@ public class VersionGarbageCollector {
                 // could be due to node not existing or current value being in a split
                 // doc - while the former is unexpected, the latter might happen.
                 // in both cases let's skip this property
-                if (log.isDebugEnabled()) {
-                    log.debug("removeUnusedPropertyEntries : no visible revision for property {} in doc {}",
+                if (DETAILED_GC_LOG.isDebugEnabled()) {
+                    DETAILED_GC_LOG.debug("removeUnusedPropertyEntries : no visible revision for property {} in doc {}",
                             propertyKey, doc.getId());
                 }
                 return 0;
@@ -1734,7 +1757,7 @@ public class VersionGarbageCollector {
             final SortedMap<Revision, String> localMap = doc.getLocalMap(propertyKey);
             if (!localMap.containsKey(keepCommitRev)) {
                 // this is unexpected - log and skip this property
-                log.error("removeUnusedPropertyEntries : revision {} for property {} not found in doc {}",
+                DETAILED_GC_LOG.error("removeUnusedPropertyEntries : revision {} for property {} not found in doc {}",
                         keepCommitRev, propertyKey, doc.getId());
                 return 0;
             }
@@ -1747,8 +1770,8 @@ public class VersionGarbageCollector {
                     // via collectUnmergedBranchCommits. Checking for that next.
                     Operation c = updateOp.getChanges().get(new Key(propertyKey, localRev));
                     if (c == null) {
-                        if (log.isTraceEnabled()) {
-                            log.trace("removeUnusedPropertyEntries : removing property key {} with revision {} from doc {}",
+                        if (DETAILED_GC_LOG.isTraceEnabled()) {
+                            DETAILED_GC_LOG.trace("removeUnusedPropertyEntries : removing property key {} with revision {} from doc {}",
                                     propertyKey, localRev, doc.getId());
                         }
                         removeRevision.accept(localRev);
@@ -1774,21 +1797,22 @@ public class VersionGarbageCollector {
         public void removeGarbage(final VersionGCStats stats) {
 
             if (updateOpList.isEmpty() && orphanOrDeletedRemovalMap.isEmpty()) {
-                if (log.isDebugEnabled() || isDetailedGCDryRun) {
-                    log.debug("Skipping removal of detailed garbage, cause no garbage detected");
+                if (DETAILED_GC_LOG.isDebugEnabled() || isDetailedGCDryRun) {
+                    DETAILED_GC_LOG.debug("Skipping removal of detailed garbage, cause no garbage detected");
                 }
                 return;
             }
 
             monitor.info("Proceeding to update [{}] documents", updateOpList.size());
 
-            if (log.isDebugEnabled() || isDetailedGCDryRun) {
-                String collect = updateOpList.stream().map(UpdateOp::getId).collect(joining(","));
-                log.debug("Performing batch update of documents with following id's [{}]", collect);
+            if (DETAILED_GC_LOG.isDebugEnabled() || isDetailedGCDryRun) {
+                String updateIds = updateOpList.stream().map(UpdateOp::getId).collect(joining(", "));
+                String orphanIds = join(", ", orphanOrDeletedRemovalMap.keySet());
+                DETAILED_GC_LOG.debug("Performing batch update of ids [{}] and removal of orphan ids [{}]", updateIds, orphanIds);
             }
 
             if (cancel.get()) {
-                log.info("Aborting the removal of detailed garbage since RGC had been cancelled");
+                DETAILED_GC_LOG.info("Aborting the removal of detailed garbage since RGC had been cancelled");
                 return;
             }
 
@@ -1802,8 +1826,7 @@ public class VersionGarbageCollector {
                         final UpdateOp update = it.next();
                         NodeDocument oldDoc = ds.find(Collection.NODES, update.getId());
                         if (oldDoc == null) {
-                            log.error("removeGarbage.verify : no document found for update with id {}",
-                                    update.getId());
+                            DETAILED_GC_LOG.error("removeGarbage.verify : no document found for update with id {}", update.getId());
                             continue;
                         }
                         NodeState traversedParent = null;
@@ -1817,13 +1840,11 @@ public class VersionGarbageCollector {
                         oldDoc.deepCopy(newDoc);
                         UpdateUtils.applyChanges(newDoc, update);
                         // for the time being, verify both with classic and traversed
-                        if (!verifyViaTraversedState(traversedState, traversedParent,
-                                newDoc)) {
+                        if (!verifyViaTraversedState(traversedState, traversedParent, newDoc)) {
                             // verification failure
                             // let's skip this document
-                            if (log.isDebugEnabled()) {
-                                log.debug("removeGarbage.verify : verifyViaTraversedState failed for {}",
-                                    newDoc.getId());
+                            if (DETAILED_GC_LOG.isDebugEnabled()) {
+                                DETAILED_GC_LOG.debug("removeGarbage.verify : verifyViaTraversedState failed for {}", newDoc.getId());
                             }
                             it.remove();
                             stats.skippedDetailedGCDocsCount++;
@@ -1835,7 +1856,7 @@ public class VersionGarbageCollector {
                         final Path path = orphanOrDeletedRemovalPathMap.get(id);
                         if (path == null) {
                             // rather a bug, so let's skip it
-                            log.error("removeGarbage.verify : no path available for id : {}", id);
+                            DETAILED_GC_LOG.error("removeGarbage.verify : no path available for id : {}", id);
                             it.remove();
                             stats.skippedDetailedGCDocsCount++;
                             continue;
@@ -1846,9 +1867,8 @@ public class VersionGarbageCollector {
                         if (!verifyDeletion(traversedState)) {
                             // verification failure
                             // let's skip this document
-                            if (log.isDebugEnabled()) {
-                                log.debug("removeGarbage.verify : verifyDeletion failed for {}",
-                                    e.getKey());
+                            if (DETAILED_GC_LOG.isDebugEnabled()) {
+                                DETAILED_GC_LOG.debug("removeGarbage.verify : verifyDeletion failed for {}", e.getKey());
                             }
                             it.remove();
                             stats.skippedDetailedGCDocsCount++;
@@ -1870,8 +1890,8 @@ public class VersionGarbageCollector {
                         stats.deletedDocGCCount += removedSize;
                         stats.deletedOrphanNodesCount += removedSize;
 
-                        if (log.isDebugEnabled()) {
-                            log.debug("deleted [{}] documents (from intended {})", removedSize, orphanOrDeletedRemovalMap.size());
+                        if (DETAILED_GC_LOG.isDebugEnabled()) {
+                            DETAILED_GC_LOG.debug("deleted [{}] documents (from intended {})", removedSize, orphanOrDeletedRemovalMap.size());
                         }
 
                         // save stats
@@ -1898,9 +1918,9 @@ public class VersionGarbageCollector {
                         stats.deletedInternalPropRevsCount += deletedInternalRevEntriesCount;
                         stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
 
-                        if (log.isDebugEnabled()) {
-                            log.debug("Updated [{}] documents, deleted [{}] properties, deleted [{}] unmergedBranchCommits",
-                                    updatedDocs, deletedProps, deletedUnmergedBCSet.size());
+                        if (DETAILED_GC_LOG.isDebugEnabled()) {
+                            DETAILED_GC_LOG.debug("Updated [{}] docs, deleted [{}] props, deleted [{}] unmergedBCs, deleted [{}] internal Props, deleted [{}] prop revs, deleted [{}] internal prop revs",
+                                    updatedDocs, deletedProps, deletedUnmergedBCSet.size(), deletedInternalProps, deletedRevEntriesCount, deletedInternalRevEntriesCount);
                         }
 
                         // save stats
@@ -1941,31 +1961,28 @@ public class VersionGarbageCollector {
             }
         }
 
-        private boolean verifyViaTraversedState(NodeState traversedState, NodeState traversedParent,
-                NodeDocument newDoc) {
+        private boolean verifyViaTraversedState(NodeState traversedState, NodeState traversedParent, NodeDocument newDoc) {
             final Path path = newDoc.getPath();
             final Revision lastRevision = nodeStore.getPendingModifications().get(path);
             if (traversedParent == null && !newDoc.getPath().isRoot()) {
-                log.error("verify : no parent but not root for path : {}", newDoc.getPath());
+                DETAILED_GC_LOG.error("verify : no parent but not root for path : {}", newDoc.getPath());
                 return false;
             }
             final RevisionVector lastRev;
             if (traversedParent == null && newDoc.getPath().isRoot()) {
                 if (!(traversedState instanceof DocumentNodeState)) {
-                    log.error("verify : traversedState not a DocumentNodeState : {}",
-                            traversedState.getClass());
+                    DETAILED_GC_LOG.error("verify : traversedState not a DocumentNodeState : {}", traversedState.getClass());
                     return false;
                 }
                 lastRev = ((DocumentNodeState) traversedState).getLastRevision();
             } else {
                 if (!traversedParent.exists()) {
                     // if the parent doesn't exist we shouldn't reach this point at all
-                    log.error("verify : no parent but not marked for removal for path : {}", newDoc.getPath());
+                    DETAILED_GC_LOG.error("verify : no parent but not marked for removal for path : {}", newDoc.getPath());
                     return false;
                 }
                 if (!(traversedParent instanceof DocumentNodeState)) {
-                    log.error("verify : traversedParent not a DocumentNodeState : {}",
-                            traversedParent.getClass());
+                    DETAILED_GC_LOG.error("verify : traversedParent not a DocumentNodeState : {}", traversedParent.getClass());
                     return false;
                 }
                 lastRev = ((DocumentNodeState) traversedParent).getLastRevision();
@@ -1975,7 +1992,7 @@ public class VersionGarbageCollector {
             // (the faster state.equals() would stop if lastRev matches,
             // but as we're fiddling with immutability rule of a document,
             // we need to do a full check)
-            return AbstractNodeState.equals(traversedState, actual);
+            return nonNull(actual) && AbstractNodeState.equals(traversedState, actual);
         }
 
         private boolean verifyDeletion(NodeState traversedState) {
