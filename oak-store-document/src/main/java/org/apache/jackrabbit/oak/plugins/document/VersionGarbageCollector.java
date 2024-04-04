@@ -1364,7 +1364,7 @@ public class VersionGarbageCollector {
                 return m.size() == value;
             } else {
                 // unexpected and would likely indicate a bug, hence log.error
-                DETAILED_GC_LOG.error("collectUnmergedBranchCommitDocument: property without sub-document as expected. " +
+                log.error("collectUnmergedBranchCommitDocument: property without sub-document as expected. " +
                         "id={}, prop={}", doc.getId(), prop);
                 return false;
             }
@@ -1600,13 +1600,13 @@ public class VersionGarbageCollector {
                 final String unbundledPath = traversedMainNode.getPath().toString() + "/" + unbundledSubtreeName;
                 final DocumentNodeState traversedNode = bundledNodeStates.get(Path.fromString(unbundledPath));
                 if (traversedNode == null) {
-                    DETAILED_GC_LOG.error("collectUnusedPropertyRevisions : could not find traversed node for bundled key {} unbundledPath {} in doc {}",
+                    log.error("collectUnusedPropertyRevisions : could not find traversed node for bundled key {} unbundledPath {} in doc {}",
                             propName, unbundledPath, doc.getId());
                     continue;
                 }
                 final PropertyState traversedProperty = traversedNode.getProperty(unbundledPropName);
                 if (traversedProperty == null) {
-                    DETAILED_GC_LOG.error("collectUnusedPropertyRevisions : could not get property {} from traversed node {}",
+                    log.error("collectUnusedPropertyRevisions : could not get property {} from traversed node {}",
                             unbundledPropName, traversedNode.getPath());
                     continue;
                 }
@@ -1757,7 +1757,7 @@ public class VersionGarbageCollector {
             final SortedMap<Revision, String> localMap = doc.getLocalMap(propertyKey);
             if (!localMap.containsKey(keepCommitRev)) {
                 // this is unexpected - log and skip this property
-                DETAILED_GC_LOG.error("removeUnusedPropertyEntries : revision {} for property {} not found in doc {}",
+                log.error("removeUnusedPropertyEntries : revision {} for property {} not found in doc {}",
                         keepCommitRev, propertyKey, doc.getId());
                 return 0;
             }
@@ -1826,7 +1826,7 @@ public class VersionGarbageCollector {
                         final UpdateOp update = it.next();
                         NodeDocument oldDoc = ds.find(Collection.NODES, update.getId());
                         if (oldDoc == null) {
-                            DETAILED_GC_LOG.error("removeGarbage.verify : no document found for update with id {}", update.getId());
+                            log.error("removeGarbage.verify : no document found for update with id {}", update.getId());
                             continue;
                         }
                         NodeState traversedParent = null;
@@ -1856,7 +1856,7 @@ public class VersionGarbageCollector {
                         final Path path = orphanOrDeletedRemovalPathMap.get(id);
                         if (path == null) {
                             // rather a bug, so let's skip it
-                            DETAILED_GC_LOG.error("removeGarbage.verify : no path available for id : {}", id);
+                            log.error("removeGarbage.verify : no path available for id : {}", id);
                             it.remove();
                             stats.skippedDetailedGCDocsCount++;
                             continue;
@@ -1965,24 +1965,24 @@ public class VersionGarbageCollector {
             final Path path = newDoc.getPath();
             final Revision lastRevision = nodeStore.getPendingModifications().get(path);
             if (traversedParent == null && !newDoc.getPath().isRoot()) {
-                DETAILED_GC_LOG.error("verify : no parent but not root for path : {}", newDoc.getPath());
+                log.error("verify : no parent but not root for path : {}", newDoc.getPath());
                 return false;
             }
             final RevisionVector lastRev;
             if (traversedParent == null && newDoc.getPath().isRoot()) {
                 if (!(traversedState instanceof DocumentNodeState)) {
-                    DETAILED_GC_LOG.error("verify : traversedState not a DocumentNodeState : {}", traversedState.getClass());
+                    log.error("verify : traversedState not a DocumentNodeState : {}", traversedState.getClass());
                     return false;
                 }
                 lastRev = ((DocumentNodeState) traversedState).getLastRevision();
             } else {
                 if (!traversedParent.exists()) {
                     // if the parent doesn't exist we shouldn't reach this point at all
-                    DETAILED_GC_LOG.error("verify : no parent but not marked for removal for path : {}", newDoc.getPath());
+                    log.error("verify : no parent but not marked for removal for path : {}", newDoc.getPath());
                     return false;
                 }
                 if (!(traversedParent instanceof DocumentNodeState)) {
-                    DETAILED_GC_LOG.error("verify : traversedParent not a DocumentNodeState : {}", traversedParent.getClass());
+                    log.error("verify : traversedParent not a DocumentNodeState : {}", traversedParent.getClass());
                     return false;
                 }
                 lastRev = ((DocumentNodeState) traversedParent).getLastRevision();
