@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.RDGCType;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -74,7 +74,10 @@ public class DetailGCHelper {
             final DocumentNodeStore store, final RevisionVector br,
             final String... exceptIds) {
         assertTrue(br.isBranch());
-        if (VersionGarbageCollector.getRevisionDetailedGcType() == RDGCType.NO_OLD_PROP_REV_GC) {
+        if (VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS
+                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ALL_ORPHANS_EMPTYPROPS
+                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC) {
             // then we must skip these asserts, as we cannot guarantee
             // that all revisions are cleaned up in this mode
             return;
@@ -96,7 +99,7 @@ public class DetailGCHelper {
             for (Entry<String, Object> e : target.data.entrySet()) {
                 String k = e.getKey();
                 final boolean internal = k.startsWith("_");
-                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.getRevisionDetailedGcType() != RDGCType.KEEP_ONE_CLEANUP_USER_PROPERTIES_ONLY_MODE);
+                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.getDetailedGcMode() != DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS);
                 if (internal && !dgcSupportsInternalPropCleanup) {
                     // skip
                     continue;
