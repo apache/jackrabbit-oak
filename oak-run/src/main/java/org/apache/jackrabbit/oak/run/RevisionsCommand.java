@@ -95,7 +95,8 @@ public class RevisionsCommand implements Command {
 
     private static final List<String> LOGGER_NAMES = of(
             "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector",
-            "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper"
+            "org.apache.jackrabbit.oak.plugins.document.NodeDocumentSweeper",
+            "org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.detailedGC"
     );
 
     private static class RevisionsOptions extends Utils.NodeStoreOptions {
