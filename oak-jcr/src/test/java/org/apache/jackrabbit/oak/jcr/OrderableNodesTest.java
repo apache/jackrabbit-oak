@@ -118,9 +118,9 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void orderableAddManyChildrenWithSave() throws Exception {
-        int childCount = 1000;
+        int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
-        for (int k = 0; k < 90; k++) {
+        for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
         Session session = getAdminSession();
@@ -133,9 +133,9 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void moveOrderableWithManyChildren() throws Exception {
-        int childCount = 1000;
+        int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
-        for (int k = 0; k < 90; k++) {
+        for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
         Session session = getAdminSession();
@@ -154,9 +154,9 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void copyOrderableWithManyChildren() throws Exception {
-        int childCount = 1000;
+        int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
-        for (int k = 0; k < 90; k++) {
+        for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
         Session session = getAdminSession();
