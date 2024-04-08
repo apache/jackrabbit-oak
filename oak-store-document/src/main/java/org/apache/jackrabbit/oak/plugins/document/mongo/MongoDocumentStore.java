@@ -247,6 +247,19 @@ public class MongoDocumentStore implements DocumentStore {
             Long.getLong("oak.mongo.maxQueryTimeMS", TimeUnit.MINUTES.toMillis(1));
 
     /**
+     * Flag to control the cursor timeout behavior in MongoDB.
+     * <p>
+     * If set to true, the server will not close the cursor if no operations are performed for a certain period of time.
+     * This can be useful for long running queries or when the client needs to retain the cursor for a longer period.
+     * </p>
+     * Default value is false, meaning the server will automatically close idle cursors after a default server-side
+     * timeout.
+     * See: https://www.mongodb.com/docs/manual/reference/method/cursor.noCursorTimeout
+     */
+    private final boolean noCursorTimeout =
+            Boolean.getBoolean("oak.mongo.noCursorTimeout");
+
+    /**
      * The number of documents to put into one bulk update.
      * <p>
      * Default is 30.
@@ -866,6 +879,8 @@ public class MongoDocumentStore implements DocumentStore {
                     // OAK-2614: set maxTime if maxQueryTimeMS > 0
                     result.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
                 }
+
+                result.noCursorTimeout(noCursorTimeout);
 
                 try (MongoCursor<BasicDBObject> cursor = result.iterator()) {
                     for (int i = 0; i < limit && cursor.hasNext(); i++) {
