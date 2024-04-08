@@ -120,6 +120,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
     public void orderableAddManyChildrenWithSave() throws Exception {
         int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
+        //keep name length below 512, since that is the maximum supported by RDBDocumentStore
         for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
@@ -135,6 +136,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
     public void moveOrderableWithManyChildren() throws Exception {
         int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
+        //keep name length below 512, since that is the maximum supported by RDBDocumentStore
         for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
@@ -156,6 +158,7 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
     public void copyOrderableWithManyChildren() throws Exception {
         int childCount = 2000;
         StringBuilder prefix = new StringBuilder("");
+        //keep name length below 512, since that is the maximum supported by RDBDocumentStore
         for (int k = 0; k < 45; k++) {
             prefix.append("0123456789");
         }
