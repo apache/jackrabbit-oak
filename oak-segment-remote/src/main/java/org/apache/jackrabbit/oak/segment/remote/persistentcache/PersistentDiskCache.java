@@ -204,7 +204,16 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     }
                     if (cacheSize.get() > maxCacheSizeBytes * 0.66) {
                         File segment = segmentCacheEntry.getPath().toFile();
-                        cacheSize.addAndGet(-segment.length());
+                        long length = segment.length();
+                        if (length == 0) {
+                            if (logger.isDebugEnabled()) {
+                                logger.debug("Avoiding removal of zero-sized file {}", segmentCacheEntry.getPath());
+                            } else {
+                                logger.warn("Avoiding removal of zero-sized file.");
+                            }
+                            return;
+                        }
+                        cacheSize.addAndGet(-length);
                         segment.delete();
                         evictionCount.incrementAndGet();
                     } else {
