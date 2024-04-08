@@ -175,9 +175,11 @@ public class OrderableNodesTest extends AbstractRepositoryTest {
 
     @Test
     public void childOrderCleanupFeatureToggleTest() throws RepositoryException {
-        Tracker<FeatureToggle> track = fixture.getWhiteboard().track(FeatureToggle.class);
-        NodeStore nodeStore = createNodeStore(fixture);
+        //init repository
+        getAdminSession();
+        NodeStore nodeStore = getNodeStore();
         assertNotNull(nodeStore);
+        Tracker<FeatureToggle> track = fixture.getWhiteboard().track(FeatureToggle.class);
         if (nodeStore instanceof DocumentNodeStore) {
             DocumentNodeStore documentNodeStore = (DocumentNodeStore) nodeStore;
             assertTrue(documentNodeStore.isChildOrderCleanupEnabled());
