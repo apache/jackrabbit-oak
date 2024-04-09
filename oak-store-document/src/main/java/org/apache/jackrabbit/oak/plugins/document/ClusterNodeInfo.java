@@ -1189,7 +1189,7 @@ public class ClusterNodeInfo {
      */
     private static String getHWAFromSystemProperty() {
         return SystemPropertySupplier.create(ClusterNodeInfo.class.getName() + ".HWADDRESS", "").loggingTo(LOG)
-                .logSuccessAs(Level.DEBUG)
+                .logSuccessAs("DEBUG")
                 .formatSetMessage(
                         (name, value) -> String.format("obtaining hardware address from system variable %s: %s", name, value))
                 .get();
