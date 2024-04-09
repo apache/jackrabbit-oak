@@ -22,7 +22,6 @@ import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Key;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation;
 import org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
-import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -75,7 +74,7 @@ public class NodeDocumentRevisionCleaner {
      */
     public void collectOldRevisions(UpdateOp op) {
         revisionClassifier.classifyRevisionsAndProperties();
-        revisionCleaner.preserveRevisionsNewerThanThreshold(24, ChronoUnit.HOURS);
+        revisionCleaner.preserveRevisionsNewerThanThreshold();
         revisionCleaner.preserveLastRevisionForEachProperty();
         revisionCleaner.preserveRevisionsReferencedByCheckpoints();
         revisionCleaner.removeCandidatesInList();
@@ -202,8 +201,8 @@ public class NodeDocumentRevisionCleaner {
             }
         }
 
-        private void preserveRevisionsNewerThanThreshold(long amount, ChronoUnit unit) {
-            long thresholdToPreserve = toModifiedMs;//Instant.now().minus(amount, unit).toEpochMilli();
+        private void preserveRevisionsNewerThanThreshold() {
+            long thresholdToPreserve = toModifiedMs;
             for (TreeSet<Revision> revisionSet : candidateRevisionsToClean.values()) {
                 for (Revision revision : revisionSet) {
                     if (revision.getTimestamp() > thresholdToPreserve) {
@@ -302,8 +301,8 @@ public class NodeDocumentRevisionCleaner {
         revisionCleaner.preserveLastRevisionForEachProperty();
     }
 
-    protected void markRevisionsNewerThanThresholdToPreserve(long amount, ChronoUnit unit) {
-        revisionCleaner.preserveRevisionsNewerThanThreshold(amount, unit);
+    protected void markRevisionsNewerThanThresholdToPreserve() {
+        revisionCleaner.preserveRevisionsNewerThanThreshold();
     }
 
     protected void markCheckpointRevisionsToPreserve() {

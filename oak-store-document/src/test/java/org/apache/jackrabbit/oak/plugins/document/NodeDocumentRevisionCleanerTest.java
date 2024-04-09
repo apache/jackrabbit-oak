@@ -122,7 +122,7 @@ public class NodeDocumentRevisionCleanerTest {
         Instant currentTime = Instant.now();
         List<Revision> revisions = new ArrayList<>();
         for (int i = 29; i >= 0; i--) {
-            long timestamp = currentTime.minus(i, ChronoUnit.HOURS).toEpochMilli();
+            long timestamp = currentTime.minus(i, ChronoUnit.HOURS).minus(10, ChronoUnit.SECONDS).toEpochMilli();
             Revision revision = new Revision(timestamp, 0, 1);
             revisions.add(revision);
 
@@ -154,7 +154,7 @@ public class NodeDocumentRevisionCleanerTest {
         prepareDocumentMock(jsonBuilder.toString());
 
         nodeDocumentRevisionCleaner.classifyRevisionsAndProperties();
-        nodeDocumentRevisionCleaner.markRevisionsNewerThanThresholdToPreserve(24, ChronoUnit.HOURS);
+        nodeDocumentRevisionCleaner.markRevisionsNewerThanThresholdToPreserve();
         nodeDocumentRevisionCleaner.removeCandidatesInList();
 
         // The candidate revisions should be the 6 oldest ones (current time -29, -28, -27, -26, -25, -24)
