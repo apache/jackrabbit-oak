@@ -61,7 +61,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     private final File directory;
     private final long maxCacheSizeBytes;
-    private final IOMonitor diskCacheIOMonitor;
+    private final DiskCacheIOMonitor diskCacheIOMonitor;
     /**
      * Wait time before attempting to clean up orphaned temp files
      */
@@ -71,11 +71,11 @@ public class PersistentDiskCache extends AbstractPersistentCache {
 
     final AtomicLong evictionCount = new AtomicLong();
 
-    public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor) {
+    public PersistentDiskCache(File directory, int cacheMaxSizeMB, DiskCacheIOMonitor diskCacheIOMonitor) {
         this(directory, cacheMaxSizeMB, diskCacheIOMonitor, DEFAULT_TEMP_FILES_CLEANUP_WAIT_TIME_MS);
     }
 
-    public PersistentDiskCache(File directory, int cacheMaxSizeMB, IOMonitor diskCacheIOMonitor, long tempFilesCleanupWaitTimeMs) {
+    public PersistentDiskCache(File directory, int cacheMaxSizeMB, DiskCacheIOMonitor diskCacheIOMonitor, long tempFilesCleanupWaitTimeMs) {
         this.directory = directory;
         this.maxCacheSizeBytes = cacheMaxSizeMB * 1024L * 1024L;
         this.diskCacheIOMonitor = diskCacheIOMonitor;
@@ -213,7 +213,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                             }
                             return;
                         }
-                        cacheSize.addAndGet(-length);
+                        long cacheSizeAfter = cacheSize.addAndGet(-length);
+                        diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, directory.length());
                         segment.delete();
                         evictionCount.incrementAndGet();
                     } else {

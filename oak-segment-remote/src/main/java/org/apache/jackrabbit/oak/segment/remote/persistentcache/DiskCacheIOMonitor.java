@@ -19,6 +19,7 @@
 package org.apache.jackrabbit.oak.segment.remote.persistentcache;
 
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
+import org.apache.jackrabbit.oak.stats.HistogramStats;
 import org.apache.jackrabbit.oak.stats.MeterStats;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.apache.jackrabbit.oak.stats.StatsOptions;
@@ -48,11 +49,15 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
     public static final String OAK_SEGMENT_CACHE_DISK_SEGMENT_WRITE_BYTES = "oak.segment.cache.disk.segment-write-bytes";
     public static final String OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_TIME = "oak.segment.cache.disk.segment-read-time";
     public static final String OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME = "oak.segment.cache.disk.segment-write-time";
+    public static final String OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_CALCULATED = "oak.segment.cache.disk.cache-size-calculated";
+    public static final String OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_ON_DISK = "oak.segment.cache.disk.cache-size-on-disk";
 
     private final MeterStats segmentReadBytes;
     private final MeterStats segmentWriteBytes;
     private final TimerStats segmentReadTime;
     private final TimerStats segmentWriteTime;
+    private final HistogramStats cacheSizeCalculated;
+    private final HistogramStats cacheSizeOnDisk;
 
     public DiskCacheIOMonitor(@NotNull StatisticsProvider statisticsProvider) {
         segmentReadBytes = statisticsProvider.getMeter(
@@ -63,6 +68,10 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
                 OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_TIME, StatsOptions.METRICS_ONLY);
         segmentWriteTime = statisticsProvider.getTimer(
                 OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
+        cacheSizeCalculated = statisticsProvider.getHistogram(
+                OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_CALCULATED, StatsOptions.METRICS_ONLY);
+        cacheSizeOnDisk = statisticsProvider.getHistogram(
+                OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_ON_DISK, StatsOptions.METRICS_ONLY);
     }
 
     @Override
@@ -75,5 +84,10 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
     public void afterSegmentWrite(File file, long msb, long lsb, int length, long elapsed) {
         segmentWriteBytes.mark(length);
         segmentWriteTime.update(elapsed, NANOSECONDS);
+    }
+
+    public void updateCacheSize(long calculated, long onDisk) {
+        cacheSizeCalculated.update(calculated);
+        cacheSizeOnDisk.update(onDisk);
     }
 }

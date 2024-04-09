@@ -48,6 +48,7 @@ import org.apache.jackrabbit.oak.segment.file.FileStore;
 import org.apache.jackrabbit.oak.segment.file.FileStoreBuilder;
 import org.apache.jackrabbit.oak.segment.file.InvalidFileStoreVersionException;
 import org.apache.jackrabbit.oak.segment.file.tar.TarPersistence;
+import org.apache.jackrabbit.oak.segment.remote.persistentcache.DiskCacheIOMonitor;
 import org.apache.jackrabbit.oak.segment.remote.persistentcache.PersistentDiskCache;
 import org.apache.jackrabbit.oak.segment.spi.monitor.FileStoreMonitorAdapter;
 import org.apache.jackrabbit.oak.segment.spi.monitor.IOMonitorAdapter;
@@ -63,6 +64,7 @@ import com.microsoft.azure.storage.StorageCredentialsAccountAndKey;
 import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlobDirectory;
+import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,7 +132,7 @@ public class ToolUtils {
             SegmentNodeStorePersistence basePersistence = new AzurePersistence(cloudBlobDirectory);
 
             PersistentCache persistentCache = new PersistentDiskCache(new File(persistentCachePath),
-                        persistentCacheSize * 1024, new IOMonitorAdapter());
+                        persistentCacheSize * 1024, new DiskCacheIOMonitor(StatisticsProvider.NOOP));
             persistence = new CachingPersistence(persistentCache, basePersistence);
             break;
         default:
