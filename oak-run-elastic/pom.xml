@@ -40,8 +40,9 @@
         85 MB : remove Elasticsearch RHLC
         103.5 MB: Azure Identity client library for Java (OAK-10604)
         105 MB: Azure updates
+        107 MB: RDB/Tomcat (OAK-10752)
         -->
-        <max.jar.size>105000000</max.jar.size>
+        <max.jar.size>112197632</max.jar.size>
                       
     </properties>
 
