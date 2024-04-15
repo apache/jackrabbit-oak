@@ -263,6 +263,7 @@ public class VersionGarbageCollector {
                     gcMonitor.info("Start {}. run (avg duration {} sec)",
                             overall.iterationCount + 1, averageDurationMs / 1000.0);
                     VersionGCStats stats = job.run();
+
                     overall.addRun(stats);
                     if (options.maxIterations > 0 && overall.iterationCount >= options.maxIterations) {
                         break;
@@ -799,6 +800,7 @@ public class VersionGarbageCollector {
          * @param rec {@link VersionGCRecommendations} to recommend GC operation
          */
         private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec) {
+
             final long oldestModifiedMs = rec.scopeDetailedGC.fromMs;
             final long toModifiedMs = rec.scopeDetailedGC.toMs;
             final String oldestModifiedDocId = rec.detailedGCId;
