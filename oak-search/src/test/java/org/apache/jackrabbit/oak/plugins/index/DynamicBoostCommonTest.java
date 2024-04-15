@@ -175,6 +175,16 @@ public abstract class DynamicBoostCommonTest extends AbstractQueryTest {
         });
     }
 
+    @Test
+    public void dynamicBoostedTagsShouldShouldBeUsedInSimilarityQueries() throws Exception {
+        boolean lite = areAnalyzeFeaturesSupportedInLiteModeOnly();
+        createAssetsIndexAndProperties(lite, lite);
+        prepareTestAssets();
+
+        assertEventually(() -> assertOrderedQuery("select [jcr:path] from [dam:Asset] where similar(., '/test/asset1')",
+                List.of("/test/asset1", "/test/asset2", "/test/asset3")));
+    }
+
     protected abstract String getTestQueryDynamicBoostBasicExplained();
 
     protected boolean areAnalyzeFeaturesSupportedInLiteModeOnly() {
