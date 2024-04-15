@@ -21,16 +21,16 @@ package org.apache.jackrabbit.oak.plugins.blob.datastore;
 
 import java.util.Map;
 
-import org.apache.felix.scr.annotations.Component;
-import org.apache.felix.scr.annotations.ConfigurationPolicy;
-import org.apache.felix.scr.annotations.Reference;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.component.annotations.Reference;
 import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.core.data.db.DbDataStore;
 import org.apache.jackrabbit.core.util.db.ConnectionFactory;
 import org.apache.jackrabbit.oak.stats.StatisticsProvider;
 import org.osgi.service.component.ComponentContext;
 
-@Component(policy = ConfigurationPolicy.REQUIRE, name = DbDataStoreService.NAME)
+@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, name = DbDataStoreService.NAME)
 public class DbDataStoreService extends AbstractDataStoreService{
     public static final String NAME = "org.apache.jackrabbit.oak.plugins.blob.datastore.DbDataStore";
 
