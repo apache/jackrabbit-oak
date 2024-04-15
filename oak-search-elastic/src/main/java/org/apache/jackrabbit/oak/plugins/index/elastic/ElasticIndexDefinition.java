@@ -120,6 +120,8 @@ public class ElasticIndexDefinition extends IndexDefinition {
     // results (eg: based on the :fulltext content). To work this around, we can specify DYNAMIC_BOOST_FULLTEXT
     // field with overridden mlt params and increased boot since it usually contains relevant terms. This will make sure that the MLT queries
     // give more priority to the terms in this field while the rest (*) are considered secondary.
+    // TODO: we can further improve search relevance by using the actual tags combined with the weights using a function query
+    //      Right now, we are using just matching the tags without looking at the weights.
     private static final String[] SIMILARITY_TAGS_FIELDS_DEFAULT = new String[] {
             "mlt.fl=" + DYNAMIC_BOOST_FULLTEXT + "&mlt.mintf=1&mlt.qf=3",
             "mlt.fl=*&mlt.mintf=2"
