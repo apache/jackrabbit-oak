@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.61-SNAPSHOT</version>
+    <version>1.63-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -91,7 +91,7 @@
     <dependency>
       <groupId>org.apache.felix</groupId>
       <artifactId>org.apache.felix.connect</artifactId>
-      <version>0.1.0</version>
+      <version>0.2.0</version>
       <exclusions>
         <exclusion>
           <groupId>org.osgi</groupId>
@@ -309,12 +309,6 @@
       <groupId>com.h2database</groupId>
       <artifactId>h2</artifactId>
       <version>${h2.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.gmongo</groupId>
-      <artifactId>gmongo</artifactId>
-      <version>1.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>

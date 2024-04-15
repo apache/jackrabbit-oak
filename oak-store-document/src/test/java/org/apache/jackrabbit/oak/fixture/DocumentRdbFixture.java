@@ -33,6 +33,8 @@ import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
+import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 
 public class DocumentRdbFixture extends NodeStoreFixture {
 
@@ -54,8 +56,11 @@ public class DocumentRdbFixture extends NodeStoreFixture {
         RDBOptions options = new RDBOptions().tablePrefix(prefix).dropTablesOnClose(true);
         this.jdbcUrl = pUrl.replace("{fname}", fname);
         DataSource ds = RDBDataSourceFactory.forJdbcUrl(jdbcUrl, pUser, pPasswd);
-
-        NodeStore result = new RDBDocumentNodeStoreBuilder().setPersistentCache("target/persistentCache,time")
+        //do not reuse the whiteboard
+        setWhiteboard(new DefaultWhiteboard());
+        RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
+        builder.setNoChildOrderCleanupFeature(Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
+        NodeStore result = builder.setPersistentCache("target/persistentCache,time")
                 .setRDBConnection(ds, options).build();
         this.dataSources.put(result, ds);
         return result;

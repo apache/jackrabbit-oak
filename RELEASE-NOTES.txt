@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.60.0
+Release Notes -- Apache Jackrabbit Oak -- Version 1.62.0
 
 Introduction
 ------------
@@ -7,109 +7,138 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Apache Jackrabbit Oak 1.60.0 is an incremental feature release based
+Apache Jackrabbit Oak 1.62.0 is an incremental feature release based
 on and compatible with earlier stable Jackrabbit Oak 1.x
 releases. This release is considered stable and targeted for
 production use.
 
-While Oak 1.60.0 compiles and tests successfully on Java 17, Javadocs
+While Oak 1.62.0 compiles and tests successfully on Java 17, Javadocs
 generation fails on Java 17 (but works as expected on Java 11).
 
 The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
-Changes in Oak 1.60.0
+Changes in Oak 1.62.0
 ---------------------
-
-Sub-task
-
-    [OAK-10488] - Benchmark results
-    [OAK-10522] - o.a.j.o.index.ReindexIT#reindexIgnoreMissingTikaDepThrow() fails with Java 21
 
 Technical task
 
-    [OAK-6757] - Convert oak-auth-ldap to OSGi R7 annotations
-    [OAK-6760] - Convert oak-blob-cloud to OSGi R7 annotations
-    [OAK-10478] - Update Mockito dependency to 5.x
-    [OAK-10502] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 31.0
-    [OAK-10507] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 31.1
-    [OAK-10508] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 32.0.0
-    [OAK-10510] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 32.0.1
-    [OAK-10512] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 32.1.0
-    [OAK-10513] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 32.1.1
-    [OAK-10515] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 32.1.2
-    [OAK-10516] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 32.1.3
-    [OAK-10521] - Update Easymock dependency to 5.2
-    [OAK-10524] - SameNameSiblingTest: add (failing) test for getName() semantics
-    [OAK-10545] - oak-jcr: add test for observing effect of remapping a namespace prefix to a different namespace name
+    [OAK-6765] - Convert oak-jcr to OSGi R7 annotations
+    [OAK-6769] - Convert oak-search-mt to OSGi R7 annotations
+    [OAK-10623] - oak-core: log a warning when it needs to remap/add a namespace
+    [OAK-10673] - DocumentStore: add test for checking of removal on non-existing map entries
+    [OAK-10708] - DocumentNodeStore: error-log failures to update the journal
+    [OAK-10709] - Deprecate oak-search-mt
 
 Bug
 
-    [OAK-9459] - ConstraintViolationException in VersionManagerImplRestore when target node has a property definition unknown by the frozen node
-    [OAK-9705] - Explain Query tool doesn't show the correct ES query when suggest queries are made
-    [OAK-10006] - AzurePersistence can still write segments after having lost lease to another instance
-    [OAK-10460] - PIPELINED strategy fails with OOME during final merge phase for very large repositories
-    [OAK-10462] - o.a.j.o.plugins.version.VersionEditor#propertyAdded() may mistakenly assume an ongoing restore operation
-    [OAK-10471] - Implement ConflictHandler for UserPrincipalProvider Cache
-    [OAK-10486] - Resolution of inherited groups may terminate pre-maturely for external users
-    [OAK-10495] - Ignore DocumentStoreIndexerIT#parallelReindex* tests
-    [OAK-10517] - Consistently clean membership when switch between default and dynamic sync
-    [OAK-10525] - DefaultSyncContext.createValues : return value should be annotated with @NotNull
-    [OAK-10526] - split doc can contain still referenced revisions without _sdMaxRevTime indicating so
-    [OAK-10542] - resolution of _deleted value ignores split docs in certain cases
-    [OAK-10547] - Indexing job fails at the end of reindexing if it took more than 24h to run
-    [OAK-10565] - document-store: VersionGarbageCollectorIT does not stop background threads
+    [OAK-10500] - javadoc:aggregate build fails again
+    [OAK-10544] - oak-jcr: remapping a namespace prefix leaves namespace resolver in broken state
+    [OAK-10551] - o.a.j.o.jcr.osgi.RepositoryManager declares OSGi properties that are not used at all
+    [OAK-10576] - oak-search-elastic: dynamicBoost should match only on full text queries on all fields (* or .)
+    [OAK-10590] - Indexing job downloads and creates FFS with full node store if includedPaths is specified as a string instead of array of strings
+    [OAK-10595] - Cached data before a collision rollback can be read as committed
+    [OAK-10611] - o.a.j.o.namepath.JcrPathParser does not handle invalid characters correctly
+    [OAK-10617] - oak-search-elastic: potential deadlock with includePathRestrictions=false and multiple filtered results
+    [OAK-10636] - Tar recovery unsuccessful in oak-segment-tar during initialisation of FileStore
+    [OAK-10638] - Build fails on Java 17 due to JAR size limit
+    [OAK-10650] - MongoDocumentStore.findDocuments can fail with BSON exception
+    [OAK-10652] - Repository writes in SegmentStoreMigrator blocked when migrating to Azure segment store
+    [OAK-10653] - BasicDocumentStoreTest: handle DocumentStoreException on ds.create
+    [OAK-10717] - oak-pojosr should be updated to o.a.felix.connect-0.2.0
+    [OAK-10735] - Binary data in logs related to the haystack property
 
 Story
 
-    [OAK-10311] - Optimize SegmentBlob#equals for segment blobs that originate from the same blob store
+    [OAK-10573] - Make distinction for azure timeout settings between write and read operations
+    [OAK-10604] - Azure Service Principal Support in oak-segment-azure
+    [OAK-10615] - Azure Service Principal Support in oak-run segment-copy, compact, console
 
 Improvement
 
-    [OAK-9796] - oak-segment-remote and oak-segment-aws Redis tests fail with ARM processor (Apple M1)
-    [OAK-9949] - Enable offline tail compaction
-    [OAK-10420] - Tool to compare Lucene index content
-    [OAK-10437] - Deprecate all download strategies except PIPELINED
-    [OAK-10487] - oak-search-elastic should perform a count request for fastQuerySize
-    [OAK-10490] - Suggest queries return duplicate entries if prefetch is enabled
-    [OAK-10491] - Indexing: pass a MongoDatabase instance instead of MongoConnection to indexing logic
-    [OAK-10504] - Add indexing job total duration log message
-    [OAK-10505] - Make PIPELINED the default download strategy in the indexing job
-    [OAK-10511] - Get blobId without additional network roundtrip
-    [OAK-10518] - IndexInfo should have a isActive() method
-    [OAK-10519] - Export metrics from indexing job
-    [OAK-10527] - Improve readability of the explain query output
-    [OAK-10538] - Pipeline strategy: eliminate unnecessary intermediate copy of entries in transform stage
-    [OAK-10541] - Pipelined strategy: improve memory management of transform stage
-    [OAK-10549] - Improve performance of facet count at scale (Lucene)
-    [OAK-10553] - Improve statistical facets in oak-search-elastic
+    [OAK-10424] - Allow Fast Query Size and Insecure Facets to be selectively enabled with query options for permitted principals
+    [OAK-10438] - Remove MULTTHREADED_TRAVERSE_WITH_SORT download strategy
+    [OAK-10571] - Names of metrics exported by indexing logic are inconsistent
+    [OAK-10577] - Advanced repository statistics
+    [OAK-10580] - Indexing job: improve regex path filtering, support multiple includedPaths
+    [OAK-10589] - Improve regex path filtering to also handle cases where excludedPaths are defined
+    [OAK-10592] - [Indexing job] Add a regex filter to exclude matching entries from being downloaded from Mongo
+    [OAK-10607] - Rename Maven property "java.version"
+    [OAK-10608] - [Indexing job] Improve regex expression used to download from Mongo to make better used of Mongo indexes
+    [OAK-10620] - Print summary at the end of the indexing job
+    [OAK-10635] - BundledTypeRegistry's use of shaded Guava problematic when used outside Oak
+    [OAK-10637] - Indexing job/regex path filtering - when / is the only included path, do not add an explicit filter
+    [OAK-10640] - docs: fix external link on lucene multi words synonyms
+    [OAK-10643] - MongoDocumentStore: improve diagnostics for too large docs
+    [OAK-10649] - MemoryDS: add toggle to limit document size
+    [OAK-10655] - Improve warning emitted for Unexpected changes performed on a non-default mount
+    [OAK-10656] - MongoDocumentStore: keep metrics about document size related exceptions
+    [OAK-10660] - DocumentNodeStore: avoid repeated commits of :childOrder in branch commits
+    [OAK-10661] - oak-search-elastic: remove workaround for elastic/elasticsearch-java/issues/404
+    [OAK-10670] - Azure service principal support in oak-upgrade
+    [OAK-10671] - [Indexing job] - Improve Mongo regex query: remove condition on non-indexed _path field to speedup traversal
+    [OAK-10672] - Move internal index version in oak-search
+    [OAK-10681] - [indexing job] Support custom filters of paths on Mongo
+    [OAK-10682] - [Indexing job] Improve Mongo regex filter to only use positive conditions (no negations)
 
-Wish
+Test
 
-    [OAK-10563] - Document mapping of actions to privileges
+    [OAK-10641] - DocumentStore: improve test coverage for large properties / documents
+    [OAK-10642] - Add tests for operations on very large ordered collections
 
 Task
 
-    [OAK-9784] - Disable geoIpDownloader in ES tests
-    [OAK-10382] - oak-run support for flatfile
-    [OAK-10435] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to "latest"
-    [OAK-10464] - Use Testcontainers instead of com.arakelian:docker-junit-rule
-    [OAK-10492] - Update (shaded) Guava to 32.1.3
-    [OAK-10497] - Properties order in FFS can be different across runs
-    [OAK-10503] - Incorrect operand in incremental FFS can lead to failure during merge step
-    [OAK-10514] - Utility method to remove unmerged branch changes
-    [OAK-10529] - oak-run server: update Jetty to 9.4.53.v20231009
-    [OAK-10537] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.13
-    [OAK-10539] - oak-search-elastic: migrate ingestion from Rest High Level Client to the new Java API Client
-    [OAK-10548] - oak-solr-osgi embeds vulnerable Zookeeper 3.4.14
-    [OAK-10550] - Include oak-search-elastic in oak-it-osgi
-    [OAK-10552] - oak-solr-osgi fails on Java 17
-    [OAK-10555] - Bump elasticsearch version to 8.11.1
-    [OAK-10558] - ElasticReliabilityTest is flaky
-    [OAK-10564] - FunctionIndexCommonTest is flaky
-    [OAK-10568] - ElasticIndexProviderServiceTest should support key-based authentication
-    [OAK-10569] - Flaky test: ElasticOrderByTest
-    [OAK-10572] - Best Practices: Clarify ac setup for non existing principals
+    [OAK-10281] - Introduce recoveryDelay to ClusterNodeInfo.isRecoveryNeeded
+    [OAK-10570] - oak-run support for fullgc
+    [OAK-10581] - Remove mock stubbing at the end of the test method in AzureArchiveManagerTest.testWriteAfterLosingRepoLock
+    [OAK-10584] - Checkpoints.getOldestRevisionToKeep shouldn't failed if called read-only
+    [OAK-10591] - Bump netty dependency from 4.1.96.Final to 4.1.104.Final
+    [OAK-10593] - Upgrade jackson-databind dependency to 2.16.1
+    [OAK-10594] - Deny write to Azure also for reasons other than operation timeout
+    [OAK-10598] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.14
+    [OAK-10599] - oak-search-elastic: improve aggregations support
+    [OAK-10605] - Update (shaded) Guava to 33.0.0
+    [OAK-10606] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 33.0.0
+    [OAK-10616] - Make error messages from o.a.j.o.namepath.JcrNameParser/JcrPathParser consistent and less misleading
+    [OAK-10622] - Introduce config option to delay reuse of clusterId after a recover
+    [OAK-10639] - NodeImpl: calculate mixinTypes lazy
+    [OAK-10644] - JsopBuilder: remove JDK6ism
+    [OAK-10645] - MongoDS docker container: set default Mongo version to 4.4
+    [OAK-10659] - Remove orphaned nodes/documents
+    [OAK-10663] - Upgrade maven-bundle-plugin to 5.1.9
+    [OAK-10664] - Update spotbugs plugin to 4.8.3.1
+    [OAK-10665] - Update checkstyle-plugin dependency to version 3.3.1
+    [OAK-10666] - oak-store-composite: update maven-depends plugin to 1.5.0
+    [OAK-10667] - Update jacoco plugin to 0.8.11
+    [OAK-10668] - examples: update jetty-maven-plugin to 11.0.20
+    [OAK-10669] - Upgrade maven-versions-plugin to 2.16.2
+    [OAK-10677] - examples: update build-helper-maven-plugin to 3.5.0
+    [OAK-10678] - update gmavenplus plugin to 3.0.2
+    [OAK-10683] - Update spring-boot dependency to version 2.7.18
+    [OAK-10684] - update maven-shade-plugin version to 3.5.2
+    [OAK-10686] - parent: add project.build.outputTimestamp property for Reproducable Builds
+    [OAK-10687] - Restore and cleanup SCM information
+    [OAK-10693] - Incremental FFS build should filter out paths based on mongo regex filters
+    [OAK-10695] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.26.1
+    [OAK-10696] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.15
+    [OAK-10697] - webapp: update Tomcat dependency to 9.0.86
+    [OAK-10698] - DocumentStore: max property size tests can fail with OOM
+    [OAK-10700] - update testcontainer dependency to 1.19.7
+    [OAK-10702] - oak-blob-cloud: update netty dependency to 4.1.107
+    [OAK-10703] - oak-doc: add branch history to roadmap
+    [OAK-10704] - update azure dependencies
+    [OAK-10707] - update (historic) org.apache.felix.scr.annotations plugin to version 1.12.0
+    [OAK-10712] - update groovy dependency to 2.5.23
+    [OAK-10713] - oak-lucene: add test coverage for stack overflow based on very long and complex regexp
+    [OAK-10716] - oak-lucene: update to version 4.7.2 (latest from that branch)
+    [OAK-10718] - Update (shaded) Guava to 33.1.0
+    [OAK-10720] - Update commons-io dependency to 2.15.1
+    [OAK-10721] - oak-segment-azure/oak-blob-cloud-azure: update embedded Guava to 33.1.0
+    [OAK-10722] - Update commons-codec dependency to 1.16.1
+    [OAK-10723] - Update commons-lang3 dependency to 3.14.0
+    [OAK-10725] - Upgrade jackson-databind dependency to 2.16.2
+    [OAK-10729] - update groovy dependency to 3.0.21
+    [OAK-10731] - oak-pojosr: remove unused gmongo dependency
 
 
 In addition to the above-mentioned changes, this release contains all

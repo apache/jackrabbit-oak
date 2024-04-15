@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.61-SNAPSHOT</version>
+    <version>1.63-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
 
@@ -34,6 +34,7 @@
     <jetty.version>9.4.53.v20231009</jetty.version>
     <!--
       Size History:
+      + 84 MB (RDB/Tomcat, OAK-10752)
       + 80 MB (Java 17, OAK-10638)
       + 78.7 MB Apache Commons Lang » 3.0 (OAK-10615)
       + 78 MB Azure Identity client library for Java (OAK-10604)
@@ -50,7 +51,7 @@
       + 41 MB build failing on the release profile (OAK-6250)
       + 38 MB. Initial value. Current 35MB plus a 10%
     -->
-    <max.jar.size>83886080</max.jar.size>
+    <max.jar.size>88080384</max.jar.size>
   </properties>
 
   <build>
@@ -278,6 +279,12 @@
     <dependency>
       <groupId>org.codehaus.groovy</groupId>
       <artifactId>groovy-json</artifactId>
+      <version>${groovy.version}</version>
+      <classifier>indy</classifier>
+    </dependency>
+    <dependency>
+      <groupId>org.codehaus.groovy</groupId>
+      <artifactId>groovy-cli-picocli</artifactId>
       <version>${groovy.version}</version>
       <classifier>indy</classifier>
     </dependency>

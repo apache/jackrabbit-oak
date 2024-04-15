@@ -28,7 +28,7 @@ import org.apache.jackrabbit.oak.spi.whiteboard.Whiteboard;
  */
 public abstract class NodeStoreFixture {
 
-    private final Whiteboard whiteboard = new DefaultWhiteboard();
+    private Whiteboard whiteboard = new DefaultWhiteboard();
 
     /**
      * Creates a new empty {@link NodeStore} instance. An implementation must
@@ -58,6 +58,10 @@ public abstract class NodeStoreFixture {
 
     public Whiteboard getWhiteboard() {
         return whiteboard;
+    }
+
+    public void setWhiteboard(Whiteboard whiteboard) {
+        this.whiteboard = whiteboard;
     }
 
 }

@@ -19,7 +19,7 @@
   <parent>
     <groupId>org.apache.jackrabbit</groupId>
     <artifactId>oak-parent</artifactId>
-    <version>1.61-SNAPSHOT</version>
+    <version>1.63-SNAPSHOT</version>
     <relativePath>../oak-parent/pom.xml</relativePath>
   </parent>
   <modelVersion>4.0.0</modelVersion>
@@ -28,8 +28,8 @@
   <packaging>bundle</packaging>
 
   <properties>
-    <shaded.guava.version>33.0.0-jre</shaded.guava.version>
-    <exported.guava.version>33.0.0</exported.guava.version>
+    <shaded.guava.version>33.1.0-jre</shaded.guava.version>
+    <exported.guava.version>33.1.0</exported.guava.version>
     <pref>org.apache.jackrabbit.guava</pref>
   </properties>
 
