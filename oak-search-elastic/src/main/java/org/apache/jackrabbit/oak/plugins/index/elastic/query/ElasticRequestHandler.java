@@ -182,11 +182,11 @@ public class ElasticRequestHandler {
                     // mlt?mlt.fl=:path&mlt.mindf=0&stream.body=<path> . We need parse this query
                     // string and turn into a query
                     // elastic can understand.
-                    String fields = mltParams.get(MoreLikeThisHelperUtil.MLT_FILED);
+                    String fields = mltParams.remove(MoreLikeThisHelperUtil.MLT_FILED);
                     if (fields == null || FieldNames.PATH.equals(fields)) {
                         for (String stf : elasticIndexDefinition.getSimilarityTagsFields()) {
-                            Map<String, String> shallowMltParams = new HashMap<>(mltParams);
-                            shallowMltParams.putAll(MoreLikeThisHelperUtil.getParamMapFromMltQuery(stf));
+                            Map<String, String> shallowMltParams = new HashMap<>(MoreLikeThisHelperUtil.getParamMapFromMltQuery(stf));
+                            shallowMltParams.putAll(mltParams);
                             bqb.should(m -> m.moreLikeThis(mltQuery(shallowMltParams)));
                         }
                     } else {
