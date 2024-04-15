@@ -191,6 +191,18 @@ public class RevisionsCommandTest {
         String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
         assertTrue(output.contains("ResetDetailedGC is enabled : false"));
+        assertTrue(output.contains("Compaction is enabled : false"));
+        assertTrue(output.contains("starting gc collect"));
+    }
+
+    @Test
+    public void detailedGCWithCompaction() {
+        ns.dispose();
+
+        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo", "--compact"));
+        assertTrue(output.contains("DryRun is enabled : true"));
+        assertTrue(output.contains("ResetDetailedGC is enabled : false"));
+        assertTrue(output.contains("Compaction is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
