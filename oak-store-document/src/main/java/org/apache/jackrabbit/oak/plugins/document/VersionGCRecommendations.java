@@ -36,6 +36,8 @@ import static java.util.Map.of;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations.GcType.DGC;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations.GcType.RGC;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
@@ -104,7 +106,7 @@ public class VersionGCRecommendations {
      * @param detailedGCEnabled  whether detailedGC is enabled or not
      * @param isDetailedGCDryRun whether detailedGC is running in dryRun mode or not
      */
-    public VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
+    VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
                                     VersionGCOptions options, GCMonitor gcMonitor, boolean detailedGCEnabled,
                                     boolean isDetailedGCDryRun) {
         boolean ignoreDueToCheckPoint;
@@ -144,6 +146,17 @@ public class VersionGCRecommendations {
 
         detailedGCDryRunTimestamp = (long) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP);
         oldestModifiedDryRunDocId = (String) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP);
+
+        if (log.isDebugEnabled()) {
+            if (isDetailedGCDryRun) {
+                log.debug("lastOldestTimestamp: {}, detailedGCDryRunTimestamp: {}, oldestModifiedDryRunDocId: {}",
+                        timestampToString(lastOldestTimestamp), timestampToString(detailedGCDryRunTimestamp), oldestModifiedDryRunDocId);
+            } else {
+                log.debug("lastOldestTimestamp: {}, detailedGCTimestamp: {}, oldestModifiedDocId: {}",
+                        timestampToString(lastOldestTimestamp), timestampToString(detailedGCTimestamp), oldestModifiedDocId);
+            }
+        }
+
         if (isDetailedGCDryRun) {
             if (detailedGCDryRunTimestamp == 0) {
                 // it will only happen for the very first time, we run this detailedGC in dry run mode
@@ -211,11 +224,11 @@ public class VersionGCRecommendations {
         //Check for any registered checkpoint which prevent the GC from running
         Revision checkpoint = checkpoints.getOldestRevisionToKeep();
 
-        final GCResult gcResult = getResult(options, checkpoint, scope, clock);
+        final GCResult gcResult = getResult(options, checkpoint, clock, RGC, scope);
         scope = gcResult.gcScope;
         ignoreDueToCheckPoint = gcResult.ignoreGC;
 
-        final GCResult detailGCResult = getResult(options, checkpoint, scopeDetailedGC, clock);
+        final GCResult detailGCResult = getResult(options, checkpoint, clock, DGC, scopeDetailedGC);
         scopeDetailedGC = detailGCResult.gcScope;
         ignoreDetailedGCDueToCheckPoint = detailGCResult.ignoreGC;
 
@@ -348,22 +361,21 @@ public class VersionGCRecommendations {
     }
 
     @NotNull
-    private static GCResult getResult(final VersionGCOptions options,
-            final Revision checkpoint, TimeInterval gcScope, Clock clock) {
+    private static GCResult getResult(final VersionGCOptions options, final Revision checkpoint, final Clock clock, final GcType gcType,
+                                      TimeInterval gcScope) {
         boolean ignoreGC = false;
         if (checkpoint != null && gcScope.endsAfter(checkpoint.getTimestamp())) {
             TimeInterval minimalScope = gcScope.startAndDuration(options.precisionMs);
             if (minimalScope.endsAfter(checkpoint.getTimestamp())) {
                 final long now = clock.getTime();
                 if (now - lastIgnoreWarning > IGNORED_GC_WARNING_INTERVAL_MS) {
-                    log.warn("Ignoring GC run because a valid checkpoint [{}] exists inside minimal scope {}.",
-                            checkpoint.toReadableString(), minimalScope);
+                    log.warn("Ignoring [{}] run because a valid checkpoint [{}] exists inside minimal scope {}.", gcType, checkpoint.toReadableString(), minimalScope);
                     lastIgnoreWarning = now;
                 }
                 ignoreGC = true;
             } else {
                 gcScope = gcScope.notLaterThan(checkpoint.getTimestamp() - 1);
-                log.debug("checkpoint at [{}] found, detailedGCScope now {}", timestampToString(checkpoint.getTimestamp()), gcScope);
+                log.debug("checkpoint at [{}] found, [{}] Scope now {}", timestampToString(checkpoint.getTimestamp()), gcType, gcScope);
             }
         }
         return new GCResult(ignoreGC, gcScope);
@@ -377,5 +389,9 @@ public class VersionGCRecommendations {
             this.ignoreGC = ignoreGC;
             this.gcScope = gcScope;
         }
+    }
+
+    enum GcType {
+        RGC, DGC
     }
 }

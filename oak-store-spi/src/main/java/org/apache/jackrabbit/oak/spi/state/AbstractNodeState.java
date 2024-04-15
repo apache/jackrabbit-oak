@@ -35,6 +35,8 @@ import org.jetbrains.annotations.Nullable;
 
 import org.apache.jackrabbit.guava.common.base.Function;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Abstract base class for {@link NodeState} implementations.
@@ -50,6 +52,7 @@ import org.apache.jackrabbit.guava.common.collect.Iterables;
  * alternatives.
  */
 public abstract class AbstractNodeState implements NodeState {
+    private static final Logger LOGGER = LoggerFactory.getLogger(AbstractNodeState.class.getName());
     private static final int CHILDREN_CAP = getInteger("oak.children.cap", 100);
 
     public static boolean isValidName(String name) {
@@ -342,6 +345,9 @@ public abstract class AbstractNodeState implements NodeState {
     public static boolean equals(NodeState a, NodeState b) {
         if (a.exists() != b.exists()
                 || a.getPropertyCount() != b.getPropertyCount()) {
+            if (LOGGER.isDebugEnabled()){
+                LOGGER.debug("node state {} does not match existing node state {}, prop count {} != {}", a, b, a.getPropertyCount(), b.getPropertyCount());
+            }
             return false; // shortcut
         }
 
@@ -353,6 +359,9 @@ public abstract class AbstractNodeState implements NodeState {
         if (c1 <= max || c2 <= max) {
             // one has less than max entries
             if (c1 != c2) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("node state {} does not match existing node state {}, child count {} != {}", a, b, c1, c2);
+                }
                 return false;
             }
         } else if (c1 != Long.MAX_VALUE && c2 != Long.MAX_VALUE) {
@@ -364,6 +373,9 @@ public abstract class AbstractNodeState implements NodeState {
 
         for (PropertyState property : a.getProperties()) {
             if (!property.equals(b.getProperty(property.getName()))) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("node state {} does not match existing node state {}, prop [{}] {} != {}", a, b, property.getName(), property, b.getProperty(property.getName()));
+                }
                 return false;
             }
         }
@@ -375,6 +387,9 @@ public abstract class AbstractNodeState implements NodeState {
         c1 = a.getChildNodeCount(Long.MAX_VALUE);
         c2 = b.getChildNodeCount(Long.MAX_VALUE);
         if (c1 != c2) {
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("node state {} does not match existing node state {}, child node count is {} != {}", a, b, c1, c2);
+            }
             return false;
         }
 
@@ -382,6 +397,9 @@ public abstract class AbstractNodeState implements NodeState {
         // as it recursively calls equals)
         for (ChildNodeEntry entry : a.getChildNodeEntries()) {
             if (!entry.getNodeState().equals(b.getChildNode(entry.getName()))) {
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("node state {} does not match existing node state {}, child node [{}] {} != {}", a, b, entry.getName(), entry.getNodeState(), b.getChildNode(entry.getName()));
+                }
                 return false;
             }
         }
