@@ -131,8 +131,7 @@ public class ElasticSimilarQueryTest extends ElasticAbstractQueryTest {
     }
 
     /**
-     * Validates the workaround for <a href="https://github.com/elastic/elasticsearch/pull/94518">94518</a> produces the
-     * expected results
+     * This test checks <a href="https://github.com/elastic/elasticsearch/pull/94518">94518</a> issue.
      */
     @Test
     public void repSimilarQueryWithIgnoredMetadataField() throws Exception {
