@@ -72,7 +72,7 @@ import org.slf4j.LoggerFactory;
 import static java.lang.Math.round;
 import static java.lang.String.join;
 import static java.util.Collections.emptySet;
-import static java.util.Objects.nonNull;
+import static java.util.Objects.isNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
@@ -1987,21 +1987,32 @@ public class VersionGarbageCollector {
             } else {
                 if (!traversedParent.exists()) {
                     // if the parent doesn't exist we shouldn't reach this point at all
-                    log.error("verify : no parent but not marked for removal for path : {}", newDoc.getPath());
-                    return false;
+                    // i.e. this node is not reachable
+                    if (log.isTraceEnabled()) {
+                        log.trace("verify : traversedParent doesn't exists, so no way of reaching this node : [{}]", newDoc.getPath());
+                    }
+                    return true;
                 }
                 if (!(traversedParent instanceof DocumentNodeState)) {
-                    log.error("verify : traversedParent not a DocumentNodeState : {}", traversedParent.getClass());
-                    return false;
+                    if (log.isTraceEnabled()) {
+                        log.trace("verify : traversedParent not a DocumentNodeState : [{}]", traversedParent.getClass());
+                    }
+                    return true;
                 }
                 lastRev = ((DocumentNodeState) traversedParent).getLastRevision();
             }
             final NodeState actual = newDoc.getNodeAtRevision(nodeStore, lastRev, lastRevision);
+            if (isNull(actual)) {
+                if (log.isTraceEnabled()){
+                    log.trace("verify : node [{}] is null at lastRev [{}]", newDoc.getId(), lastRev);
+                }
+                return true;
+            }
             // use more thorough version of equals to ensure properties are checked
             // (the faster state.equals() would stop if lastRev matches,
             // but as we're fiddling with immutability rule of a document,
             // we need to do a full check)
-            return nonNull(actual) && AbstractNodeState.equals(traversedState, actual);
+            return AbstractNodeState.equals(traversedState, actual);
         }
 
         private boolean verifyDeletion(NodeState traversedState) {
