@@ -880,7 +880,9 @@ public class MongoDocumentStore implements DocumentStore {
                     result.maxTime(maxQueryTime, TimeUnit.MILLISECONDS);
                 }
 
-                result.noCursorTimeout(noCursorTimeout);
+                if (noCursorTimeout) {
+                    result.noCursorTimeout(noCursorTimeout);
+                }
 
                 try (MongoCursor<BasicDBObject> cursor = result.iterator()) {
                     for (int i = 0; i < limit && cursor.hasNext(); i++) {
