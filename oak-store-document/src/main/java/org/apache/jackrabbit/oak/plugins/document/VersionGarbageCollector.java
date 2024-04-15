@@ -1061,11 +1061,17 @@ public class VersionGarbageCollector {
 
             // traversed state == state of node at doc.id based on head revision
             NodeState traversedState = root;
+            Path greatestExistingAncestorOrSelf = root.getPath();
             for (String name : doc.getPath().elements()) {
                 traversedState = traversedState.getChildNode(name);
+                if (traversedState.exists()) {
+                    greatestExistingAncestorOrSelf = new Path(
+                            greatestExistingAncestorOrSelf, name);
+                }
             }
 
-            if (!isDeletedOrOrphanedNode(traversedState, phases, doc)) {
+            if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf,
+                    phases, doc)) {
                 // here the node is not orphaned which means that we can reach the node from root
                 switch(detailedGcMode) {
                     case NONE : {
@@ -1170,12 +1176,15 @@ public class VersionGarbageCollector {
          * deletion cases that have not otherwise been deleted already (eg by DeletedDocsGC).
          *
          * @param traversedState the state of current doc when we start traversing from root via lastRef
+         * @param greatestExistingAncestorOrSelf ancestor furthest up the tree (==greatest) that exists when traversing states
          * @param phases GC phases
          * @param doc current document node to check whether it is orphan or not
          * @return true if the node is orphaned (and/or can be removed), false
          *         otherwise
          */
-        private boolean isDeletedOrOrphanedNode(final NodeState traversedState, final GCPhases phases, final NodeDocument doc) {
+        private boolean isDeletedOrOrphanedNode(final NodeState traversedState,
+                Path greatestExistingAncestorOrSelf, final GCPhases phases,
+                final NodeDocument doc) {
 
             if (!phases.start(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES)) {
                 // gc has been cancelled
@@ -1210,6 +1219,11 @@ public class VersionGarbageCollector {
                         break;
                     }
                     path = new Path(path, name);
+                    if (path.equals(greatestExistingAncestorOrSelf)
+                            || path.isAncestorOf(greatestExistingAncestorOrSelf)) {
+                        // skip
+                        continue;
+                    }
                     final NodeDocument d = nodeStore.getDocumentStore().find(NODES,
                             Utils.getIdFromPath(path));
                     parentDocExists = d != null;
