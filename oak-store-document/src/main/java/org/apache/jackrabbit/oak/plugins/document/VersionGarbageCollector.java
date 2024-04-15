@@ -27,6 +27,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -111,6 +112,7 @@ public class VersionGarbageCollector {
     private static final int UPDATE_BATCH_SIZE = 450;
     private static final int PROGRESS_BATCH_SIZE = 10000;
     private static final int DETAILED_GC_BATCH_SIZE = 1000;
+    private static final int DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE = 64;
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
     private static final Logger log = LoggerFactory.getLogger(VersionGarbageCollector.class);
@@ -261,7 +263,6 @@ public class VersionGarbageCollector {
                     gcMonitor.info("Start {}. run (avg duration {} sec)",
                             overall.iterationCount + 1, averageDurationMs / 1000.0);
                     VersionGCStats stats = job.run();
-
                     overall.addRun(stats);
                     if (options.maxIterations > 0 && overall.iterationCount >= options.maxIterations) {
                         break;
@@ -798,7 +799,6 @@ public class VersionGarbageCollector {
          * @param rec {@link VersionGCRecommendations} to recommend GC operation
          */
         private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec) {
-
             final long oldestModifiedMs = rec.scopeDetailedGC.fromMs;
             final long toModifiedMs = rec.scopeDetailedGC.toMs;
             final String oldestModifiedDocId = rec.detailedGCId;
@@ -806,8 +806,9 @@ public class VersionGarbageCollector {
             int docsTraversed = 0;
             boolean foundDoc = true;
             long oldModifiedMs = oldestModifiedMs;
+            final LinkedHashMap<Path, Boolean> missingDocsTypes = new LinkedHashMap<>();
 
-            try (DetailedGC gc = new DetailedGC(headRevision, toModifiedMs, monitor, cancel)) {
+            try (DetailedGC gc = new DetailedGC(headRevision, toModifiedMs, missingDocsTypes, monitor, cancel)) {
                 long fromModifiedMs = oldestModifiedMs;
                 String fromId = ofNullable(oldestModifiedDocId).orElse(MIN_ID_VALUE);
                 NodeDocument lastDoc;
@@ -1030,8 +1031,14 @@ public class VersionGarbageCollector {
         private final Revision revisionForModified;
         private final DocumentNodeState root;
 
-        public DetailedGC(@NotNull RevisionVector headRevision, long toModifiedMs, @NotNull GCMonitor monitor, @NotNull AtomicBoolean cancel) {
+        /** small cache for classification of missing nodes : documents that do not exist vs deleted nodes */
+        private final LinkedHashMap<Path, Boolean> missingDocsTypes;
+
+        public DetailedGC(@NotNull RevisionVector headRevision, long toModifiedMs,
+                LinkedHashMap<Path, Boolean> missingDocsTypes, @NotNull GCMonitor monitor,
+                @NotNull AtomicBoolean cancel) {
             this.toModifiedMs = toModifiedMs;
+            this.missingDocsTypes = missingDocsTypes;
             this.monitor = monitor;
             this.cancel = cancel;
             this.updateOpList = new ArrayList<>();
@@ -1210,27 +1217,35 @@ public class VersionGarbageCollector {
             if (detailedGcMode == DetailedGCMode.GAP_ORPHANS
                     || detailedGcMode == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS) {
                 // check the ancestor docs for gaps
-                boolean hasGaps = false;
-                boolean parentDocExists = true;
-                Path path = Path.ROOT;
-                for (String name : doc.getPath().elements()) {
-                    if (!parentDocExists) {
-                        hasGaps = true;
-                        break;
-                    }
-                    path = new Path(path, name);
-                    if (path.equals(greatestExistingAncestorOrSelf)
-                            || path.isAncestorOf(greatestExistingAncestorOrSelf)) {
-                        // skip
-                        continue;
-                    }
+                final Path docPath = doc.getPath();
+                final Path geaPath = greatestExistingAncestorOrSelf;
+                final Path geaChildPath = docPath
+                        .getAncestor(docPath.getDepth() - geaPath.getDepth() - 1);
+                Boolean missingType = missingDocsTypes.get(geaChildPath);
+                if (missingType == null) {
+                    // we don't have it cached yet - so do the potentially expensive find
                     final NodeDocument d = nodeStore.getDocumentStore().find(NODES,
-                            Utils.getIdFromPath(path));
-                    parentDocExists = d != null;
+                            Utils.getIdFromPath(geaChildPath));
+                    final boolean parentDocExists = d != null;
+                    missingType = !parentDocExists;
+                    if (missingDocsTypes.size() > DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE) {
+                        final Iterator<Path> it = missingDocsTypes.keySet().iterator();
+                        it.next();
+                        it.remove();
+                        if (missingDocsTypes.size() > DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE) {
+                            // should never really happen, if it does: clear all, break out
+                            log.error("isDeletedOrOrphanedNode : knownNullDocs removal failed, size was {}",
+                                    missingDocsTypes.size());
+                            missingDocsTypes.clear();
+                        }
+                    }
+                    missingDocsTypes.put(geaChildPath, missingType);
                 }
-                if (!hasGaps) {
+                if (missingType == false) {
                     // then it is not a gap orphan
                     // nothing to do here then
+                    // (even though somewhere along descendants
+                    // there might be a gap, it is too expensive to traverse)
                     phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
                     return false;
                 }
@@ -2027,8 +2042,9 @@ public class VersionGarbageCollector {
         AtomicBoolean cancel = new AtomicBoolean();
         GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
 
+        final LinkedHashMap<Path, Boolean> missingDocsTypes = new LinkedHashMap<>();
         final RevisionVector headRevision = store.getHeadRevision();
-        try (DetailedGC gc = new DetailedGC(headRevision, 0, gcMonitor, cancel)) {
+        try (DetailedGC gc = new DetailedGC(headRevision, 0, missingDocsTypes, gcMonitor, cancel)) {
 
             if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
                 gc.collectGarbage(doc, phases);
