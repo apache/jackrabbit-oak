@@ -252,8 +252,8 @@ public class VersionGCSupport {
                     .filter(input -> idEquals(input, id)).limit(1).collect(toList());
             if (docs.iterator().hasNext()) {
                 final NodeDocument doc = docs.iterator().next();
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug("Found Document with id {}", id);
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Found Document with id {}", id);
                 }
                 if (fields == null || fields.isEmpty()) {
                     return ofNullable(doc);
@@ -272,7 +272,9 @@ public class VersionGCSupport {
             Utils.closeIfCloseable(docs);
         }
 
-        LOG.info("No Doc has been found with id [{}]", id);
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("No Doc has been found with id [{}]", id);
+        }
         return empty();
     }
 

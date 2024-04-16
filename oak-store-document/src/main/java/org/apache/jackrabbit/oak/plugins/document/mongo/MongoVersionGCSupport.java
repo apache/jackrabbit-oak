@@ -182,7 +182,9 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         } catch (Exception ex) {
             LOG.error("getDocument() <- error while fetching data from Mongo", ex);
         }
-        LOG.info("No Doc has been found with id [{}], retuning empty", id);
+        if(LOG.isDebugEnabled()) {
+            LOG.debug("No Doc has been found with id [{}], retuning empty", id);
+        }
         return empty();
 
     }
