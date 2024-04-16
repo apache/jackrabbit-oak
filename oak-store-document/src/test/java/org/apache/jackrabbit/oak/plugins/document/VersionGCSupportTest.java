@@ -41,15 +41,18 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.StreamSupport.stream;
 import static org.apache.jackrabbit.guava.common.collect.Comparators.isInOrder;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MEMORY;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.MONGO;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDB_H2;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
+import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NULL;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.setModified;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.stats.Clock.SIMPLE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(Parameterized.class)
@@ -183,6 +186,53 @@ public class VersionGCSupportTest {
 
         long reportedSecs = gcSupport.getOldestDeletedOnceTimestamp(SIMPLE, 1) / SECONDS.toMillis(1);
         assertTrue("diff (s) should be < 5: " + Math.abs(secs - reportedSecs), Math.abs(secs - reportedSecs) < 5);
+    }
+
+    @Test
+    public void findDocument() {
+        long secs = 1234567;
+        long offset = SECONDS.toMillis(secs);
+        Revision r = new Revision(offset, 0, 1);
+        String id = getIdFromPath("/doc");
+        ids.add(id);
+        UpdateOp op = new UpdateOp(id, true);
+        setModified(op, r);
+        store.create(NODES, of(op));
+
+        NodeDocument doc = gcSupport.getDocument(id, of(ID)).orElse(NULL);
+        assertEquals(id, doc.getId());
+        assertEquals(1, doc.keySet().size());
+    }
+
+    @Test
+    public void findDocumentWhenNotExist() {
+        long secs = 1234567;
+        long offset = SECONDS.toMillis(secs);
+        Revision r = new Revision(offset, 0, 1);
+        String id = getIdFromPath("/doc/3");
+        ids.add(id);
+        UpdateOp op = new UpdateOp(id, true);
+        setModified(op, r);
+        store.create(NODES, of(op));
+
+        NodeDocument doc = gcSupport.getDocument(getIdFromPath("/doc/4"), of()).orElse(NULL);
+        assertNotEquals(id, doc.getId());
+    }
+
+    @Test
+    public void findDocumentWithProjection() {
+        long secs = 1234567;
+        long offset = SECONDS.toMillis(secs);
+        Revision r = new Revision(offset, 0, 1);
+        String id = getIdFromPath("/doc/2");
+        ids.add(id);
+        UpdateOp op = new UpdateOp(id, true);
+        setModified(op, r);
+        store.create(NODES, of(op));
+
+        NodeDocument doc = gcSupport.getDocument(id, of(ID, MODIFIED_IN_SECS)).orElse(NULL);
+        assertEquals(id, doc.getId());
+        assertEquals(2, doc.keySet().size());
     }
 
     @Test

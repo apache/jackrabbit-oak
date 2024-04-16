@@ -21,19 +21,25 @@ package org.apache.jackrabbit.oak.plugins.document;
 
 import static java.util.Comparator.comparing;
 import static java.util.Optional.empty;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.StreamSupport.stream;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.stream.Collectors.toList;
+import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifiedInSecs;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
+import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -125,6 +131,10 @@ public class VersionGCSupport {
     private boolean modifiedLessThan(final NodeDocument doc, final long time) {
         Long modified = doc.getModified();
         return modified != null && modified.compareTo(getModifiedInSecs(time)) < 0;
+    }
+
+    private boolean idEquals(final NodeDocument doc, final String id) {
+        return Objects.equals(doc.getId(), id);
     }
 
     /**
@@ -223,6 +233,48 @@ public class VersionGCSupport {
             Utils.closeIfCloseable(docs);
         }
         LOG.info("No Modified Doc has been found, retuning empty");
+        return empty();
+    }
+
+    /**
+     * Retrieves a document with the given id from the DocumentStore.
+     * If a list of fields is provided, only these fields are included in the returned document.
+     *
+     * @param id the id of the document to retrieve
+     * @param fields the list of fields to include in the returned document. If null or empty, all fields are returned.
+     * @return an Optional that contains the requested NodeDocument if it exists, or an empty Optional if it does not.
+     */
+    public Optional<NodeDocument> getDocument(final String id, final List<String> fields) {
+
+        Iterable<NodeDocument> docs = null;
+        try {
+            docs = stream(getSelectedDocuments(store, null, 0, MIN_ID_VALUE).spliterator(), false)
+                    .filter(input -> idEquals(input, id)).limit(1).collect(toList());
+            if (docs.iterator().hasNext()) {
+                final NodeDocument doc = docs.iterator().next();
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Found Document with id {}", id);
+                }
+                if (fields == null || fields.isEmpty()) {
+                    return ofNullable(doc);
+                }
+
+                final Set<String> projectedSet = newHashSet(fields);
+                projectedSet.add(ID);
+
+                final NodeDocument newDoc = Collection.NODES.newDocument(store);
+                doc.deepCopy(newDoc);
+                newDoc.keySet().retainAll(projectedSet);
+                return of(newDoc);
+            }
+
+        } finally {
+            Utils.closeIfCloseable(docs);
+        }
+
+        if (LOG.isDebugEnabled()) {
+            LOG.debug("No Doc has been found with id [{}]", id);
+        }
         return empty();
     }
 

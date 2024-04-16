@@ -23,6 +23,7 @@ import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
 import static com.mongodb.client.model.Filters.or;
+import static com.mongodb.client.model.Projections.include;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
@@ -163,6 +164,37 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .sort(sort)
                 .limit(limit);
         return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
+    }
+
+    /**
+     * Retrieves a document with the given id from the MongoDB collection.
+     * If a list of fields is provided, only these fields are included in the returned document.
+     *
+     * @param id the id of the document to retrieve
+     * @param fields the list of fields to include in the returned document. If null or empty, all fields are returned.
+     * @return an Optional that contains the requested NodeDocument if it exists, or an empty Optional if it does not.
+     */
+    @Override
+    public Optional<NodeDocument> getDocument(final String id, final List<String> fields) {
+
+        final Bson query = eq(ID, id);
+
+        final FindIterable<BasicDBObject> result = getNodeCollection().find(query);
+
+        if (fields != null && !fields.isEmpty()) {
+            result.projection(include(fields));
+        }
+
+        try(MongoCursor<BasicDBObject> cur = result.iterator()) {
+            return cur.hasNext() ? ofNullable(store.convertFromDBObject(NODES, cur.next())) : empty();
+        } catch (Exception ex) {
+            LOG.error("getDocument() <- error while fetching data from Mongo", ex);
+        }
+        if(LOG.isDebugEnabled()) {
+            LOG.debug("No Doc has been found with id [{}], retuning empty", id);
+        }
+        return empty();
+
     }
 
     @Override
