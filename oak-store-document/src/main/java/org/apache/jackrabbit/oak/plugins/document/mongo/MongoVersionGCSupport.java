@@ -23,6 +23,7 @@ import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Filters.exists;
 import static com.mongodb.client.model.Filters.gt;
 import static com.mongodb.client.model.Filters.or;
+import static com.mongodb.client.model.Projections.include;
 import static java.util.Optional.empty;
 import static java.util.Optional.ofNullable;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.concat;
@@ -163,6 +164,27 @@ public class MongoVersionGCSupport extends VersionGCSupport {
                 .sort(sort)
                 .limit(limit);
         return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
+    }
+
+    @Override
+    public Optional<NodeDocument> getDocument(final String id, final List<String> fields) {
+
+        final Bson query = eq(ID, id);
+
+        final FindIterable<BasicDBObject> result = getNodeCollection().find(query);
+
+        if (fields != null && !fields.isEmpty()) {
+            result.projection(include(fields));
+        }
+
+        try(MongoCursor<BasicDBObject> cur = result.iterator()) {
+            return cur.hasNext() ? ofNullable(store.convertFromDBObject(NODES, cur.next())) : empty();
+        } catch (Exception ex) {
+            LOG.error("getDocument() <- error while fetching data from Mongo", ex);
+        }
+        LOG.info("No Doc has been found with id [{}], retuning empty", id);
+        return empty();
+
     }
 
     @Override

@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
@@ -73,6 +74,7 @@ import static java.lang.Math.round;
 import static java.lang.String.join;
 import static java.util.Collections.emptySet;
 import static java.util.Objects.isNull;
+import static java.util.List.of;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
@@ -91,6 +93,7 @@ import static org.apache.jackrabbit.guava.common.util.concurrent.Atomics.newRefe
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
+import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.BRANCH_COMMITS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COLLISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.COMMIT_ROOT;
@@ -103,6 +106,7 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocTy
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode.GAP_ORPHANS;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode.GAP_ORPHANS_EMPTYPROPS;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode.NONE;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isCommitted;
@@ -1220,17 +1224,14 @@ public class VersionGarbageCollector {
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
                 return false;
             }
-            if (detailedGcMode == GAP_ORPHANS || detailedGcMode == GAP_ORPHANS_EMPTYPROPS) {
+            if (detailedGcMode == DetailedGCMode.GAP_ORPHANS || detailedGcMode == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS) {
                 // check the ancestor docs for gaps
                 final Path docPath = doc.getPath();
-                final Path geaPath = greatestExistingAncestorOrSelf;
-                final Path geaChildPath = docPath.getAncestor(docPath.getDepth() - geaPath.getDepth() - 1);
+                final Path geaChildPath = docPath.getAncestor(docPath.getDepth() - greatestExistingAncestorOrSelf.getDepth() - 1);
                 Boolean missingType = missingDocsTypes.get(geaChildPath);
                 if (missingType == null) {
                     // we don't have it cached yet - so do the potentially expensive find
-                    final NodeDocument d = nodeStore.getDocumentStore().find(NODES, Utils.getIdFromPath(geaChildPath));
-                    final boolean parentDocExists = d != null;
-                    missingType = !parentDocExists;
+                    missingType = versionStore.getDocument(getIdFromPath(geaChildPath), of(ID)).isEmpty();
                     if (missingDocsTypes.size() > DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE) {
                         final Iterator<Path> it = missingDocsTypes.keySet().iterator();
                         it.next();
@@ -1679,7 +1680,7 @@ public class VersionGarbageCollector {
                     // if it is still referenced locally, keep it
                     continue;
                 }
-                final boolean isRoot = doc.getId().equals(Utils.getIdFromPath(Path.ROOT));
+                final boolean isRoot = doc.getId().equals(getIdFromPath(Path.ROOT));
                 // local bcs only considered for removal
                 final boolean isBC = doc.getLocalBranchCommits().contains(revision);
                 final boolean newerThanSweep = nodeStore.getSweepRevisions().isRevisionNewer(revision);
