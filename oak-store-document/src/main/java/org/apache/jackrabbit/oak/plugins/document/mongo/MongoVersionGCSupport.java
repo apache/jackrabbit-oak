@@ -166,6 +166,14 @@ public class MongoVersionGCSupport extends VersionGCSupport {
         return wrap(transform(cursor, input -> store.convertFromDBObject(NODES, input)));
     }
 
+    /**
+     * Retrieves a document with the given id from the MongoDB collection.
+     * If a list of fields is provided, only these fields are included in the returned document.
+     *
+     * @param id the id of the document to retrieve
+     * @param fields the list of fields to include in the returned document. If null or empty, all fields are returned.
+     * @return an Optional that contains the requested NodeDocument if it exists, or an empty Optional if it does not.
+     */
     @Override
     public Optional<NodeDocument> getDocument(final String id, final List<String> fields) {
 

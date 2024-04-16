@@ -237,12 +237,12 @@ public class VersionGCSupport {
     }
 
     /**
-     * Retrieve the document with given id with only required fields.
+     * Retrieves a document with the given id from the DocumentStore.
+     * If a list of fields is provided, only these fields are included in the returned document.
      *
-     * @param id the document id
-     * @param fields {@link List} of required fields, keep empty to fetch all
-     *
-     * @return the document with given id or empty if not found
+     * @param id the id of the document to retrieve
+     * @param fields the list of fields to include in the returned document. If null or empty, all fields are returned.
+     * @return an Optional that contains the requested NodeDocument if it exists, or an empty Optional if it does not.
      */
     public Optional<NodeDocument> getDocument(final String id, final List<String> fields) {
 
