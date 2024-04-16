@@ -22,7 +22,7 @@ import org.apache.jackrabbit.guava.common.io.Closer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.Callable;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,16 +49,19 @@ import org.apache.jackrabbit.oak.plugins.document.SweepHelper;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCInfo;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
+import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.run.commons.Command;
 import org.apache.jackrabbit.oak.plugins.document.VersionGCOptions;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector;
 import org.apache.jackrabbit.oak.spi.blob.MemoryBlobStore;
 import org.apache.jackrabbit.oak.spi.gc.LoggingGCMonitor;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.TRUE;
+import static java.lang.System.currentTimeMillis;
 import static java.util.List.of;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.commons.lang3.StringUtils.isNotEmpty;
@@ -72,6 +75,7 @@ import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVe
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.run.Utils.asCloseable;
 import static org.apache.jackrabbit.oak.run.Utils.createDocumentMKBuilder;
+import static org.apache.jackrabbit.oak.run.Utils.getMongoConnection;
 
 /**
  * Gives information about current node revisions state.
@@ -118,6 +122,7 @@ public class RevisionsCommand implements Command {
         final OptionSpec<?> verbose;
         final OptionSpec<String> path;
         final OptionSpec<?> entireRepo;
+        final OptionSpec<?> compact;
         final OptionSpec<Boolean> dryRun;
         final OptionSpec<Boolean> embeddedVerification;
 
@@ -152,6 +157,8 @@ public class RevisionsCommand implements Command {
                     .accepts("path", "path to the document to be cleaned up").withRequiredArg();
             entireRepo = parser
                     .accepts("entireRepo", "run detailedGC on the entire repository");
+            compact = parser
+                    .accepts("compact", "run compaction on document store (only mongo) after running detailedGC");
             resetDetailedGC = parser
                     .accepts("resetDetailedGC", "reset detailedGC after running DetailedGC")
                     .withRequiredArg().ofType(Boolean.class).defaultsTo(FALSE);
@@ -221,6 +228,10 @@ public class RevisionsCommand implements Command {
         boolean isEntireRepo() {
             return options.has(entireRepo);
         }
+
+        boolean doCompaction() {
+            return options.has(compact);
+        }
     }
 
     @Override
@@ -271,9 +282,7 @@ public class RevisionsCommand implements Command {
         }
     }
 
-    private VersionGarbageCollector bootstrapVGC(RevisionsOptions options,
-                                                 Closer closer, boolean detailedGCEnabled)
-            throws IOException {
+    private VersionGarbageCollector bootstrapVGC(RevisionsOptions options, Closer closer, boolean detailedGCEnabled) throws IOException {
         DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
         if (builder == null) {
             System.err.println("revisions mode only available for DocumentNodeStore");
@@ -305,8 +314,9 @@ public class RevisionsCommand implements Command {
         System.out.println("DryRun is enabled : " + options.isDryRun());
         System.out.println("EmbeddedVerification is enabled : " + options.isEmbeddedVerificationEnabled());
         System.out.println("ResetDetailedGC is enabled : " + options.resetDetailedGC());
-        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isDetailedGCEnabled(builder),
-                options.isDryRun(), isEmbeddedVerificationEnabled(builder));
+        System.out.println("Compaction is enabled : " + options.doCompaction());
+        VersionGarbageCollector gc = createVersionGC(builder.build(), gcSupport, isDetailedGCEnabled(builder), options.isDryRun(),
+                isEmbeddedVerificationEnabled(builder));
 
         VersionGCOptions gcOptions = gc.getOptions();
         gcOptions = gcOptions.withDelayFactor(options.getDelay());
@@ -320,15 +330,13 @@ public class RevisionsCommand implements Command {
         return gc;
     }
 
-    private void info(RevisionsOptions options, Closer closer)
-            throws IOException {
+    private void info(RevisionsOptions options, Closer closer) throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, false);
         System.out.println("retrieving gc info");
         printInfo(gc, options);
     }
 
-    private void printInfo(VersionGarbageCollector gc, RevisionsOptions options)
-            throws IOException {
+    private void printInfo(VersionGarbageCollector gc, RevisionsOptions options) throws IOException {
         VersionGCInfo info = gc.getInfo(options.getOlderThan(), SECONDS);
 
         System.out.printf(Locale.US, "%21s  %s%n", "Last Successful Run:",
@@ -349,28 +357,24 @@ public class RevisionsCommand implements Command {
                 fmtTimestamp(info.oldestDetailedGCRevisionEstimate));
     }
 
-    private void collect(final RevisionsOptions options, Closer closer, boolean detailedGCEnabled)
-            throws IOException {
+    private void collect(final RevisionsOptions options, Closer closer, boolean detailedGCEnabled) throws IOException {
         VersionGarbageCollector gc = bootstrapVGC(options, closer, detailedGCEnabled);
         ExecutorService executor = Executors.newSingleThreadExecutor();
         final Semaphore finished = new Semaphore(0);
         try {
             // collect until shutdown hook is called
             final AtomicBoolean running = new AtomicBoolean(true);
-            Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    System.out.println("Detected QUIT signal.");
-                    System.out.println("Stopping Revision GC...");
-                    running.set(false);
-                    gc.cancel();
-                    finished.acquireUninterruptibly();
-                    System.out.println("Stopped Revision GC.");
-                }
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                System.out.println("Detected QUIT signal.");
+                System.out.println("Stopping Revision GC...");
+                running.set(false);
+                gc.cancel();
+                finished.acquireUninterruptibly();
+                System.out.println("Stopped Revision GC.");
             }));
             if (options.isContinuous()) {
                 while (running.get()) {
-                    long lastRun = System.currentTimeMillis();
+                    long lastRun = currentTimeMillis();
                     collectOnce(gc, options, executor);
                     waitWhile(running, lastRun + 5000);
                 }
@@ -387,6 +391,16 @@ public class RevisionsCommand implements Command {
             if (options.resetDetailedGC()) {
                 gc.resetDetailedGC();
             }
+            if (options.doCompaction()) {
+                Optional<MongoConnection> mongoClient = getMongoConnection(options, closer);
+                final long start = currentTimeMillis();
+                mongoClient.ifPresentOrElse(
+                        con -> {
+                            Document compact = con.getDatabase().runCommand(new Document("compact", NODES.toString()));
+                            System.out.format("Compact done in %s ms, Output is %s", (currentTimeMillis() - start),  compact);
+                        },
+                        () -> System.err.println("Database is null"));
+            }
             executor.shutdownNow();
         }
     }
@@ -394,14 +408,9 @@ public class RevisionsCommand implements Command {
     private void collectOnce(VersionGarbageCollector gc,
                              RevisionsOptions options,
                              ExecutorService executor) throws IOException {
-        long started = System.currentTimeMillis();
+        long started = currentTimeMillis();
         System.out.println("starting gc collect");
-        Future<VersionGCStats> f = executor.submit(new Callable<VersionGCStats>() {
-            @Override
-            public VersionGCStats call() throws Exception {
-                return gc.gc(options.getOlderThan(), SECONDS);
-            }
-        });
+        Future<VersionGCStats> f = executor.submit(() -> gc.gc(options.getOlderThan(), SECONDS));
         if (options.getTimeLimit() >= 0) {
             try {
                 f.get(options.getTimeLimit(), SECONDS);
@@ -417,7 +426,7 @@ public class RevisionsCommand implements Command {
         }
         try {
             VersionGCStats stats = f.get();
-            long ended = System.currentTimeMillis();
+            long ended = currentTimeMillis();
             System.out.printf(Locale.US, "%21s  %s%n", "Started:", fmtTimestamp(started));
             System.out.printf(Locale.US, "%21s  %s%n", "Ended:", fmtTimestamp(ended));
             System.out.printf(Locale.US, "%21s  %s%n", "Duration:", fmtDuration(ended - started));
@@ -430,7 +439,7 @@ public class RevisionsCommand implements Command {
     }
 
     private static void waitWhile(AtomicBoolean condition, long until) {
-        long now = System.currentTimeMillis();
+        long now = currentTimeMillis();
         while (now < until) {
             if (condition.get()) {
                 try {
@@ -439,7 +448,7 @@ public class RevisionsCommand implements Command {
                     // ignore
                 }
             }
-            now = System.currentTimeMillis();
+            now = currentTimeMillis();
         }
     }
 
