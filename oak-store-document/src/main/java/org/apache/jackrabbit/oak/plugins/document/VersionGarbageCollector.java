@@ -1249,7 +1249,9 @@ public class VersionGarbageCollector {
                     // (even though somewhere along descendants
                     // there might be a gap, it is too expensive to traverse)
                     phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
-                    return false;
+                    // return true here as this is an orphan but we decided not to
+                    // GC it - to prevent caller from attempting other GC types
+                    return true;
                 }
             }
 
