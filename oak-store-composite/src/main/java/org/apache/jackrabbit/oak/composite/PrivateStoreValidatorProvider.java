@@ -47,7 +47,10 @@ public class PrivateStoreValidatorProvider extends ValidatorProvider {
 
     @ComponentPropertyType
     @interface Config {
-        @AttributeDefinition
+        @AttributeDefinition(
+                name = "Fail when detecting commits to the read-only stores",
+                description = "Commits will fail if set to true when detecting changes to any read-only store. If set to false the commit information is only logged."
+        )
         boolean failOnDetection() default true;
     }
 

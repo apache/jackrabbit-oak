@@ -80,11 +80,22 @@ public class CompositeNodeStoreService {
 
     @ComponentPropertyType
     @interface Config {
-        @AttributeDefinition
+        @AttributeDefinition(
+                name = "Enable node store checks",
+                description = "Whether the composite node store constraints should be checked before start"
+        )
         boolean enableChecks() default true;
-        @AttributeDefinition
+
+        @AttributeDefinition(
+                name = "Pre-populate seed mount",
+                description = "Setting this parameter to a mount name will enable pre-populating the empty default store"
+        )
         String seedMount();
-        @AttributeDefinition
+
+        @AttributeDefinition(
+                name = "Gather path statistics",
+                description = "Whether the CompositeNodeStoreStatsMBean should gather information about the most popular paths (may be expensive)"
+        )
         boolean pathStats() default false;
     }
 

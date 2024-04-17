@@ -40,7 +40,11 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
     @interface Config {
         @AttributeDefinition
         String type() default "crossMountRefValidator";
-        @AttributeDefinition
+
+        @AttributeDefinition(
+                name = "Fail when detecting commits cross-mount references",
+                description = "Commits will fail if set to true when detecting cross-mount references. If set to false the commit information is only logged."
+        )
         boolean failOnDetection() default true;
     }
 

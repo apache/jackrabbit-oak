@@ -23,6 +23,7 @@ import java.util.Set;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ComponentPropertyType;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
@@ -45,8 +46,20 @@ public class NodeTypeMountedNodeStoreChecker implements
     
     @ComponentPropertyType
     @interface Config {
+        @AttributeDefinition(
+                name = "The name of a node type that is invalid and will be rejected when found"
+        )
         String invalidNodeType();
+
+        @AttributeDefinition(
+                name = "The error label to use when rejecting an invalid node type"
+        )
         String errorLabel();
+
+        @AttributeDefinition(
+                name = "Node types that will cause the check to succeeed, even in the invalid node type is also found.",
+                cardinality = Integer.MAX_VALUE
+        )
         String[] excludedNodeTypes() default {};
     }
     
