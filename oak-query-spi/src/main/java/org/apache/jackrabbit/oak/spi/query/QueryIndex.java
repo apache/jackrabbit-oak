@@ -361,9 +361,23 @@ public interface QueryIndex {
          * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
          * The messages are returned as a map whose key indicates log level and value is a list of messages against that
          * log level.
+
+         * @deprecated use {@link #getAdditionalLogMessages()}  instead
          * @return map containing log messages.
          */
+        @Deprecated(forRemoval = true)
         default Map<Level, List<String>> getAdditionalMessages() {
+            return Collections.emptyMap();
+        }
+
+        /**
+         * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
+         * The messages are returned as a map whose key indicates log level and value is a list of messages against that
+         * log level.
+
+         * @return map containing log messages.
+         */
+        default Map<String, List<String>> getAdditionalLogMessages() {
             return Collections.emptyMap();
         }
 
@@ -415,8 +429,20 @@ public interface QueryIndex {
                 return this;
             }
 
-            public Builder addAdditionalMessage(Level level, String s) {
-                this.additionalMessages.compute(level, (k,v) -> {
+            public Builder addAdditionalMessage(String level, String s) {
+                Level logLevel;
+                switch (level) {
+                    case "TRACE":
+                    case "DEBUG":
+                    case "INFO":
+                    case "WARN":
+                    case "ERROR":
+                        logLevel = Level.valueOf(level);
+                        break;
+                    default:
+                        throw new IllegalArgumentException("unsupported log level: " + level);
+                }
+                this.additionalMessages.compute(logLevel, (k,v) -> {
                     if (v == null) {
                         v = new ArrayList<>();
                     }
