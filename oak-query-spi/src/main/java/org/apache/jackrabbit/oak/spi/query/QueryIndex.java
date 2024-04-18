@@ -34,6 +34,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.slf4j.event.Level;
 
+import static java.util.stream.Collectors.toMap;
 import static org.apache.jackrabbit.oak.spi.query.Filter.PropertyRestriction;
 
 /**
@@ -378,7 +379,7 @@ public interface QueryIndex {
          * @return map containing log messages.
          */
         default Map<String, List<String>> getAdditionalLogMessages() {
-            return Collections.emptyMap();
+            return getAdditionalMessages().entrySet().stream().collect(toMap(entry -> entry.getKey().toString(), Map.Entry::getValue));
         }
 
         /**
