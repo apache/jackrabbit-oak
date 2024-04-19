@@ -70,7 +70,7 @@
     <derby.version>10.14.2.0</derby.version>
     <jackson.version>2.16.1</jackson.version>
     <testcontainers.version>1.19.0</testcontainers.version>
-    <groovy.version>2.5.22</groovy.version>
+    <groovy.version>2.5.23</groovy.version>
     <java.version>1.8</java.version>
     <java.version.signature>java18</java.version.signature>
     
