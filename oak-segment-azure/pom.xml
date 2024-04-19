@@ -46,6 +46,10 @@
                         <Import-Package>
                             org.apache.jackrabbit.oak.segment.spi*,
                             org.apache.jackrabbit.oak.segment.remote*,
+                            com.fasterxml.jackson.annotation;resolution:=optional,
+                            com.fasterxml.jackson.databind*;resolution:=optional,
+                            com.fasterxml.jackson.dataformat.xml;resolution:=optional,
+                            com.fasterxml.jackson.datatype*;resolution:=optional,
                             com.azure.identity.broker.implementation;resolution:=optional,
                             com.azure.xml;resolution:=optional,
                             com.microsoft.aad.msal4jextensions*;resolution:=optional,
