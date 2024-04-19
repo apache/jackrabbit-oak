@@ -127,8 +127,6 @@ public class AsyncIndexerService {
         executor = new WhiteboardExecutor();
         executor.start(whiteboard);
 
-        //long leaseTimeOutMin = config.leaseTimeOutMinutes();
-
         TrackingCorruptIndexHandler corruptIndexHandler = createCorruptIndexHandler(config);
 
         for (AsyncConfig c : asyncIndexerConfig) {
