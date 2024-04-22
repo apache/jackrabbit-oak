@@ -369,7 +369,10 @@ public interface QueryIndex {
          * @return map containing log messages.
          */
         @Deprecated(forRemoval = true)
-        default Map<Level, List<String>> getAdditionalMessages() { return Collections.emptyMap(); }
+        default Map<Level, List<String>> getAdditionalMessages() {
+            LoggerFactory.getLogger(QueryIndex.IndexPlan.class).warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+            return Collections.emptyMap();
+        }
 
         /**
          * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
@@ -385,7 +388,7 @@ public interface QueryIndex {
          */
         class Builder {
 
-            private Logger log = LoggerFactory.getLogger(QueryIndex.class);
+            private Logger log = LoggerFactory.getLogger(QueryIndex.IndexPlan.Builder.class);
 
             protected double costPerExecution = 1.0;
             protected double costPerEntry = 1.0;
