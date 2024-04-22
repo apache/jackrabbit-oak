@@ -371,7 +371,7 @@ public interface QueryIndex {
         @Deprecated(forRemoval = true)
         default Map<Level, List<String>> getAdditionalMessages() {
             LoggerFactory.getLogger(QueryIndex.IndexPlan.class).warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
-            return Collections.emptyMap();
+            return getAdditionalLogMessages().entrySet().stream().collect(toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
         }
 
         /**
@@ -702,12 +702,6 @@ public interface QueryIndex {
                     @Override
                     public boolean logWarningForPathFilterMismatch() {
                         return logWarningForPathFilterMismatch;
-                    }
-
-                    @Override
-                    public Map<Level, List<String>> getAdditionalMessages() {
-                        log.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
-                        return getAdditionalLogMessages().entrySet().stream().collect(toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
                     }
 
                     @Override
