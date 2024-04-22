@@ -32,6 +32,8 @@ import org.osgi.annotation.versioning.ProviderType;
 import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
 import static java.util.stream.Collectors.toMap;
@@ -367,9 +369,7 @@ public interface QueryIndex {
          * @return map containing log messages.
          */
         @Deprecated(forRemoval = true)
-        default Map<Level, List<String>> getAdditionalMessages() {
-            return Collections.emptyMap();
-        }
+        default Map<Level, List<String>> getAdditionalMessages() { return Collections.emptyMap(); }
 
         /**
          * This method can be used for communicating any messages which should be logged if this plan is selected for execution.
@@ -378,14 +378,14 @@ public interface QueryIndex {
 
          * @return map containing log messages.
          */
-        default Map<String, List<String>> getAdditionalLogMessages() {
-            return getAdditionalMessages().entrySet().stream().collect(toMap(entry -> entry.getKey().toString(), Map.Entry::getValue));
-        }
+        default Map<String, List<String>> getAdditionalLogMessages() { return Collections.emptyMap(); }
 
         /**
          * A builder for index plans.
          */
         class Builder {
+
+            private Logger log = LoggerFactory.getLogger(QueryIndex.class);
 
             protected double costPerExecution = 1.0;
             protected double costPerEntry = 1.0;
@@ -403,7 +403,7 @@ public interface QueryIndex {
             protected String planName;
             protected boolean deprecated;
             protected boolean logWarningForPathFilterMismatch;
-            protected final Map<Level, List<String>> additionalMessages = new HashMap<>();
+            protected final Map<String, List<String>> additionalMessages = new HashMap<>();
 
             public Builder setCostPerExecution(double costPerExecution) {
                 this.costPerExecution = costPerExecution;
@@ -430,20 +430,34 @@ public interface QueryIndex {
                 return this;
             }
 
+            /**
+             * @deprecated use {@link #addAdditionalMessage(String level, String s)} instead
+             * */
+            @Deprecated(forRemoval = true)
+            public Builder addAdditionalMessage(Level level, String s) {
+                log.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+                this.additionalMessages.compute(level.name(), (k,v) -> {
+                    if (v == null) {
+                        v = new ArrayList<>();
+                    }
+                    v.add(s);
+                    return v;
+                });
+                return this;
+            }
+
             public Builder addAdditionalMessage(String level, String s) {
-                Level logLevel;
                 switch (level) {
                     case "TRACE":
                     case "DEBUG":
                     case "INFO":
                     case "WARN":
                     case "ERROR":
-                        logLevel = Level.valueOf(level);
                         break;
                     default:
                         throw new IllegalArgumentException("unsupported log level: " + level);
                 }
-                this.additionalMessages.compute(logLevel, (k,v) -> {
+                this.additionalMessages.compute(level, (k,v) -> {
                     if (v == null) {
                         v = new ArrayList<>();
                     }
@@ -544,7 +558,7 @@ public interface QueryIndex {
                     private final boolean deprecated =
                             Builder.this.deprecated;
                     private final boolean logWarningForPathFilterMismatch = Builder.this.logWarningForPathFilterMismatch;
-                    private final Map<Level, List<String>> additionalMessages = Builder.this.additionalMessages;
+                    private final Map<String, List<String>> additionalMessages = Builder.this.additionalMessages;
 
                     private String getAdditionalMessageString() {
                         return additionalMessages.entrySet().stream()
@@ -689,9 +703,14 @@ public interface QueryIndex {
 
                     @Override
                     public Map<Level, List<String>> getAdditionalMessages() {
-                        return additionalMessages;
+                        log.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+                        return getAdditionalLogMessages().entrySet().stream().collect(toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
                     }
 
+                    @Override
+                    public Map<String, List<String>> getAdditionalLogMessages() {
+                        return additionalMessages;
+                    }
                 };
             }
 
