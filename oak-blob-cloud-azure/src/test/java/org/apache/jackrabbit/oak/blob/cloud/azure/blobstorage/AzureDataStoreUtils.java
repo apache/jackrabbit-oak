@@ -43,7 +43,6 @@ import org.apache.jackrabbit.core.data.DataStore;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreUtils;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.directaccess.ConfigurableDataRecordAccessProvider;
-import org.checkerframework.checker.units.qual.A;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.junit.rules.TemporaryFolder;
@@ -183,7 +182,7 @@ public class AzureDataStoreUtils extends DataStoreUtils {
         Properties props = getAzureConfig();
         props.setProperty(AzureConstants.AZURE_BLOB_CONTAINER_NAME, containerName);
 
-        CloudBlobContainer container = AzureDataStoreAccessManager.Builder.builder(containerName).initializeWithProperties(props)
+        CloudBlobContainer container = AzureBlobContainerProvider.Builder.builder(containerName).initializeWithProperties(props)
                 .build().getBlobContainer();
         boolean result = container.deleteIfExists();
         log.info("Container deleted. containerName={} existed={}", containerName, result);

@@ -45,7 +45,7 @@ import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Properties;
 
-public class AzureDataStoreAccessManager {
+public class AzureBlobContainerProvider {
     private static final String DEFAULT_ENDPOINT_SUFFIX = "core.windows.net";
     private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
     private final String azureConnectionString;
@@ -58,7 +58,7 @@ public class AzureDataStoreAccessManager {
     private final String clientId;
     private final String clientSecret;
 
-    private AzureDataStoreAccessManager(Builder builder) {
+    private AzureBlobContainerProvider(Builder builder) {
         this.azureConnectionString = builder.azureConnectionString;
         this.accountName = builder.accountName;
         this.containerName = builder.containerName;
@@ -143,8 +143,8 @@ public class AzureDataStoreAccessManager {
             return this;
         }
 
-        public AzureDataStoreAccessManager build() {
-            return new AzureDataStoreAccessManager(this);
+        public AzureBlobContainerProvider build() {
+            return new AzureBlobContainerProvider(this);
         }
     }
 
