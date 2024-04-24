@@ -814,7 +814,12 @@ public class VersionGarbageCollector {
             int docsTraversed = 0;
             boolean foundDoc = true;
             long oldModifiedMs = oldestModifiedMs;
-            final LinkedHashMap<Path, Boolean> missingDocsTypes = new LinkedHashMap<>();
+            final LinkedHashMap<Path, Boolean> missingDocsTypes = new LinkedHashMap<>() {
+                @Override
+                protected boolean removeEldestEntry(Entry<Path, Boolean> eldest) {
+                    return size() > DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE;
+                }
+            };
 
             try (DetailedGC gc = new DetailedGC(headRevision, toModifiedMs, missingDocsTypes, monitor, cancel)) {
                 long fromModifiedMs = oldestModifiedMs;
@@ -1086,8 +1091,7 @@ public class VersionGarbageCollector {
                 }
             }
 
-            if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf,
-                    phases, doc)) {
+            if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
                 // here the node is not orphaned which means that we can reach the node from root
                 switch(detailedGcMode) {
                     case NONE : {
@@ -1138,8 +1142,8 @@ public class VersionGarbageCollector {
                     op.equals(MODIFIED_IN_SECS, doc.getModified());
                     garbageDocsCount++;
                     totalGarbageDocsCount++;
-                    monitor.info("Collected [{}] garbage for doc [{}]", op.getChanges().size(), doc.getId());
-                    AUDIT_LOG.info("<Collected> [{}] garbage for doc [{}]", op.getChanges().size(), doc.getId());
+                    monitor.info("Collected [{}] garbage count in [{}]", op.getChanges().size(), doc.getId());
+                    AUDIT_LOG.info("<Collected> [{}] garbage count  in [{}]", op.getChanges().size(), doc.getId());
                     updateOpList.add(op);
                 }
             }
@@ -1222,7 +1226,7 @@ public class VersionGarbageCollector {
                 phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
                 return false;
             }
-            if (detailedGcMode == DetailedGCMode.GAP_ORPHANS || detailedGcMode == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS) {
+            if (detailedGcMode == GAP_ORPHANS || detailedGcMode == GAP_ORPHANS_EMPTYPROPS) {
                 // check the ancestor docs for gaps
                 final Path docPath = doc.getPath();
                 final Path geaChildPath = docPath.getAncestor(docPath.getDepth() - greatestExistingAncestorOrSelf.getDepth() - 1);
@@ -1230,16 +1234,6 @@ public class VersionGarbageCollector {
                 if (missingType == null) {
                     // we don't have it cached yet - so do the potentially expensive find
                     missingType = versionStore.getDocument(getIdFromPath(geaChildPath), of(ID)).isEmpty();
-                    if (missingDocsTypes.size() > DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE) {
-                        final Iterator<Path> it = missingDocsTypes.keySet().iterator();
-                        it.next();
-                        it.remove();
-                        if (missingDocsTypes.size() > DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE) {
-                            // should never really happen, if it does: clear all, break out
-                            log.error("isDeletedOrOrphanedNode : knownNullDocs removal failed, size was {}", missingDocsTypes.size());
-                            missingDocsTypes.clear();
-                        }
-                    }
                     missingDocsTypes.put(geaChildPath, missingType);
                 }
                 if (!missingType) {
