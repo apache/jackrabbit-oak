@@ -382,7 +382,7 @@ public class PipelinedIT {
         settings.forEach(System::setProperty);
 
         try (MongoTestBackend rwStore = createNodeStore(false)) {
-            var rwNodeStore = rwStore.documentNodeStore;
+            DocumentNodeStore rwNodeStore = rwStore.documentNodeStore;
             contentBuilder.accept(rwNodeStore);
             MongoTestBackend roStore = createNodeStore(true);
 
@@ -416,7 +416,7 @@ public class PipelinedIT {
                 // documents, even if they do not match the includedPaths.
                 result = result.stream()
                         .filter(s -> {
-                            var name = s.split("\\|")[0];
+                            String name = s.split("\\|")[0];
                             return name.length() < Utils.PATH_LONG;
                         })
                         .collect(Collectors.toList());

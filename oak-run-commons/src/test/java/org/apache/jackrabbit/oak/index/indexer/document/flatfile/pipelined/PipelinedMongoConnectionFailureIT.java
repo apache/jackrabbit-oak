@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
@@ -103,7 +104,7 @@ public class PipelinedMongoConnectionFailureIT {
         Path resultWithoutInterruption;
         LOG.info("Creating a FFS: reference run without failures.");
         try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUri, builderProvider)) {
-            var strategy = createStrategy(roBackend);
+            PipelinedStrategy strategy = createStrategy(roBackend);
             resultWithoutInterruption = strategy.createSortedStoreFile().toPath();
         }
 
@@ -112,7 +113,7 @@ public class PipelinedMongoConnectionFailureIT {
         try (MongoTestBackend roBackend = PipelineITUtil.createNodeStore(true, mongoUri, builderProvider)) {
             LimitData cutConnectionUpstream = proxy.toxics()
                     .limitData("CUT_CONNECTION_UPSTREAM", ToxicDirection.DOWNSTREAM, 30000L);
-            var scheduleExecutor = Executors.newSingleThreadScheduledExecutor();
+            ScheduledExecutorService scheduleExecutor = Executors.newSingleThreadScheduledExecutor();
             try {
                 scheduleExecutor.schedule(() -> {
                     try {

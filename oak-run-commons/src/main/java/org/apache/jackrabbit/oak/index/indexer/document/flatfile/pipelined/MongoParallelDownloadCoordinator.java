@@ -82,6 +82,8 @@ class MongoParallelDownloadCoordinator {
      * The batch must be in ascending order of (_modified, _id).
      * <p>
      * Updates the lower range top to b[i].
+     *
+     * @param batch The batch of documents to be added to the lower range, must be in ascending order
      */
     public synchronized int extendLowerRange(NodeDocument[] batch, int sizeOfBatch) {
         // batch must be in ascending order
@@ -103,6 +105,12 @@ class MongoParallelDownloadCoordinator {
         return 0;
     }
 
+    /**
+     * Extends the upper range of downloaded documents with the documents in the given batch and returns the index of
+     * the first/highest document in this batch that was already downloaded by the ascending download thread.
+     *
+     * @param batch The batch of documents to be added to the upper range, must be in descending order
+     */
     public synchronized int extendUpperRange(NodeDocument[] batch, int sizeOfBatch) {
         // batch must be in descending order
         int i = sizeOfBatch - 1;

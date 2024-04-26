@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import com.codahale.metrics.Counter;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import joptsimple.internal.Strings;
@@ -56,6 +57,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Predicate;
@@ -232,7 +234,7 @@ public class PipelinedParametrizedIT {
             File file = pipelinedStrategy.createSortedStoreFile();
 
 
-            var counters = statsProvider.getRegistry().getCounters();
+            SortedMap<String, Counter> counters = statsProvider.getRegistry().getCounters();
 
             long nDocumentsMatchingFilter = regexPathFiltering ?
                     numberOfFilteredDocuments(roStore.mongoDatabase, "/content/dam") :

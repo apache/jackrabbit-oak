@@ -241,7 +241,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING_MAX_PATHS, String.valueOf(regexPathFilteringMaxNumberOfPaths));
         this.regexPathFilterFactory = new MongoRegexPathFilterFactory(regexPathFilteringMaxNumberOfPaths);
 
-        var parallelDumpConfig = ConfigHelper.getSystemPropertyAsBoolean(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP);
+        boolean parallelDumpConfig = ConfigHelper.getSystemPropertyAsBoolean(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, DEFAULT_OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP);
         if (parallelDumpConfig && !retryOnConnectionErrors) {
             LOG.warn("Parallel dump requires " + OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS + " to be set to true, but it is false. Disabling parallel dump.");
             this.parallelDump = false;
@@ -256,7 +256,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         );
         this.reporter.addConfig(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX, customExcludeEntriesRegex);
 
-        var excludePathsString = ConfigHelper.getSystemPropertyAsString(
+        String excludePathsString = ConfigHelper.getSystemPropertyAsString(
                 OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS
         ).trim();
@@ -271,7 +271,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     .map(String::trim)
                     .collect(Collectors.toList());
         }
-        var invalidPaths = customExcludedPaths.stream()
+        List<String> invalidPaths = customExcludedPaths.stream()
                 .filter(p -> !PathUtils.isValid(p) || !PathUtils.isAbsolute(p) || PathUtils.denotesRoot(p))
                 .collect(Collectors.toList());
         if (!invalidPaths.isEmpty()) {
@@ -422,10 +422,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
             // The current thread will download in ascending order. We launch a separate thread to download in
             // descending order.
-            var originalName = Thread.currentThread().getName();
+            String originalName = Thread.currentThread().getName();
             Thread.currentThread().setName(THREAD_NAME_PREFIX + "-ascending");
             try {
-                var descendingDownloadThread = new Thread(() -> {
+                Thread descendingDownloadThread = new Thread(() -> {
                     try {
                         descendingDownloadTask.download(mongoFilter);
                         descendingDownloadTask.reportFinalResults();
@@ -490,6 +490,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
     }
 
+    /**
+     * Downloads a given range from Mongo. Instances of this class should be used for downloading a single range.
+     * To download multiple ranges, create multiple instances of this class.
+     */
     private class DownloadTask {
         private final DownloadOrder downloadOrder;
         private final DownloadStageStatistics downloadStatics;
@@ -523,14 +527,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     if (lastIdDownloaded == null) {
                         // lastIdDownloaded is null only when starting the download or if there is a connection error
                         // before anything is downloaded
-                        var firstRange = new DownloadRange(0, Long.MAX_VALUE, null, downloadOrder.downloadInAscendingOrder());
+                        DownloadRange firstRange = new DownloadRange(0, Long.MAX_VALUE, null, downloadOrder.downloadInAscendingOrder());
                         downloadRange(firstRange, mongoQueryFilter, downloadOrder);
                     } else {
                         LOG.info("Recovering from broken connection, finishing downloading documents with _modified={}", nextLastModified);
-                        var partialLastModifiedRange = new DownloadRange(nextLastModified, nextLastModified, lastIdDownloaded, downloadOrder.downloadInAscendingOrder());
+                        DownloadRange partialLastModifiedRange = new DownloadRange(nextLastModified, nextLastModified, lastIdDownloaded, downloadOrder.downloadInAscendingOrder());
                         downloadRange(partialLastModifiedRange, mongoQueryFilter, downloadOrder);
                         // Downloaded everything from _nextLastModified. Continue with the next timestamp for _modified
-                        var nextRange = downloadOrder.downloadInAscendingOrder() ?
+                        DownloadRange nextRange = downloadOrder.downloadInAscendingOrder() ?
                                 new DownloadRange(nextLastModified + 1, Long.MAX_VALUE, null, true) :
                                 new DownloadRange(0, nextLastModified - 1, null, false);
                         downloadRange(nextRange, mongoQueryFilter, downloadOrder);
@@ -620,7 +624,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         downloadStageStatistics.incrementDocumentsDownloadedTotalBytes(docSize);
                         if (batchSize >= maxBatchSizeBytes || nextIndex == batch.length) {
                             LOG.trace("Enqueuing block with {} elements, estimated size: {} bytes", nextIndex, batchSize);
-                            var downloadCompleted = tryEnqueueCopy(batch, nextIndex);
+                            boolean downloadCompleted = tryEnqueueCopy(batch, nextIndex);
                             if (downloadCompleted) {
                                 LOG.info("Download of range with download order {} completed, intersected with other download.", downloadOrder);
                                 return;
@@ -673,13 +677,13 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             boolean completedDownload = false;
             int effectiveSize = sizeOfBatch;
             if (downloadOrder != DownloadOrder.UNDEFINED) {
-                var sizeOfRangeNotAdded = downloadOrder == DownloadOrder.ASCENDING ?
+                int sizeOfRangeNotAdded = downloadOrder == DownloadOrder.ASCENDING ?
                         mongoParallelDownloadCoordinator.extendLowerRange(batch, sizeOfBatch) :
                         mongoParallelDownloadCoordinator.extendUpperRange(batch, sizeOfBatch);
                 if (sizeOfRangeNotAdded != sizeOfBatch) {
                     completedDownload = true;
                     effectiveSize = sizeOfRangeNotAdded;
-                    var firstAlreadySeen = batch[sizeOfRangeNotAdded];
+                    NodeDocument firstAlreadySeen = batch[sizeOfRangeNotAdded];
                     LOG.info("Download complete, reached already seen document: {}: {}", firstAlreadySeen.getModified(), firstAlreadySeen.getId());
                 }
             }

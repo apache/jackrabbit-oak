@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.atomic.LongAdder;
 
 /**
- * Used to aggregate statistics when downloading from Mongo with two threads
+ * Aggregates statistics when downloading from Mongo with two threads
  */
 public class DownloadStageStatistics {
     public static final Logger LOG = LoggerFactory.getLogger(DownloadStageStatistics.class);

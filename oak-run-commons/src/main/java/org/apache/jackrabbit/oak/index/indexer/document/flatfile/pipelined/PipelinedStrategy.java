@@ -536,7 +536,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         throw new RuntimeException(ex);
                     }
                 }
-                var elapsedSeconds = start.elapsed(TimeUnit.SECONDS);
+                long elapsedSeconds = start.elapsed(TimeUnit.SECONDS);
                 LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
                         .add("duration", FormattingUtils.formatToSeconds(elapsedSeconds))
                         .add("durationSeconds", elapsedSeconds)
