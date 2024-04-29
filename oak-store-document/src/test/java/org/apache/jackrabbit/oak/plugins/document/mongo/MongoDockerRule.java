@@ -132,4 +132,6 @@ public class MongoDockerRule extends ExternalResource {
     public static boolean isDockerAvailable() {
         return DOCKER_AVAILABLE;
     }
+
+    public static DockerImageName getDockerImageName() { return DOCKER_IMAGE_NAME; }
 }

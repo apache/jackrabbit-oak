@@ -54,8 +54,6 @@ public class LeaseUpdateSocketTimeoutIT {
 
     private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("shopify/toxiproxy:2.1.4");
 
-    private static final DockerImageName MONGODB_IMAGE = DockerImageName.parse("mongo:4.2");
-
     private static final int MONGODB_DEFAULT_PORT = 27017;
 
     private static final int LEASE_SO_TIMEOUT = 50;
@@ -64,7 +62,7 @@ public class LeaseUpdateSocketTimeoutIT {
     public Network network = Network.newNetwork();
 
     @Rule
-    public MongoDBContainer mongoDBContainer = new MongoDBContainer(MONGODB_IMAGE)
+    public MongoDBContainer mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
             .withNetwork(network)
             .withExposedPorts(MONGODB_DEFAULT_PORT);
 
