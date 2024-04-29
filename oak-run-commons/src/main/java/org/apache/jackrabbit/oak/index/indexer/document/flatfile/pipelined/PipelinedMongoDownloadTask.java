@@ -407,6 +407,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             );
             ScheduledFuture<?> monitorTask = monitorThreadPool.scheduleWithFixedDelay(() -> {
                 long secondsElapsed = downloadStartWatch.elapsed(TimeUnit.SECONDS);
+                long ascTaskDownloadTotal = ascendingDownloadTask.getDocumentsDownloadedTotal();
+                long descTaskDownloadTotal = descendingDownloadTask.getDocumentsDownloadedTotal();
                 String formattedRate;
                 if (secondsElapsed == 0) {
                     formattedRate = "N/A nodes/s, N/A nodes/hr, N/A /s";
@@ -416,8 +418,9 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr, %s/s",
                             docRate, docRate * 3600, IOUtils.humanReadableByteCountBin((long) bytesRate));
                 }
-                LOG.info("Dumping from NSET Traversed #{} - [{}] (Elapsed {})",
-                        downloadStageStatistics.getDocumentsDownloadedTotal(), formattedRate, FormattingUtils.formatToSeconds(secondsElapsed));
+                LOG.info("Total documents dumped from Mongo {} (asc: {}, desc: {}) [{}] (Elapsed {})",
+                        downloadStageStatistics.getDocumentsDownloadedTotal(), ascTaskDownloadTotal, descTaskDownloadTotal,
+                        formattedRate, FormattingUtils.formatToSeconds(secondsElapsed));
             }, 10, 10, TimeUnit.SECONDS);
 
             // The current thread will download in ascending order. We launch a separate thread to download in
@@ -515,6 +518,14 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
         private Instant failuresStartTimestamp = null; // When the last series of failures started
         private int numberOfFailures = 0;
+
+        public long getDocumentsDownloadedTotalBytes() {
+            return documentsDownloadedTotalBytes;
+        }
+
+        public long getDocumentsDownloadedTotal() {
+            return documentsDownloadedTotal;
+        }
 
         private void download(Bson mongoQueryFilter) throws InterruptedException, TimeoutException {
             failuresStartTimestamp = null; // When the last series of failures started
@@ -614,7 +625,10 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         this.lastIdDownloaded = id;
                         this.documentsDownloadedTotal++;
                         downloadStatics.incrementDocumentsDownloadedTotal();
-                        reportProgress(id);
+                        if (this.documentsDownloadedTotal % 10000 == 0) {
+                            reportProgress(id);
+                        }
+                        TRAVERSAL_LOG.trace(id);
 
                         batch[nextIndex] = next;
                         nextIndex++;
@@ -726,21 +740,30 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         }
 
         private void reportProgress(String id) {
-            if (this.documentsDownloadedTotal % 10000 == 0) {
-                long secondsElapsed = downloadStartWatch.elapsed(TimeUnit.SECONDS);
-                String formattedRate;
-                if (secondsElapsed == 0) {
-                    formattedRate = "N/A nodes/s, N/A nodes/hr, N/A /s";
-                } else {
-                    double docRate = ((double) this.documentsDownloadedTotal) / secondsElapsed;
-                    double bytesRate = ((double) this.documentsDownloadedTotalBytes) / secondsElapsed;
-                    formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr, %s/s",
-                            docRate, docRate * 3600, IOUtils.humanReadableByteCountBin((long) bytesRate));
-                }
-                LOG.info("Dumping from NSET Traversed #{} {} [{}] (Elapsed {})",
-                        this.documentsDownloadedTotal, id, formattedRate, FormattingUtils.formatToSeconds(secondsElapsed));
+            long secondsElapsed = downloadStartWatch.elapsed(TimeUnit.SECONDS);
+            String formattedRate;
+            if (secondsElapsed == 0) {
+                formattedRate = "N/A nodes/s, N/A nodes/hr, N/A /s";
+            } else {
+                double docRate = ((double) this.documentsDownloadedTotal) / secondsElapsed;
+                double bytesRate = ((double) this.documentsDownloadedTotalBytes) / secondsElapsed;
+                formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr, %s/s",
+                        docRate, docRate * 3600, IOUtils.humanReadableByteCountBin((long) bytesRate));
             }
-            TRAVERSAL_LOG.trace(id);
+            String msgPrefix = "";
+            switch (downloadOrder) {
+                case ASCENDING:
+                    msgPrefix = "Dumping in ascending order";
+                    break;
+                case DESCENDING:
+                    msgPrefix = "Dumping in descending order";
+                    break;
+                case UNDEFINED:
+                    msgPrefix = "Dumping ";
+                    break;
+            }
+            LOG.info("{} from NSET Traversed #{} {} [{}] (Elapsed {})",
+                    msgPrefix, this.documentsDownloadedTotal, id, formattedRate, FormattingUtils.formatToSeconds(secondsElapsed));
         }
     }
 }

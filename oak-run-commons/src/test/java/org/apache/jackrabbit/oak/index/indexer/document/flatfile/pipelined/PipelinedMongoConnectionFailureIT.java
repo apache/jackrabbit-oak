@@ -24,6 +24,7 @@ import eu.rekawek.toxiproxy.model.ToxicDirection;
 import eu.rekawek.toxiproxy.model.toxic.LimitData;
 import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
+import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -49,22 +50,14 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 public class PipelinedMongoConnectionFailureIT {
     private static final Logger LOG = LoggerFactory.getLogger(PipelinedMongoConnectionFailureIT.class);
 
-    private static final String MONGO_VERSION = System.getProperty("mongo.version", "5.0");
-    private static final String MONGO_IMAGE = "mongo:" + MONGO_VERSION;
     private static final DockerImageName TOXIPROXY_IMAGE = DockerImageName.parse("ghcr.io/shopify/toxiproxy:2.6.0");
     // We cannot use the MongoDockerRule/MongoConnectionFactory because they don't allow customizing the docker network
     // used to launch the Mongo container.
-    private static final DockerImageName MONGODB_IMAGE = DockerImageName.parse(MONGO_IMAGE);
     private static final int MONGODB_DEFAULT_PORT = 27017;
-
     @Rule
     public final Network network = Network.newNetwork();
     @Rule
-    public final TemporaryFolder sortFolder = new TemporaryFolder();
-    @Rule
-    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
-    @Rule
-    public final MongoDBContainer mongoDBContainer = new MongoDBContainer(MONGODB_IMAGE)
+    public final MongoDBContainer mongoDBContainer = new MongoDBContainer(MongoDockerRule.getDockerImageName())
             .withNetwork(network)
             .withNetworkAliases("mongo")
             .withExposedPorts(MONGODB_DEFAULT_PORT);
@@ -72,6 +65,10 @@ public class PipelinedMongoConnectionFailureIT {
     public final ToxiproxyContainer toxiproxy = new ToxiproxyContainer(TOXIPROXY_IMAGE).withNetwork(network);
     @Rule
     public final DocumentMKBuilderProvider builderProvider = new DocumentMKBuilderProvider();
+    @Rule
+    public final TemporaryFolder sortFolder = new TemporaryFolder();
+    @Rule
+    public final RestoreSystemProperties restoreSystemProperties = new RestoreSystemProperties();
 
     private Proxy proxy;
     private String mongoUri;
