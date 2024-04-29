@@ -22,6 +22,7 @@ import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.index.search.FulltextIndexConstants;
 import org.apache.jackrabbit.oak.plugins.index.search.util.IndexDefinitionBuilder;
 import org.apache.jackrabbit.oak.query.AbstractQueryTest;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -60,6 +61,27 @@ public abstract class FullTextIndexCommonTest extends AbstractQueryTest {
         assertEventually(() -> {
             assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
             assertQuery(query, XPATH, List.of("/test/a", "/test/c", "/test/d"));
+        });
+    }
+
+    @Test
+    @Ignore("OAK-10777")
+    public void fullTextQueryRegExp() throws Exception {
+        Tree index = setup(builder -> builder.indexRule("nt:base").property("propa").analyzed(), idx -> {
+                },
+                "propa");
+
+        // test borrowed from: https://github.com/apache/lucene/issues/11537
+        StringBuilder strBuilder = new StringBuilder();
+        for (int i = 0; i < 50000; i++) {
+            strBuilder.append("b");
+        }
+
+        String query = "//*[rep:native('lucene', '/" + strBuilder + "/')]";
+
+        assertEventually(() -> {
+            assertThat(explain(query, XPATH), containsString(indexOptions.getIndexType() + ":" + index.getName()));
+            assertQuery(query, XPATH, List.of());
         });
     }
 
