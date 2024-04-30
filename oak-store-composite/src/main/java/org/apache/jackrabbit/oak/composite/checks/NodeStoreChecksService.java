@@ -19,9 +19,10 @@ package org.apache.jackrabbit.oak.composite.checks;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.Service;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.composite.MountedNodeStore;
 import org.apache.jackrabbit.oak.plugins.tree.factories.TreeFactory;
@@ -31,15 +32,16 @@ import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(service = {NodeStoreChecks.class})
+@Component
+@Service(NodeStoreChecks.class)
 public class NodeStoreChecksService implements NodeStoreChecks {
     
     private final Logger log = LoggerFactory.getLogger(getClass());
     
-    @Reference(cardinality = ReferenceCardinality.MULTIPLE,
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL_MULTIPLE, 
             bind = "bindChecker", 
             unbind = "unbindChecker",
-            service = MountedNodeStoreChecker.class)
+            referenceInterface = MountedNodeStoreChecker.class)
     private List<MountedNodeStoreChecker<?>> checkers = new CopyOnWriteArrayList<>();
     
     @Reference

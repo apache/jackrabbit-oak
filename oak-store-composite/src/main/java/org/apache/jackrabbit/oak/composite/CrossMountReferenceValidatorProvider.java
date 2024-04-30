@@ -16,12 +16,13 @@
  */
 package org.apache.jackrabbit.oak.composite;
 
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ComponentPropertyType;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.Service;
+import org.apache.jackrabbit.oak.commons.PropertiesUtil;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EditorProvider;
 import org.apache.jackrabbit.oak.spi.commit.Validator;
@@ -29,25 +30,24 @@ import org.apache.jackrabbit.oak.spi.commit.ValidatorProvider;
 import org.apache.jackrabbit.oak.spi.mount.MountInfoProvider;
 import org.apache.jackrabbit.oak.spi.mount.Mounts;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
+import org.osgi.framework.BundleContext;
+
+import java.util.Map;
 
 /**
  * {@link Validator} which detects references crossing the mount boundaries
  */
-@Component(configurationPolicy = ConfigurationPolicy.REQUIRE, service = {ValidatorProvider.class, EditorProvider.class})
+@Component(label = "Apache Jackrabbit Oak CrossMountReferenceValidatorProvider", policy = ConfigurationPolicy.REQUIRE)
+@Property(name = "type", value = "crossMountRefValidator", propertyPrivate = true)
+@Service({ValidatorProvider.class, EditorProvider.class})
 public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
 
-    @ComponentPropertyType
-    @interface Config {
-        @AttributeDefinition
-        String type() default "crossMountRefValidator";
-
-        @AttributeDefinition(
-                name = "Fail when detecting commits cross-mount references",
-                description = "Commits will fail if set to true when detecting cross-mount references. If set to false the commit information is only logged."
-        )
-        boolean failOnDetection() default true;
-    }
-
+    @Property(
+            boolValue = true,
+            label = "Fail when detecting commits cross-mount references",
+            description = "Commits will fail if set to true when detecting cross-mount references. If set to false the commit information is only logged."
+    )
+    private static final String PROP_FAIL_ON_DETECTION = "failOnDetection";
     private boolean failOnDetection;
 
     @Reference
@@ -62,8 +62,8 @@ public class CrossMountReferenceValidatorProvider extends ValidatorProvider {
     }
 
     @Activate
-    private void activate(Config config) {
-        failOnDetection = config.failOnDetection();
+    private void activate(BundleContext bundleContext, Map<String, ?> config) {
+        failOnDetection = PropertiesUtil.toBoolean(config.get(PROP_FAIL_ON_DETECTION), false);
     }
 
     @Override
