@@ -17,15 +17,14 @@
 package org.apache.jackrabbit.oak.composite;
 
 import org.apache.jackrabbit.guava.common.io.Closer;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ComponentPropertyType;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.component.annotations.ReferenceCardinality;
-import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.apache.felix.scr.annotations.Activate;
+import org.apache.felix.scr.annotations.Component;
+import org.apache.felix.scr.annotations.ConfigurationPolicy;
+import org.apache.felix.scr.annotations.Deactivate;
+import org.apache.felix.scr.annotations.Property;
+import org.apache.felix.scr.annotations.Reference;
+import org.apache.felix.scr.annotations.ReferenceCardinality;
+import org.apache.felix.scr.annotations.ReferencePolicy;
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.api.jmx.CheckpointMBean;
 import org.apache.jackrabbit.oak.commons.PropertiesUtil;
@@ -58,7 +57,7 @@ import java.util.Set;
 import static org.apache.jackrabbit.guava.common.collect.Sets.newIdentityHashSet;
 import static java.util.stream.Collectors.toSet;
 
-@Component(configurationPolicy = ConfigurationPolicy.REQUIRE)
+@Component(policy = ConfigurationPolicy.REQUIRE)
 public class CompositeNodeStoreService {
 
     private static final Logger LOG = LoggerFactory.getLogger(CompositeNodeStoreService.class);
@@ -67,9 +66,10 @@ public class CompositeNodeStoreService {
 
     private static final String MOUNT_ROLE_PREFIX = "composite-mount-";
 
-    @Reference(cardinality = ReferenceCardinality.MANDATORY, policy = ReferencePolicy.STATIC)
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_UNARY, policy = ReferencePolicy.STATIC)
     private MountInfoProvider mountInfoProvider;
 
+    @Reference(cardinality = ReferenceCardinality.MANDATORY_MULTIPLE, policy = ReferencePolicy.DYNAMIC, bind = "bindNodeStore", unbind = "unbindNodeStore", referenceInterface = NodeStoreProvider.class, target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
     private List<NodeStoreWithProps> nodeStores = new ArrayList<>();
     
     @Reference
@@ -78,26 +78,22 @@ public class CompositeNodeStoreService {
     @Reference
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
 
-    @ComponentPropertyType
-    @interface Config {
-        @AttributeDefinition(
-                name = "Enable node store checks",
-                description = "Whether the composite node store constraints should be checked before start"
-        )
-        boolean enableChecks() default true;
+    @Property(label = "Enable node store checks",
+            description = "Whether the composite node store constraints should be checked before start",
+            boolValue = true
+    )
+    private static final String ENABLE_CHECKS = "enableChecks";
 
-        @AttributeDefinition(
-                name = "Pre-populate seed mount",
-                description = "Setting this parameter to a mount name will enable pre-populating the empty default store"
-        )
-        String seedMount();
+    @Property(label = "Pre-populate seed mount",
+            description = "Setting this parameter to a mount name will enable pre-populating the empty default store"
+    )
+    private static final String PROP_SEED_MOUNT = "seedMount";
 
-        @AttributeDefinition(
-                name = "Gather path statistics",
-                description = "Whether the CompositeNodeStoreStatsMBean should gather information about the most popular paths (may be expensive)"
-        )
-        boolean pathStats() default false;
-    }
+    @Property(label = "Gather path statistics",
+            description = "Whether the CompositeNodeStoreStatsMBean should gather information about the most popular paths (may be expensive)",
+            boolValue = false
+    )
+    private static final String PATH_STATS = "pathStats";
 
     private ComponentContext context;
 
@@ -116,11 +112,11 @@ public class CompositeNodeStoreService {
     private boolean enableChecks;
 
     @Activate
-    protected void activate(ComponentContext context, Config config) throws IOException, CommitFailedException {
+    protected void activate(ComponentContext context, Map<String, ?> config) throws IOException, CommitFailedException {
         this.context = context;
-        seedMount = config.seedMount();
-        pathStats = config.pathStats();
-        enableChecks = config.enableChecks();
+        seedMount = PropertiesUtil.toString(config.get(PROP_SEED_MOUNT), null);
+        pathStats = PropertiesUtil.toBoolean(config.get(PATH_STATS), false);
+        enableChecks = PropertiesUtil.toBoolean(config.get(ENABLE_CHECKS), true);
         registerCompositeNodeStore();
     }
 
@@ -264,7 +260,6 @@ public class CompositeNodeStoreService {
     }
 
     @SuppressWarnings("unused")
-    @Reference(name = "nodeStores", cardinality = ReferenceCardinality.AT_LEAST_ONE, policy = ReferencePolicy.DYNAMIC, service = NodeStoreProvider.class, target="(!(service.pid=org.apache.jackrabbit.oak.composite.CompositeNodeStore))")
     protected void bindNodeStore(NodeStoreProvider ns, Map<String, ?> config) throws IOException, CommitFailedException {
         NodeStoreWithProps newNs = new NodeStoreWithProps(ns, config);
         nodeStores.add(newNs);
