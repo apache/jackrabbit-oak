@@ -272,6 +272,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     .collect(Collectors.toList());
 
             if (customExcludedPaths.size() > 0) {
+                // Add an AND condition to the existing predicate to filter out paths that are ancestors of the custom excluded paths.
                 predicate = predicate.and(t -> customExcludedPaths.stream().noneMatch(excludedPath -> PathUtils.isAncestor(excludedPath, t)));
             }
         }
