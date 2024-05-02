@@ -53,7 +53,6 @@ import org.apache.jackrabbit.oak.plugins.memory.MemoryNodeStore;
 import org.apache.jackrabbit.oak.plugins.metric.MetricStatisticsProvider;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
-import org.apache.jackrabbit.oak.spi.filter.PathFilter;
 import org.apache.jackrabbit.oak.spi.state.NodeBuilder;
 import org.apache.jackrabbit.oak.spi.state.NodeState;
 import org.apache.jackrabbit.oak.spi.state.NodeStateUtils;
@@ -245,8 +244,6 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
         Set<String> preferredPathElements = indexerSupport.getPreferredPathElements(indexDefinitions);
         Stopwatch incrementalStoreWatch = Stopwatch.createStarted();
         Predicate<String> predicate = indexerSupport.getFilterPredicate(indexDefinitions, Function.identity());
-        List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
-
 
         String customExcludeEntriesRegex = ConfigHelper.getSystemPropertyAsString(
                 OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
