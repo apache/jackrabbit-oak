@@ -57,16 +57,8 @@ public final class DownloadRange {
         if (lastModifiedFrom == lastModifiedToInclusive) {
             filters.add(Filters.eq(NodeDocument.MODIFIED_IN_SECS, lastModifiedFrom));
         } else {
-            if (lastModifiedFrom == 0 && lastModifiedToInclusive == Long.MAX_VALUE) {
-                filters.add(Filters.exists(NodeDocument.MODIFIED_IN_SECS));
-            } else {
-                if (lastModifiedFrom != 0) {
-                    filters.add(Filters.gte(NodeDocument.MODIFIED_IN_SECS, lastModifiedFrom));
-                }
-                if (lastModifiedToInclusive != Long.MAX_VALUE) {
-                    filters.add(Filters.lte(NodeDocument.MODIFIED_IN_SECS, lastModifiedToInclusive));
-                }
-            }
+            filters.add(Filters.gte(NodeDocument.MODIFIED_IN_SECS, lastModifiedFrom));
+            filters.add(Filters.lte(NodeDocument.MODIFIED_IN_SECS, lastModifiedToInclusive));
         }
         if (startAfterDocumentID != null) {
             if (traversingInAscendingOrder) {
