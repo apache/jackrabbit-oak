@@ -91,6 +91,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 import static org.junit.Assert.assertEquals;
@@ -165,36 +168,36 @@ public class IncrementalStoreTest {
 
     @Test
     public void testWithLz4CompressionWithCustomRegexFilter() throws Exception {
-        System.setProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex",
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
                 "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(true, false);
-        System.clearProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex");
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX);
     }
 
     @Test
     public void testWithLz4CompressionWithCustomExcludedPaths() throws Exception {
-        System.setProperty("oak.indexer.pipelined.mongoRegexPathFiltering",
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
                 "true");
-        System.setProperty("oak.indexer.pipelined.mongoCustomExcludedPaths", "/oak:index,/var/foo");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/oak:index,/var/foo");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(false, true);
-        System.clearProperty("oak.indexer.pipelined.mongoRegexPathFiltering");
-        System.clearProperty("oak.indexer.pipelined.mongoCustomExcludedPaths");
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS);
     }
 
     @Test
     public void testWithLz4CompressionWithCustomRegexFilterAndCustomExcludedPaths() throws Exception {
-        System.setProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex",
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
                 "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
-        System.setProperty("oak.indexer.pipelined.mongoRegexPathFiltering",
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
                 "true");
-        System.setProperty("oak.indexer.pipelined.mongoCustomExcludedPaths", "/oak:index,/var/foo");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/oak:index,/var/foo");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(true, true);
-        System.clearProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex");
-        System.clearProperty("oak.indexer.pipelined.mongoRegexPathFiltering");
-        System.clearProperty("oak.indexer.pipelined.mongoCustomExcludedPaths");
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX);
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
+        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS);
     }
 
     /**
