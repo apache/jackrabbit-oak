@@ -78,6 +78,10 @@ import static org.apache.jackrabbit.oak.spi.security.authentication.external.imp
         service = {
                 PrincipalConfiguration.class,
                 SecurityConfiguration.class
+        },
+        property = {
+                "oak.security.name=org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration",
+                "protectExternalId:Boolean=true",
         }
 )
 @Designate(
@@ -122,8 +126,6 @@ public class ExternalPrincipalConfiguration extends ConfigurationBase implements
                 cardinality = 10
         )
         String[] systemPrincipalNames();
-
-        String oak_security_name() default "org.apache.jackrabbit.oak.spi.security.authentication.external.impl.principal.ExternalPrincipalConfiguration";
     }
     
     private SyncConfigTracker syncConfigTracker;

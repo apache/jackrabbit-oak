@@ -47,9 +47,8 @@ public class SynMBeanImplOSGiTest extends ExternalLoginTestBase {
         context.registerService(SyncManager.class, new SyncManagerImpl(whiteboard));
         context.registerService(ExternalIdentityProviderManager.class, new ExternalIDPManagerImpl(whiteboard));
 
-        externalLoginModuleFactory = new ExternalLoginModuleFactory();
+        externalLoginModuleFactory = context.registerInjectActivateService(ExternalLoginModuleFactory.class);
 
-        context.registerInjectActivateService(externalLoginModuleFactory);
         assertSyncBeanRegistration(externalLoginModuleFactory, false);
     }
 

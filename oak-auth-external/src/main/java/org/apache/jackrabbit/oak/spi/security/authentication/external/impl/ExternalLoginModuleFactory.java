@@ -17,6 +17,7 @@
 package org.apache.jackrabbit.oak.spi.security.authentication.external.impl;
 
 import java.util.Map;
+import java.util.Optional;
 import javax.management.MalformedObjectNameException;
 import javax.security.auth.spi.LoginModule;
 
@@ -49,6 +50,8 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.apache.jackrabbit.oak.spi.security.authentication.external.basic.AutoMembershipConfig.PARAM_SYNC_HANDLER_NAME;
+
 /**
  * Implements a LoginModuleFactory that creates {@link ExternalLoginModule}s and allows to configure login modules
  * via OSGi config.
@@ -58,6 +61,11 @@ import org.slf4j.LoggerFactory;
         service = {
                 LoginModuleFactory.class,
                 SyncHandlerMapping.class
+        },
+        property = {
+                LoginModuleFactory.JAAS_RANKING + ":Integer=150",
+                LoginModuleFactory.JAAS_CONTROL_FLAG + ":String=SUFFICIENT",
+                PARAM_SYNC_HANDLER_NAME + ":String=" + DefaultSyncConfig.DEFAULT_NAME
         }
 )
 @Designate(
@@ -109,41 +117,43 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
 
     private static final Logger log = LoggerFactory.getLogger(ExternalLoginModuleFactory.class);
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile SecurityProvider securityProvider;
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile ContentRepository contentRepository;
 
-    @Reference
-    private SyncManager syncManager;
+    private final SyncManager syncManager;
 
-    @Reference
-    private ExternalIdentityProviderManager idpManager;
+    private final ExternalIdentityProviderManager idpManager;
 
     /**
      * default configuration for the login modules
      */
-    private ConfigurationParameters osgiConfig = ConfigurationParameters.EMPTY;
+    private final ConfigurationParameters osgiConfig;
 
-    private BundleContext bundleContext;
+    private final BundleContext bundleContext;
 
     /**
      * whiteboard registration handle of the manager mbean
      */
-    private Registration mbeanRegistration;
+    private volatile Registration mbeanRegistration;
 
     //----------------------------------------------------< SCR integration >---
     /**
      * Activates the LoginModuleFactory service
      * @param context the component context
      */
-    @SuppressWarnings("UnusedDeclaration")
     @Activate
-    private void activate(ComponentContext context) {
-        //noinspection unchecked
-        osgiConfig = ConfigurationParameters.of(context.getProperties());
-        bundleContext = context.getBundleContext();
+    public ExternalLoginModuleFactory(
+            @Reference(name = "syncManager") SyncManager syncManager,
+            @Reference(name = "idpManager") ExternalIdentityProviderManager idpManager,
+            ComponentContext context) {
+        this.syncManager = syncManager;
+        this.idpManager = idpManager;
+
+        this.osgiConfig = Optional.ofNullable(context)
+                .map(ctx -> ConfigurationParameters.of(ctx.getProperties()))
+                .orElse(ConfigurationParameters.EMPTY);
+        this.bundleContext = Optional.ofNullable(context).map(ComponentContext::getBundleContext).orElse(null);
 
         mayRegisterSyncMBean();
     }
@@ -155,6 +165,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     }
 
     @SuppressWarnings("UnusedDeclaration")
+    @Reference(name = "contentRepository", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     public void bindContentRepository(ContentRepository contentRepository) {
         this.contentRepository = contentRepository;
         mayRegisterSyncMBean();
@@ -167,6 +178,7 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     }
 
     @SuppressWarnings("UnusedDeclaration")
+    @Reference(name = "securityProvider", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     public void bindSecurityProvider(SecurityProvider securityProvider) {
         this.securityProvider = securityProvider;
         mayRegisterSyncMBean();
@@ -176,24 +188,6 @@ public class ExternalLoginModuleFactory implements LoginModuleFactory, SyncHandl
     public void unbindSecurityProvider(SecurityProvider securityProvider)  {
         this.securityProvider = null;
         unregisterSyncMBean();
-    }
-
-    public void bindSyncManager(SyncManager syncManager) {
-        this.syncManager = syncManager;
-    }
-
-    @SuppressWarnings("UnusedDeclaration")
-    public void unbindSyncManager(SyncManager syncManager) {
-        this.syncManager = null;
-    }
-
-    public void bindIdpManager(ExternalIdentityProviderManager idpManager) {
-        this.idpManager = idpManager;
-    }
-
-    @SuppressWarnings("UnusedDeclaration")
-    public void unbindIdpManager(ExternalIdentityProviderManager idpManager) {
-        this.idpManager = null;
     }
 
     private void mayRegisterSyncMBean() {
