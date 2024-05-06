@@ -15,6 +15,14 @@
  * limitations under the License.
  */
 
+/*
+ * COPIED FROM APACHE LUCENE 4.7.2
+ *
+ * Git URL: git@github.com:apache/lucene.git, tag: releases/lucene-solr/4.7.2, path: lucene/core/src/java
+ *
+ * (see https://issues.apache.org/jira/browse/OAK-10786 for details)
+ */
+
 package org.apache.lucene.util.packed;
 
 import java.io.IOException;
