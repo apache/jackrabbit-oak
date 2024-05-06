@@ -119,9 +119,10 @@ class Lucene42DocValuesProducer extends DocValuesProducer {
     }
 
     success = false;
+    IndexInput tmp = null;
     try {
       String dataName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, dataExtension);
-      data = state.directory.openInput(dataName, state.context);
+      data = tmp = state.directory.openInput(dataName, state.context);
       final int version2 = CodecUtil.checkHeader(data, dataCodec, 
                                                  VERSION_START,
                                                  VERSION_CURRENT);
@@ -131,8 +132,8 @@ class Lucene42DocValuesProducer extends DocValuesProducer {
 
       success = true;
     } finally {
-      if (!success) {
-        IOUtils.closeWhileHandlingException(this.data);
+      if (!success && tmp != null) {
+        IOUtils.closeWhileHandlingException(tmp);
       }
     }
   }
