@@ -34,7 +34,7 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilde
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_NODE_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_PREV_DOC_CACHE_PERCENTAGE;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.DEFAULT_UPDATE_LIMIT;
-import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_DETAILED_GC_ENABLED;
+import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_FULL_GC_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreService.DEFAULT_THROTTLING_ENABLED;
 
@@ -309,17 +309,17 @@ import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreServic
     long clusterIdReuseDelayAfterRecoveryMillis() default DEFAULT_REUSE_DELAY_AFTER_RECOVERY_MILLIS;
 
     @AttributeDefinition(
-            name = "Document Node Store Detailed GC",
-            description = "Boolean value indicating whether Detailed GC should be enabled for " +
-                    "document node store or not. The Default value is " + DEFAULT_DETAILED_GC_ENABLED +
+            name = "Document Node Store Full GC",
+            description = "Boolean value indicating whether Full GC should be enabled for " +
+                    "document node store or not. The Default value is " + DEFAULT_FULL_GC_ENABLED +
                     ". Note that this value can be overridden via framework " +
-                    "property 'oak.documentstore.detailedGCEnabled'")
-    boolean detailedGCEnabled() default DEFAULT_DETAILED_GC_ENABLED;
+                    "property 'oak.documentstore.fullGCEnabled'")
+    boolean fullGCEnabled() default DEFAULT_FULL_GC_ENABLED;
 
     @AttributeDefinition(
-            name = "Document Node Store Embedded Verification for Detailed GC",
+            name = "Document Node Store Embedded Verification for Full GC",
             description = "Boolean value indicating whether Embedded Verification (i.e. verify the document after " +
-                    "applying changes in memory before any database calls) for Detailed GC should be enabled for " +
+                    "applying changes in memory before any database calls) for Full GC should be enabled for " +
                     "document node store or not. The Default value is " + DEFAULT_EMBEDDED_VERIFICATION_ENABLED +
                     ". Note that this value can be overridden via framework " +
                     "property 'oak.documentstore.embeddedVerificationEnabled'")

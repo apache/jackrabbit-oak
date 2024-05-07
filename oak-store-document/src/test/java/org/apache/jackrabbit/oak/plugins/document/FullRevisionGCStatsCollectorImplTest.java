@@ -34,33 +34,33 @@ import static java.util.concurrent.Executors.newSingleThreadScheduledExecutor;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.commons.lang3.reflect.FieldUtils.readField;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_DELETED_OLD_REVS_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_DELETED_PROPS_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_DETAILED_GARBAGE_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_ORPHAN_NODES_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COLLECT_UNMERGED_BC_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.COUNTER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_ORPHAN_NODE;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_PROPERTY;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETED_UNMERGED_BC;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DELETE_DETAILED_GC_DOCS_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DETAILED_GC;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DETAILED_GC_ACTIVE_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.DETAILED_GC_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.FAILURE_COUNTER;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.READ_DOC;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.SKIPPED_DOC;
-import static org.apache.jackrabbit.oak.plugins.document.DetailedRevisionGCStatsCollectorImpl.UPDATED_DOC;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_DELETED_OLD_REVS_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_DELETED_PROPS_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_DETAILED_GARBAGE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_ORPHAN_NODES_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_UNMERGED_BC_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COUNTER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.DELETED_ORPHAN_NODE;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.DELETED_PROPERTY;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.DELETED_UNMERGED_BC;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.DELETE_FULL_GC_DOCS_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.FULL_GC;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.FULL_GC_ACTIVE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.FULL_GC_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.FAILURE_COUNTER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.READ_DOC;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.SKIPPED_DOC;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.UPDATED_DOC;
 import static org.junit.Assert.assertEquals;
 
 /**
- * Unit Cases for {@link DetailedRevisionGCStatsCollectorImpl}
+ * Unit Cases for {@link FullRevisionGCStatsCollectorImpl}
  */
-public class DetailedRevisionGCStatsCollectorImplTest {
+public class FullRevisionGCStatsCollectorImplTest {
 
     private final ScheduledExecutorService executor = newSingleThreadScheduledExecutor();
     private final MetricStatisticsProvider statsProvider = new MetricStatisticsProvider(getPlatformMBeanServer(), executor);
-    private final DetailedRevisionGCStatsCollectorImpl stats = new DetailedRevisionGCStatsCollectorImpl(statsProvider);
+    private final FullRevisionGCStatsCollectorImpl stats = new FullRevisionGCStatsCollectorImpl(statsProvider);
 
     @After
     public void shutDown(){
@@ -125,25 +125,25 @@ public class DetailedRevisionGCStatsCollectorImplTest {
     @Test
     public void timers() {
         final VersionGarbageCollector.VersionGCStats vgcs = new VersionGarbageCollector.VersionGCStats();
-        vgcs.detailedGCActiveElapsed = MILLISECONDS.toMicros(2);
-        vgcs.detailedGCDocsElapsed = MILLISECONDS.toMicros(3);
+        vgcs.fullGCActiveElapsed = MILLISECONDS.toMicros(2);
+        vgcs.fullGCDocsElapsed = MILLISECONDS.toMicros(3);
         vgcs.collectDetailedGarbageElapsed = MILLISECONDS.toMicros(5);
         vgcs.collectOrphanNodesElapsed = MILLISECONDS.toMicros(6);
         vgcs.collectDeletedPropsElapsed = MILLISECONDS.toMicros(7);
         vgcs.collectDeletedOldRevsElapsed = MILLISECONDS.toMicros(11);
         vgcs.collectUnmergedBCElapsed = MILLISECONDS.toMicros(13);
-        vgcs.deleteDetailedGCDocsElapsed = MILLISECONDS.toMicros(15);
-        vgcs.detailedGCActive.start();
+        vgcs.deleteFullGCDocsElapsed = MILLISECONDS.toMicros(15);
+        vgcs.fullGCActive.start();
 
         stats.finished(vgcs);
-        assertTimer(2, DETAILED_GC_ACTIVE_TIMER);
-        assertTimer(3, DETAILED_GC_TIMER);
+        assertTimer(2, FULL_GC_ACTIVE_TIMER);
+        assertTimer(3, FULL_GC_TIMER);
         assertTimer(5, COLLECT_DETAILED_GARBAGE_TIMER);
         assertTimer(6, COLLECT_ORPHAN_NODES_TIMER);
         assertTimer(7, COLLECT_DELETED_PROPS_TIMER);
         assertTimer(11, COLLECT_DELETED_OLD_REVS_TIMER);
         assertTimer(13, COLLECT_UNMERGED_BC_TIMER);
-        assertTimer(15, DELETE_DETAILED_GC_DOCS_TIMER);
+        assertTimer(15, DELETE_FULL_GC_DOCS_TIMER);
     }
 
     @Test
@@ -169,15 +169,15 @@ public class DetailedRevisionGCStatsCollectorImplTest {
     }
 
     private Timer getTimer(String name) {
-        return statsProvider.getRegistry().getTimers().get(DETAILED_GC + "." + name);
+        return statsProvider.getRegistry().getTimers().get(FULL_GC + "." + name);
     }
 
     private Meter getMeter(String name) {
-        return statsProvider.getRegistry().getMeters().get(DETAILED_GC + "." + name);
+        return statsProvider.getRegistry().getMeters().get(FULL_GC + "." + name);
     }
 
     private Counter getCounter(String name) {
-        return statsProvider.getRegistry().getCounters().get(DETAILED_GC + "." + name);
+        return statsProvider.getRegistry().getCounters().get(FULL_GC + "." + name);
     }
 
 }

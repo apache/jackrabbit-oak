@@ -31,10 +31,10 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -94,21 +94,21 @@ public class RevisionsCommandTest {
     }
 
     @Test
-    public void resetDetailedGC() throws Exception {
-        // need to set detailedGCEnabled to true, so let's bounce the default one
+    public void resetFullGC() throws Exception {
+        // need to set fullGCEnabled to true, so let's bounce the default one
         ns.dispose();
-        // and create it fresh with detailedGCEnabled==true
+        // and create it fresh with fullGCEnabled==true
         ns = createDocumentNodeStore(true);
         ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
 
         Document doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
-        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+        assertNotNull(doc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertNotNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
 
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("reset", "--detailedGCOnly"));
+        String output = captureSystemOut(new RevisionsCmd("reset", "--fullGCOnly"));
         assertTrue(output.contains("resetting recommendations and statistics"));
 
         MongoConnection c = connectionFactory.getConnection();
@@ -117,53 +117,53 @@ public class RevisionsCommandTest {
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
         doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
     }
 
     @Test
-    public void resetDetailedGCWithDetailedGC() throws Exception {
-        // need to set detailedGCEnabled to true, so let's bounce the default one
+    public void resetFullGCWithFullGC() throws Exception {
+        // need to set fullGCEnabled to true, so let's bounce the default one
         ns.dispose();
-        // and create it fresh with detailedGCEnabled==true
+        // and create it fresh with fullGCEnabled==true
         ns = createDocumentNodeStore(true);
         ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
 
         Document doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
-        assertNotNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+        assertNotNull(doc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertNotNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
 
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--resetDetailedGC", "true", "--entireRepo"));
-        assertTrue(output.contains("ResetDetailedGC is enabled : true"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--resetFullGC", "true", "--entireRepo"));
+        assertTrue(output.contains("ResetFullGC is enabled : true"));
 
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         ns = builderProvider.newBuilder().setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
         doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP));
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP));
     }
 
     @Test
     public void resetDryRunFields() throws Exception {
-        // need to set detailedGCEnabled to true, so let's bounce the default one
+        // need to set fullGCEnabled to true, so let's bounce the default one
         ns.dispose();
-        // and create it fresh with detailedGCEnabled==true
+        // and create it fresh with fullGCEnabled==true
         ns = createDocumentNodeStore(true);
         ns.getVersionGarbageCollector().gc(1, TimeUnit.HOURS);
 
         Document doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP));
 
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
 
         MongoConnection c = connectionFactory.getConnection();
@@ -172,8 +172,8 @@ public class RevisionsCommandTest {
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
         doc = ns.getDocumentStore().find(Collection.SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(doc);
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
-        assertNull(doc.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertNull(doc.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP));
     }
 
     @Test
@@ -185,60 +185,60 @@ public class RevisionsCommandTest {
     }
 
     @Test
-    public void detailedGC() {
+    public void fullGC() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
-        assertTrue(output.contains("ResetDetailedGC is enabled : false"));
+        assertTrue(output.contains("ResetFullGC is enabled : false"));
         assertTrue(output.contains("Compaction is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithCompaction() {
+    public void fullGCWithCompaction() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo", "--compact"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo", "--compact"));
         assertTrue(output.contains("DryRun is enabled : true"));
-        assertTrue(output.contains("ResetDetailedGC is enabled : false"));
+        assertTrue(output.contains("ResetFullGC is enabled : false"));
         assertTrue(output.contains("Compaction is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithoutDryRun() {
+    public void fullGCWithoutDryRun() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "false", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--dryRun", "false", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithDryRun() {
+    public void fullGCWithDryRun() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--dryRun", "true", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--dryRun", "true", "--entireRepo"));
         assertTrue(output.contains("DryRun is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithoutResetDetailedGC() {
+    public void fullGCWithoutResetFullGC() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--resetDetailedGC", "false", "--entireRepo"));
-        assertTrue(output.contains("ResetDetailedGC is enabled : false"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--resetFullGC", "false", "--entireRepo"));
+        assertTrue(output.contains("ResetFullGC is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithResetDetailedGC() {
+    public void fullGCWithResetFullGC() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--resetDetailedGC", "true", "--entireRepo"));
-        assertTrue(output.contains("ResetDetailedGC is enabled : true"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--resetFullGC", "true", "--entireRepo"));
+        assertTrue(output.contains("ResetFullGC is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
@@ -246,51 +246,51 @@ public class RevisionsCommandTest {
     public void embeddedVerification() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--entireRepo"));
         assertTrue(output.contains("EmbeddedVerification is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithoutEmbeddedVerification() {
+    public void fullGCWithoutEmbeddedVerification() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "false", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--verify", "false", "--entireRepo"));
         assertTrue(output.contains("EmbeddedVerification is enabled : false"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithEmbeddedVerification() {
+    public void fullGCWithEmbeddedVerification() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "true", "--entireRepo"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--verify", "true", "--entireRepo"));
         assertTrue(output.contains("EmbeddedVerification is enabled : true"));
         assertTrue(output.contains("starting gc collect"));
     }
 
     @Test
-    public void detailedGCWithEmbeddedWithoutEntireRepoOrPath() {
+    public void fullGCWithEmbeddedWithoutEntireRepoOrPath() {
         ns.dispose();
 
-        String errOutput = captureSystemErr(new RevisionsCmd("detailedGC", "--verify", "true"));
-        assertTrue(errOutput.contains("--path or --entireRepo option is required for detailedGC command"));
+        String errOutput = captureSystemErr(new RevisionsCmd("fullGC", "--verify", "true"));
+        assertTrue(errOutput.contains("--path or --entireRepo option is required for fullGC command"));
     }
 
     @Test
-    public void detailedGCWithEmbeddedWithPath() {
+    public void fullGCWithEmbeddedWithPath() {
         ns.dispose();
 
-        String output = captureSystemOut(new RevisionsCmd("detailedGC", "--verify", "true", "--path", "/"));
+        String output = captureSystemOut(new RevisionsCmd("fullGC", "--verify", "true", "--path", "/"));
         assertTrue(output.contains("EmbeddedVerification is enabled : true"));
-        assertTrue(output.contains("running detailedGC on the document: /"));
+        assertTrue(output.contains("running fullGC on the document: /"));
     }
 
     @Test
-    public void detailedGCWithEmbeddedWithNonExistingPath() {
+    public void fullGCWithEmbeddedWithNonExistingPath() {
         ns.dispose();
 
-        String errOutput = captureSystemErr(new RevisionsCmd("detailedGC", "--verify", "true", "--path", "/non-existing-path"));
+        String errOutput = captureSystemErr(new RevisionsCmd("fullGC", "--verify", "true", "--path", "/non-existing-path"));
         assertTrue(errOutput.contains("Document not found: /non-existing-path"));
     }
 
@@ -328,11 +328,11 @@ public class RevisionsCommandTest {
         return createDocumentNodeStore(false);
     }
 
-    private DocumentNodeStore createDocumentNodeStore(boolean detailedGCEnabled) {
+    private DocumentNodeStore createDocumentNodeStore(boolean fullGCEnabled) {
         MongoConnection c = connectionFactory.getConnection();
         assertNotNull(c);
         MongoUtils.dropCollections(c.getDatabase());
-        return builderProvider.newBuilder().setDetailedGCEnabled(detailedGCEnabled)
+        return builderProvider.newBuilder().setFullGCEnabled(fullGCEnabled)
                 .setMongoDB(c.getMongoClient(), c.getDBName()).getNodeStore();
     }
 

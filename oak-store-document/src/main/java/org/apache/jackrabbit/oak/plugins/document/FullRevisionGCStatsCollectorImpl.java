@@ -31,23 +31,23 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 /**
  * {@link DocumentNodeStore} Detailed revision garbage collection statistics.
  */
-class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCollector {
+class FullRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCollector {
 
-    static final String DETAILED_GC = "DetailedGC";
+    static final String FULL_GC = "FullGC";
     static final String READ_DOC = "READ_DOC";
     static final String DELETED_ORPHAN_NODE = "DELETED_ORPHAN_NODE";
     static final String DELETED_PROPERTY = "DELETED_PROPERTY";
     static final String DELETED_UNMERGED_BC = "DELETED_UNMERGED_BC";
     static final String UPDATED_DOC = "UPDATED_DOC";
     static final String SKIPPED_DOC = "SKIPPED_DOC";
-    static final String DETAILED_GC_ACTIVE_TIMER = "DETAILED_GC_ACTIVE_TIMER";
-    static final String DETAILED_GC_TIMER = "DETAILED_GC_TIMER";
+    static final String FULL_GC_ACTIVE_TIMER = "FULL_GC_ACTIVE_TIMER";
+    static final String FULL_GC_TIMER = "FULL_GC_TIMER";
     static final String COLLECT_DETAILED_GARBAGE_TIMER = "COLLECT_DETAILED_GARBAGE_TIMER";
     static final String COLLECT_ORPHAN_NODES_TIMER = "COLLECT_ORPHAN_NODES_TIMER";
     static final String COLLECT_DELETED_PROPS_TIMER = "COLLECT_DELETED_PROPS_TIMER";
     static final String COLLECT_DELETED_OLD_REVS_TIMER = "COLLECT_DELETED_OLD_REVS_TIMER";
     static final String COLLECT_UNMERGED_BC_TIMER = "COLLECT_UNMERGED_BC_TIMER";
-    static final String DELETE_DETAILED_GC_DOCS_TIMER = "DELETE_DETAILED_GC_DOCS_TIMER";
+    static final String DELETE_FULL_GC_DOCS_TIMER = "DELETE_FULL_GC_DOCS_TIMER";
 
     static final String COUNTER = "COUNTER";
     static final String FAILURE_COUNTER = "FAILURE";
@@ -58,19 +58,19 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     private final MeterStats deletedUnmergedBC;
     private final MeterStats updatedDoc;
     private final MeterStats skippedDoc;
-    private final TimerStats detailedGCActiveTimer;
-    private final TimerStats detailedGCTimer;
+    private final TimerStats fullGCActiveTimer;
+    private final TimerStats fullGCTimer;
     private final TimerStats collectDetailedGarbageTimer;
     private final TimerStats collectOrphanNodesTimer;
     private final TimerStats collectDeletedPropsTimer;
     private final TimerStats collectDeletedOldRevsTimer;
     private final TimerStats collectUnmergedBCTimer;
-    private final TimerStats deleteDetailedGCDocsTimer;
+    private final TimerStats deleteFullGCDocsTimer;
 
     private final CounterStats counter;
     private final CounterStats failureCounter;
 
-    DetailedRevisionGCStatsCollectorImpl(StatisticsProvider provider) {
+    FullRevisionGCStatsCollectorImpl(StatisticsProvider provider) {
 
         readDoc = meter(provider, READ_DOC);
         deletedOrphanNode = meter(provider, DELETED_ORPHAN_NODE);
@@ -79,14 +79,14 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
         updatedDoc = meter(provider, UPDATED_DOC);
         skippedDoc = meter(provider, SKIPPED_DOC);
 
-        detailedGCActiveTimer = timer(provider, DETAILED_GC_ACTIVE_TIMER);
-        detailedGCTimer = timer(provider, DETAILED_GC_TIMER);
+        fullGCActiveTimer = timer(provider, FULL_GC_ACTIVE_TIMER);
+        fullGCTimer = timer(provider, FULL_GC_TIMER);
         collectDetailedGarbageTimer = timer(provider, COLLECT_DETAILED_GARBAGE_TIMER);
         collectOrphanNodesTimer = timer(provider, COLLECT_ORPHAN_NODES_TIMER);
         collectDeletedPropsTimer = timer(provider, COLLECT_DELETED_PROPS_TIMER);
         collectDeletedOldRevsTimer = timer(provider, COLLECT_DELETED_OLD_REVS_TIMER);
         collectUnmergedBCTimer = timer(provider, COLLECT_UNMERGED_BC_TIMER);
-        deleteDetailedGCDocsTimer = timer(provider, DELETE_DETAILED_GC_DOCS_TIMER);
+        deleteFullGCDocsTimer = timer(provider, DELETE_FULL_GC_DOCS_TIMER);
 
         counter = counter(provider, COUNTER);
         failureCounter = counter(provider, FAILURE_COUNTER);
@@ -131,14 +131,14 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
 
     @Override
     public void finished(VersionGCStats stats) {
-        detailedGCActiveTimer.update(stats.detailedGCActiveElapsed, MICROSECONDS);
-        detailedGCTimer.update(stats.detailedGCDocsElapsed, MICROSECONDS);
+        fullGCActiveTimer.update(stats.fullGCActiveElapsed, MICROSECONDS);
+        fullGCTimer.update(stats.fullGCDocsElapsed, MICROSECONDS);
         collectDetailedGarbageTimer.update(stats.collectDetailedGarbageElapsed, MICROSECONDS);
         collectOrphanNodesTimer.update(stats.collectOrphanNodesElapsed, MICROSECONDS);
         collectDeletedPropsTimer.update(stats.collectDeletedPropsElapsed, MICROSECONDS);
         collectDeletedOldRevsTimer.update(stats.collectDeletedOldRevsElapsed, MICROSECONDS);
         collectUnmergedBCTimer.update(stats.collectUnmergedBCElapsed, MICROSECONDS);
-        deleteDetailedGCDocsTimer.update(stats.deleteDetailedGCDocsElapsed, MICROSECONDS);
+        deleteFullGCDocsTimer.update(stats.deleteFullGCDocsElapsed, MICROSECONDS);
         if (!stats.success) {
             failureCounter.inc();
         }
@@ -160,7 +160,7 @@ class DetailedRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCol
     }
 
     private static String qualifiedName(String metricName) {
-        return DETAILED_GC + "." + metricName;
+        return FULL_GC + "." + metricName;
     }
 
 }

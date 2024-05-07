@@ -51,15 +51,15 @@ public class VersionGCStatsTest {
         VersionGCStats cumulative = new VersionGCStats();
         cumulative.addRun(stats);
         assertEquals(stats.active.elapsed(MICROSECONDS), cumulative.activeElapsed);
-        assertEquals(stats.detailedGCActive.elapsed(MICROSECONDS), cumulative.detailedGCActiveElapsed);
+        assertEquals(stats.fullGCActive.elapsed(MICROSECONDS), cumulative.fullGCActiveElapsed);
         assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS), cumulative.collectDeletedDocsElapsed);
         assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS), cumulative.checkDeletedDocsElapsed);
         assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS), cumulative.deleteDeletedDocsElapsed);
         assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS), cumulative.collectAndDeleteSplitDocsElapsed);
         assertEquals(stats.sortDocIds.elapsed(MICROSECONDS), cumulative.sortDocIdsElapsed);
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS), cumulative.updateResurrectedDocumentsElapsed);
-        assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS), cumulative.detailedGCDocsElapsed);
-        assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS), cumulative.deleteDetailedGCDocsElapsed);
+        assertEquals(stats.fullGCDocs.elapsed(MICROSECONDS), cumulative.fullGCDocsElapsed);
+        assertEquals(stats.deleteFullGCDocs.elapsed(MICROSECONDS), cumulative.deleteFullGCDocsElapsed);
         assertEquals(stats.collectDetailedGarbage.elapsed(MICROSECONDS), cumulative.collectDetailedGarbageElapsed);
         assertEquals(stats.collectOrphanNodes.elapsed(MICROSECONDS), cumulative.collectOrphanNodesElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS), cumulative.collectDeletedPropsElapsed);
@@ -75,15 +75,15 @@ public class VersionGCStatsTest {
         cumulative.addRun(cumulative);
         // now the stats must have doubled
         assertEquals(stats.active.elapsed(MICROSECONDS) * 2, cumulative.activeElapsed);
-        assertEquals(stats.detailedGCActive.elapsed(MICROSECONDS) * 2, cumulative.detailedGCActiveElapsed);
+        assertEquals(stats.fullGCActive.elapsed(MICROSECONDS) * 2, cumulative.fullGCActiveElapsed);
         assertEquals(stats.collectDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedDocsElapsed);
         assertEquals(stats.checkDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.checkDeletedDocsElapsed);
         assertEquals(stats.deleteDeletedDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDeletedDocsElapsed);
         assertEquals(stats.collectAndDeleteSplitDocs.elapsed(MICROSECONDS) * 2, cumulative.collectAndDeleteSplitDocsElapsed);
         assertEquals(stats.sortDocIds.elapsed(MICROSECONDS) * 2, cumulative.sortDocIdsElapsed);
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS) * 2, cumulative.updateResurrectedDocumentsElapsed);
-        assertEquals(stats.detailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.detailedGCDocsElapsed);
-        assertEquals(stats.deleteDetailedGCDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteDetailedGCDocsElapsed);
+        assertEquals(stats.fullGCDocs.elapsed(MICROSECONDS) * 2, cumulative.fullGCDocsElapsed);
+        assertEquals(stats.deleteFullGCDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteFullGCDocsElapsed);
         assertEquals(stats.collectDetailedGarbage.elapsed(MICROSECONDS) * 2, cumulative.collectDetailedGarbageElapsed);
         assertEquals(stats.collectOrphanNodes.elapsed(MICROSECONDS) * 2, cumulative.collectOrphanNodesElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedPropsElapsed);
@@ -93,15 +93,15 @@ public class VersionGCStatsTest {
 
     private void forEachStopwatch(VersionGCStats stats, Callable c) {
         c.call(stats.active);
-        c.call(stats.detailedGCActive);
+        c.call(stats.fullGCActive);
         c.call(stats.collectDeletedDocs);
         c.call(stats.checkDeletedDocs);
         c.call(stats.deleteDeletedDocs);
         c.call(stats.collectAndDeleteSplitDocs);
         c.call(stats.sortDocIds);
         c.call(stats.updateResurrectedDocuments);
-        c.call(stats.detailedGCDocs);
-        c.call(stats.deleteDetailedGCDocs);
+        c.call(stats.fullGCDocs);
+        c.call(stats.deleteFullGCDocs);
         c.call(stats.collectDetailedGarbage);
         c.call(stats.collectOrphanNodes);
         c.call(stats.collectDeletedProps);

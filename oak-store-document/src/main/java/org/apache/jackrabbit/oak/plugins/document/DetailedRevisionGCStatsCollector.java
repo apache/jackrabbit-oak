@@ -27,49 +27,49 @@ import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.Versio
 public interface DetailedRevisionGCStatsCollector {
 
     /**
-     * Total No. of documents read during DetailedGC phase
+     * Total No. of documents read during FullGC phase
      */
     void documentRead();
 
     /**
-     * No. of orphan nodes deleted during DetailedGC
+     * No. of orphan nodes deleted during FullGC
      * @param numNodes no. of orphan nodes deleted in current cycle
      */
     void orphanNodesDeleted(long numNodes);
 
     /**
-     * No. of properties deleted during DetailedGC
+     * No. of properties deleted during FullGC
      * @param numProps no. of properties deleted in current cycle
      */
     void propertiesDeleted(long numProps);
 
     /**
-     * No. of unmerged (unique) branch commits deleted during DetailedGC
+     * No. of unmerged (unique) branch commits deleted during FullGC
      * @param numCommits no. of unmerged branch commits deleted in current cycle
      */
     void unmergedBranchCommitsDeleted(long numCommits);
 
     /**
-     * No. of documents updated (i.e. have garbage removed) during DetailedGC
+     * No. of documents updated (i.e. have garbage removed) during FullGC
      * @param numDocs no. of documents updated in current cycle
      */
     void documentsUpdated(long numDocs);
 
     /**
      * No. of documents which had skipped update (i.e. have been updated between garbage collection & removal)
-     * during DetailedGC
+     * during FullGC
      * @param numDocs No. of documents which had skipped update in current cycle
      */
     void documentsUpdateSkipped(long numDocs);
 
     /**
-     * No. of times the DetailedGC has started
+     * No. of times the FullGC has started
      */
     void started();
 
     /**
-     * Timer for different phases in DetailedGC
-     * @param stats {@link VersionGCStats} containing DetailedGC phases timer
+     * Timer for different phases in FullGC
+     * @param stats {@link VersionGCStats} containing FullGC phases timer
      */
     void finished(VersionGCStats stats);
 }

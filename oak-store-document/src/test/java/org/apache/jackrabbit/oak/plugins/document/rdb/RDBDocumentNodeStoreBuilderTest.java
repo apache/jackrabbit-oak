@@ -61,19 +61,19 @@ public class RDBDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void detailedGCDisabled() {
+    public void fullGCDisabled() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        builder.setDetailedGCEnabled(true);
-        assertFalse(builder.isDetailedGCEnabled());
+        builder.setFullGCEnabled(true);
+        assertFalse(builder.isFullGCEnabled());
     }
 
     @Test
-    public void detailedGCFeatureToggleDisabled() {
+    public void fullFGCFeatureToggleDisabled() {
         RDBDocumentNodeStoreBuilder builder = new RDBDocumentNodeStoreBuilder();
-        Feature docStoreDetailedGCFeature = mock(Feature.class);
-        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
-        assertNull(builder.getDocStoreDetailedGCFeature());
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        assertNull(builder.getDocStoreFullGCFeature());
     }
 
     @Test

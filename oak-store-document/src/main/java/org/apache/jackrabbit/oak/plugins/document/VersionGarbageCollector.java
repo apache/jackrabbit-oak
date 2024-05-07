@@ -101,9 +101,9 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.REVISIONS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.COMMIT_ROOT_ONLY;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_LEAF;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType.DEFAULT_NO_BRANCH;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode.GAP_ORPHANS;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode.GAP_ORPHANS_EMPTYPROPS;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode.NONE;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.GAP_ORPHANS;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.GAP_ORPHANS_EMPTYPROPS;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode.NONE;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getIdFromPath;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.timestampToString;
 import static org.apache.jackrabbit.oak.stats.StatisticsProvider.NOOP;
@@ -117,8 +117,8 @@ public class VersionGarbageCollector {
     private static final int DELETE_BATCH_SIZE = 450;
     private static final int UPDATE_BATCH_SIZE = 450;
     private static final int PROGRESS_BATCH_SIZE = 10000;
-    private static final int DETAILED_GC_BATCH_SIZE = 1000;
-    private static final int DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE = 64;
+    private static final int FULL_GC_BATCH_SIZE = 1000;
+    private static final int FULL_GC_MISSING_DOCS_TYPE_CACHE_SIZE = 64;
     private static final String STATUS_IDLE = "IDLE";
     private static final String STATUS_INITIALIZING = "INITIALIZING";
     private static final Logger log = getLogger(VersionGarbageCollector.class);
@@ -148,30 +148,30 @@ public class VersionGarbageCollector {
     /**
      * Property name to timestamp till when last detailed-GC run happened
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP = "detailedGCTimeStamp";
+    static final String SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP = "fullGCTimeStamp";
 
     /**
      * Property name to _id till when last detailed-GC run happened
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP = "detailedGCId";
+    static final String SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP = "fullGCId";
 
     /**
      * Property name to timestamp till when last detailed-GC run happened in dryRun mode only
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP = "detailedGCDryRunTimeStamp";
+    static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP = "fullGCDryRunTimeStamp";
 
     /**
      * Property name to _id till when last detailed-GC run happened in dryRun mode only
      */
-    static final String SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP = "detailedGCDryRunId";
+    static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP = "fullGCDryRunId";
 
     /**
-     * During hardening of DetailedGC one can choose level type of garbage should be cleaned up.
+     * During hardening of FullGC one can choose level type of garbage should be cleaned up.
      * Ultimately the goal is to clean up all possible garbage. After hardening these modes
      * might no longer be supported.
      */
-    enum DetailedGCMode {
-        /** no detailed GC is done at all */
+    enum FullGCMode {
+        /** no full GC is done at all */
         NONE,
         /** GC only orphaned nodes with gaps in ancestor docs */
         GAP_ORPHANS,
@@ -205,42 +205,42 @@ public class VersionGarbageCollector {
         ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
     }
 
-    private static DetailedGCMode detailedGcMode = GAP_ORPHANS_EMPTYPROPS;
+    private static FullGCMode fullGcMode = GAP_ORPHANS_EMPTYPROPS;
 
-    static DetailedGCMode getDetailedGcMode() {
-        return detailedGcMode;
+    static FullGCMode getFullGcMode() {
+        return fullGcMode;
     }
 
     private final DocumentNodeStore nodeStore;
     private final DocumentStore ds;
-    private final boolean detailedGCEnabled;
-    private final boolean isDetailedGCDryRun;
+    private final boolean fullGCEnabled;
+    private final boolean isFullGCDryRun;
     private final boolean embeddedVerification;
     private final VersionGCSupport versionStore;
     private final AtomicReference<GCJob> collector = newReference();
     private VersionGCOptions options;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
-    private DetailedRevisionGCStatsCollector detailedGCStats = new DetailedRevisionGCStatsCollectorImpl(NOOP);
+    private DetailedRevisionGCStatsCollector fullGCStats = new FullRevisionGCStatsCollectorImpl(NOOP);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
-                            final boolean detailedGCEnabled,
-                            final boolean isDetailedGCDryRun,
+                            final boolean fullGCEnabled,
+                            final boolean isFullGCDryRun,
                             final boolean embeddedVerification) {
         this.nodeStore = nodeStore;
         this.versionStore = gcSupport;
         this.ds = gcSupport.getDocumentStore();
-        this.detailedGCEnabled = detailedGCEnabled;
-        this.isDetailedGCDryRun = isDetailedGCDryRun;
+        this.fullGCEnabled = fullGCEnabled;
+        this.isFullGCDryRun = isFullGCDryRun;
         this.embeddedVerification = embeddedVerification;
         this.options = new VersionGCOptions();
-        AUDIT_LOG.info("<init> VersionGarbageCollector created with detailedGcMode = {}", detailedGcMode);
+        AUDIT_LOG.info("<init> VersionGarbageCollector created with fullGcMode = {}", fullGcMode);
     }
 
     void setStatisticsProvider(StatisticsProvider provider) {
         this.gcStats = new RevisionGCStats(provider);
-        this.detailedGCStats = new DetailedRevisionGCStatsCollectorImpl(provider);
+        this.fullGCStats = new FullRevisionGCStatsCollectorImpl(provider);
     }
 
     @NotNull
@@ -259,8 +259,8 @@ public class VersionGarbageCollector {
             VersionGCStats overall = new VersionGCStats();
             overall.active.start();
             gcStats.started();
-            if (detailedGCEnabled) {
-                detailedGCStats.started();
+            if (fullGCEnabled) {
+                fullGCStats.started();
             }
             boolean success = false;
             try {
@@ -287,8 +287,8 @@ public class VersionGarbageCollector {
                 collector.set(null);
                 overall.success = success;
                 gcStats.finished(overall);
-                if (detailedGCEnabled) {
-                    detailedGCStats.finished(overall);
+                if (fullGCEnabled) {
+                    fullGCStats.finished(overall);
                 }
                 if (overall.iterationCount > 1) {
                     gcMonitor.info("Revision garbage collection finished after {} iterations - aggregate statistics: {}",
@@ -332,17 +332,17 @@ public class VersionGarbageCollector {
         ds.remove(SETTINGS, SETTINGS_COLLECTION_ID);
     }
 
-    public void resetDetailedGC() {
+    public void resetFullGC() {
         UpdateOp op = new UpdateOp(SETTINGS_COLLECTION_ID, false);
-        op.remove(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP);
-        op.remove(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP);
+        op.remove(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP);
+        op.remove(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP);
         ds.findAndUpdate(SETTINGS, op);
     }
 
     public void resetDryRun() {
         UpdateOp op = new UpdateOp(SETTINGS_COLLECTION_ID, false);
-        op.remove(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP);
-        op.remove(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP);
+        op.remove(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP);
+        op.remove(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP);
         ds.findAndUpdate(SETTINGS, op);
     }
 
@@ -351,7 +351,7 @@ public class VersionGarbageCollector {
         long maxRevisionAgeInMillis = unit.toMillis(maxRevisionAge);
         long now = nodeStore.getClock().getTime();
         VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                nodeStore.getClock(), versionStore, options, gcMonitor, detailedGCEnabled, isDetailedGCDryRun);
+                nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled, isFullGCDryRun);
         int estimatedIterations = -1;
         if (rec.suggestedIntervalMs > 0) {
             estimatedIterations = (int)Math.ceil((double) (now - rec.scope.toMs) / rec.suggestedIntervalMs);
@@ -359,7 +359,7 @@ public class VersionGarbageCollector {
         return new VersionGCInfo(rec.lastOldestTimestamp, rec.scope.fromMs,
                 rec.deleteCandidateCount, rec.maxCollect,
                 rec.suggestedIntervalMs, rec.scope.toMs, estimatedIterations,
-                rec.scopeDetailedGC.fromMs);
+                rec.scopeFullGC.fromMs);
     }
 
     public static class VersionGCInfo {
@@ -370,7 +370,7 @@ public class VersionGarbageCollector {
         public final long recommendedCleanupInterval;
         public final long recommendedCleanupTimestamp;
         public final int estimatedIterations;
-        public final long oldestDetailedGCRevisionEstimate;
+        public final long oldestFullGCRevisionEstimate;
 
         VersionGCInfo(long lastSuccess,
                       long oldestRevisionEstimate,
@@ -379,7 +379,7 @@ public class VersionGarbageCollector {
                       long recommendedCleanupInterval,
                       long recommendedCleanupTimestamp,
                       int estimatedIterations,
-                      long oldestDetailedGCRevisionEstimate) {
+                      long oldestFullGCRevisionEstimate) {
             this.lastSuccess = lastSuccess;
             this.oldestRevisionEstimate = oldestRevisionEstimate;
             this.revisionsCandidateCount = revisionsCandidateCount;
@@ -387,14 +387,14 @@ public class VersionGarbageCollector {
             this.recommendedCleanupInterval = recommendedCleanupInterval;
             this.recommendedCleanupTimestamp = recommendedCleanupTimestamp;
             this.estimatedIterations = estimatedIterations;
-            this.oldestDetailedGCRevisionEstimate = oldestDetailedGCRevisionEstimate;
+            this.oldestFullGCRevisionEstimate = oldestFullGCRevisionEstimate;
         }
     }
 
     public static class VersionGCStats {
         boolean ignoredGCDueToCheckPoint;
-        boolean detailedGCDryRunMode;
-        boolean ignoredDetailedGCDueToCheckPoint;
+        boolean fullGCDryRunMode;
+        boolean ignoredFullGCDueToCheckPoint;
         boolean canceled;
         boolean success = true;
         boolean limitExceeded;
@@ -407,8 +407,8 @@ public class VersionGarbageCollector {
         int updateResurrectedGCCount;
         long oldestModifiedDocTimeStamp;
         String oldestModifiedDocId;
-        int updatedDetailedGCDocsCount;
-        int skippedDetailedGCDocsCount;
+        int updatedFullGCDocsCount;
+        int skippedFullGCDocsCount;
         int deletedPropsCount;
         int deletedInternalPropsCount;
         int deletedPropRevsCount;
@@ -417,11 +417,11 @@ public class VersionGarbageCollector {
         int deletedOrphanNodesCount;
         final TimeDurationFormatter df = TimeDurationFormatter.forLogging();
         final Stopwatch active = Stopwatch.createUnstarted();
-        final Stopwatch detailedGCActive = Stopwatch.createUnstarted();
+        final Stopwatch fullGCActive = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch checkDeletedDocs = Stopwatch.createUnstarted();
-        final Stopwatch detailedGCDocs = Stopwatch.createUnstarted();
-        final Stopwatch deleteDetailedGCDocs = Stopwatch.createUnstarted();
+        final Stopwatch fullGCDocs = Stopwatch.createUnstarted();
+        final Stopwatch deleteFullGCDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
@@ -432,16 +432,16 @@ public class VersionGarbageCollector {
         final Stopwatch collectDeletedProps = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedOldRevs = Stopwatch.createUnstarted();
         final Stopwatch collectUnmergedBC = Stopwatch.createUnstarted();
-        long activeElapsed, detailedGCActiveElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed,
+        long activeElapsed, fullGCActiveElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed,
                 collectAndDeleteSplitDocsElapsed, deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed,
-                detailedGCDocsElapsed, collectDetailedGarbageElapsed, collectOrphanNodesElapsed, collectDeletedPropsElapsed,
-                deleteDetailedGCDocsElapsed, collectDeletedOldRevsElapsed, collectUnmergedBCElapsed;
+                fullGCDocsElapsed, collectDetailedGarbageElapsed, collectOrphanNodesElapsed, collectDeletedPropsElapsed,
+                deleteFullGCDocsElapsed, collectDeletedOldRevsElapsed, collectUnmergedBCElapsed;
 
         @Override
         public String toString() {
             String timings;
             String fmt = "timeToCollectDeletedDocs=%s, timeToCheckDeletedDocs=%s, timeToSortDocIds=%s, timeTakenToUpdateResurrectedDocs=%s, timeTakenToDeleteDeletedDocs=%s, timeTakenToCollectAndDeleteSplitDocs=%s%s, " +
-                    "timeToRunDetailedGC=%s, which includes [timeToDeleteDetailedGarbage=%s and timeToCollectDetailedGarbage=%s, (of which timeToCollectOrphanNodes=%s timeToCollectDeletedProps=%s, timeToCollectOldRevs=%s, timeToCollectUnmergedBranchCommits=%s)]";
+                    "timeToRunFullGC=%s, which includes [timeToDeleteDetailedGarbage=%s and timeToCollectDetailedGarbage=%s, (of which timeToCollectOrphanNodes=%s timeToCollectDeletedProps=%s, timeToCollectOldRevs=%s, timeToCollectUnmergedBranchCommits=%s)]";
 
             // aggregated timings?
             if (iterationCount > 0) {
@@ -456,8 +456,8 @@ public class VersionGarbageCollector {
                         df.format(deleteDeletedDocsElapsed, MICROSECONDS),
                         df.format(collectAndDeleteSplitDocsElapsed, MICROSECONDS),
                         timeDeletingSplitDocs,
-                        df.format(detailedGCDocsElapsed, MICROSECONDS),
-                        df.format(deleteDetailedGCDocsElapsed, MICROSECONDS),
+                        df.format(fullGCDocsElapsed, MICROSECONDS),
+                        df.format(deleteFullGCDocsElapsed, MICROSECONDS),
                         df.format(collectDetailedGarbageElapsed, MICROSECONDS),
                         df.format(collectOrphanNodesElapsed, MICROSECONDS),
                         df.format(collectDeletedPropsElapsed, MICROSECONDS),
@@ -476,8 +476,8 @@ public class VersionGarbageCollector {
                         df.format(deleteDeletedDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectAndDeleteSplitDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         timeDeletingSplitDocs,
-                        df.format(detailedGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(deleteDetailedGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                        df.format(fullGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
+                        df.format(deleteFullGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDetailedGarbage.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectOrphanNodes.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDeletedProps.elapsed(MICROSECONDS), MICROSECONDS),
@@ -487,8 +487,8 @@ public class VersionGarbageCollector {
 
             return "VersionGCStats{" +
                     "ignoredGCDueToCheckPoint=" + ignoredGCDueToCheckPoint +
-                    ", detailedGCDryRunMode=" + detailedGCDryRunMode +
-                    ", ignoredDetailedGCDueToCheckPoint=" + ignoredDetailedGCDueToCheckPoint +
+                    ", fullGCDryRunMode=" + fullGCDryRunMode +
+                    ", ignoredFullGCDueToCheckPoint=" + ignoredFullGCDueToCheckPoint +
                     ", canceled=" + canceled +
                     ", deletedDocGCCount=" + deletedDocGCCount + " (of which leaf: " + deletedLeafDocGCCount + ")" +
                     ", updateResurrectedGCCount=" + updateResurrectedGCCount +
@@ -496,8 +496,8 @@ public class VersionGarbageCollector {
                     ", intermediateSplitDocGCCount=" + intermediateSplitDocGCCount +
                     ", oldestModifiedDocId=" + oldestModifiedDocId +
                     ", oldestModifiedDocTimeStamp=" + timestampToString(oldestModifiedDocTimeStamp) +
-                    ", updatedDetailedGCDocsCount=" + updatedDetailedGCDocsCount +
-                    ", skippedDetailedGCDocsCount=" + skippedDetailedGCDocsCount +
+                    ", updatedFullGCDocsCount=" + updatedFullGCDocsCount +
+                    ", skippedFullGCDocsCount=" + skippedFullGCDocsCount +
                     ", deletedPropsCount=" + deletedPropsCount +
                     ", deletedInternalPropsCount=" + deletedInternalPropsCount +
                     ", deletedPropRevsCount=" + deletedPropRevsCount +
@@ -505,7 +505,7 @@ public class VersionGarbageCollector {
                     ", deletedUnmergedBCCount=" + deletedUnmergedBCCount +
                     ", deletedOrphanNodesCount=" + deletedOrphanNodesCount +
                     ", iterationCount=" + iterationCount +
-                    ", timeDetailedGCActive=" + df.format(detailedGCActiveElapsed, MICROSECONDS) +
+                    ", timeFullGCActive=" + df.format(fullGCActiveElapsed, MICROSECONDS) +
                     ", timeActive=" + df.format(activeElapsed, MICROSECONDS) +
                     ", " + timings + "}";
         }
@@ -513,8 +513,8 @@ public class VersionGarbageCollector {
         void addRun(VersionGCStats run) {
             ++iterationCount;
             this.ignoredGCDueToCheckPoint = run.ignoredGCDueToCheckPoint;
-            this.detailedGCDryRunMode = run.detailedGCDryRunMode;
-            this.ignoredDetailedGCDueToCheckPoint = run.ignoredDetailedGCDueToCheckPoint;
+            this.fullGCDryRunMode = run.fullGCDryRunMode;
+            this.ignoredFullGCDueToCheckPoint = run.ignoredFullGCDueToCheckPoint;
             this.canceled = run.canceled;
             this.success = run.success;
             this.limitExceeded = run.limitExceeded;
@@ -526,8 +526,8 @@ public class VersionGarbageCollector {
             this.updateResurrectedGCCount += run.updateResurrectedGCCount;
             this.oldestModifiedDocTimeStamp = run.oldestModifiedDocTimeStamp;
             this.oldestModifiedDocId = run.oldestModifiedDocId;
-            this.updatedDetailedGCDocsCount += run.updatedDetailedGCDocsCount;
-            this.skippedDetailedGCDocsCount += run.skippedDetailedGCDocsCount;
+            this.updatedFullGCDocsCount += run.updatedFullGCDocsCount;
+            this.skippedFullGCDocsCount += run.skippedFullGCDocsCount;
             this.deletedPropsCount += run.deletedPropsCount;
             this.deletedInternalPropsCount += run.deletedInternalPropsCount;
             this.deletedPropRevsCount += run.deletedPropRevsCount;
@@ -537,7 +537,7 @@ public class VersionGarbageCollector {
             if (run.iterationCount > 0) {
                 // run is cumulative with times in elapsed fields
                 this.activeElapsed += run.activeElapsed;
-                this.detailedGCActiveElapsed += run.detailedGCActiveElapsed;
+                this.fullGCActiveElapsed += run.fullGCActiveElapsed;
                 this.collectDeletedDocsElapsed += run.collectDeletedDocsElapsed;
                 this.checkDeletedDocsElapsed += run.checkDeletedDocsElapsed;
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocsElapsed;
@@ -545,8 +545,8 @@ public class VersionGarbageCollector {
                 this.deleteSplitDocsElapsed += run.deleteSplitDocsElapsed;
                 this.sortDocIdsElapsed += run.sortDocIdsElapsed;
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocumentsElapsed;
-                this.detailedGCDocsElapsed += run.detailedGCDocsElapsed;
-                this.deleteDetailedGCDocsElapsed += run.deleteDetailedGCDocsElapsed;
+                this.fullGCDocsElapsed += run.fullGCDocsElapsed;
+                this.deleteFullGCDocsElapsed += run.deleteFullGCDocsElapsed;
                 this.collectDetailedGarbageElapsed += run.collectDetailedGarbageElapsed;
                 this.collectOrphanNodesElapsed += run.collectOrphanNodesElapsed;
                 this.collectDeletedPropsElapsed += run.collectDeletedPropsElapsed;
@@ -555,7 +555,7 @@ public class VersionGarbageCollector {
             } else {
                 // single run -> read from stop watches
                 this.activeElapsed += run.active.elapsed(MICROSECONDS);
-                this.detailedGCActiveElapsed += run.detailedGCActive.elapsed(MICROSECONDS);
+                this.fullGCActiveElapsed += run.fullGCActive.elapsed(MICROSECONDS);
                 this.collectDeletedDocsElapsed += run.collectDeletedDocs.elapsed(MICROSECONDS);
                 this.checkDeletedDocsElapsed += run.checkDeletedDocs.elapsed(MICROSECONDS);
                 this.deleteDeletedDocsElapsed += run.deleteDeletedDocs.elapsed(MICROSECONDS);
@@ -563,8 +563,8 @@ public class VersionGarbageCollector {
                 this.deleteSplitDocsElapsed += run.deleteSplitDocs.elapsed(MICROSECONDS);
                 this.sortDocIdsElapsed += run.sortDocIds.elapsed(MICROSECONDS);
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
-                this.detailedGCDocsElapsed += run.detailedGCDocs.elapsed(MICROSECONDS);
-                this.deleteDetailedGCDocsElapsed += run.deleteDetailedGCDocs.elapsed(MICROSECONDS);
+                this.fullGCDocsElapsed += run.fullGCDocs.elapsed(MICROSECONDS);
+                this.deleteFullGCDocsElapsed += run.deleteFullGCDocs.elapsed(MICROSECONDS);
                 this.collectDetailedGarbageElapsed += run.collectDetailedGarbage.elapsed(MICROSECONDS);
                 this.collectOrphanNodesElapsed += run.collectOrphanNodes.elapsed(MICROSECONDS);
                 this.collectDeletedPropsElapsed += run.collectDeletedProps.elapsed(MICROSECONDS);
@@ -581,13 +581,13 @@ public class VersionGarbageCollector {
         DELETING,
         SORTING,
         SPLITS_CLEANUP,
-        DETAILED_GC,
-        DETAILED_GC_COLLECT_GARBAGE,
-        DETAILED_GC_COLLECT_ORPHAN_NODES,
-        DETAILED_GC_COLLECT_PROPS,
-        DETAILED_GC_COLLECT_OLD_REVS,
-        DETAILED_GC_COLLECT_UNMERGED_BC,
-        DETAILED_GC_CLEANUP,
+        FULL_GC,
+        FULL_GC_COLLECT_GARBAGE,
+        FULL_GC_COLLECT_ORPHAN_NODES,
+        FULL_GC_COLLECT_PROPS,
+        FULL_GC_COLLECT_OLD_REVS,
+        FULL_GC_COLLECT_UNMERGED_BC,
+        FULL_GC_CLEANUP,
         UPDATING
     }
 
@@ -616,13 +616,13 @@ public class VersionGarbageCollector {
             this.watches.put(GCPhase.SORTING, stats.sortDocIds);
             this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
             this.watches.put(GCPhase.UPDATING, stats.updateResurrectedDocuments);
-            this.watches.put(GCPhase.DETAILED_GC, stats.detailedGCDocs);
-            this.watches.put(GCPhase.DETAILED_GC_COLLECT_GARBAGE, stats.collectDetailedGarbage);
-            this.watches.put(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES, stats.collectOrphanNodes);
-            this.watches.put(GCPhase.DETAILED_GC_COLLECT_PROPS, stats.collectDeletedProps);
-            this.watches.put(GCPhase.DETAILED_GC_COLLECT_OLD_REVS, stats.collectDeletedOldRevs);
-            this.watches.put(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC, stats.collectUnmergedBC);
-            this.watches.put(GCPhase.DETAILED_GC_CLEANUP, stats.deleteDetailedGCDocs);
+            this.watches.put(GCPhase.FULL_GC, stats.fullGCDocs);
+            this.watches.put(GCPhase.FULL_GC_COLLECT_GARBAGE, stats.collectDetailedGarbage);
+            this.watches.put(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES, stats.collectOrphanNodes);
+            this.watches.put(GCPhase.FULL_GC_COLLECT_PROPS, stats.collectDeletedProps);
+            this.watches.put(GCPhase.FULL_GC_COLLECT_OLD_REVS, stats.collectDeletedOldRevs);
+            this.watches.put(GCPhase.FULL_GC_COLLECT_UNMERGED_BC, stats.collectUnmergedBC);
+            this.watches.put(GCPhase.FULL_GC_CLEANUP, stats.deleteFullGCDocs);
             this.canceled = canceled;
         }
 
@@ -731,11 +731,11 @@ public class VersionGarbageCollector {
             VersionGCStats stats = new VersionGCStats();
             stats.active.start();
             VersionGCRecommendations rec = new VersionGCRecommendations(maxRevisionAgeInMillis, nodeStore.getCheckpoints(),
-                    nodeStore.getClock(), versionStore, options, gcMonitor, detailedGCEnabled, isDetailedGCDryRun);
+                    nodeStore.getClock(), versionStore, options, gcMonitor, fullGCEnabled, isFullGCDryRun);
             GCPhases phases = new GCPhases(cancel, stats, gcMonitor);
             try {
-                if (!isDetailedGCDryRun) {
-                    // only run if not detailedGC dryRun mode
+                if (!isFullGCDryRun) {
+                    // only run if not fullGC dryRun mode
                     if (rec.ignoreDueToCheckPoint) {
                         phases.stats.ignoredGCDueToCheckPoint = true;
                         monitor.skipped("Checkpoint prevented revision garbage collection");
@@ -748,23 +748,23 @@ public class VersionGarbageCollector {
                         collectSplitDocuments(phases, sweepRevisions, rec);
                     }
                 } else {
-                    phases.stats.detailedGCDryRunMode = true;
+                    phases.stats.fullGCDryRunMode = true;
                 }
 
-                // now run detailed GC if enabled
-                if (detailedGCEnabled) {
-                    stats.detailedGCActive.start();
-                    if (rec.ignoreDetailedGCDueToCheckPoint) {
-                        phases.stats.ignoredDetailedGCDueToCheckPoint = true;
+                // now run full GC if enabled
+                if (fullGCEnabled) {
+                    stats.fullGCActive.start();
+                    if (rec.ignoreFullGCDueToCheckPoint) {
+                        phases.stats.ignoredFullGCDueToCheckPoint = true;
                         monitor.skipped("Checkpoint prevented detailed revision garbage collection");
                     } else {
                         final RevisionVector headRevision = nodeStore.getHeadRevision();
-                        monitor.info("Looking at revisions in {} for detailed GC", rec.scopeDetailedGC);
+                        monitor.info("Looking at revisions in {} for full GC", rec.scopeFullGC);
                         collectDetailedGarbage(phases, headRevision, rec);
                     }
                 }
 
-                if ((!detailedGCEnabled || rec.ignoreDetailedGCDueToCheckPoint) && rec.ignoreDueToCheckPoint) {
+                if ((!fullGCEnabled || rec.ignoreFullGCDueToCheckPoint) && rec.ignoreDueToCheckPoint) {
                     // cancel if both are stopped by checkpoint
                     // otherwise we need to continue
                     cancel.set(true);
@@ -780,9 +780,9 @@ public class VersionGarbageCollector {
             rec.evaluate(stats);
             monitor.info("Revision garbage collection finished in {}. {}",
                     TimeDurationFormatter.forLogging().format(phases.elapsed.elapsed(MICROSECONDS), MICROSECONDS), stats);
-            if (detailedGCEnabled && stats.detailedGCActive.isRunning()) {
+            if (fullGCEnabled && stats.fullGCActive.isRunning()) {
                 // probably limitExceeded == true case
-                stats.detailedGCActive.stop();
+                stats.fullGCActive.stop();
             }
             stats.active.stop();
             return stats;
@@ -807,9 +807,9 @@ public class VersionGarbageCollector {
          */
         private void collectDetailedGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec) {
 
-            final long oldestModifiedMs = rec.scopeDetailedGC.fromMs;
-            final long toModifiedMs = rec.scopeDetailedGC.toMs;
-            final String oldestModifiedDocId = rec.detailedGCId;
+            final long oldestModifiedMs = rec.scopeFullGC.fromMs;
+            final long toModifiedMs = rec.scopeFullGC.toMs;
+            final String oldestModifiedDocId = rec.fullGCId;
 
             int docsTraversed = 0;
             boolean foundDoc = true;
@@ -817,15 +817,15 @@ public class VersionGarbageCollector {
             final LinkedHashMap<Path, Boolean> missingDocsTypes = new LinkedHashMap<>() {
                 @Override
                 protected boolean removeEldestEntry(Entry<Path, Boolean> eldest) {
-                    return size() > DETAILED_GC_MISSING_DOCS_TYPE_CACHE_SIZE;
+                    return size() > FULL_GC_MISSING_DOCS_TYPE_CACHE_SIZE;
                 }
             };
 
-            try (DetailedGC gc = new DetailedGC(headRevision, toModifiedMs, missingDocsTypes, monitor, cancel)) {
+            try (FullGC gc = new FullGC(headRevision, toModifiedMs, missingDocsTypes, monitor, cancel)) {
                 long fromModifiedMs = oldestModifiedMs;
                 String fromId = ofNullable(oldestModifiedDocId).orElse(MIN_ID_VALUE);
                 NodeDocument lastDoc;
-                if (phases.start(GCPhase.DETAILED_GC)) {
+                if (phases.start(GCPhase.FULL_GC)) {
                     while (foundDoc && fromModifiedMs < toModifiedMs && docsTraversed < PROGRESS_BATCH_SIZE) {
                         // set foundDoc to false to allow exiting the while loop
                         foundDoc = false;
@@ -833,7 +833,7 @@ public class VersionGarbageCollector {
                         if (log.isDebugEnabled()) {
                             log.debug("Fetching docs from [{}] to [{}] with Id starting from [{}]", timestampToString(fromModifiedMs), timestampToString(toModifiedMs), fromId);
                         }
-                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, DETAILED_GC_BATCH_SIZE, fromId);
+                        Iterable<NodeDocument> itr = versionStore.getModifiedDocs(fromModifiedMs, toModifiedMs, FULL_GC_BATCH_SIZE, fromId);
                         try {
                             for (NodeDocument doc : itr) {
                                 foundDoc = true;
@@ -850,23 +850,23 @@ public class VersionGarbageCollector {
 
                                 lastDoc = doc;
                                 // collect the data to delete in next step
-                                if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
+                                if (phases.start(GCPhase.FULL_GC_COLLECT_GARBAGE)) {
                                     gc.collectGarbage(doc, phases);
-                                    phases.stop(GCPhase.DETAILED_GC_COLLECT_GARBAGE);
+                                    phases.stop(GCPhase.FULL_GC_COLLECT_GARBAGE);
                                 }
 
                                 final Long modified = lastDoc.getModified();
                                 if (modified == null) {
-                                    monitor.warn("collectDetailedGarbage : document has no _modified property : {}", doc.getId());
+                                    monitor.warn("collectFullGarbage : document has no _modified property : {}", doc.getId());
                                 } else if (SECONDS.toMillis(modified) < fromModifiedMs) {
-                                    monitor.warn("collectDetailedGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
+                                    monitor.warn("collectFullGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
                                             modified, timestampToString(fromModifiedMs), timestampToString(toModifiedMs));
                                 }
                             }
                             // now remove the garbage in one go, if any
-                            if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
+                            if (gc.hasGarbage() && phases.start(GCPhase.FULL_GC_CLEANUP)) {
                                 gc.removeGarbage(phases.stats);
-                                phases.stop(GCPhase.DETAILED_GC_CLEANUP);
+                                phases.stop(GCPhase.FULL_GC_CLEANUP);
                             }
                             if (lastDoc != null) {
                                 fromModifiedMs = lastDoc.getModified() == null ? oldModifiedMs : SECONDS.toMillis(lastDoc.getModified());
@@ -890,7 +890,7 @@ public class VersionGarbageCollector {
                             foundDoc = true; // to run while loop again
                         }
                     }
-                    phases.stop(GCPhase.DETAILED_GC);
+                    phases.stop(GCPhase.FULL_GC);
                 }
             } finally {
                 if (docsTraversed < PROGRESS_BATCH_SIZE) {
@@ -991,7 +991,7 @@ public class VersionGarbageCollector {
         }
     }
 
-    private class DetailedGC implements Closeable {
+    private class FullGC implements Closeable {
 
         private final long toModifiedMs;
         private final GCMonitor monitor;
@@ -1033,7 +1033,7 @@ public class VersionGarbageCollector {
 
         /**
          * {@link Set} of unmergedBranchCommit Revisions to calculate the no. of unmergedBranchCommits that would be
-         * removed in this iteration of DetailedGC.
+         * removed in this iteration of FullGC.
          */
         private final Set<Revision> deletedUnmergedBCSet;
         private int garbageDocsCount;
@@ -1044,9 +1044,9 @@ public class VersionGarbageCollector {
         /** small cache for classification of missing nodes : documents that do not exist vs deleted nodes */
         private final LinkedHashMap<Path, Boolean> missingDocsTypes;
 
-        public DetailedGC(@NotNull RevisionVector headRevision, long toModifiedMs,
-                LinkedHashMap<Path, Boolean> missingDocsTypes, @NotNull GCMonitor monitor,
-                @NotNull AtomicBoolean cancel) {
+        public FullGC(@NotNull RevisionVector headRevision, long toModifiedMs,
+                      LinkedHashMap<Path, Boolean> missingDocsTypes, @NotNull GCMonitor monitor,
+                      @NotNull AtomicBoolean cancel) {
             this.toModifiedMs = toModifiedMs;
             this.missingDocsTypes = missingDocsTypes;
             this.monitor = monitor;
@@ -1066,12 +1066,12 @@ public class VersionGarbageCollector {
         }
 
         public void collectGarbage(final NodeDocument doc, final GCPhases phases) {
-            if (detailedGcMode == NONE) {
-                monitor.warn("Skipping DetailedGC. No Mode has been selected.");
+            if (fullGcMode == NONE) {
+                monitor.warn("Skipping FullGC. No Mode has been selected.");
                 return;
             }
 
-            detailedGCStats.documentRead();
+            fullGCStats.documentRead();
             monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
 
             if (AUDIT_LOG.isTraceEnabled()) {
@@ -1093,7 +1093,7 @@ public class VersionGarbageCollector {
 
             if (!isDeletedOrOrphanedNode(traversedState, greatestExistingAncestorOrSelf, phases, doc)) {
                 // here the node is not orphaned which means that we can reach the node from root
-                switch(detailedGcMode) {
+                switch(fullGcMode) {
                     case NONE : {
                         // shouldn't be reached
                         return;
@@ -1184,7 +1184,7 @@ public class VersionGarbageCollector {
                 // update the deleted properties count Map to calculate the total no. of deleted properties
                 int totalDeletedSystemPropsCount = deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
                 if (AUDIT_LOG.isDebugEnabled()) {
-                    AUDIT_LOG.debug("<Collected> [{}] internal prop revs in [{}] mode [{}]", totalDeletedSystemPropsCount, doc.getId(), detailedGcMode);
+                    AUDIT_LOG.debug("<Collected> [{}] internal prop revs in [{}] mode [{}]", totalDeletedSystemPropsCount, doc.getId(), fullGcMode);
                 }
             }
         }
@@ -1205,7 +1205,7 @@ public class VersionGarbageCollector {
         private boolean isDeletedOrOrphanedNode(final NodeState traversedState, final Path greatestExistingAncestorOrSelf,
                                                 final GCPhases phases, final NodeDocument doc) {
 
-            if (!phases.start(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES)) {
+            if (!phases.start(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES)) {
                 // gc has been cancelled
                 return false;
             }
@@ -1214,7 +1214,7 @@ public class VersionGarbageCollector {
             boolean isOrphan = !traversedState.exists();
             // if the node when reading at current headRevision (rather than traversed)
             // does not exist, then this is rather a regular deletion, nothing special.
-            // that is usually handled in DeletedDocsGC - but if DetailedGC sees this,
+            // that is usually handled in DeletedDocsGC - but if FullGC sees this,
             // it seems risky to not delete it right away.
 
             // if the node when reading at current headRevision (rather than traversed)
@@ -1223,10 +1223,10 @@ public class VersionGarbageCollector {
             // in both of these cases we should now delete it. That's all with above return.
             if (!isOrphan) {
                 // nothing to do here
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
+                phases.stop(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES);
                 return false;
             }
-            if (detailedGcMode == GAP_ORPHANS || detailedGcMode == GAP_ORPHANS_EMPTYPROPS) {
+            if (fullGcMode == GAP_ORPHANS || fullGcMode == GAP_ORPHANS_EMPTYPROPS) {
                 // check the ancestor docs for gaps
                 final Path docPath = doc.getPath();
                 final Path geaChildPath = docPath.getAncestor(docPath.getDepth() - greatestExistingAncestorOrSelf.getDepth() - 1);
@@ -1241,7 +1241,7 @@ public class VersionGarbageCollector {
                     // nothing to do here then
                     // (even though somewhere along descendants
                     // there might be a gap, it is too expensive to traverse)
-                    phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
+                    phases.stop(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES);
                     // return true here as this is an orphan but we decided not to
                     // GC it - to prevent caller from attempting other GC types
                     return true;
@@ -1259,7 +1259,7 @@ public class VersionGarbageCollector {
                 AUDIT_LOG.debug("<Collected> [{}] orphaned node", doc.getId());
             }
 
-            phases.stop(GCPhase.DETAILED_GC_COLLECT_ORPHAN_NODES);
+            phases.stop(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES);
             return true;
 
         }
@@ -1272,7 +1272,7 @@ public class VersionGarbageCollector {
                                               final NodeState traversedState) {
 
             // get Map of all properties along with their values
-            if (phases.start(GCPhase.DETAILED_GC_COLLECT_PROPS)) {
+            if (phases.start(GCPhase.FULL_GC_COLLECT_PROPS)) {
                 final Set<String> properties = doc.getPropertyNames();
 
                 // find all the properties which can be removed from document.
@@ -1297,13 +1297,13 @@ public class VersionGarbageCollector {
                 if (AUDIT_LOG.isDebugEnabled() && deletedPropsCount > 0) {
                     AUDIT_LOG.debug("<Collected> [{}] deleted props in [{}]", deletedPropsCount, doc.getId());
                 }
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_PROPS);
+                phases.stop(GCPhase.FULL_GC_COLLECT_PROPS);
             }
         }
 
         private void collectUnmergedBranchCommits(final NodeDocument doc, final GCPhases phases, final UpdateOp updateOp,
                                                   final long toModifiedMs) {
-            if (!phases.start(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC)) {
+            if (!phases.start(GCPhase.FULL_GC_COLLECT_UNMERGED_BC)) {
                 // GC was cancelled, stop
                 return;
             }
@@ -1320,7 +1320,7 @@ public class VersionGarbageCollector {
 
             if (olderUnmergedBranchCommits.isEmpty()) {
                 // nothing to do then
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
+                phases.stop(GCPhase.FULL_GC_COLLECT_UNMERGED_BC);
                 return;
             }
 
@@ -1364,10 +1364,10 @@ public class VersionGarbageCollector {
                 // update the deleted properties count Map to calculate the total no. of deleted properties
                 int totalDeletedSystemPropsCount = deletedInternalPropsCountMap.merge(doc.getId(), deletedSystemPropsCount, Integer::sum);
                 if (AUDIT_LOG.isDebugEnabled()) {
-                    AUDIT_LOG.debug("<Collected> [{}] internal prop revs in [{}] mode [{}]", totalDeletedSystemPropsCount, doc.getId(), detailedGcMode);
+                    AUDIT_LOG.debug("<Collected> [{}] internal prop revs in [{}] mode [{}]", totalDeletedSystemPropsCount, doc.getId(), fullGcMode);
                 }
             }
-            phases.stop(GCPhase.DETAILED_GC_COLLECT_UNMERGED_BC);
+            phases.stop(GCPhase.FULL_GC_COLLECT_UNMERGED_BC);
         }
 
         /**
@@ -1435,9 +1435,9 @@ public class VersionGarbageCollector {
          * updated for this, to have classic GC later potentially delete the
          * document</li>
          * <li>"_children" is only ever set to true, never back - hence no need for
-         * cleanup/modification by DetailedGC</li>
+         * cleanup/modification by FullGC</li>
          * <li>"_bin" is only ever set to 1, never back - hence no need for
-         * cleanup/modification by DetailedGC</li>
+         * cleanup/modification by FullGC</li>
          * </ul>
          *
          * @param unmergedBCRevision the unmerged branch commit revision - the caller
@@ -1522,14 +1522,14 @@ public class VersionGarbageCollector {
             }
 
             if (AUDIT_LOG.isDebugEnabled()) {
-                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), detailedGcMode);
+                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), fullGcMode);
             }
 
         }
 
         private void collectRevisionsOlderThan24hAndBetweenCheckpoints(final NodeDocument doc, final long toModifiedMs,
                                                               final GCPhases phases, final UpdateOp updateOp) {
-            if (phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
+            if (phases.start(GCPhase.FULL_GC_COLLECT_OLD_REVS)){
                 NodeDocumentRevisionCleaner cleaner = new NodeDocumentRevisionCleaner(nodeStore, doc, toModifiedMs);
                 final int beforeRevs = countRevs(updateOp, false);
                 final int beforeIntRevs = countRevs(updateOp, true);
@@ -1543,9 +1543,9 @@ public class VersionGarbageCollector {
                     deletedInternalPropRevsCountMap.merge(doc.getId(), intRevsDiff, Integer::sum);
                 }
                 if (AUDIT_LOG.isDebugEnabled()) {
-                    AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), detailedGcMode);
+                    AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), fullGcMode);
                 }
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
+                phases.stop(GCPhase.FULL_GC_COLLECT_OLD_REVS);
             }
         }
 
@@ -1567,7 +1567,7 @@ public class VersionGarbageCollector {
                 final DocumentNodeState traversedMainNode,
                 final boolean ignoreInternalProperties) {
 
-            if (!phases.start(GCPhase.DETAILED_GC_COLLECT_OLD_REVS)){
+            if (!phases.start(GCPhase.FULL_GC_COLLECT_OLD_REVS)){
                 // cancelled
                 return;
             }
@@ -1590,10 +1590,10 @@ public class VersionGarbageCollector {
             }
 
             if (AUDIT_LOG.isDebugEnabled()) {
-                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), detailedGcMode);
+                AUDIT_LOG.debug("<Collected> [{}] prop revs, [{}] internal prop revs in [{}] mode [{}]", deletedPropRevsCountMap.get(doc.getId()), deletedInternalPropRevsCountMap.get(doc.getId()), doc.getId(), fullGcMode);
             }
 
-            phases.stop(GCPhase.DETAILED_GC_COLLECT_OLD_REVS);
+            phases.stop(GCPhase.FULL_GC_COLLECT_OLD_REVS);
         }
 
         private int collectUnusedUserPropertyRevisions(final NodeDocument doc, final UpdateOp updateOp,
@@ -1821,7 +1821,7 @@ public class VersionGarbageCollector {
         public void removeGarbage(final VersionGCStats stats) {
 
             if (updateOpList.isEmpty() && orphanOrDeletedRemovalMap.isEmpty()) {
-                if (log.isDebugEnabled() || isDetailedGCDryRun) {
+                if (log.isDebugEnabled() || isFullGCDryRun) {
                     log.debug("Skipping removal of detailed garbage, cause no garbage detected");
                 }
                 return;
@@ -1829,7 +1829,7 @@ public class VersionGarbageCollector {
 
             monitor.info("Proceeding to update [{}] documents", updateOpList.size());
 
-            if (AUDIT_LOG.isDebugEnabled() || isDetailedGCDryRun) {
+            if (AUDIT_LOG.isDebugEnabled() || isFullGCDryRun) {
                 String updateIds = updateOpList.stream().map(UpdateOp::getId).collect(joining(", "));
                 String orphanIds = join(", ", orphanOrDeletedRemovalMap.keySet());
                 log.debug("Performing batch update of ids [{}] and removal of orphan ids [{}]", updateIds, orphanIds);
@@ -1871,7 +1871,7 @@ public class VersionGarbageCollector {
                                 log.debug("removeGarbage.verify : verifyViaTraversedState failed for [{}]", newDoc.getId());
                             }
                             it.remove();
-                            stats.skippedDetailedGCDocsCount++;
+                            stats.skippedFullGCDocsCount++;
                         }
                     }
                     for (Entry<String, Long> e : orphanOrDeletedRemovalMap.entrySet()) {
@@ -1882,7 +1882,7 @@ public class VersionGarbageCollector {
                             // rather a bug, so let's skip it
                             log.error("removeGarbage.verify : no path available for id : [{}]", id);
                             it.remove();
-                            stats.skippedDetailedGCDocsCount++;
+                            stats.skippedFullGCDocsCount++;
                             continue;
                         }
                         for (String name : path.elements()) {
@@ -1895,11 +1895,11 @@ public class VersionGarbageCollector {
                                 log.debug("removeGarbage.verify : verifyDeletion failed for [{}]", e.getKey());
                             }
                             it.remove();
-                            stats.skippedDetailedGCDocsCount++;
+                            stats.skippedFullGCDocsCount++;
                         }
                     }
                 }
-                if (!isDetailedGCDryRun) {
+                if (!isFullGCDryRun) {
                     // only delete these in case it is not a dryRun
 
                     if (!orphanOrDeletedRemovalMap.isEmpty()) {
@@ -1910,7 +1910,7 @@ public class VersionGarbageCollector {
                         // ensures a node would then not be removed
                         // (and as a result the removedSize != map.size())
                         final int removedSize = ds.remove(NODES, orphanOrDeletedRemovalMap);
-                        stats.updatedDetailedGCDocsCount += removedSize;
+                        stats.updatedFullGCDocsCount += removedSize;
                         stats.deletedDocGCCount += removedSize;
                         stats.deletedOrphanNodesCount += removedSize;
 
@@ -1919,11 +1919,11 @@ public class VersionGarbageCollector {
                         }
 
                         // save stats
-                        detailedGCStats.documentsUpdated(removedSize);
-                        detailedGCStats.orphanNodesDeleted(removedSize);
+                        fullGCStats.documentsUpdated(removedSize);
+                        fullGCStats.orphanNodesDeleted(removedSize);
                         gcStats.documentsDeleted(removedSize);
                         // fix for sonar : converted to long before operation
-                        detailedGCStats.documentsUpdateSkipped((long)orphanOrDeletedRemovalMap.size() - removedSize);
+                        fullGCStats.documentsUpdateSkipped((long)orphanOrDeletedRemovalMap.size() - removedSize);
                     }
 
                     if (!updateOpList.isEmpty()) {
@@ -1935,7 +1935,7 @@ public class VersionGarbageCollector {
                         int deletedRevEntriesCount = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedPropRevsCountMap.getOrDefault(d.getId(), 0)).sum();
                         int deletedInternalRevEntriesCount = oldDocs.stream().filter(Objects::nonNull).mapToInt(d -> deletedInternalPropRevsCountMap.getOrDefault(d.getId(), 0)).sum();
                         int updatedDocs = (int) oldDocs.stream().filter(Objects::nonNull).count();
-                        stats.updatedDetailedGCDocsCount += updatedDocs;
+                        stats.updatedFullGCDocsCount += updatedDocs;
                         stats.deletedPropsCount += deletedProps;
                         stats.deletedInternalPropsCount += deletedInternalProps;
                         stats.deletedPropRevsCount += deletedRevEntriesCount;
@@ -1948,17 +1948,17 @@ public class VersionGarbageCollector {
                         }
 
                         // save stats
-                        detailedGCStats.propertiesDeleted(deletedProps);
-                        detailedGCStats.unmergedBranchCommitsDeleted(deletedUnmergedBCSet.size());
-                        detailedGCStats.documentsUpdated(updatedDocs);
+                        fullGCStats.propertiesDeleted(deletedProps);
+                        fullGCStats.unmergedBranchCommitsDeleted(deletedUnmergedBCSet.size());
+                        fullGCStats.documentsUpdated(updatedDocs);
                         // fix for sonar : converted to long before operation
-                        detailedGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
+                        fullGCStats.documentsUpdateSkipped((long)oldDocs.size() - updatedDocs);
                     }
                 } else {
                     // collect approx stats only in case of dryRun by assuming everything would succeed
 
                     // for deleted properties, oldRevs & unmergedBC
-                    stats.updatedDetailedGCDocsCount += updateOpList.size();
+                    stats.updatedFullGCDocsCount += updateOpList.size();
                     stats.deletedPropsCount += deletedPropsCountMap.values().stream().reduce(0, Integer::sum);
                     stats.deletedInternalPropsCount += deletedInternalPropsCountMap.values().stream().reduce(0, Integer::sum);
                     stats.deletedPropRevsCount += deletedPropRevsCountMap.values().stream().reduce(0, Integer::sum);
@@ -1966,7 +1966,7 @@ public class VersionGarbageCollector {
                     stats.deletedUnmergedBCCount += deletedUnmergedBCSet.size();
 
                     // for orphan nodes.
-                    stats.updatedDetailedGCDocsCount += orphanOrDeletedRemovalMap.size();
+                    stats.updatedFullGCDocsCount += orphanOrDeletedRemovalMap.size();
                     stats.deletedDocGCCount += orphanOrDeletedRemovalMap.size();
                     stats.deletedOrphanNodesCount += orphanOrDeletedRemovalMap.size();
                 }
@@ -2045,11 +2045,11 @@ public class VersionGarbageCollector {
 
         final LinkedHashMap<Path, Boolean> missingDocsTypes = new LinkedHashMap<>();
         final RevisionVector headRevision = store.getHeadRevision();
-        try (DetailedGC gc = new DetailedGC(headRevision, 0, missingDocsTypes, gcMonitor, cancel)) {
+        try (FullGC gc = new FullGC(headRevision, 0, missingDocsTypes, gcMonitor, cancel)) {
 
-            if (phases.start(GCPhase.DETAILED_GC_COLLECT_GARBAGE)) {
+            if (phases.start(GCPhase.FULL_GC_COLLECT_GARBAGE)) {
                 gc.collectGarbage(doc, phases);
-                phases.stop(GCPhase.DETAILED_GC_COLLECT_GARBAGE);
+                phases.stop(GCPhase.FULL_GC_COLLECT_GARBAGE);
             }
 
             if (verbose) {
@@ -2059,9 +2059,9 @@ public class VersionGarbageCollector {
                 }
             }
 
-            if (gc.hasGarbage() && phases.start(GCPhase.DETAILED_GC_CLEANUP)) {
+            if (gc.hasGarbage() && phases.start(GCPhase.FULL_GC_CLEANUP)) {
                 gc.removeGarbage(phases.stats);
-                phases.stop(GCPhase.DETAILED_GC_CLEANUP);
+                phases.stop(GCPhase.FULL_GC_CLEANUP);
             }
         }
     }
