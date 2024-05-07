@@ -89,7 +89,7 @@ public class PipelinedMongoServerSelectorTest {
     public void calledFromANonDownloaderThread() throws ExecutionException, InterruptedException {
         // If the Mongo server selector is called from a thread that is not a downloader thread, it should return all 
         // servers, that is, it is neutral.
-        var t = new PipelinedMongoServerSelector();
+        var t = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         threadOther.submit(() -> {
             assertEquals(3, t.select(ClusterType.REPLICA_SET, allReplicas).size());
             assertEquals(2, t.select(ClusterType.REPLICA_SET, oneSecondaryUp).size());
@@ -99,7 +99,7 @@ public class PipelinedMongoServerSelectorTest {
 
     @Test
     public void allMongoReplicasUp() throws ExecutionException, InterruptedException {
-        var mongoServerSelector = new PipelinedMongoServerSelector();
+        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
 
         var firstThreadSelection = new AtomicReference<ServerDescription>();
 
@@ -133,7 +133,7 @@ public class PipelinedMongoServerSelectorTest {
 
     @Test
     public void primaryAndOneSecondaryUp() throws ExecutionException, InterruptedException {
-        var mongoServerSelector = new PipelinedMongoServerSelector();
+        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         mongoServerSelector.clusterDescriptionChanged(new ClusterDescriptionChangedEvent(
                         TEST_CLUSTER_ID,
                         new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, oneSecondaryUp),
@@ -172,7 +172,7 @@ public class PipelinedMongoServerSelectorTest {
 
     @Test
     public void onlyPrimaryUp() throws ExecutionException, InterruptedException {
-        var mongoServerSelector = new PipelinedMongoServerSelector();
+        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         threadAscending.submit(() -> {
             // If there is only the primary, do not select it.
             var firstSelection = mongoServerSelector.select(ClusterType.REPLICA_SET, noSecondaryUp);
@@ -204,7 +204,7 @@ public class PipelinedMongoServerSelectorTest {
          * 8. Scaling is complete.
          */
         var allUpClusterDescription = new ClusterDescription(ClusterConnectionMode.SINGLE, ClusterType.REPLICA_SET, List.copyOf(clusterState));
-        var mongoServerSelector = new PipelinedMongoServerSelector();
+        var mongoServerSelector = new PipelinedMongoServerSelector(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-");
         mongoServerSelector.clusterDescriptionChanged(
                 new ClusterDescriptionChangedEvent(TEST_CLUSTER_ID, allUpClusterDescription, allUpClusterDescription)
         );

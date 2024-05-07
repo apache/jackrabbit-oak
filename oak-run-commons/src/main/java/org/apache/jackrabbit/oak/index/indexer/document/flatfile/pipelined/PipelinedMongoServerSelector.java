@@ -58,8 +58,17 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
     private final HashMap<Long, ServerAddress> serverAddressHashMap = new HashMap<>();
     // IDs of threads connected to primary
     private final HashSet<Long> connectedToPrimaryThreads = new HashSet<>();
+    private final String threadNamePrefix;
 
     private ClusterDescription lastSeenClusterDescription;
+
+    /**
+     * @param threadNamePrefix Threads that start with this prefix will be assigned only to secondary server. Other
+     *                         threads will be assigned all servers available.
+     */
+    public PipelinedMongoServerSelector(String threadNamePrefix) {
+        this.threadNamePrefix = threadNamePrefix;
+    }
 
     @Override
     synchronized public List<ServerDescription> select(ClusterDescription clusterDescription) {
@@ -73,8 +82,8 @@ public class PipelinedMongoServerSelector implements ServerSelector, ClusterList
             return serverDescriptions;
         }
         String threadName = Thread.currentThread().getName();
-        if (!threadName.startsWith(PipelinedMongoDownloadTask.THREAD_NAME_PREFIX + "-")) {
-            LOG.info("Thread name does not start with {}, returning all servers", PipelinedMongoDownloadTask.THREAD_NAME_PREFIX);
+        if (!threadName.startsWith(threadNamePrefix)) {
+            LOG.info("Thread name does not start with {}, returning all servers", threadNamePrefix);
             return serverDescriptions;
         }
 

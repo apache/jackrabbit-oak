@@ -64,9 +64,10 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -301,7 +302,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 // Set a custom server selector that is able to distribute the two connections between the two secondaries.
                 // Overrides the readPreference setting. We also need to listen for changes in the cluster to detect
                 // when a node is promoted to primary, so we can stop downloading from that node
-                this.mongoServerSelector = new PipelinedMongoServerSelector();
+                this.mongoServerSelector = new PipelinedMongoServerSelector(THREAD_NAME_PREFIX + "-");
                 settingsBuilder.applyToClusterSettings(builder -> builder
                         .serverSelector(mongoServerSelector)
                         .addClusterListener(mongoServerSelector)
@@ -322,27 +323,19 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                         .getCollection(Collection.NODES.toString(), NodeDocument.class);
 
                 LOG.info("[TASK:{}:START] Starting to download from MongoDB", Thread.currentThread().getName().toUpperCase(Locale.ROOT));
-                try {
-                    downloadStartWatch.start();
-                    if (retryOnConnectionErrors) {
-                        downloadWithRetryOnConnectionErrors();
-                    } else {
-                        downloadWithNaturalOrdering();
-                    }
-                    downloadStartWatch.stop();
-                    long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
-                    downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
-                    String metrics = downloadStageStatistics.formatStats(durationMillis);
-                    LOG.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
-                    reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
-                    return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
-                } catch (InterruptedException t) {
-                    LOG.warn("Thread interrupted", t);
-                    throw t;
-                } catch (Throwable t) {
-                    LOG.warn("Thread terminating with exception.", t);
-                    throw t;
+                downloadStartWatch.start();
+                if (retryOnConnectionErrors) {
+                    downloadWithRetryOnConnectionErrors();
+                } else {
+                    downloadWithNaturalOrdering();
                 }
+                downloadStartWatch.stop();
+                long durationMillis = downloadStartWatch.elapsed(TimeUnit.MILLISECONDS);
+                downloadStageStatistics.publishStatistics(statisticsProvider, reporter, durationMillis);
+                String metrics = downloadStageStatistics.formatStats(durationMillis);
+                LOG.info("[TASK:{}:END] Metrics: {}", Thread.currentThread().getName().toUpperCase(Locale.ROOT), metrics);
+                reporter.addTiming("Mongo dump", FormattingUtils.formatToSeconds(downloadStartWatch));
+                return new PipelinedMongoDownloadTask.Result(downloadStageStatistics.getDocumentsDownloadedTotal());
             }
         } finally {
             Thread.currentThread().setName(originalName);
@@ -397,66 +390,86 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             ancestorsDownloadTask.downloadAncestors(mongoFilterPaths.included);
         }
         if (parallelDump) {
+            LOG.info("Downloading in parallel with two connections, one in ascending the other in descending order");
             DownloadTask ascendingDownloadTask = new DownloadTask(DownloadOrder.ASCENDING, downloadStageStatistics);
             DownloadTask descendingDownloadTask = new DownloadTask(DownloadOrder.DESCENDING, downloadStageStatistics);
-            LOG.info("Downloading in parallel with two connections, one in ascending the other in descending order");
 
-            // Launch a thread to monitor the total download rate, that is, the sum of the metrics of each download thread
-            ScheduledExecutorService monitorThreadPool = Executors.newSingleThreadScheduledExecutor(
-                    new ThreadFactoryBuilder().setNameFormat(THREAD_NAME_PREFIX).setDaemon(true).build()
-            );
-            ScheduledFuture<?> monitorTask = monitorThreadPool.scheduleWithFixedDelay(() -> {
-                long secondsElapsed = downloadStartWatch.elapsed(TimeUnit.SECONDS);
-                long ascTaskDownloadTotal = ascendingDownloadTask.getDocumentsDownloadedTotal();
-                long descTaskDownloadTotal = descendingDownloadTask.getDocumentsDownloadedTotal();
-                String formattedRate;
-                if (secondsElapsed == 0) {
-                    formattedRate = "N/A nodes/s, N/A nodes/hr, N/A /s";
-                } else {
-                    double docRate = ((double) downloadStageStatistics.getDocumentsDownloadedTotal()) / secondsElapsed;
-                    double bytesRate = ((double) downloadStageStatistics.getDocumentsDownloadedTotalBytes()) / secondsElapsed;
-                    formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr, %s/s",
-                            docRate, docRate * 3600, IOUtils.humanReadableByteCountBin((long) bytesRate));
-                }
-                LOG.info("Total documents dumped from Mongo {} (asc: {}, desc: {}) [{}] (Elapsed {})",
-                        downloadStageStatistics.getDocumentsDownloadedTotal(), ascTaskDownloadTotal, descTaskDownloadTotal,
-                        formattedRate, FormattingUtils.formatToSeconds(secondsElapsed));
-            }, 10, 10, TimeUnit.SECONDS);
-
-            // The current thread will download in ascending order. We launch a separate thread to download in
-            // descending order.
-            String originalName = Thread.currentThread().getName();
-            Thread.currentThread().setName(THREAD_NAME_PREFIX + "-ascending");
+            ExecutorService downloadThreadPool = Executors.newFixedThreadPool(2, new ThreadFactoryBuilder().setDaemon(true).build());
+            Future<?> ascendingDownloadFuture = submitDownloadTask(downloadThreadPool, ascendingDownloadTask, mongoFilter, THREAD_NAME_PREFIX + "-ascending");
+            Future<?> descendingDownloadFuture = submitDownloadTask(downloadThreadPool, descendingDownloadTask, mongoFilter, THREAD_NAME_PREFIX + "-descending");
             try {
-                Thread descendingDownloadThread = new Thread(() -> {
+                boolean downloadFinished = false;
+                while (!downloadFinished) {
+                    // The parent thread waits for the download to complete, reporting progress periodically
                     try {
-                        descendingDownloadTask.download(mongoFilter);
-                        descendingDownloadTask.reportFinalResults();
-                    } catch (InterruptedException | TimeoutException e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        mongoServerSelector.threadFinished();
+                        ascendingDownloadFuture.get(10, TimeUnit.SECONDS);
+                        LOG.info("Ascending download finished. Waiting for descending download to finish.");
+                        descendingDownloadFuture.get();
+                        LOG.info("Both ascending and descending download completed.");
+                        downloadFinished = true;
+                    } catch (TimeoutException e) {
+                        // Report progress
+                        long secondsElapsed = downloadStartWatch.elapsed(TimeUnit.SECONDS);
+                        long ascTaskDownloadTotal = ascendingDownloadTask.getDocumentsDownloadedTotal();
+                        long descTaskDownloadTotal = descendingDownloadTask.getDocumentsDownloadedTotal();
+                        String formattedRate;
+                        if (secondsElapsed == 0) {
+                            formattedRate = "N/A nodes/s, N/A nodes/hr, N/A /s";
+                        } else {
+                            double docRate = ((double) downloadStageStatistics.getDocumentsDownloadedTotal()) / secondsElapsed;
+                            double bytesRate = ((double) downloadStageStatistics.getDocumentsDownloadedTotalBytes()) / secondsElapsed;
+                            formattedRate = String.format(Locale.ROOT, "%1.2f nodes/s, %1.2f nodes/hr, %s/s",
+                                    docRate, docRate * 3600, IOUtils.humanReadableByteCountBin((long) bytesRate));
+                        }
+                        LOG.info("Total documents dumped from Mongo {} (asc: {}, desc: {}) [{}] (Elapsed {})",
+                                downloadStageStatistics.getDocumentsDownloadedTotal(), ascTaskDownloadTotal, descTaskDownloadTotal,
+                                formattedRate, FormattingUtils.formatToSeconds(secondsElapsed));
                     }
-                }, THREAD_NAME_PREFIX + "-descending");
-                descendingDownloadThread.start();
-
-                // Download in ascending order in the current thread.
-                ascendingDownloadTask.download(mongoFilter);
-                ascendingDownloadTask.reportFinalResults();
-                LOG.info("Ascending download finished. Waiting for descending download to finish.");
-                descendingDownloadThread.join();
+                }
+            } catch (ExecutionException e) {
+                // One of the download tasks finished with an exception. Cancel the other one. Trying to cancel the
+                // task that already failed has no effect
+                LOG.info("Error during download. Canceling download threads. Error: {}", e.toString());
+                ascendingDownloadFuture.cancel(true);
+                descendingDownloadFuture.cancel(true);
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                LOG.info("Thread interrupted. Cancelling download threads.");
+                // The parent thread was interrupted. Shutdown the download threads.
+                ascendingDownloadFuture.cancel(true);
+                descendingDownloadFuture.cancel(true);
+                throw e;
             } finally {
-                mongoServerSelector.threadFinished();
-                Thread.currentThread().setName(originalName);
-                monitorTask.cancel(false);
-                monitorThreadPool.shutdown();
+                LOG.info("Shutting down download thread pool.");
+                downloadThreadPool.shutdown();
+                boolean success = downloadThreadPool.awaitTermination(5, TimeUnit.SECONDS);
+                if (!success) {
+                    LOG.warn("Download thread pool did not shut down in 5 seconds. Forcing shutdown.");
+                    downloadThreadPool.shutdownNow();
+                }
             }
-            LOG.info("Download complete.");
         } else {
             // Single threaded dump
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             downloadTask.download(mongoFilter);
         }
+    }
+
+    private Future<?> submitDownloadTask(ExecutorService executor, DownloadTask downloadTask, Bson mongoFilter, String name) {
+        return executor.submit(() -> {
+            String originalName = Thread.currentThread().getName();
+            Thread.currentThread().setName(name);
+            try {
+                downloadTask.download(mongoFilter);
+                downloadTask.reportFinalResults();
+            } catch (InterruptedException | TimeoutException e) {
+                LOG.warn("Thread interrupted.");
+                throw new RuntimeException(e);
+            } finally {
+                mongoServerSelector.threadFinished();
+                Thread.currentThread().setName(originalName);
+            }
+        });
     }
 
     private MongoFilterPaths getPathsForRegexFiltering() {
