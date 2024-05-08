@@ -50,7 +50,6 @@ import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 
-
 public class PipelineITUtil {
     private static final Logger LOG = LoggerFactory.getLogger(PipelineITUtil.class);
 

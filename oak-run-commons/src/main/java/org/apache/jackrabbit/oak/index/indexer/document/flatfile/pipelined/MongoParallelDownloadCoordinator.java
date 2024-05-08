@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Coordinates the two parallel download streams used to download from Mongo when parallelDump is enabled. One stream
  * downloads in ascending order the other in descending order. This class keeps track of the top limit of the ascending
- * stream and of the bottom limit of the descending stream, and determines if the streams have crossed. This indidcates
+ * stream and of the bottom limit of the descending stream, and determines if the streams have crossed. This indicates
  * that the download completed and the two threads should stop.
  */
 class MongoParallelDownloadCoordinator {

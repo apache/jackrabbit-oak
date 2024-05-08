@@ -18,7 +18,6 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-
 import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
