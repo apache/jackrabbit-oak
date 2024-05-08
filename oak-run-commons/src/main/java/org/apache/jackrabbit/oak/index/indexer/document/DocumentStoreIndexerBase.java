@@ -256,7 +256,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
         // Handle custom excluded paths if provided. This is only applicable if regex path filtering is enabled.
         // Any paths whose ancestor is in the custom excluded paths list will be excluded from incremental index store.
-        // This is to keep in line with the custom  exclude paths implementation in the pipelined strategy.
+        // This is to keep in line with the custom exclude paths implementation in the pipelined strategy.
         boolean regexPathFiltering = ConfigHelper.getSystemPropertyAsBoolean(
                 OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
                 DEFAULT_OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
@@ -271,7 +271,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                     .map(String::trim)
                     .collect(Collectors.toList());
 
-            if (customExcludedPaths.size() > 0) {
+            if (!customExcludedPaths.isEmpty()) {
                 // Add an AND condition to the existing predicate to filter out paths that are ancestors of the custom excluded paths.
                 predicate = predicate.and(t -> customExcludedPaths.stream().noneMatch(excludedPath -> PathUtils.isAncestor(excludedPath, t)));
             }

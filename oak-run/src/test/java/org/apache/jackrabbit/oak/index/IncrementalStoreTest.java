@@ -148,7 +148,6 @@ public class IncrementalStoreTest {
         System.setProperty(OAK_INDEXER_USE_ZIP, "false");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(false, false);
-        System.clearProperty(OAK_INDEXER_USE_ZIP);
     }
 
     @Test
@@ -157,7 +156,6 @@ public class IncrementalStoreTest {
         System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(false, false);
-        System.clearProperty(OAK_INDEXER_USE_LZ4);
     }
 
     @Test
@@ -172,7 +170,6 @@ public class IncrementalStoreTest {
                 "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(true, false);
-        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX);
     }
 
     @Test
@@ -182,8 +179,6 @@ public class IncrementalStoreTest {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/oak:index,/var/foo");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(false, true);
-        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
-        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS);
     }
 
     @Test
@@ -195,9 +190,6 @@ public class IncrementalStoreTest {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/oak:index,/var/foo");
         algorithm = IndexStoreUtils.compressionAlgorithm();
         incrementalFFSTest(true, true);
-        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX);
-        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING);
-        System.clearProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS);
     }
 
     /**
