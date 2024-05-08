@@ -91,6 +91,9 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_LZ4;
 import static org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreUtils.OAK_INDEXER_USE_ZIP;
 import static org.junit.Assert.assertEquals;
@@ -144,8 +147,7 @@ public class IncrementalStoreTest {
     public void testWithNoCompression() throws Exception {
         System.setProperty(OAK_INDEXER_USE_ZIP, "false");
         algorithm = IndexStoreUtils.compressionAlgorithm();
-        incrementalFFSTest(false);
-        System.clearProperty(OAK_INDEXER_USE_ZIP);
+        incrementalFFSTest(false, false);
     }
 
     @Test
@@ -153,23 +155,41 @@ public class IncrementalStoreTest {
         // LZ4 compression is used by default - so disable that, fallback is gzip
         System.setProperty(OAK_INDEXER_USE_LZ4, "false");
         algorithm = IndexStoreUtils.compressionAlgorithm();
-        incrementalFFSTest(false);
-        System.clearProperty(OAK_INDEXER_USE_LZ4);
+        incrementalFFSTest(false, false);
     }
 
     @Test
     public void testWithLz4Compression() throws Exception {
         algorithm = IndexStoreUtils.compressionAlgorithm();
-        incrementalFFSTest(false);
+        incrementalFFSTest(false, false);
     }
 
     @Test
     public void testWithLz4CompressionWithCustomRegexFilter() throws Exception {
-        System.setProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex",
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
                 "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
         algorithm = IndexStoreUtils.compressionAlgorithm();
-        incrementalFFSTest(true);
-        System.clearProperty("oak.indexer.pipelined.mongoCustomExcludeEntriesRegex");
+        incrementalFFSTest(true, false);
+    }
+
+    @Test
+    public void testWithLz4CompressionWithCustomExcludedPaths() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
+                "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/oak:index,/var/foo");
+        algorithm = IndexStoreUtils.compressionAlgorithm();
+        incrementalFFSTest(false, true);
+    }
+
+    @Test
+    public void testWithLz4CompressionWithCustomRegexFilterAndCustomExcludedPaths() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX,
+                "(.*/jcr:content/renditions/foo\\.metadata\\.xml.*$)|(.*/jcr:content/renditions/foo\\.metadata\\..*$)|(.*/jcr:content/metadata/fooBar$)");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING,
+                "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/oak:index,/var/foo");
+        algorithm = IndexStoreUtils.compressionAlgorithm();
+        incrementalFFSTest(true, true);
     }
 
     /**
@@ -182,7 +202,7 @@ public class IncrementalStoreTest {
      *
      * @return
      */
-    public void incrementalFFSTest(boolean customRegexFilter) throws Exception {
+    public void incrementalFFSTest(boolean customRegexFilter, boolean customExcludedPathsFilter) throws Exception {
         Backend rwBackend = createNodeStore(false);
         createBaseContent(rwBackend.documentNodeStore);
         String initialCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
@@ -191,13 +211,13 @@ public class IncrementalStoreTest {
         Predicate<String> pathPredicate = s -> true;
         Set<String> basePreferredPathElements = Set.of();
 
-        Path initialFfsPath = createFFS(roBackend, pathPredicate, basePreferredPathElements, Collections.EMPTY_LIST, initialCheckpoint, "initial", getNodeStateAtCheckpoint1(customRegexFilter));
+        Path initialFfsPath = createFFS(roBackend, pathPredicate, basePreferredPathElements, List.of(new PathFilter(List.of("/"), Collections.EMPTY_LIST)), initialCheckpoint, "initial", getNodeStateAtCheckpoint1(customRegexFilter, customExcludedPathsFilter));
 
         createIncrementalContent(rwBackend.documentNodeStore);
         String finalCheckpoint = rwBackend.documentNodeStore.checkpoint(3600000);
         Backend roBackend1 = createNodeStore(true);
 
-        Path finalFfsPath = createFFS(roBackend1, pathPredicate, basePreferredPathElements, Collections.EMPTY_LIST, finalCheckpoint, "final", getNodeStateAtCheckpoint2(customRegexFilter));
+        Path finalFfsPath = createFFS(roBackend1, pathPredicate, basePreferredPathElements, List.of(new PathFilter(List.of("/"), Collections.EMPTY_LIST)), finalCheckpoint, "final", getNodeStateAtCheckpoint2(customRegexFilter, customExcludedPathsFilter));
 
         Backend roBackend2 = createNodeStore(true);
         IndexStore indexStore = getDocumentIndexer(roBackend2, finalCheckpoint).buildStore(initialCheckpoint, finalCheckpoint);
@@ -386,7 +406,9 @@ public class IncrementalStoreTest {
 
     private void createBaseContent(NodeStore rwNodeStore) throws CommitFailedException {
         @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
-        rootBuilder.child("oak:index");
+        @NotNull NodeBuilder indexBuilder =  rootBuilder.child("oak:index");
+        indexBuilder.child("fooIndex").child(":data");
+        indexBuilder.child("barIndex").child(":data");
         @NotNull NodeBuilder contentBuilder = rootBuilder.child("content");
         contentBuilder.child("2022").child("02").setProperty("p1", "v202202");
         contentBuilder.child("2022").child("02").child("28").setProperty("p1", "v20220228");
@@ -414,11 +436,21 @@ public class IncrementalStoreTest {
         contentDamBuilder.child("2025").child("jcr:content").child("metadata").child("fooBar");
         contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar1").child("jcr:content");
         contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar2").child("jcr:content");
+
+        @NotNull NodeBuilder varBuilder = rootBuilder.child("var");
+        varBuilder.child("foo").setProperty("p0", "v202202");
+        varBuilder.child("foo").child("01").setProperty("p1", "v202202");
+        varBuilder.child("foo").child("01").setProperty("p2", "v202202");
+        varBuilder.child("bar").child("01").setProperty("p1", "v202202");
+        varBuilder.child("bar").child("01").setProperty("p2", "v202202");
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
     private void createIncrementalContent(NodeStore rwNodeStore) throws CommitFailedException {
         @NotNull NodeBuilder rootBuilder = rwNodeStore.getRoot().builder();
+        @NotNull NodeBuilder indexBuilder =  rootBuilder.child("oak:index");
+        indexBuilder.child("fooIndex-2").child(":data");
+        indexBuilder.child("barIndex-2").child(":data");
         @NotNull NodeBuilder contentDamBuilder = rootBuilder.child("content").child("dam");
         contentDamBuilder.child("1000").child("12").setProperty("p2", "v100012"); // new property added
         contentDamBuilder.child("2022").child("02").setProperty("p1", "v202202-new");// property updated
@@ -432,12 +464,20 @@ public class IncrementalStoreTest {
         contentDamBuilder.child("2025").child("jcr:content").child("metadata").child("fooBar").setProperty("foo", "bar");
         contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar2").child("jcr:content").setProperty("foo", "bar");
         contentDamBuilder.child("2026").child("jcr:content").child("renditions").child("foo.metadata.bar3").child("jcr:content").setProperty("foo", "bar");
+
+        @NotNull NodeBuilder varBuilder = rootBuilder.child("var");
+        varBuilder.child("foo").setProperty("p0", "v202202-new");
+        varBuilder.child("foo").child("01").setProperty("p1", "v202202-new");
+        varBuilder.child("foo").child("02");
+        varBuilder.child("bar").child("01").setProperty("p1", "v202202-new");
+        varBuilder.child("bar").child("01").setProperty("p3", "v202202");
+        varBuilder.child("bar").child("02");
         rwNodeStore.merge(rootBuilder, EmptyHook.INSTANCE, CommitInfo.EMPTY);
     }
 
 
     @NotNull
-    private static List<String> getNodeStateAtCheckpoint1(boolean customRegexFilter) {
+    private static List<String> getNodeStateAtCheckpoint1(boolean customRegexFilter, boolean customExcludedPathsFilter) {
         List<String> expectedPathsAtCheckpoint1 = new ArrayList<>(List.of("/|{}",
                 "/content|{}",
                 "/content/2022|{}",
@@ -486,7 +526,14 @@ public class IncrementalStoreTest {
                 "/content/dam/2026/jcr:content/renditions/foo.metadata.bar1/jcr:content|{}",
                 "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2|{}",
                 "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{}",
-                "/oak:index|{}"));
+                "/oak:index|{}",
+                "/oak:index/barIndex|{}",
+                "/oak:index/fooIndex|{}",
+                "/var|{}",
+                "/var/bar|{}",
+                "/var/bar/01|{\"p1\":\"v202202\",\"p2\":\"v202202\"}",
+                "/var/foo|{\"p0\":\"v202202\"}",
+                "/var/foo/01|{\"p1\":\"v202202\",\"p2\":\"v202202\"}"));
 
         if (customRegexFilter) {
             expectedPathsAtCheckpoint1.removeAll(List.of("/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
@@ -498,11 +545,20 @@ public class IncrementalStoreTest {
                     "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{}"));
         }
 
+        // excluded filter being passed in tests is /oak:index,/var/foo
+        if (customExcludedPathsFilter) {
+            expectedPathsAtCheckpoint1.removeAll(List.of(//"/oak:index|{}",
+                    "/oak:index/barIndex|{}",
+                    "/oak:index/fooIndex|{}",
+                    //"/var/foo|{}",
+                    "/var/foo/01|{\"p1\":\"v202202\",\"p2\":\"v202202\"}"));
+        }
+
         return expectedPathsAtCheckpoint1;
     }
 
     @NotNull
-    private static List<String> getNodeStateAtCheckpoint2(boolean customRegexFilter) {
+    private static List<String> getNodeStateAtCheckpoint2(boolean customRegexFilter, boolean customExcludedPathsFilter){
         List<String> expectedPathsAtCheckpoint2 = new ArrayList<>(List.of("/|{}",
                 "/content|{}",
                 "/content/2022|{}",
@@ -552,8 +608,18 @@ public class IncrementalStoreTest {
                 "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{\"foo\":\"bar\"}",
                 "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3|{}",
                 "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3/jcr:content|{\"foo\":\"bar\"}",
-                "/oak:index|{}"
-        ));
+                "/oak:index|{}",
+                "/oak:index/barIndex|{}",
+                "/oak:index/barIndex-2|{}",
+                "/oak:index/fooIndex|{}",
+                "/oak:index/fooIndex-2|{}",
+                "/var|{}",
+                "/var/bar|{}",
+                "/var/bar/01|{\"p1\":\"v202202-new\",\"p2\":\"v202202\",\"p3\":\"v202202\"}",
+                "/var/bar/02|{}",
+                "/var/foo|{\"p0\":\"v202202-new\"}",
+                "/var/foo/01|{\"p1\":\"v202202-new\",\"p2\":\"v202202\"}",
+                "/var/foo/02|{}"));
 
         if (customRegexFilter) {
             expectedPathsAtCheckpoint2.removeAll(List.of("/content/dam/2024/jcr:content/renditions/foo.metadata.xml|{}",
@@ -565,6 +631,16 @@ public class IncrementalStoreTest {
                     "/content/dam/2026/jcr:content/renditions/foo.metadata.bar2/jcr:content|{\"foo\":\"bar\"}",
                     "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3|{}",
                     "/content/dam/2026/jcr:content/renditions/foo.metadata.bar3/jcr:content|{\"foo\":\"bar\"}"));
+        }
+
+        if (customExcludedPathsFilter) {
+            expectedPathsAtCheckpoint2.removeAll(List.of(//"/oak:index|{}",
+                    "/oak:index/barIndex|{}",
+                    "/oak:index/barIndex-2|{}",
+                    "/oak:index/fooIndex|{}",
+                    "/oak:index/fooIndex-2|{}",
+                    "/var/foo/01|{\"p1\":\"v202202-new\",\"p2\":\"v202202\"}",
+                    "/var/foo/02|{}"));
         }
 
         return expectedPathsAtCheckpoint2;
