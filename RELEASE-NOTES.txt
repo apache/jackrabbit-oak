@@ -1,4 +1,4 @@
-Release Notes -- Apache Jackrabbit Oak -- Version 1.22.19
+Release Notes -- Apache Jackrabbit Oak -- Version 1.22.20
 
 Introduction
 ------------
@@ -7,7 +7,7 @@ Jackrabbit Oak is a scalable, high-performance hierarchical content
 repository designed for use as the foundation of modern world-class
 web sites and other demanding content applications.
 
-Jackrabbit Oak 1.22.19 is a patch release that contains fixes and
+Jackrabbit Oak 1.22.20 is a patch release that contains fixes and
 improvements over Oak 1.22. Jackrabbit Oak 1.22.x releases are
 considered stable and targeted for production use.
 
@@ -15,27 +15,56 @@ The Oak effort is a part of the Apache Jackrabbit project.
 Apache Jackrabbit is a project of the Apache Software Foundation.
 
 
-Changes in Oak 1.22.19
+Changes in Oak 1.22.20
 ----------------------
 
 Technical task
 
-    [OAK-10524] - SameNameSiblingTest: add (failing) test for getName() semantics
+    [OAK-10218] - oak-it-osgi: avoid Guava dependency
+    [OAK-10623] - oak-core: log a warning when it needs to remap/add a namespace
 
-Bug
+New Feature
 
-    [OAK-9459] - ConstraintViolationException in VersionManagerImplRestore when target node has a property definition unknown by the frozen node
-    [OAK-10462] - o.a.j.o.plugins.version.VersionEditor#propertyAdded() may mistakenly assume an ongoing restore operation
-    [OAK-10680] - tests failures with com.arakelian/docker-junit-rule
+    [OAK-10056] - Provide support for Jakarta Region for AWS S3
+
+Improvement
+
+    [OAK-9481] - avoid range queries on like conditions
 
 Task
 
-    [OAK-10426] - oak-segment-azure: enable baseline check
-    [OAK-10439] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.12
-    [OAK-10446] - Upgrade jackson-databind dependency to 2.15.2
-    [OAK-10537] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.13
-    [OAK-10566] - Bump up minimal warning level for deprecated uses of java.security.Group to ERROR
-    [OAK-10591] - Bump netty dependency from 4.1.96.Final to 4.1.104.Final
+    [OAK-10300] - update groovy dependency to 2.5.22
+    [OAK-10337] - mvn jetty:run fails to start oak-webapp
+    [OAK-10350] - Update spring-boot dependency to version 2.7.13
+    [OAK-10386] - Bump netty dependency from 4.1.52.Final to 4.1.96.Final
+    [OAK-10397] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.23.0
+    [OAK-10593] - Upgrade jackson-databind dependency to 2.16.1
+    [OAK-10598] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.14
+    [OAK-10644] - JsopBuilder: remove JDK6ism
+    [OAK-10645] - MongoDS docker container: set default Mongo version to 4.4
+    [OAK-10664] - Update spotbugs plugin to 4.8.3.1
+    [OAK-10665] - Update checkstyle-plugin dependency to version 3.3.1
+    [OAK-10667] - Update jacoco plugin to 0.8.11
+    [OAK-10668] - examples: update jetty-maven-plugin to 11.0.20
+    [OAK-10669] - Upgrade maven-versions-plugin to 2.16.2
+    [OAK-10677] - examples: update build-helper-maven-plugin to 3.5.0
+    [OAK-10678] - update gmavenplus plugin to 3.0.2
+    [OAK-10683] - Update spring-boot dependency to version 2.7.18
+    [OAK-10686] - parent: add project.build.outputTimestamp property for Reproducable Builds
+    [OAK-10687] - Restore and cleanup SCM information
+    [OAK-10695] - oak-benchmarks/oak-it-osgi: update commons-compress dependency to 1.26.1
+    [OAK-10696] - Update Oak trunk and Oak 1.22 to Jackrabbit 2.20.15
+    [OAK-10697] - webapp: update Tomcat dependency to 9.0.86
+    [OAK-10702] - oak-blob-cloud: update netty dependency to 4.1.107
+    [OAK-10707] - update (historic) org.apache.felix.scr.annotations plugin to version 1.12.0
+    [OAK-10712] - update groovy dependency to 2.5.23
+    [OAK-10713] - oak-lucene: add test coverage for stack overflow based on very long and complex regexp
+    [OAK-10716] - oak-lucene: update to version 4.7.2 (latest from that branch)
+    [OAK-10720] - Update commons-io dependency to 2.15.1
+    [OAK-10722] - Update commons-codec dependency to 1.16.1
+    [OAK-10723] - Update commons-lang3 dependency to 3.14.0
+    [OAK-10725] - Upgrade jackson-databind dependency to 2.16.2
+    [OAK-10731] - oak-pojosr: remove unused gmongo dependency
 
 
 In addition to the above-mentioned changes, this release contains
