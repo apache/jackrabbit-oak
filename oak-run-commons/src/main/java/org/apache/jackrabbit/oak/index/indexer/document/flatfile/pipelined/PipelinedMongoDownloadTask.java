@@ -173,6 +173,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
     private static final int MIN_INTERVAL_BETWEEN_DELAYED_ENQUEUING_MESSAGES = 10;
     private static final BsonDocument NATURAL_HINT = BsonDocument.parse("{ $natural: 1 }");
     private static final BsonDocument ID_INDEX_HINT = BsonDocument.parse("{ _id: 1 }");
+    private static final Bson WITH_MODIFIED_FIELD = Filters.gte(NodeDocument.MODIFIED_IN_SECS, 0);
 
     static final String THREAD_NAME_PREFIX = "mongo-dump";
 
@@ -352,7 +353,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
         if (mongoFilter == null) {
             LOG.info("Downloading full repository from Mongo with natural order");
             FindIterable<NodeDocument> mongoIterable = dbCollection
-                    .find()
+                    .find(WITH_MODIFIED_FIELD) // Download only documents that have _modified set
                     .hint(NATURAL_HINT);
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             downloadTask.download(mongoIterable);
@@ -365,7 +366,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             DownloadTask downloadTask = new DownloadTask(DownloadOrder.UNDEFINED, downloadStageStatistics);
             LOG.info("Downloading from Mongo with natural order using filter: {}", mongoFilter);
             FindIterable<NodeDocument> findIterable = dbCollection
-                    .find(mongoFilter)
+                    .find(Filters.and(WITH_MODIFIED_FIELD, mongoFilter))
                     .hint(NATURAL_HINT);
             downloadTask.download(findIterable);
             downloadTask.reportFinalResults();
@@ -644,6 +645,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     while (cursor.hasNext()) {
                         NodeDocument next = cursor.next();
                         String id = next.getId();
+                        // All the Mongo queries in this class have a requirement on the _modified field, so the
+                        // documents downloaded will all have the field defined.
                         this.nextLastModified = next.getModified();
                         this.lastIdDownloaded = id;
                         this.documentsDownloadedTotal++;
@@ -655,6 +658,7 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
 
                         batch[nextIndex] = next;
                         nextIndex++;
+                        // The NodeDocumentCodec always adds this field.
                         int docSize = (int) next.remove(NodeDocumentCodec.SIZE_FIELD);
                         batchSize += docSize;
                         documentsDownloadedTotalBytes += docSize;
