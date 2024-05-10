@@ -150,13 +150,11 @@ class MongoDownloaderRegexUtils {
         TreeSet<String> ancestors = new TreeSet<>();
         for (String child : paths) {
             String parent = child;
-            while (true) {
+            while (!PathUtils.denotesRoot(parent)) {
                 ancestors.add(parent);
-                if (PathUtils.denotesRoot(parent)) {
-                    break;
-                }
                 parent = PathUtils.getParentPath(parent);
             }
+            ancestors.add(parent); // add the root path as well
         }
         return new ArrayList<>(ancestors);
     }
