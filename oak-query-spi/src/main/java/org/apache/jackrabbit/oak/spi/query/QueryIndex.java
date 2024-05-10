@@ -224,6 +224,8 @@ public interface QueryIndex {
     @ProviderType
     interface IndexPlan extends Cloneable{
 
+        Logger LOG = LoggerFactory.getLogger(QueryIndex.IndexPlan.class);
+        
         /**
          * The cost to execute the query once. The returned value should
          * approximately match the number of disk read operations plus the
@@ -370,7 +372,7 @@ public interface QueryIndex {
          */
         @Deprecated(forRemoval = true)
         default Map<Level, List<String>> getAdditionalMessages() {
-            LoggerFactory.getLogger(QueryIndex.IndexPlan.class).warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+            LOG.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
             return getAdditionalLogMessages().entrySet().stream().collect(toMap(entry -> Level.valueOf(entry.getKey()), Map.Entry::getValue));
         }
 
@@ -388,7 +390,7 @@ public interface QueryIndex {
          */
         class Builder {
 
-            private Logger log = LoggerFactory.getLogger(QueryIndex.IndexPlan.Builder.class);
+            private static Logger LOG = LoggerFactory.getLogger(QueryIndex.IndexPlan.Builder.class);
 
             protected double costPerExecution = 1.0;
             protected double costPerEntry = 1.0;
@@ -438,7 +440,7 @@ public interface QueryIndex {
              * */
             @Deprecated(forRemoval = true)
             public Builder addAdditionalMessage(Level level, String s) {
-                log.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
+                LOG.warn("use of deprecated API - this method is going to be removed in future Oak releases - see OAK-10768 for details");
                 this.additionalMessages.compute(level.name(), (k,v) -> {
                     if (v == null) {
                         v = new ArrayList<>();
