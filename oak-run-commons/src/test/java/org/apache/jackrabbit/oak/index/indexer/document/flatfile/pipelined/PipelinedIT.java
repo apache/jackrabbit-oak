@@ -69,6 +69,7 @@ import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipeline
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelineITUtil.contentDamPathFilter;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDE_ENTRIES_REGEX;
+import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING;
 import static org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.PipelinedMongoDownloadTask.OAK_INDEXER_PIPELINED_RETRY_ON_CONNECTION_ERRORS;
 import static org.junit.Assert.assertArrayEquals;
@@ -400,14 +401,14 @@ public class PipelinedIT {
         testSuccessfulDownload(pathPredicate, pathFilters, PipelineITUtil.EXPECTED_FFS, false);
     }
 
-    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> pathFilters, List<String> expected, boolean ignoreLongPaths)
+    private void testSuccessfulDownload(Predicate<String> pathPredicate, List<PathFilter> mongoRegexPathFilter, List<String> expected, boolean ignoreLongPaths)
             throws CommitFailedException, IOException {
         try (MongoTestBackend rwStore = createNodeStore(false)) {
             PipelineITUtil.createContent(rwStore.documentNodeStore);
         }
 
         try (MongoTestBackend roStore = createNodeStore(true)) {
-            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, pathFilters);
+            PipelinedStrategy pipelinedStrategy = createStrategy(roStore, pathPredicate, mongoRegexPathFilter);
             File file = pipelinedStrategy.createSortedStoreFile();
             assertTrue(file.exists());
             List<String> result = Files.readAllLines(file.toPath());
@@ -580,6 +581,22 @@ public class PipelinedIT {
         ), true);
     }
 
+    @Test
+    public void createFFSNoMatches() throws Exception {
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_PARALLEL_DUMP, "true");
+        System.setProperty(OAK_INDEXER_PIPELINED_MONGO_CUSTOM_EXCLUDED_PATHS, "/etc,/home,/content/dam,/jcr:system");
+
+        Predicate<String> pathPredicate = t -> true;
+        List<PathFilter> mongoRegexPathFilters = List.of(new PathFilter(List.of("/doesnotexist"), List.of()));
+
+        // For an included path of /foo, the / should not be included. But the mongo regex filter is only best effort,
+        // and it will download the parents of all the included paths, even if they are empty. This is not a problem,
+        // because the filter at the transform stage will remove these paths. This test has no filter at the transform
+        // stage (pathPredicate is always true), so the / will be included in the result.
+        testSuccessfulDownload(pathPredicate, mongoRegexPathFilters, List.of("/|{}"), true);
+    }
+
     @Test(expected = IllegalArgumentException.class)
     public void createFFS_mongoFiltering_custom_excluded_paths_cannot_exclude_root() throws Exception {
         System.setProperty(OAK_INDEXER_PIPELINED_MONGO_REGEX_PATH_FILTERING, "true");
@@ -622,7 +639,7 @@ public class PipelinedIT {
         return createStrategy(roStore, s -> true, null);
     }
 
-    private PipelinedStrategy createStrategy(MongoTestBackend backend, Predicate<String> pathPredicate, List<PathFilter> pathFilters) {
+    private PipelinedStrategy createStrategy(MongoTestBackend backend, Predicate<String> pathPredicate, List<PathFilter> mongoRegexPathFilter) {
         Set<String> preferredPathElements = Set.of();
         RevisionVector rootRevision = backend.documentNodeStore.getRoot().getRootRevision();
         indexingReporter.setIndexNames(List.of("testIndex"));
@@ -636,7 +653,7 @@ public class PipelinedIT {
                 sortFolder.getRoot(),
                 Compression.NONE,
                 pathPredicate,
-                pathFilters,
+                mongoRegexPathFilter,
                 null,
                 statsProvider,
                 indexingReporter);

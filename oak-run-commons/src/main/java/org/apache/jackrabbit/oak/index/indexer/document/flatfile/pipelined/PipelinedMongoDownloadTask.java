@@ -404,6 +404,16 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                     try {
                         ascendingDownloadFuture.get(10, TimeUnit.SECONDS);
                         LOG.info("Ascending download finished. Waiting for descending download to finish.");
+                        // Once one of the downloads finishes, the other should also finish the next time it checks if
+                        // it intersected with the other stream.
+                        // TODO: One or both of the streams might be waiting for a Mongo response for a long time in case
+                        //  the query is traversing a region of the index that does not match the regex filter. In the
+                        //  extreme case, the query does not match any document, so both streams will scan the full index
+                        //  without ever realizing they have crossed, because this check is only done when one of the streams
+                        //  receives enough documents to fill up a batch. If neither of the streams receives documents, we
+                        //  have no way of knowing that they have intersected. but in the case that one of the streams
+                        //  detects that they have intersected, we can safely abort the other download, without waiting
+                        //  for it to continue until the next check.
                         descendingDownloadFuture.get();
                         LOG.info("Both ascending and descending download completed.");
                         downloadFinished = true;
