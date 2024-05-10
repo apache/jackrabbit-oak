@@ -146,6 +146,7 @@ class MongoDownloaderRegexUtils {
      * returned, even though they are not strictly ancestors of themselves.
      */
     static List<String> getAncestors(List<String> paths) {
+        // Use a TreeSet to remove duplicates and sort them
         TreeSet<String> ancestors = new TreeSet<>();
         for (String child : paths) {
             String parent = child;

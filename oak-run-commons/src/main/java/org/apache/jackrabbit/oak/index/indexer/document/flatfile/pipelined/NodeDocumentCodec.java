@@ -18,6 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.Document;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -77,7 +78,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
     @Override
     public NodeDocument decode(BsonReader reader, DecoderContext decoderContext) {
         NodeDocument nodeDocument = collection.newDocument(store);
-        int[] estimatedSizeOfCurrentObject = {0};
+        MutableInt estimatedSizeOfCurrentObject = new MutableInt(0);
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
             String fieldName = reader.readName();
@@ -85,7 +86,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
             nodeDocument.put(fieldName, value);
         }
         reader.readEndDocument();
-        nodeDocument.put(SIZE_FIELD, estimatedSizeOfCurrentObject[0]);
+        nodeDocument.put(SIZE_FIELD, estimatedSizeOfCurrentObject.toInteger());
         return nodeDocument;
     }
 
@@ -99,7 +100,7 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
         return NodeDocument.class;
     }
 
-    private Object readValue(BsonReader reader, String fieldName, int[] estimatedSizeOfCurrentObject) {
+    private Object readValue(BsonReader reader, String fieldName, MutableInt estimatedSizeOfCurrentObject) {
         BsonType bsonType = reader.getCurrentBsonType();
         Object value;
         int valSize;
@@ -140,11 +141,11 @@ public class NodeDocumentCodec implements Codec<NodeDocument> {
                 }
                 break;
         }
-        estimatedSizeOfCurrentObject[0] += 16 + fieldName.length() + valSize;
+        estimatedSizeOfCurrentObject.add(16 + fieldName.length() + valSize);
         return value;
     }
 
-    private Map<Revision, Object> readDocument(BsonReader reader, int[] estimatedSizeOfCurrentObject) {
+    private Map<Revision, Object> readDocument(BsonReader reader, MutableInt estimatedSizeOfCurrentObject) {
         TreeMap<Revision, Object> map = new TreeMap<>(StableRevisionComparator.REVERSE);
         reader.readStartDocument();
         while (reader.readBsonType() != BsonType.END_OF_DOCUMENT) {
