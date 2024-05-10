@@ -564,11 +564,11 @@ public class QueryImpl implements Query {
                         case "DEBUG": for (String msg : list) {
                             LOG.debug(msg);
                         }
-                            break;
+                        break;
                         case "INFO": for (String msg : list) {
                             LOG.info(msg);
                         }
-                            break;
+                        break;
                         case "WARN": for (String msg : list) {
                             LOG.warn(msg);
                         }
