@@ -107,7 +107,7 @@
             <_exportcontents>
               !org.apache.lucene.queryparser.xml,
               !org.apache.lucene.queryparser.xml.builders,
-              org.apache.lucene.*;version=${lucene.version}-oak1
+              org.apache.lucene.*;version=${lucene.version}-oak2
             </_exportcontents>
             <Export-Package>
                 org.apache.jackrabbit.oak.plugins.index.lucene,
