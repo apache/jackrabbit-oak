@@ -336,12 +336,12 @@ var oak = (function(global){
      * @method regexFind
      * @param {string} pattern the pattern to match the nodes.
      */
-	api.regexFind = function(pattern) {
-		print(db.nodes.find({_id: {$regex: pattern}}));
-		db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
-			print(doc._id);
+    api.regexFind = function(pattern) {
+        print(db.nodes.find({_id: {$regex: pattern}}));
+        db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
+            print(doc._id);
         });
-	}
+    }
 
     /**
      * Remove the complete subtree of all the nodes matching a regex pattern.
@@ -354,23 +354,23 @@ var oak = (function(global){
     api.removeDescendantsMatching = function(pattern) {
         var count = 0;
         db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
-			print("Removing " + doc._id + " and its children");
+            print("Removing " + doc._id + " and its children");
             var result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
             count += result.nRemoved;
-			print("nRemoved : " + result.nRemoved);
+            print("nRemoved : " + result.nRemoved);
         });
         print("Total removed : " + count);
     }
 
-	/**
-	 * Wrapper function to clean all the /tmpXXXXXX nodes from the repository.
-	 *
-	 * @memberof oak
-	 * @method removeRootTempNodes
-	 */
-	api.removeRootTempNodes = function() {
-		this.removeDescendantsMatching("^1:/tmp(?!$).*");
-	}
+    /**
+     * Wrapper function to clean all the /tmpXXXXXX nodes from the repository.
+     *
+     * @memberof oak
+     * @method removeRootTempNodes
+     */
+    api.removeRootTempNodes = function() {
+        this.removeDescendantsMatching("^1:/tmp.+");
+    }
 
     /**
      * List all the nodes under /tmpXXXXXX.
@@ -378,9 +378,9 @@ var oak = (function(global){
      * @memberof oak
      * @method listRootTempNodes
      */
-	api.listRootTempNodes = function() {
-		this.regexFind("^1:/tmp(?!$).*");
-	}
+    api.listRootTempNodes = function() {
+        this.regexFind("^1:/tmp.+");
+    }
 
     /**
      * List all checkpoints.
