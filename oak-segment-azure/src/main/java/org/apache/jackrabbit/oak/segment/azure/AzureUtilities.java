@@ -265,7 +265,8 @@ public final class AzureUtilities {
                 log.debug("Checking for azure access token expiry at: {}", LocalDateTime.now());
                 OffsetDateTime tokenExpiryThreshold = OffsetDateTime.now().plusMinutes(5);
                 if (accessToken.getExpiresAt() != null && accessToken.getExpiresAt().isBefore(tokenExpiryThreshold)) {
-                    log.info("Access token is about to expire (5 minutes or less) at: {}", accessToken.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    log.info("Access token is about to expire (5 minutes or less) at: {}. New access token will be generated",
+                            accessToken.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     AccessToken newToken = clientSecretCredential.getTokenSync(new TokenRequestContext().addScopes(AZURE_DEFAULT_SCOPE));
                     if (newToken == null || StringUtils.isBlank(newToken.getToken())) {
                         log.error("New access token is null or empty");
