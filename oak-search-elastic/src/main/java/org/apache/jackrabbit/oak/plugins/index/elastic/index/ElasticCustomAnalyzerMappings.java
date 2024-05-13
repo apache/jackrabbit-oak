@@ -20,6 +20,7 @@ import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.cjk.CJKBigramFilterFactory;
 import org.apache.lucene.analysis.commongrams.CommonGramsFilterFactory;
+import org.apache.lucene.analysis.compound.DictionaryCompoundWordTokenFilterFactory;
 import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
 import org.apache.lucene.analysis.minhash.MinHashFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilterFactory;
@@ -258,21 +259,30 @@ public class ElasticCustomAnalyzerMappings {
             luceneParams.remove("enablePositionIncrements");
             return reKey.apply(luceneParams, Map.of("words", "stopwords", "ignoreCase", "ignore_case"));
         });
+
+        LUCENE_ELASTIC_TRANSFORMERS.put(DictionaryCompoundWordTokenFilterFactory.class, luceneParams -> reKey.apply(luceneParams, Map.of(
+                "dictionary", "word_list",
+                "minWordSize", "min_word_size",
+                "maxSubwordSize", "max_subword_size",
+                "minSubwordSize", "min_subword_size",
+                "onlyLongestMatch", "only_longest_match"
+        )));
     }
 
     /*
      * Some filter names cannot be transformed from the original name. Here we map the exceptions
      */
-    protected static final Map<String, String> FILTERS = Map.of(
-            "porter_stem", "porter2",
-            "ascii_folding", "asciifolding",
-            "n_gram", "ngram",
-            "edge_n_gram", "edge_ngram",
-            "keep_word", "keep",
-            "k_stem", "kstem",
-            "limit_token_count", "limit",
-            "pattern_capture_group", "pattern_capture",
-            "reverse_string", "reverse",
-            "snowball_porter", "snowball"
+    protected static final Map<String, String> FILTERS = Map.ofEntries(
+            Map.entry("porter_stem", "porter2"),
+            Map.entry("ascii_folding", "asciifolding"),
+            Map.entry("n_gram", "ngram"),
+            Map.entry("edge_n_gram", "edge_ngram"),
+            Map.entry("keep_word", "keep"),
+            Map.entry("k_stem", "kstem"),
+            Map.entry("limit_token_count", "limit"),
+            Map.entry("pattern_capture_group", "pattern_capture"),
+            Map.entry("reverse_string", "reverse"),
+            Map.entry("snowball_porter", "snowball"),
+            Map.entry("dictionary_compound_word", "dictionary_decompounder")
     );
 }
