@@ -48,6 +48,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -261,7 +262,7 @@ public final class AzureUtilities {
         @Override
         public void run() {
             try {
-                log.info("in run method of token refresher");
+                log.debug("Checking for azure access token expiry at: {}", LocalDateTime.now());
                 OffsetDateTime tokenExpiryThreshold = OffsetDateTime.now().plusMinutes(5);
                 if (accessToken.getExpiresAt() != null && accessToken.getExpiresAt().isBefore(tokenExpiryThreshold)) {
                     log.info("Access token is about to expire (5 minutes or less) at: {}", accessToken.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
