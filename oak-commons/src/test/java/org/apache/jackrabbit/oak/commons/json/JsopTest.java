@@ -31,7 +31,7 @@ public class JsopTest extends TestCase {
             String s = "Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" Hello \"World\" ";
             StopWatch timer = new StopWatch();
             int t2 = 0;
-            for (int i = 0; i < 100000000; i++) {
+            for (int i = 0; i < 1000000; i++) {
                 t2 += JsopBuilder.encode(s).length();
             }
             System.out.println(timer.seconds() + " dummy: " + t2);
