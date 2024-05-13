@@ -20,6 +20,7 @@
 package org.apache.jackrabbit.oak.index.indexer.document;
 
 import com.codahale.metrics.MetricRegistry;
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.io.Closer;
@@ -190,6 +191,7 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
                         .withRootRevision(rootDocumentState.getRootRevision())
                         .withNodeStore(nodeStore)
                         .withMongoDocumentStore(getMongoDocumentStore())
+                        .withMongoClientURI(getMongoClientURI())
                         .withMongoDatabase(getMongoDatabase())
                         .withNodeStateEntryTraverserFactory(new MongoNodeStateEntryTraverserFactory(rootDocumentState.getRootRevision(),
                                 nodeStore, getMongoDocumentStore(), traversalLog))
@@ -423,6 +425,10 @@ public abstract class DocumentStoreIndexerBase implements Closeable {
 
     private MongoDocumentStore getMongoDocumentStore() {
         return checkNotNull(indexHelper.getService(MongoDocumentStore.class));
+    }
+
+    private MongoClientURI getMongoClientURI() {
+        return checkNotNull(indexHelper.getService(MongoClientURI.class));
     }
 
     private MongoDatabase getMongoDatabase() {
