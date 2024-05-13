@@ -28,7 +28,7 @@ public class JsopBuilder implements JsopWriter {
 
     private static final boolean JSON_NEWLINES = false;
 
-    private final StringBuilder buff = new StringBuilder();
+    private StringBuilder buff = new StringBuilder();
     private boolean needComma;
     private int lineLength, previous;
 
