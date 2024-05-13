@@ -170,9 +170,9 @@ public class MongoRegexPathFilterFactory {
             return indexExcludedPaths;
         }
 
-        var excludedUnion = new HashSet<>(indexExcludedPaths);
+        HashSet<String> excludedUnion = new HashSet<>(indexExcludedPaths);
         excludedUnion.addAll(customExcludedPaths);
-        var mergedExcludes = new ArrayList<String>();
+        ArrayList<String> mergedExcludes = new ArrayList<>();
         for (String testPath : excludedUnion) {
             // Add a path only if it is not a subpath of any other path in the list
             if (excludedUnion.stream().noneMatch(p -> PathUtils.isAncestor(p, testPath))) {
