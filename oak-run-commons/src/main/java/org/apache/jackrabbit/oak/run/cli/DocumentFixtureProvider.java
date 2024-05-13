@@ -109,6 +109,7 @@ class DocumentFixtureProvider {
                 System.exit(1);
             }
             MongoConnection mongo = new MongoConnection(uri.getURI());
+            wb.register(MongoClientURI.class, uri, emptyMap());
             wb.register(MongoConnection.class, mongo, emptyMap());
             wb.register(MongoDatabase.class, mongo.getDatabase(), emptyMap());
             closer.register(mongo::close);

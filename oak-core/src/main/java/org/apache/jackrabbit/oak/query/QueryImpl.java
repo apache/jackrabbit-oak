@@ -555,25 +555,25 @@ public class QueryImpl implements Query {
         for (SelectorImpl s : selectors) {
             if (s.getExecutionPlan() != null &&
                     s.getExecutionPlan().getIndexPlan() != null) {
-                s.getExecutionPlan().getIndexPlan().getAdditionalMessages().forEach((level, list) -> {
+                s.getExecutionPlan().getIndexPlan().getAdditionalLogMessages().forEach((level, list) -> {
                     switch (level) {
-                        case TRACE: for (String msg : list) {
+                        case "TRACE": for (String msg : list) {
                             LOG.trace(msg);
                         }
                         break;
-                        case DEBUG: for (String msg : list) {
+                        case "DEBUG": for (String msg : list) {
                             LOG.debug(msg);
                         }
-                            break;
-                        case INFO: for (String msg : list) {
+                        break;
+                        case "INFO": for (String msg : list) {
                             LOG.info(msg);
                         }
-                            break;
-                        case WARN: for (String msg : list) {
+                        break;
+                        case "WARN": for (String msg : list) {
                             LOG.warn(msg);
                         }
                         break;
-                        case ERROR: for (String msg : list) {
+                        case "ERROR": for (String msg : list) {
                             LOG.error(msg);
                         }
                         break;
