@@ -348,10 +348,10 @@ var oak = (function(global){
      * Use regexFind to find the nodes that match the pattern prior deletion.
      *
      * @memberof oak
-     * @method removeDescendantsMatching
+     * @method removeDescendantsAndSelfMatching
      * @param {string} pattern the pattern to match the nodes to be removed.
      */
-    api.removeDescendantsMatching = function(pattern) {
+    api.removeDescendantsAndSelfMatching = function(pattern) {
         var count = 0;
         db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
             print("Removing " + doc._id + " and its children");
@@ -369,7 +369,7 @@ var oak = (function(global){
      * @method removeRootTempNodes
      */
     api.removeRootTempNodes = function() {
-        this.removeDescendantsMatching("^1:/tmp.+");
+        this.removeDescendantsAndSelfMatching("^1:/tmp.+");
     }
 
     /**
