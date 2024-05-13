@@ -330,6 +330,59 @@ var oak = (function(global){
     };
 
     /**
+     * Helper method to find nodes based on Regular Expression.
+     *
+     * @memberof oak
+     * @method regexFind
+     * @param {string} pattern the pattern to match the nodes.
+     */
+	api.regexFind = function(pattern) {
+		print(db.nodes.find({_id: {$regex: pattern}}));
+		db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
+			print(doc._id);
+        });
+	}
+
+    /**
+     * Remove the complete subtree of all the nodes matching a regex pattern.
+     * Use regexFind to find the nodes that match the pattern prior deletion.
+     *
+     * @memberof oak
+     * @method removeDescendantsMatching
+     * @param {string} pattern the pattern to match the nodes to be removed.
+     */
+    api.removeDescendantsMatching = function(pattern) {
+        var count = 0;
+        db.nodes.find({_id: {$regex: pattern}}).forEach(function(doc) {
+			print("Removing " + doc._id + " and its children");
+            var result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
+            count += result.nRemoved;
+			print("nRemoved : " + result.nRemoved);
+        });
+        print("Total removed : " + count);
+    }
+
+	/**
+	 * Wrapper function to clean all the /tmpXXXXXX nodes from the repository.
+	 *
+	 * @memberof oak
+	 * @method removeRootTempNodes
+	 */
+	api.removeRootTempNodes = function() {
+		this.removeDescendantsMatching("^1:/tmp(?!$).*");
+	}
+
+    /**
+     * List all the nodes under /tmpXXXXXX.
+     *
+     * @memberof oak
+     * @method listRootTempNodes
+     */
+	api.listRootTempNodes = function() {
+		this.regexFind("^1:/tmp(?!$).*");
+	}
+
+    /**
      * List all checkpoints.
      *
      * @memberof oak
