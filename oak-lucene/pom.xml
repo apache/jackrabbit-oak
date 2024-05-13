@@ -107,7 +107,7 @@
             <_exportcontents>
               !org.apache.lucene.queryparser.xml,
               !org.apache.lucene.queryparser.xml.builders,
-              org.apache.lucene.*;version=${lucene.version}-oak1
+              org.apache.lucene.*;version=4.7.2-oak1<!-- first Oak modification of original lucence-core 4.7.2 source code, see OAK-10786 for further information -->
             </_exportcontents>
             <Export-Package>
                 org.apache.jackrabbit.oak.plugins.index.lucene,
