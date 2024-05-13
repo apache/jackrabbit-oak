@@ -182,7 +182,16 @@ public class ElasticRequestHandler {
                     // mlt?mlt.fl=:path&mlt.mindf=0&stream.body=<path> . We need parse this query
                     // string and turn into a query
                     // elastic can understand.
-                    bqb.must(m -> m.moreLikeThis(mltQuery(mltParams)));
+                    String fields = mltParams.remove(MoreLikeThisHelperUtil.MLT_FILED);
+                    if (fields == null || FieldNames.PATH.equals(fields)) {
+                        for (String stf : elasticIndexDefinition.getSimilarityTagsFields()) {
+                            Map<String, String> shallowMltParams = new HashMap<>(MoreLikeThisHelperUtil.getParamMapFromMltQuery(stf));
+                            shallowMltParams.putAll(mltParams);
+                            bqb.should(m -> m.moreLikeThis(mltQuery(shallowMltParams)));
+                        }
+                    } else {
+                        bqb.must(m -> m.moreLikeThis(mltQuery(mltParams)));
+                    }
                 } else {
                     bqb.must(m -> m.bool(similarityQuery(queryNodePath, sp)));
                 }
@@ -393,12 +402,7 @@ public class ElasticRequestHandler {
             // We store path as the _id so no need to do anything extra here
             // We expect Similar impl to send a query where text would have evaluated to
             // node path.
-            mlt.like(l -> l.document(d -> d.id(id)
-                    // this is needed to workaround https://github.com/elastic/elasticsearch/pull/94518 that causes empty
-                    // results when the _ignored metadata field is part of the input document
-                    .perFieldAnalyzer("_ignored", "keyword")));
-            // when no fields are specified, we set the ones from the index definition
-            mlt.fields(Arrays.asList(elasticIndexDefinition.getSimilarityTagsFields()));
+            mlt.like(l -> l.document(d -> d.id(id)));
         } else {
             // This is for native queries if someone sends additional fields via
             // mlt.fl=field1,field2

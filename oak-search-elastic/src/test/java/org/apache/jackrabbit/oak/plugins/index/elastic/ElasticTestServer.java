@@ -44,14 +44,14 @@ public class ElasticTestServer implements AutoCloseable {
     private static final Map<String, String> PLUGIN_OFFICIAL_RELEASES_DIGEST_MAP = Map.of(
             "7.17.7.0", "4252eb55cc7775f1b889d624ac335abfa2e357931c40d0accb4d520144246b8b",
             "8.3.3.0", "14d3223456f4b9f00f86628ec8400cb46513935e618ae0f5d0d1088739ccc233",
-            "8.4.2.0", "5ce81ad043816900a496ad5b3cce7de1d99547ebf92aa1f9856343e48580c71c",
             "8.4.3.0", "5c00d43cdd56c5c5d8e9032ad507acea482fb5ca9445861c5cc12ad63af66425",
             "8.5.3.0", "d4c13f68650f9df5ff8c74ec83abc2e416de9c45f991d459326e0e2baf7b0e3f",
-            "8.7.0.0", "7aeac9b7ac4dea1ded3f8e477e26bcc7fe62e313edf6352f4bdf973c43d25819",
             "8.7.1.0", "80c8d34334b0cf4def79835ea6dab78b59ba9ee54c8f5f3cba0bde53123d7820",
             "8.10.4.0", "b2ae8faf1e272319594b4d47a72580fa4f61a5c11cbc8d3f13453fd34b153441",
             "8.11.0.0", "8d4d80b850c4da4da6dfe2d675b2e2355d2014307f8bdc54cc1b34323c81c7ae",
-            "8.11.1.0", "a00a920d4bc29f0deacde7c2ef3d3f70692b00b62bf7fb82b0fe18eeb1dafee9");
+            "8.11.1.0", "a00a920d4bc29f0deacde7c2ef3d3f70692b00b62bf7fb82b0fe18eeb1dafee9",
+            "8.11.3.0", "1f14b496baf973fb5c64e77fc458d9814dd6905170d7b15350f9f1a009824f41",
+            "8.13.2.0", "586f553b109266d7996265f3f34a20914b569d494b49da2c0534428770e551f0");
 
     private static final ElasticTestServer SERVER = new ElasticTestServer();
     private static volatile ElasticsearchContainer CONTAINER;

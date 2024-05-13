@@ -118,10 +118,13 @@ public class ElasticIndexDefinition extends IndexDefinition {
     // MLT queries, when no fields are specified, do not use the entire document but only a maximum of
     // max_query_terms (default 25). Even increasing this value, the query could produce not so relevant
     // results (eg: based on the :fulltext content). To work this around, we can specify DYNAMIC_BOOST_FULLTEXT
-    // field as first field since it usually contains relevant terms. This will make sure that the MLT queries
-    // give more priority to the terms in this field while the rest (*) are considered secondary.
+    // field with overridden mlt params and increased boost since it usually contains relevant terms. This will make sure
+    // that the MLT queries give more priority to the terms in this field while the rest (*) are considered secondary.
+    // TODO: we can further improve search relevance by using the actual tags combined with the weights using a function query.
+    //      Right now, we are just matching the tags without looking at the weights. Therefore, a tag can be matched in a field with a lower weight.
     private static final String[] SIMILARITY_TAGS_FIELDS_DEFAULT = new String[] {
-            DYNAMIC_BOOST_FULLTEXT, "*"
+            "mlt.fl=" + DYNAMIC_BOOST_FULLTEXT + "&mlt.mintf=1&mlt.qf=3",
+            "mlt.fl=*&mlt.mintf=2"
     };
 
     private static final String SIMILARITY_TAGS_BOOST = "similarityTagsBoost";
