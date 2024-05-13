@@ -96,6 +96,14 @@ public class MongoConnection {
     }
 
     /**
+     *
+     * @return the {@link MongoClientURI} for this connection
+     */
+    public MongoClientURI getMongoURI() {
+        return mongoURI;
+    }
+
+    /**
      * @return the {@link MongoClient} for this connection.
      */
     public MongoClient getMongoClient() {
