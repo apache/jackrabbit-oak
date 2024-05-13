@@ -49,13 +49,17 @@ public class ReadOnlyNamespaceRegistry
 
     private static final Logger LOG = LoggerFactory.getLogger(ReadOnlyNamespaceRegistry.class);
 
+    private static volatile boolean CONSISTENCY_CHECKED;
+
     protected final Tree namespaces;
     protected final Tree nsdata;
 
     public ReadOnlyNamespaceRegistry(Root root) {
         this.namespaces = root.getTree(NAMESPACES_PATH);
         this.nsdata = namespaces.getChild(REP_NSDATA);
-        checkConsistency();
+        if (!CONSISTENCY_CHECKED) {
+            checkConsistency();
+        }
     }
 
     private Iterable<String> getNSData(String name) {
@@ -172,5 +176,6 @@ public class ReadOnlyNamespaceRegistry
         if (mappedUriCount != uris.size()) {
             LOG.error("The namespace registry is inconsistent: found {} mapped namespace URIs and {} registered namespace URIs. The numbers have to be equal.", mappedUriCount, uris.size());
         }
+        CONSISTENCY_CHECKED = true;
     }
 }
