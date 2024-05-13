@@ -272,8 +272,7 @@ public class JsopBuilder implements JsopWriter {
                 return buff.append('\"').toString();
             }
         }
-        StringBuilder buff = new StringBuilder(length + 2);
-        return buff.append('\"').append(s).append('\"').toString();
+        return '\"' + s + '\"';
     }
 
     /**
