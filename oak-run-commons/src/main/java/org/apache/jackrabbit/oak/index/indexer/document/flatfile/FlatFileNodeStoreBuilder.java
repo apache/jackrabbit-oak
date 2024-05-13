@@ -19,6 +19,7 @@
 
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile;
 
+import com.mongodb.MongoClientURI;
 import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.guava.common.collect.Iterables;
@@ -104,6 +105,7 @@ public class FlatFileNodeStoreBuilder {
     private String checkpoint;
     private StatisticsProvider statisticsProvider = StatisticsProvider.NOOP;
     private IndexingReporter indexingReporter = IndexingReporter.NOOP;
+    private MongoClientURI mongoClientURI;
 
     public enum SortStrategyType {
         /**
@@ -174,6 +176,11 @@ public class FlatFileNodeStoreBuilder {
 
     public FlatFileNodeStoreBuilder withCheckpoint(String checkpoint) {
         this.checkpoint = checkpoint;
+        return this;
+    }
+
+    public FlatFileNodeStoreBuilder withMongoClientURI(MongoClientURI mongoClientURI) {
+        this.mongoClientURI = mongoClientURI;
         return this;
     }
 
@@ -322,7 +329,7 @@ public class FlatFileNodeStoreBuilder {
                 List<PathFilter> pathFilters = indexDefinitions.stream().map(IndexDefinition::getPathFilter).collect(Collectors.toList());
                 List<String> indexNames = indexDefinitions.stream().map(IndexDefinition::getIndexName).collect(Collectors.toList());
                 indexingReporter.setIndexNames(indexNames);
-                return new PipelinedStrategy(mongoDocumentStore, mongoDatabase, nodeStore, rootRevision,
+                return new PipelinedStrategy(mongoClientURI, mongoDocumentStore, nodeStore, rootRevision,
                         preferredPathElements, blobStore, dir, algorithm, pathPredicate, pathFilters, checkpoint,
                         statisticsProvider, indexingReporter);
 
