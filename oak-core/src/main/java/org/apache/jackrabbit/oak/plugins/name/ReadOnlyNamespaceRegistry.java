@@ -16,8 +16,8 @@
  */
 package org.apache.jackrabbit.oak.plugins.name;
 
-import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static java.util.Collections.emptyList;
+import static org.apache.jackrabbit.guava.common.collect.Iterables.toArray;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 
@@ -31,6 +31,11 @@ import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
 import org.apache.jackrabbit.oak.spi.namespace.NamespaceConstants;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Read-only namespace registry. Used mostly internally when access to the
@@ -42,12 +47,15 @@ import org.jetbrains.annotations.NotNull;
 public class ReadOnlyNamespaceRegistry
         implements NamespaceRegistry, NamespaceConstants {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ReadOnlyNamespaceRegistry.class);
+
     protected final Tree namespaces;
     protected final Tree nsdata;
 
     public ReadOnlyNamespaceRegistry(Root root) {
         this.namespaces = root.getTree(NAMESPACES_PATH);
         this.nsdata = namespaces.getChild(REP_NSDATA);
+        checkConsistency();
     }
 
     private Iterable<String> getNSData(String name) {
@@ -112,4 +120,53 @@ public class ReadOnlyNamespaceRegistry
                 "No namespace prefix registered for URI " + uri);
     }
 
+    protected void checkConsistency() {
+        final String jcrPrimaryType = "jcr:primaryType";
+        List<String> prefixes = Arrays.asList(getPrefixes());
+        List<String> uris = Arrays.asList(getURIs());
+        if (prefixes.size() != uris.size()) {
+            LOG.error("The namespace registry is inconsistent: found {} registered prefixes and {} registered URIs. The numbers have to be equal.", prefixes.size(), uris.size());
+        }
+        int mappedPrefixCount = 0;
+        for (PropertyState propertyState : namespaces.getProperties()) {
+            mappedPrefixCount++;
+            String prefix = propertyState.getName();
+            if (!prefix.equals(jcrPrimaryType)) {
+                if (!prefixes.contains(prefix)) {
+                    LOG.error("The namespace registry is inconsistent: prefix {} is mapped to an URI, but not contained in the list of registered prefixes.", prefix);
+                }
+                try {
+                    getURI(prefix);
+                } catch (NamespaceException e) {
+                    LOG.error("The namespace registry is inconsistent: prefix {} is not mapped to an URI.", prefix);
+                }
+            }
+        }
+        if (mappedPrefixCount != prefixes.size()) {
+            LOG.error("The namespace registry is inconsistent: found {} mapped prefixes and {} registered prefixes. The numbers have to be equal.", mappedPrefixCount, prefixes.size());
+        }
+        int mappedUriCount = 0;
+        for (PropertyState propertyState : nsdata.getProperties()) {
+            mappedUriCount++;
+            String uri = propertyState.getName();
+            switch (uri) {
+                case REP_PREFIXES:
+                case REP_URIS:
+                case jcrPrimaryType:
+                    break;
+                default:
+                    if (!uris.contains(uri)) {
+                        LOG.error("The namespace registry is inconsistent: URI {} is mapped to a prefix, but not contained in the list of registered URIs.", uri);
+                    }
+                    try {
+                        getPrefix(uri);
+                    } catch (NamespaceException e) {
+                        LOG.error("The namespace registry is inconsistent: URI {} is not mapped to a prefix.", uri);
+                    }
+            }
+        }
+        if (mappedUriCount != uris.size()) {
+            LOG.error("The namespace registry is inconsistent: found {} mapped URIs and {} registered URIs. The numbers have to be equal.", mappedUriCount, uris.size());
+        }
+    }
 }
