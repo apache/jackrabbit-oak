@@ -60,7 +60,7 @@ public class VersionGCStatsTest {
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS), cumulative.updateResurrectedDocumentsElapsed);
         assertEquals(stats.fullGCDocs.elapsed(MICROSECONDS), cumulative.fullGCDocsElapsed);
         assertEquals(stats.deleteFullGCDocs.elapsed(MICROSECONDS), cumulative.deleteFullGCDocsElapsed);
-        assertEquals(stats.collectFullGarbage.elapsed(MICROSECONDS), cumulative.collectFullGarbageElapsed);
+        assertEquals(stats.collectFullGC.elapsed(MICROSECONDS), cumulative.collectFullGCElapsed);
         assertEquals(stats.collectOrphanNodes.elapsed(MICROSECONDS), cumulative.collectOrphanNodesElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS), cumulative.collectDeletedPropsElapsed);
         assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS), cumulative.collectDeletedOldRevsElapsed);
@@ -84,7 +84,7 @@ public class VersionGCStatsTest {
         assertEquals(stats.updateResurrectedDocuments.elapsed(MICROSECONDS) * 2, cumulative.updateResurrectedDocumentsElapsed);
         assertEquals(stats.fullGCDocs.elapsed(MICROSECONDS) * 2, cumulative.fullGCDocsElapsed);
         assertEquals(stats.deleteFullGCDocs.elapsed(MICROSECONDS) * 2, cumulative.deleteFullGCDocsElapsed);
-        assertEquals(stats.collectFullGarbage.elapsed(MICROSECONDS) * 2, cumulative.collectFullGarbageElapsed);
+        assertEquals(stats.collectFullGC.elapsed(MICROSECONDS) * 2, cumulative.collectFullGCElapsed);
         assertEquals(stats.collectOrphanNodes.elapsed(MICROSECONDS) * 2, cumulative.collectOrphanNodesElapsed);
         assertEquals(stats.collectDeletedProps.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedPropsElapsed);
         assertEquals(stats.collectDeletedOldRevs.elapsed(MICROSECONDS) * 2, cumulative.collectDeletedOldRevsElapsed);
@@ -102,7 +102,7 @@ public class VersionGCStatsTest {
         c.call(stats.updateResurrectedDocuments);
         c.call(stats.fullGCDocs);
         c.call(stats.deleteFullGCDocs);
-        c.call(stats.collectFullGarbage);
+        c.call(stats.collectFullGC);
         c.call(stats.collectOrphanNodes);
         c.call(stats.collectDeletedProps);
         c.call(stats.collectDeletedOldRevs);

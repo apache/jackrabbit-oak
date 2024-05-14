@@ -31,7 +31,7 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 /**
  * {@link DocumentNodeStore} Detailed revision garbage collection statistics.
  */
-class FullRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCollector {
+class FullRevisionGCStatsCollectorImpl implements FullRevisionGCStatsCollector {
 
     static final String FULL_GC = "FullGC";
     static final String READ_DOC = "READ_DOC";
@@ -42,7 +42,7 @@ class FullRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCollect
     static final String SKIPPED_DOC = "SKIPPED_DOC";
     static final String FULL_GC_ACTIVE_TIMER = "FULL_GC_ACTIVE_TIMER";
     static final String FULL_GC_TIMER = "FULL_GC_TIMER";
-    static final String COLLECT_DETAILED_GARBAGE_TIMER = "COLLECT_DETAILED_GARBAGE_TIMER";
+    static final String COLLECT_FULL_GC_TIMER = "COLLECT_FULL_GC_TIMER";
     static final String COLLECT_ORPHAN_NODES_TIMER = "COLLECT_ORPHAN_NODES_TIMER";
     static final String COLLECT_DELETED_PROPS_TIMER = "COLLECT_DELETED_PROPS_TIMER";
     static final String COLLECT_DELETED_OLD_REVS_TIMER = "COLLECT_DELETED_OLD_REVS_TIMER";
@@ -60,7 +60,7 @@ class FullRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCollect
     private final MeterStats skippedDoc;
     private final TimerStats fullGCActiveTimer;
     private final TimerStats fullGCTimer;
-    private final TimerStats collectFullGarbageTimer;
+    private final TimerStats collectFullGCTimer;
     private final TimerStats collectOrphanNodesTimer;
     private final TimerStats collectDeletedPropsTimer;
     private final TimerStats collectDeletedOldRevsTimer;
@@ -81,7 +81,7 @@ class FullRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCollect
 
         fullGCActiveTimer = timer(provider, FULL_GC_ACTIVE_TIMER);
         fullGCTimer = timer(provider, FULL_GC_TIMER);
-        collectFullGarbageTimer = timer(provider, COLLECT_DETAILED_GARBAGE_TIMER);
+        collectFullGCTimer = timer(provider, COLLECT_FULL_GC_TIMER);
         collectOrphanNodesTimer = timer(provider, COLLECT_ORPHAN_NODES_TIMER);
         collectDeletedPropsTimer = timer(provider, COLLECT_DELETED_PROPS_TIMER);
         collectDeletedOldRevsTimer = timer(provider, COLLECT_DELETED_OLD_REVS_TIMER);
@@ -133,7 +133,7 @@ class FullRevisionGCStatsCollectorImpl implements DetailedRevisionGCStatsCollect
     public void finished(VersionGCStats stats) {
         fullGCActiveTimer.update(stats.fullGCActiveElapsed, MICROSECONDS);
         fullGCTimer.update(stats.fullGCDocsElapsed, MICROSECONDS);
-        collectFullGarbageTimer.update(stats.collectFullGarbageElapsed, MICROSECONDS);
+        collectFullGCTimer.update(stats.collectFullGCElapsed, MICROSECONDS);
         collectOrphanNodesTimer.update(stats.collectOrphanNodesElapsed, MICROSECONDS);
         collectDeletedPropsTimer.update(stats.collectDeletedPropsElapsed, MICROSECONDS);
         collectDeletedOldRevsTimer.update(stats.collectDeletedOldRevsElapsed, MICROSECONDS);
