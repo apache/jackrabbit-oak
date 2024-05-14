@@ -27,7 +27,6 @@ import static java.util.stream.Stream.concat;
 import static java.util.stream.StreamSupport.stream;
 import static org.apache.jackrabbit.guava.common.collect.Iterables.filter;
 import static java.util.stream.Collectors.toList;
-import static org.apache.jackrabbit.guava.common.collect.Sets.newHashSet;
 import static org.apache.jackrabbit.oak.plugins.document.Document.ID;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MODIFIED_IN_SECS;
@@ -35,11 +34,11 @@ import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.getModifie
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getAllDocuments;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.getSelectedDocuments;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument.SplitDocType;
@@ -65,7 +64,7 @@ public class VersionGCSupport {
 
     /**
      * Returns documents that have a {@link NodeDocument#MODIFIED_IN_SECS} value
-     * within the given range and the {@link NodeDocument#  DELETED} set to
+     * within the given range and the {@link NodeDocument#DELETED} set to
      * {@code true}. The two passed modified timestamps are in milliseconds
      * since the epoch and the implementation will convert them to seconds at
      * the granularity of the {@link NodeDocument#MODIFIED_IN_SECS} field and
@@ -259,7 +258,7 @@ public class VersionGCSupport {
                     return ofNullable(doc);
                 }
 
-                final Set<String> projectedSet = newHashSet(fields);
+                final Set<String> projectedSet = new HashSet<>(fields);
                 projectedSet.add(ID);
 
                 final NodeDocument newDoc = Collection.NODES.newDocument(store);
