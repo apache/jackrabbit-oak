@@ -127,7 +127,7 @@ public class FullRevisionGCStatsCollectorImplTest {
         final VersionGarbageCollector.VersionGCStats vgcs = new VersionGarbageCollector.VersionGCStats();
         vgcs.fullGCActiveElapsed = MILLISECONDS.toMicros(2);
         vgcs.fullGCDocsElapsed = MILLISECONDS.toMicros(3);
-        vgcs.collectDetailedGarbageElapsed = MILLISECONDS.toMicros(5);
+        vgcs.collectFullGarbageElapsed = MILLISECONDS.toMicros(5);
         vgcs.collectOrphanNodesElapsed = MILLISECONDS.toMicros(6);
         vgcs.collectDeletedPropsElapsed = MILLISECONDS.toMicros(7);
         vgcs.collectDeletedOldRevsElapsed = MILLISECONDS.toMicros(11);
