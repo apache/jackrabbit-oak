@@ -1752,6 +1752,8 @@ public class MongoDocumentStore implements DocumentStore {
                 }
                 return false;
             } catch (MongoException e) {
+                LOG.warn("Encountered MongoException while inserting documents: {} - exception: {}",
+                        ids, e.getMessage());
                 return false;
             }
         } finally {

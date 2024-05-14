@@ -23,12 +23,15 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMK;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.spi.state.NodeStore;
 import org.apache.jackrabbit.oak.spi.toggle.Feature;
+import org.apache.jackrabbit.oak.spi.whiteboard.DefaultWhiteboard;
 
 public class DocumentMemoryFixture extends NodeStoreFixture {
 
     @Override
     public NodeStore createNodeStore() {
         DocumentMK.Builder builder = new DocumentMK.Builder();
+        //do not reuse the whiteboard
+        setWhiteboard(new DefaultWhiteboard());
         builder.setNoChildOrderCleanupFeature(Feature.newFeature("FT_NOCOCLEANUP_OAK-10660", getWhiteboard()));
         return builder.getNodeStore();
     }
