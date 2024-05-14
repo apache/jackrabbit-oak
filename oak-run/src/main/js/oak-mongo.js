@@ -330,6 +330,53 @@ var oak = (function(global){
     };
 
     /**
+     * Finds all the descendants with a _modified timestamp older than the
+     * given timestamp.
+     *
+     * @memberof oak
+     * @method findDescendantsOlderThan
+     * @param {string} path of the parent node to search.
+     * @param {number} timestamp to compare with.
+     */
+    api.findDescendantsOlderThan = function(path, timestamp) {
+        var count = 0;
+        var depth = pathDepth(path);
+        var prefix = path + "/";
+        depth++;
+        var query = { _id: pathFilter(depth, prefix), _modified: {$lt: timestamp}};
+        db.nodes.find(query).forEach(function(doc) {
+            print(doc._id);
+            count++;
+        });
+        print("nCandidates : " + count);
+    }
+
+    /**
+     * Removes all the descendants with a _modified timestamp older than the
+     * given timestamp.
+     * Use removeDescendantsAndSelf() first to get the list of nodes to remove.
+     *
+     * @memberof oak
+     * @method removeDescendantsOlderThan
+     * @param {string} path of the parent node to search.
+     * @param {number} timestamp to compare with.
+     */
+    api.removeDescendantsOlderThan = function(path, timestamp) {
+        var count = 0;
+        var depth = pathDepth(path);
+        var prefix = path + "/";
+        depth++;
+        var query = { _id: pathFilter(depth, prefix), _modified: {$lt: timestamp}};
+        db.nodes.find(query).forEach(function(doc) {
+            print("Removing " + doc._id + " and its children");
+            var result = api.removeDescendantsAndSelf(api.pathFromId(doc._id));
+            count += result.nRemoved;
+            print("    removed : " + result.nRemoved);
+        });
+        print("nRemoved : " + count);
+    }
+
+    /**
      * List all checkpoints.
      *
      * @memberof oak
@@ -1195,7 +1242,7 @@ var oak = (function(global){
         var i = Math.floor( Math.log(size) / Math.log(1024) );
         return ( size / Math.pow(1024, i) ).toFixed(2) * 1 + ' ' + ['B', 'kB', 'MB', 'GB', 'TB'][i];
     };
-    
+
     // http://stackoverflow.com/questions/3561493/is-there-a-regexp-escape-function-in-javascript
     var escapeForRegExp = function(s) {
         return s.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
