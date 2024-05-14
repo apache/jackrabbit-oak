@@ -117,4 +117,8 @@ public class MongoDocumentStoreHelper {
     public static ReadPreference getConfiguredReadPreference(MongoDocumentStore mongoStore, Collection<? extends Document> collection) {
         return mongoStore.getConfiguredReadPreference(collection);
     }
+
+    public static String getMongoDatabaseName(MongoDocumentStore store) {
+        return store.getDatabase().getName();
+    }
 }

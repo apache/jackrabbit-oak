@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined;
 
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.MongoClientURI;
 import org.apache.commons.io.FileUtils;
 import org.apache.jackrabbit.guava.common.base.Preconditions;
 import org.apache.jackrabbit.guava.common.base.Stopwatch;
@@ -208,7 +208,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     }
 
     private final MongoDocumentStore docStore;
-    private final MongoDatabase mongoDatabase;
+    private final MongoClientURI mongoClientURI;
     private final DocumentNodeStore documentNodeStore;
     private final RevisionVector rootRevision;
     private final BlobStore blobStore;
@@ -226,14 +226,15 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private long nodeStateEntriesExtracted;
 
     /**
-     * @param pathPredicate    Used by the transform stage to test if a node should be kept or discarded.
-     * @param pathFilters      If non-empty, the download stage will use these filters to try to create a query that downloads
-     *                         only the matching MongoDB documents.
+     * @param mongoClientURI     URI of the Mongo cluster.
+     * @param pathPredicate      Used by the transform stage to test if a node should be kept or discarded.
+     * @param pathFilters        If non-empty, the download stage will use these filters to create a query that downloads
+     *                           only the matching MongoDB documents.
      * @param statisticsProvider Used to collect statistics about the indexing process.
-     * @param indexingReporter
+     * @param indexingReporter   Used to collect diagnostics, metrics and statistics and report them at the end of the indexing process.
      */
-    public PipelinedStrategy(MongoDocumentStore documentStore,
-                             MongoDatabase mongoDatabase,
+    public PipelinedStrategy(MongoClientURI mongoClientURI,
+                             MongoDocumentStore documentStore,
                              DocumentNodeStore documentNodeStore,
                              RevisionVector rootRevision,
                              Set<String> preferredPathElements,
@@ -246,8 +247,8 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                              StatisticsProvider statisticsProvider,
                              IndexingReporter indexingReporter) {
         super(storeDir, algorithm, pathPredicate, preferredPathElements, checkpoint);
+        this.mongoClientURI = mongoClientURI;
         this.docStore = documentStore;
-        this.mongoDatabase = mongoDatabase;
         this.documentNodeStore = documentNodeStore;
         this.rootRevision = rootRevision;
         this.blobStore = blobStore;
@@ -375,7 +376,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     public File createSortedStoreFile() throws IOException {
         int numberOfThreads = 1 + numberOfTransformThreads + 1 + 1; // dump, transform, sort threads, sorted files merge
         ExecutorService threadPool = Executors.newFixedThreadPool(numberOfThreads,
-                new ThreadFactoryBuilder().setNameFormat("mongo-dump").setDaemon(true).build()
+                new ThreadFactoryBuilder().setDaemon(true).build()
         );
         // This executor can wait for several tasks at the same time. We use this below to wait at the same time for
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
@@ -412,8 +413,9 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
 
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
+
             ecs.submit(new PipelinedMongoDownloadTask(
-                    mongoDatabase,
+                    mongoClientURI,
                     docStore,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
                     mongoDocBatchMaxNumberOfDocuments,
@@ -470,7 +472,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         Object result = completedTask.get();
                         if (result instanceof PipelinedMongoDownloadTask.Result) {
                             PipelinedMongoDownloadTask.Result downloadResult = (PipelinedMongoDownloadTask.Result) result;
-                            LOG.info("Download task finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
+                            LOG.info("Download finished. Documents downloaded: {}", downloadResult.getDocumentsDownloaded());
                             // Signal the end of documents to the transform threads.
                             for (int i = 0; i < numberOfTransformThreads; i++) {
                                 mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
@@ -534,7 +536,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         throw new RuntimeException(ex);
                     }
                 }
-                var elapsedSeconds = start.elapsed(TimeUnit.SECONDS);
+                long elapsedSeconds = start.elapsed(TimeUnit.SECONDS);
                 LOG.info("[TASK:PIPELINED-DUMP:END] Metrics: {}", MetricsFormatter.newBuilder()
                         .add("duration", FormattingUtils.formatToSeconds(elapsedSeconds))
                         .add("durationSeconds", elapsedSeconds)
