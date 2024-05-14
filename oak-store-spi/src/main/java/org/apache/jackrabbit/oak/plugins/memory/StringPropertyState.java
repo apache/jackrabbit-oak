@@ -20,6 +20,7 @@ package org.apache.jackrabbit.oak.plugins.memory;
 
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.apache.jackrabbit.oak.plugins.value.Conversions.Converter;
 import org.jetbrains.annotations.NotNull;
@@ -27,12 +28,48 @@ import org.jetbrains.annotations.NotNull;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.oak.api.Type.STRING;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
 public class StringPropertyState extends SinglePropertyState<String> {
     private final String value;
+    private byte[] compressedValue;
+    private Compression compression = Compression.GZIP;
 
     public StringPropertyState(@NotNull String name, @NotNull String value) {
         super(name);
-        this.value = checkNotNull(value);
+        checkNotNull(value);
+        int size = value.getBytes().length;
+        System.out.println("size = " + size);
+        if (size > 0) {//todo: introduce a threshold
+           compressedValue =  compress(value.getBytes());
+            System.out.println("compressedValue = " + compressedValue.length);
+           this.value = null;
+        } else {
+            this.value = value;
+        }
+    }
+
+    private byte[] compress(byte[] value) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            OutputStream compressionOutputStream = compression.getOutputStream(out);
+            compressionOutputStream.write(value);
+            compressionOutputStream.close();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to compress data", e);
+        }
+    }
+
+    private String decompress(byte[] value) {
+        try {
+            return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to decompress data", e);
+        }
     }
 
     /**
@@ -48,12 +85,12 @@ public class StringPropertyState extends SinglePropertyState<String> {
 
     @Override
     public String getValue() {
-        return value;
+        return value != null ? value : decompress(this.compressedValue);
     }
 
     @Override
     public Converter getConverter() {
-        return Conversions.convert(value);
+        return Conversions.convert(getValue());
     }
 
     @Override

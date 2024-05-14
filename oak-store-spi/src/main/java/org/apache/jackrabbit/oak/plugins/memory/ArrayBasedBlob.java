@@ -19,8 +19,12 @@
 package org.apache.jackrabbit.oak.plugins.memory;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -28,19 +32,41 @@ import org.jetbrains.annotations.NotNull;
  */
 public class ArrayBasedBlob extends AbstractBlob {
     private final byte[] value;
+    private final long valueLength;
+
+    private Compression compression = Compression.GZIP;
 
     public ArrayBasedBlob(byte[] value) {
-        this.value = value;
+        System.out.println("value = " + value.length);
+        this.value = compress(value);
+        System.out.println("value = " + this.value.length);
+        this.valueLength = value.length;
+    }
+
+    private byte[] compress(byte[] value) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            OutputStream compressionOutputStream = compression.getOutputStream(out);
+            compressionOutputStream.write(value);
+            compressionOutputStream.close();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to compress data", e);
+        }
     }
 
     @NotNull
     @Override
     public InputStream getNewStream() {
-        return new ByteArrayInputStream(value);
+        try {
+            return compression.getInputStream(new ByteArrayInputStream(this.value));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to decompress data", e);
+        }
     }
 
     @Override
     public long length() {
-        return value.length;
+        return this.valueLength;
     }
 }
