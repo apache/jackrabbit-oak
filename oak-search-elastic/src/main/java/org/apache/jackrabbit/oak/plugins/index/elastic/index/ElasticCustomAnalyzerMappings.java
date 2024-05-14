@@ -16,24 +16,21 @@
  */
 package org.apache.jackrabbit.oak.plugins.index.elastic.index;
 
+import org.apache.jackrabbit.guava.common.base.CaseFormat;
 import org.apache.lucene.analysis.AbstractAnalysisFactory;
 import org.apache.lucene.analysis.charfilter.MappingCharFilterFactory;
 import org.apache.lucene.analysis.cjk.CJKBigramFilterFactory;
 import org.apache.lucene.analysis.commongrams.CommonGramsFilterFactory;
 import org.apache.lucene.analysis.compound.DictionaryCompoundWordTokenFilterFactory;
 import org.apache.lucene.analysis.en.AbstractWordsFileFilterFactory;
-import org.apache.lucene.analysis.minhash.MinHashFilterFactory;
-import org.apache.lucene.analysis.miscellaneous.ASCIIFoldingFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.KeepWordFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.KeywordMarkerFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.LengthFilterFactory;
-import org.apache.lucene.analysis.miscellaneous.LimitTokenCountFilterFactory;
 import org.apache.lucene.analysis.miscellaneous.WordDelimiterFilterFactory;
 import org.apache.lucene.analysis.ngram.EdgeNGramFilterFactory;
 import org.apache.lucene.analysis.ngram.NGramFilterFactory;
 import org.apache.lucene.analysis.pattern.PatternCaptureGroupFilterFactory;
 import org.apache.lucene.analysis.payloads.DelimitedPayloadTokenFilterFactory;
-import org.apache.lucene.analysis.shingle.ShingleFilterFactory;
 import org.apache.lucene.analysis.synonym.SynonymFilterFactory;
 import org.apache.lucene.analysis.util.ElisionFilterFactory;
 import org.jetbrains.annotations.Nullable;
@@ -43,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.stream.Collectors;
 
 public class ElasticCustomAnalyzerMappings {
 
@@ -141,48 +139,12 @@ public class ElasticCustomAnalyzerMappings {
                 luceneParams.put("stemEnglishPossessive", Integer.parseInt(luceneParams.get("stemEnglishPossessive").toString()) == 1);
             }
             return reKey.apply(luceneParams, Map.of(
-                    "generateWordParts", "generate_word_parts",
-                    "generateNumberParts", "generate_number_parts",
-                    "catenateWords", "catenate_words",
-                    "catenateNumbers", "catenate_numbers",
-                    "catenateAll", "catenate_all",
-                    "splitOnCaseChange", "split_on_case_change",
-                    "preserveOriginal", "preserve_original",
-                    "splitOnNumerics", "split_on_numerics",
-                    "stemEnglishPossessive", "stem_english_possessive",
                     "protectedTokens", "protected_words"
             ));
         });
 
-        LUCENE_ELASTIC_TRANSFORMERS.put(ShingleFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of(
-                        "minShingleSize", "min_shingle_size",
-                        "maxShingleSize", "max_shingle_size",
-                        "outputUnigrams", "output_unigrams",
-                        "outputUnigramsIfNoShingles", "output_unigrams_if_no_shingles",
-                        "tokenSeparator", "token_separator",
-                        "fillerToken", "filler_token"
-                ))
-        );
-
         LUCENE_ELASTIC_TRANSFORMERS.put(PatternCaptureGroupFilterFactory.class, luceneParams ->
                 reKey.apply(luceneParams, Map.of("pattern", "patterns"))
-        );
-
-        LUCENE_ELASTIC_TRANSFORMERS.put(MinHashFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of(
-                        "hashCount", "hash_count",
-                        "bucketCount", "bucket_count",
-                        "hashSetSize", "hash_set_size",
-                        "withRotation", "with_rotation"
-                ))
-        );
-
-        LUCENE_ELASTIC_TRANSFORMERS.put(LimitTokenCountFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of(
-                        "maxTokenCount", "max_token_count",
-                        "consumeAllTokens", "consume_all_tokens"
-                ))
         );
 
         LUCENE_ELASTIC_TRANSFORMERS.put(KeepWordFilterFactory.class, luceneParams ->
@@ -231,10 +193,6 @@ public class ElasticCustomAnalyzerMappings {
                 reKey.apply(luceneParams, Map.of("protected", "keywords"))
         );
 
-        LUCENE_ELASTIC_TRANSFORMERS.put(ASCIIFoldingFilterFactory.class, luceneParams ->
-                reKey.apply(luceneParams, Map.of("preserveOriginal", "preserve_original"))
-        );
-
         LUCENE_ELASTIC_TRANSFORMERS.put(CJKBigramFilterFactory.class, luceneParams -> {
             List<String> ignored = new ArrayList<>();
             if (!Boolean.parseBoolean(luceneParams.getOrDefault("hal", true).toString())) {
@@ -252,21 +210,28 @@ public class ElasticCustomAnalyzerMappings {
             if (!ignored.isEmpty()) {
                 luceneParams.put("ignored_scripts", ignored);
             }
-            return reKey.apply(luceneParams, Map.of("outputUnigrams", "output_unigrams"));
+            return luceneParams;
         });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(AbstractWordsFileFilterFactory.class, luceneParams -> {
             luceneParams.remove("enablePositionIncrements");
-            return reKey.apply(luceneParams, Map.of("words", "stopwords", "ignoreCase", "ignore_case"));
+            return reKey.apply(luceneParams, Map.of("words", "stopwords"));
         });
 
         LUCENE_ELASTIC_TRANSFORMERS.put(DictionaryCompoundWordTokenFilterFactory.class, luceneParams -> reKey.apply(luceneParams, Map.of(
-                "dictionary", "word_list",
-                "minWordSize", "min_word_size",
-                "maxSubwordSize", "max_subword_size",
-                "minSubwordSize", "min_subword_size",
-                "onlyLongestMatch", "only_longest_match"
+                "dictionary", "word_list"
         )));
+
+        // default transformer executed as final step on all the filters to transform the keys from camel case to snake case
+        LUCENE_ELASTIC_TRANSFORMERS.put(AbstractAnalysisFactory.class, luceneParams ->
+                luceneParams.entrySet().stream()
+                        .collect(Collectors.toMap(
+                                entry -> CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, entry.getKey()),
+                                Map.Entry::getValue, // keep the original value
+                                (oldValue, newValue) -> oldValue, // in case of duplicate keys, keep the old value
+                                LinkedHashMap::new // preserve the original order
+                        ))
+        );
     }
 
     /*
