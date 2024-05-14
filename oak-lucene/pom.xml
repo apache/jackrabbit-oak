@@ -142,6 +142,8 @@
             <exclude>**/test.txt</exclude>
             <exclude>**/fvs.csv</exclude>
             <exclude>src/test/resources/**/*.txt</exclude>
+            <!-- see OAK-10786 -->
+            <exclude>src/main/java/org/apache/lucene/util/automaton/*</exclude>
           </excludes>
         </configuration>
       </plugin>
