@@ -19,8 +19,8 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.concurrent.TimeUnit.HOURS;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.apache.commons.lang3.reflect.FieldUtils.writeStaticField;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.build;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.build;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.allOrphProp;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsEqual;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.assertStatsCountsZero;
@@ -48,7 +48,7 @@ import java.util.SortedMap;
 import java.util.function.Consumer;
 
 import org.apache.jackrabbit.oak.plugins.document.DocumentMK.Builder;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollectorIT.GCCounts;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
@@ -78,7 +78,7 @@ public class BranchCommitGCTest {
         java.util.Collection<Object[]> params = new LinkedList<>();
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
-            for (DetailedGCMode gcType : DetailedGCMode.values()) {
+            for (FullGCMode gcType : FullGCMode.values()) {
                 params.add(new Object[] {f, gcType});
             }
         }
@@ -89,9 +89,9 @@ public class BranchCommitGCTest {
     public DocumentStoreFixture fixture;
 
     @Parameter(1)
-    public DetailedGCMode detailedGcMode;
+    public FullGCMode fullGcMode;
 
-    private DetailedGCMode originalDetailedGcMode;
+    private FullGCMode originalFullGcMode;
 
     @Before
     public void setUp() throws Exception {
@@ -99,16 +99,16 @@ public class BranchCommitGCTest {
         clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         store = builderProvider.newBuilder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED).setDetailedGCEnabled(true)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).setFullGCEnabled(true)
                 .setAsyncDelay(0).getNodeStore();
         gc = store.getVersionGarbageCollector();
-        originalDetailedGcMode = VersionGarbageCollector.getDetailedGcMode();
-        writeStaticField(VersionGarbageCollector.class, "detailedGcMode", detailedGcMode, true);
+        originalFullGcMode = VersionGarbageCollector.getFullGcMode();
+        writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
     }
 
     @After
     public void tearDown() throws Exception {
-        writeStaticField(VersionGarbageCollector.class, "detailedGcMode", originalDetailedGcMode, true);
+        writeStaticField(VersionGarbageCollector.class, "fullGcMode", originalFullGcMode, true);
         assertNoEmptyProperties();
         if (store != null) {
             store.dispose();
@@ -148,7 +148,7 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS, DetailedGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS)) {
             assertNotExists("1:/a");
             assertNotExists("1:/b");
             assertBranchRevisionRemovedFromAllDocuments(store, br);
@@ -194,7 +194,7 @@ public class BranchCommitGCTest {
             // expects a collision to have happened - which was cleaned up - hence a _bc (but not the _revision I guess)
             // the collisions cleaned up - with the 1 collision and a _bc
             assertStatsCountsEqual(stats,
-                    new GCCounts(DetailedGCMode.NONE, 
+                    new GCCounts(FullGCMode.NONE,
                                 2, 0, 0, 0, 0, 0, 0),
                     gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
                     gapOrphProp(2, 0, 0, 0, 0, 0, 0),
@@ -207,7 +207,7 @@ public class BranchCommitGCTest {
         } else {
             // in this case classic collision cleanup already took care of everything, nothing left
             assertStatsCountsEqual(stats,
-                    new GCCounts(DetailedGCMode.NONE, 
+                    new GCCounts(FullGCMode.NONE,
                                 2, 0, 0, 0, 0, 0, 0),
                     gapOrphOnly(2, 0, 0, 0, 0, 0, 0),
                     gapOrphProp(2, 0, 0, 0, 0, 0, 0),
@@ -224,7 +224,7 @@ public class BranchCommitGCTest {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedDocGCCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertBranchRevisionRemovedFromAllDocuments(store, br);
@@ -261,8 +261,8 @@ public class BranchCommitGCTest {
         mergedBranchCommit(b -> b.child("foo").removeProperty("p"));
         store.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -279,7 +279,7 @@ public class BranchCommitGCTest {
                 betweenChkp(0, 3, 0, 0, 1, 0, 3),
                 unmergedBcs(0, 3, 2, 1,15, 4, 3),
                 btwnChkpUBC(0, 3, 2, 1,16, 4, 3));
-        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br1);
             assertBranchRevisionRemovedFromAllDocuments(store, br2);
             assertBranchRevisionRemovedFromAllDocuments(store, br3);
@@ -319,7 +319,7 @@ public class BranchCommitGCTest {
                 unmergedBcs(2, 0, 2, 0, 2, 2, 3),
                 btwnChkpUBC(2, 0, 2, 0, 2, 2, 3));
 
-        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS, DetailedGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS)) {
             assertNotExists("1:/a");
             assertNotExists("1:/b");
         }
@@ -328,7 +328,7 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br1);
             assertBranchRevisionRemovedFromAllDocuments(store, br2);
         }
@@ -379,7 +379,7 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br1);
             assertBranchRevisionRemovedFromAllDocuments(store, br2);
         }
@@ -441,7 +441,7 @@ public class BranchCommitGCTest {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br1);
             assertBranchRevisionRemovedFromAllDocuments(store, br2);
             assertBranchRevisionRemovedFromAllDocuments(store, br3);
@@ -482,7 +482,7 @@ public class BranchCommitGCTest {
         // now do second gc round - should not have anything left to clean up though
         stats = gc.gc(1, HOURS);
         assertStatsCountsZero(stats);
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br);
         }
     }
@@ -494,7 +494,7 @@ public class BranchCommitGCTest {
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
 
         RevisionVector br = unmergedBranchCommit(b -> b.child("foo").removeProperty("a"));
         mergedBranchCommit(b -> b.child("foo").setProperty("c", "d"));
@@ -514,7 +514,7 @@ public class BranchCommitGCTest {
                 betweenChkp(),
                 unmergedBcs(0, 0, 0, 1, 4, 1, 2),
                 btwnChkpUBC(0, 0, 0, 1, 4, 1, 2));
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br);
         }
     }
@@ -540,7 +540,7 @@ public class BranchCommitGCTest {
                 betweenChkp(0, 1, 0, 0, 0, 0, 1),
                 unmergedBcs(0, 1, 0, 0, 4, 1, 2),
                 btwnChkpUBC(0, 1, 0, 0, 4, 1, 2));
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             assertBranchRevisionRemovedFromAllDocuments(store, br);
         }
     }
@@ -554,7 +554,7 @@ public class BranchCommitGCTest {
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
 
         final List<RevisionVector> brs = new LinkedList<>();
@@ -586,7 +586,7 @@ public class BranchCommitGCTest {
 
         assertEquals(originalModified, finalModified);
 
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             for (RevisionVector br : brs) {
                 assertBranchRevisionRemovedFromAllDocuments(store, br);
             }
@@ -602,7 +602,7 @@ public class BranchCommitGCTest {
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
 
         for (int i = 0; i < 50; i++) {
@@ -629,7 +629,7 @@ public class BranchCommitGCTest {
                 betweenChkp(),
                 unmergedBcs(0, 0, 2, 0,40,10, 2),
                 btwnChkpUBC(0, 0, 2, 0,40,10, 2));
-        if (!isModeOneOf(DetailedGCMode.NONE)) {
+        if (!isModeOneOf(FullGCMode.NONE)) {
             for (RevisionVector br : brs) {
                 assertBranchRevisionRemovedFromAllDocuments(store, br);
             }
@@ -644,7 +644,7 @@ public class BranchCommitGCTest {
         // do a gc without waiting, to check that works fine
         store.runBackgroundOperations();
         stats = gc.gc(1, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedUnmergedBCCount);
         assertEquals(0, stats.deletedPropsCount);
         assertEquals(0, stats.deletedPropRevsCount);
@@ -655,7 +655,7 @@ public class BranchCommitGCTest {
         });
         store.runBackgroundOperations();
         DocumentNodeStore store2 = newStore(2);
-        DetailGCHelper.mergedBranchCommit(store2, b -> b.child("foo").removeProperty("a"));
+        FullGCHelper.mergedBranchCommit(store2, b -> b.child("foo").removeProperty("a"));
         store2.runBackgroundOperations();
         store2.dispose();
         store.runBackgroundOperations();
@@ -688,7 +688,7 @@ public class BranchCommitGCTest {
                 betweenChkp(0, 2, 0, 0, 0, 0, 2),
                 unmergedBcs(0, 2, 1, 0, 4, 1, 2),
                 btwnChkpUBC(0, 2, 1, 0, 4, 1, 2));
-        if (isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS)) {
+        if (isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS)) {
             return;
         }
 
@@ -697,9 +697,9 @@ public class BranchCommitGCTest {
             NodeDocument d = store.getDocumentStore().find(Collection.NODES, "0:/", -1);
             assertNotNull(d);
             assertEquals(0, d.getLocalMap("rootProp").size());
-            if (VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS
-                    || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
-                    || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC) {
+            if (VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS
+                    || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
+                    || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC) {
                 assertEquals(0, d.getLocalMap("_collisions").size());
             } else {
                 assertEquals(1, d.getLocalMap("_collisions").size());
@@ -716,7 +716,7 @@ public class BranchCommitGCTest {
 
     private DocumentNodeStore newStore(int clusterId) {
         Builder builder = builderProvider.newBuilder().clock(clock)
-                .setLeaseCheckMode(LeaseCheckMode.DISABLED).setDetailedGCEnabled(true)
+                .setLeaseCheckMode(LeaseCheckMode.DISABLED).setFullGCEnabled(true)
                 .setAsyncDelay(0).setDocumentStore(store.getDocumentStore());
         if (clusterId > 0) {
             builder.setClusterId(clusterId);

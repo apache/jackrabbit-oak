@@ -129,7 +129,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
-    private Feature docStoreDetailedGCFeature;
+    private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
     private Weigher<CacheValue, CacheValue> weigher = new EmpiricalWeigher();
     private long memoryCacheSize = DEFAULT_MEMORY_CACHE_SIZE;
@@ -169,7 +169,7 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
     private Predicate<Path> nodeCachePredicate = Predicates.alwaysTrue();
     private boolean clusterInvisible;
     private boolean throttlingEnabled;
-    private boolean detailedGCEnabled;
+    private boolean fullGCEnabled;
     private boolean embeddedVerificationEnabled = DocumentNodeStoreService.DEFAULT_EMBEDDED_VERIFICATION_ENABLED;
     private long suspendTimeoutMillis = DEFAULT_SUSPEND_TIMEOUT;
 
@@ -294,13 +294,13 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.throttlingEnabled;
     }
 
-    public T setDetailedGCEnabled(boolean b) {
-        this.detailedGCEnabled = b;
+    public T setFullGCEnabled(boolean b) {
+        this.fullGCEnabled = b;
         return thisBuilder();
     }
 
-    public boolean isDetailedGCEnabled() {
-        return this.detailedGCEnabled;
+    public boolean isFullGCEnabled() {
+        return this.fullGCEnabled;
     }
 
     public T setEmbeddedVerificationEnabled(boolean b) {
@@ -347,8 +347,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return thisBuilder();
     }
 
-    public T setDocStoreDetailedGCFeature(@Nullable Feature docStoreDetailedGC) {
-        this.docStoreDetailedGCFeature = docStoreDetailedGC;
+    public T setDocStoreFullGCFeature(@Nullable Feature docStoreFullGC) {
+        this.docStoreFullGCFeature = docStoreFullGC;
         return thisBuilder();
     }
 
@@ -367,8 +367,8 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return cancelInvalidationFeature;
     }
 
-    public Feature getDocStoreDetailedGCFeature() {
-        return docStoreDetailedGCFeature;
+    public Feature getDocStoreFullGCFeature() {
+        return docStoreFullGCFeature;
     }
 
     public T setDocStoreEmbeddedVerificationFeature(@Nullable Feature getDocStoreEmbeddedVerification) {

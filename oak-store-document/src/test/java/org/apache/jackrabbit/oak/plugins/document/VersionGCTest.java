@@ -52,14 +52,14 @@ import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.disableDetailGC;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.disableDetailGCDryRun;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGC;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGCDryRun;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGC;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.disableFullGCDryRun;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGCDryRun;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -106,8 +106,8 @@ public class VersionGCTest {
 
     @After
     public void tearDown() throws Exception {
-        disableDetailGC(gc);
-        disableDetailGCDryRun(gc);
+        disableFullGC(gc);
+        disableFullGCDryRun(gc);
         execService.shutdown();
         execService.awaitTermination(1, MINUTES);
     }
@@ -204,8 +204,8 @@ public class VersionGCTest {
     public void cancelMustNotUpdateLastOldestModifiedTimeStamp() throws Exception {
         // get previous entry from SETTINGS
         String versionGCId = SETTINGS_COLLECTION_ID;
-        String detailedGCTimestamp = SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
-        enableDetailGC(gc);
+        String fullGCTimestamp = SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
+        enableFullGC(gc);
         gc.gc(30, SECONDS);
         Document statusBefore = store.find(SETTINGS, versionGCId);
         // block gc call
@@ -232,9 +232,9 @@ public class VersionGCTest {
         } else {
             assertNotNull(statusAfter);
             assertEquals(
-                    "canceled GC shouldn't change the " + detailedGCTimestamp + " property on " + versionGCId
+                    "canceled GC shouldn't change the " + fullGCTimestamp + " property on " + versionGCId
                             + " settings entry",
-                    statusBefore.get(detailedGCTimestamp), statusAfter.get(detailedGCTimestamp));
+                    statusBefore.get(fullGCTimestamp), statusAfter.get(fullGCTimestamp));
         }
     }
 
@@ -242,8 +242,8 @@ public class VersionGCTest {
     public void cancelMustNotUpdateLastOldestModifiedDocId() throws Exception {
         // get previous entry from SETTINGS
         String versionGCId = SETTINGS_COLLECTION_ID;
-        String oldestModifiedDocId = SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
-        enableDetailGC(gc);
+        String oldestModifiedDocId = SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
+        enableFullGC(gc);
         gc.gc(30, SECONDS);
         Document statusBefore = store.find(SETTINGS, versionGCId);
         // block gc call
@@ -283,12 +283,12 @@ public class VersionGCTest {
     public void dryRunMustNotUpdateLastOldestModifiedTimeStamp() throws Exception {
         // get previous entry from SETTINGS
         String versionGCId = SETTINGS_COLLECTION_ID;
-        String detailedGCTimestamp = SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
-        enableDetailGC(gc);
+        String fullGCTimestamp = SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
+        enableFullGC(gc);
         gc.gc(30, SECONDS);
         Document statusBefore = store.find(SETTINGS, versionGCId);
         // now run GC in dryRun mode
-        enableDetailGCDryRun(gc);
+        enableFullGCDryRun(gc);
 
         gc.gc(30, SECONDS);
 
@@ -296,20 +296,20 @@ public class VersionGCTest {
         Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(statusAfter);
         assert statusBefore != null;
-        assertEquals("canceled GC shouldn't change the " + detailedGCTimestamp + " property on " + versionGCId
-                + " settings entry", statusBefore.get(detailedGCTimestamp), statusAfter.get(detailedGCTimestamp));
+        assertEquals("canceled GC shouldn't change the " + fullGCTimestamp + " property on " + versionGCId
+                + " settings entry", statusBefore.get(fullGCTimestamp), statusAfter.get(fullGCTimestamp));
     }
 
     @Test
     public void dryRunMustNotUpdateLastOldestModifiedDocId() throws Exception {
         // get previous entry from SETTINGS
         String versionGCId = SETTINGS_COLLECTION_ID;
-        String oldestModifiedDocId = SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
-        enableDetailGC(gc);
+        String oldestModifiedDocId = SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
+        enableFullGC(gc);
         gc.gc(30, SECONDS);
         final Document statusBefore = store.find(SETTINGS, versionGCId);
         // now run GC in dryRun mode
-        enableDetailGCDryRun(gc);
+        enableFullGCDryRun(gc);
         gc.gc(30, SECONDS);
         // ensure a dryRun GC doesn't update that versionGC SETTINGS entry
         final Document statusAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
@@ -476,56 +476,56 @@ public class VersionGCTest {
 
     // OAK-10199
     @Test
-    public void testDetailGcDocumentRead_disabled() throws Exception {
-        disableDetailGC(gc);
+    public void testFullGCDocumentRead_disabled() throws Exception {
+        disableFullGC(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertNotNull(stats);
-        assertEquals(0, stats.detailedGCDocsElapsed);
+        assertEquals(0, stats.fullGCDocsElapsed);
     }
 
     @Test
-    public void testDetailGcDocumentRead_enabled() throws Exception {
-        enableDetailGC(gc);
+    public void testFullGCDocumentRead_enabled() throws Exception {
+        enableFullGC(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertNotNull(stats);
-        assertNotEquals(0, stats.detailedGCDocsElapsed);
+        assertNotEquals(0, stats.fullGCDocsElapsed);
     }
 
     // OAK-10199 END
 
     // OAK-10370
     @Test
-    public void testDetailGCDryRunModeEnabled() throws Exception {
-        enableDetailGC(gc);
-        enableDetailGCDryRun(gc);
+    public void testFullGCDryRunModeEnabled() throws Exception {
+        enableFullGC(gc);
+        enableFullGCDryRun(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertNotNull(stats);
-        assertTrue(stats.detailedGCDryRunMode);
+        assertTrue(stats.fullGCDryRunMode);
     }
 
     @Test
-    public void testResetDetailGCDryRunMode() throws Exception {
-        enableDetailGC(gc);
-        enableDetailGCDryRun(gc);
+    public void testResetFullGCDryRunMode() throws Exception {
+        enableFullGC(gc);
+        enableFullGCDryRun(gc);
         VersionGCStats stats = gc.gc(30, TimeUnit.MINUTES);
         assertNotNull(stats);
 
         // add dryRun fields data
         final UpdateOp updateOp = new UpdateOp(SETTINGS_COLLECTION_ID, true);
-        updateOp.set(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP, "docId");
-        updateOp.set(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP, currentTimeMillis());
+        updateOp.set(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP, "docId");
+        updateOp.set(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, currentTimeMillis());
         store.createOrUpdate(Collection.SETTINGS, updateOp);
 
         final Document settingsBefore = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(settingsBefore);
-        assertNotNull(settingsBefore.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
-        assertNotNull(settingsBefore.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertNotNull(settingsBefore.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP));
+        assertNotNull(settingsBefore.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP));
 
         gc.resetDryRun();
         final Document settingsAfter = store.find(SETTINGS, SETTINGS_COLLECTION_ID);
         assertNotNull(settingsAfter);
-        assertNull(settingsAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP));
-        assertNull(settingsAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP));
+        assertNull(settingsAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP));
+        assertNull(settingsAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP));
 
     }
 

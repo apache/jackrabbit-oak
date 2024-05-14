@@ -988,18 +988,18 @@ public class Utils {
     }
 
     /**
-     * Check whether detailed GC is enabled or not for document store.
+     * Check whether full GC is enabled or not for document store.
      *
      * @param builder instance for DocumentNodeStoreBuilder
-     * @return true if detailed GC is enabled else false
+     * @return true if full GC is enabled else false
      */
-    public static boolean isDetailedGCEnabled(final DocumentNodeStoreBuilder<?> builder) {
-        final Feature docStoreDetailedGCFeature = builder.getDocStoreDetailedGCFeature();
-        return builder.isDetailedGCEnabled() || (docStoreDetailedGCFeature != null && docStoreDetailedGCFeature.isEnabled());
+    public static boolean isFullGCEnabled(final DocumentNodeStoreBuilder<?> builder) {
+        final Feature docStoreFullGCFeature = builder.getDocStoreFullGCFeature();
+        return builder.isFullGCEnabled() || (docStoreFullGCFeature != null && docStoreFullGCFeature.isEnabled());
     }
 
     /**
-     * Check whether embedded verification for detailed GC mode is enabled or not for document store.
+     * Check whether embedded verification for full GC mode is enabled or not for document store.
      *
      * @param builder instance for DocumentNodeStoreBuilder
      * @return true if embedded verification is enabled else false

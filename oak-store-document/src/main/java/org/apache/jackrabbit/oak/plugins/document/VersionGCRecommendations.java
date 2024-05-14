@@ -38,10 +38,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations.GcType.DGC;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGCRecommendations.GcType.RGC;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP;
@@ -61,26 +61,26 @@ public class VersionGCRecommendations {
     private final GCMonitor gcmon;
 
     final boolean ignoreDueToCheckPoint;
-    final boolean ignoreDetailedGCDueToCheckPoint;
+    final boolean ignoreFullGCDueToCheckPoint;
     final TimeInterval scope;
-    final TimeInterval scopeDetailedGC;
+    final TimeInterval scopeFullGC;
     final long maxCollect;
     final long deleteCandidateCount;
     final long lastOldestTimestamp;
-    final long detailedGCTimestamp;
-    final long detailedGCDryRunTimestamp;
-    final String detailedGCId;
+    final long fullGCTimestamp;
+    final long fullGCDryRunTimestamp;
+    final String fullGCId;
     final long originalCollectLimit;
     private final long precisionMs;
     final long suggestedIntervalMs;
     private final boolean scopeIsComplete;
-    private final boolean detailedGCScopeIsComplete;
-    private final boolean detailedGCEnabled;
+    private final boolean fullGCScopeIsComplete;
+    private final boolean fullGCEnabled;
 
-    // whether detailedGC is running in dryRun or not. Please note that this mode is to be run only
+    // whether fullGC is running in dryRun or not. Please note that this mode is to be run only
     // either via command line i.e. oak-run or as management bean command.
-    // It will also run only if detailedGC is not running.
-    private final boolean isDetailedGCDryRun;
+    // It will also run only if fullGC is not running.
+    private final boolean isFullGCDryRun;
 
     /**
      * With the given maximum age of revisions to keep (earliest time in the past to collect),
@@ -103,14 +103,14 @@ public class VersionGCRecommendations {
      * @param vgc                VersionGC support class
      * @param options            options for running the gc
      * @param gcMonitor          monitor class for messages
-     * @param detailedGCEnabled  whether detailedGC is enabled or not
-     * @param isDetailedGCDryRun whether detailedGC is running in dryRun mode or not
+     * @param fullGCEnabled  whether fullGC is enabled or not
+     * @param isFullGCDryRun whether fullGC is running in dryRun mode or not
      */
     VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
-                                    VersionGCOptions options, GCMonitor gcMonitor, boolean detailedGCEnabled,
-                                    boolean isDetailedGCDryRun) {
+                                    VersionGCOptions options, GCMonitor gcMonitor, boolean fullGCEnabled,
+                                    boolean isFullGCDryRun) {
         boolean ignoreDueToCheckPoint;
-        boolean ignoreDetailedGCDueToCheckPoint;
+        boolean ignoreFullGCDueToCheckPoint;
         long deletedOnceCount = 0;
         long suggestedIntervalMs;
         long oldestPossible;
@@ -123,8 +123,8 @@ public class VersionGCRecommendations {
         this.vgc = vgc;
         this.gcmon = gcMonitor;
         this.originalCollectLimit = options.collectLimit;
-        this.detailedGCEnabled = detailedGCEnabled;
-        this.isDetailedGCDryRun = isDetailedGCDryRun;
+        this.fullGCEnabled = fullGCEnabled;
+        this.isFullGCDryRun = isFullGCDryRun;
 
         TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, MAX_VALUE);
 
@@ -141,51 +141,51 @@ public class VersionGCRecommendations {
         TimeInterval scope = new TimeInterval(oldestPossible, MAX_VALUE);
         scope = scope.notLaterThan(keep.fromMs);
 
-        detailedGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP);
-        oldestModifiedDocId = (String) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP);
+        fullGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP);
+        oldestModifiedDocId = (String) settings.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP);
 
-        detailedGCDryRunTimestamp = (long) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP);
-        oldestModifiedDryRunDocId = (String) settings.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP);
+        fullGCDryRunTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP);
+        oldestModifiedDryRunDocId = (String) settings.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP);
 
         if (log.isDebugEnabled()) {
-            if (isDetailedGCDryRun) {
-                log.debug("lastOldestTimestamp: {}, detailedGCDryRunTimestamp: {}, oldestModifiedDryRunDocId: {}",
-                        timestampToString(lastOldestTimestamp), timestampToString(detailedGCDryRunTimestamp), oldestModifiedDryRunDocId);
+            if (isFullGCDryRun) {
+                log.debug("lastOldestTimestamp: {}, fullGCDryRunTimestamp: {}, oldestModifiedDryRunDocId: {}",
+                        timestampToString(lastOldestTimestamp), timestampToString(fullGCDryRunTimestamp), oldestModifiedDryRunDocId);
             } else {
-                log.debug("lastOldestTimestamp: {}, detailedGCTimestamp: {}, oldestModifiedDocId: {}",
-                        timestampToString(lastOldestTimestamp), timestampToString(detailedGCTimestamp), oldestModifiedDocId);
+                log.debug("lastOldestTimestamp: {}, fullGCTimestamp: {}, oldestModifiedDocId: {}",
+                        timestampToString(lastOldestTimestamp), timestampToString(fullGCTimestamp), oldestModifiedDocId);
             }
         }
 
-        if (isDetailedGCDryRun) {
-            if (detailedGCDryRunTimestamp == 0) {
-                // it will only happen for the very first time, we run this detailedGC in dry run mode
-                log.info("No detailedGCDryRunTimestamp found, querying for the oldest modified candidate");
+        if (isFullGCDryRun) {
+            if (fullGCDryRunTimestamp == 0) {
+                // it will only happen for the very first time, we run this fullGC in dry run mode
+                log.info("No fullGCDryRunTimestamp found, querying for the oldest modified candidate");
                 vgc.getOldestModifiedDoc(clock).ifPresentOrElse(
                         d -> oldestModifiedDryRunDocTimeStamp.set(SECONDS.toMillis(ofNullable(d.getModified()).orElse(0L))),
                         () -> oldestModifiedDryRunDocTimeStamp.set(0L));
                 oldestModifiedDryRunDocId = MIN_ID_VALUE;
-                log.info("detailedGCDryRunTimestamp found: {}", timestampToString(oldestModifiedDryRunDocTimeStamp.get()));
+                log.info("fullGCDryRunTimestamp found: {}", timestampToString(oldestModifiedDryRunDocTimeStamp.get()));
             } else {
-                oldestModifiedDryRunDocTimeStamp.set(detailedGCDryRunTimestamp);
+                oldestModifiedDryRunDocTimeStamp.set(fullGCDryRunTimestamp);
             }
         } else {
-            if (detailedGCTimestamp == 0) {
-                // it will only happen for the very first time, we run this detailedGC
-                log.info("No detailedGCTimestamp found, querying for the oldest modified candidate");
+            if (fullGCTimestamp == 0) {
+                // it will only happen for the very first time, we run this fullGC
+                log.info("No fullGCTimestamp found, querying for the oldest modified candidate");
                 vgc.getOldestModifiedDoc(clock).ifPresentOrElse(
                         d -> oldestModifiedDocTimeStamp.set(SECONDS.toMillis(ofNullable(d.getModified()).orElse(0L))),
                         () -> oldestModifiedDocTimeStamp.set(0L));
                 oldestModifiedDocId = MIN_ID_VALUE;
-                log.info("detailedGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp.get()));
+                log.info("fullGCTimestamp found: {}", timestampToString(oldestModifiedDocTimeStamp.get()));
             } else {
-                oldestModifiedDocTimeStamp.set(detailedGCTimestamp);
+                oldestModifiedDocTimeStamp.set(fullGCTimestamp);
             }
         }
 
-        TimeInterval scopeDetailedGC = new TimeInterval(isDetailedGCDryRun ? oldestModifiedDryRunDocTimeStamp.get() :
+        TimeInterval scopeFullGC = new TimeInterval(isFullGCDryRun ? oldestModifiedDryRunDocTimeStamp.get() :
                 oldestModifiedDocTimeStamp.get(), MAX_VALUE);
-        scopeDetailedGC = scopeDetailedGC.notLaterThan(keep.fromMs);
+        scopeFullGC = scopeFullGC.notLaterThan(keep.fromMs);
 
         suggestedIntervalMs = (long) settings.get(SETTINGS_COLLECTION_REC_INTERVAL_PROP);
         if (suggestedIntervalMs > 0) {
@@ -228,9 +228,9 @@ public class VersionGCRecommendations {
         scope = gcResult.gcScope;
         ignoreDueToCheckPoint = gcResult.ignoreGC;
 
-        final GCResult detailGCResult = getResult(options, checkpoint, clock, DGC, scopeDetailedGC);
-        scopeDetailedGC = detailGCResult.gcScope;
-        ignoreDetailedGCDueToCheckPoint = detailGCResult.ignoreGC;
+        final GCResult detailGCResult = getResult(options, checkpoint, clock, DGC, scopeFullGC);
+        scopeFullGC = detailGCResult.gcScope;
+        ignoreFullGCDueToCheckPoint = detailGCResult.ignoreGC;
 
         if (scope.getDurationMs() <= options.precisionMs) {
             // If we have narrowed the collect time interval down as much as we can, no
@@ -242,11 +242,11 @@ public class VersionGCRecommendations {
         this.precisionMs = options.precisionMs;
         this.ignoreDueToCheckPoint = ignoreDueToCheckPoint;
         this.scope = scope;
-        this.ignoreDetailedGCDueToCheckPoint = ignoreDetailedGCDueToCheckPoint;
-        this.scopeDetailedGC = scopeDetailedGC;
-        this.detailedGCId = isDetailedGCDryRun ? oldestModifiedDryRunDocId : oldestModifiedDocId;
+        this.ignoreFullGCDueToCheckPoint = ignoreFullGCDueToCheckPoint;
+        this.scopeFullGC = scopeFullGC;
+        this.fullGCId = isFullGCDryRun ? oldestModifiedDryRunDocId : oldestModifiedDocId;
         this.scopeIsComplete = scope.toMs >= keep.fromMs;
-        this.detailedGCScopeIsComplete = scopeDetailedGC.toMs >= keep.fromMs;
+        this.fullGCScopeIsComplete = scopeFullGC.toMs >= keep.fromMs;
         this.maxCollect = collectLimit;
         this.suggestedIntervalMs = suggestedIntervalMs;
         this.deleteCandidateCount = deletedOnceCount;
@@ -260,18 +260,18 @@ public class VersionGCRecommendations {
      * @param stats the statistics from the last run
      */
     public void evaluate(VersionGCStats stats) {
-        if (stats.limitExceeded && !isDetailedGCDryRun) {
+        if (stats.limitExceeded && !isFullGCDryRun) {
             // if the limit was exceeded, slash the recommended interval in half.
             long nextDuration = Math.max(precisionMs, scope.getDurationMs() / 2);
             gcmon.info("Limit {} documents exceeded, reducing next collection interval to {} seconds",
                     this.maxCollect, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
             setLongSetting(SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
             stats.needRepeat = true;
-        } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint && !isDetailedGCDryRun) {
+        } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint && !isFullGCDryRun) {
             // success, we would not expect to encounter revisions older than this in the future
             setLongSetting(of(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, scope.toMs,
-                    SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp));
-            setStringSetting(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                    SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp));
+            setStringSetting(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
 
             int count = stats.deletedDocGCCount - stats.deletedLeafDocGCCount;
             double usedFraction;
@@ -299,23 +299,23 @@ public class VersionGCRecommendations {
             stats.needRepeat = !scopeIsComplete;
         }
 
-        // save data for detailed GC
-        if (detailedGCEnabled && !stats.canceled && !stats.ignoredDetailedGCDueToCheckPoint) {
+        // save data for full GC
+        if (fullGCEnabled && !stats.canceled && !stats.ignoredFullGCDueToCheckPoint) {
             // success, we would not expect to encounter revisions older than this in the future
-            if (isDetailedGCDryRun) {
-                setLongSetting(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
-                setStringSetting(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+            if (isFullGCDryRun) {
+                setLongSetting(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
+                setStringSetting(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
             } else {
-                setLongSetting(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
-                setStringSetting(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
+                setLongSetting(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, stats.oldestModifiedDocTimeStamp);
+                setStringSetting(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, stats.oldestModifiedDocId);
             }
 
-            final long scopeEnd = scopeDetailedGC.toMs;
+            final long scopeEnd = scopeFullGC.toMs;
             final long actualEnd = stats.oldestModifiedDocTimeStamp;
             if (actualEnd < scopeEnd) {
                 stats.needRepeat = true;
             } else {
-                stats.needRepeat |= !detailedGCScopeIsComplete;
+                stats.needRepeat |= !fullGCScopeIsComplete;
             }
         }
     }
@@ -326,10 +326,10 @@ public class VersionGCRecommendations {
         // default values
         settings.put(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP, 0L);
         settings.put(SETTINGS_COLLECTION_REC_INTERVAL_PROP, 0L);
-        settings.put(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP, 0L);
-        settings.put(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP, MIN_ID_VALUE);
-        settings.put(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP, 0L);
-        settings.put(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP, MIN_ID_VALUE);
+        settings.put(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP, 0L);
+        settings.put(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP, MIN_ID_VALUE);
+        settings.put(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP, 0L);
+        settings.put(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP, MIN_ID_VALUE);
         if (versionGCDoc != null) {
             for (String k : versionGCDoc.keySet()) {
                 Object value = versionGCDoc.get(k);

@@ -60,12 +60,12 @@ import static org.apache.jackrabbit.oak.api.Type.STRINGS;
 import static org.apache.jackrabbit.oak.plugins.document.ClusterNodeInfo.DEFAULT_LEASE_DURATION_MILLIS;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.NODES;
 import static org.apache.jackrabbit.oak.plugins.document.Collection.SETTINGS;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.assertBranchRevisionRemovedFromAllDocuments;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGC;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.enableDetailGCDryRun;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.mergedBranchCommit;
-import static org.apache.jackrabbit.oak.plugins.document.DetailGCHelper.unmergedBranchCommit;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionNotRemovedFromAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.assertBranchRevisionRemovedFromAllDocuments;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGC;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.enableFullGCDryRun;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.mergedBranchCommit;
+import static org.apache.jackrabbit.oak.plugins.document.FullGCHelper.unmergedBranchCommit;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.MIN_ID_VALUE;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.NUM_REVS_THRESHOLD;
 import static org.apache.jackrabbit.oak.plugins.document.NodeDocument.PREV_SPLIT_FACTOR;
@@ -79,10 +79,10 @@ import static org.apache.jackrabbit.oak.plugins.document.TestUtils.createChild;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.disposeQuietly;
 import static org.apache.jackrabbit.oak.plugins.document.TestUtils.childBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.UpdateOp.Operation.Type.SET_MAP_ENTRY;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP;
-import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP;
+import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP;
 import static org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.SETTINGS_COLLECTION_ID;
 import static org.apache.jackrabbit.oak.plugins.document.bundlor.DocumentBundlor.META_PROP_PATTERN;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.PATH_LONG;
@@ -113,7 +113,7 @@ import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
 import org.apache.jackrabbit.oak.plugins.document.DocumentStoreFixture.RDBFixture;
 import org.apache.jackrabbit.oak.plugins.document.FailingDocumentStore.FailedUpdateOpListener;
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.bundlor.BundlingConfigInitializer;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
@@ -140,19 +140,19 @@ import org.junit.runners.Parameterized.Parameter;
 public class VersionGarbageCollectorIT {
 
     static class GCCounts {
-        private final DetailedGCMode mode;
+        private final FullGCMode mode;
         int deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
                 deletedPropRevsCount, deletedInternalPropRevsCount,
-                deletedUnmergedBCCount, updatedDetailedGCDocsCount;
+                deletedUnmergedBCCount, updatedFullGCDocsCount;
 
-        public GCCounts(DetailedGCMode mode) {
+        public GCCounts(FullGCMode mode) {
             this(mode, 0, 0, 0, 0, 0, 0, 0);
         }
 
-        public GCCounts(DetailedGCMode mode, int deletedDocGCCount, int deletedPropsCount,
-                int deletedInternalPropsCount, int deletedPropRevsCount,
-                int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-                int updatedDetailedGCDocsCount) {
+        public GCCounts(FullGCMode mode, int deletedDocGCCount, int deletedPropsCount,
+                        int deletedInternalPropsCount, int deletedPropRevsCount,
+                        int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
+                        int updatedFullGCDocsCount) {
             this.mode = mode;
             assertTrue(deletedDocGCCount != -1);
             assertTrue(deletedPropsCount != -1);
@@ -160,14 +160,14 @@ public class VersionGarbageCollectorIT {
             assertTrue(deletedPropRevsCount != -1);
             assertTrue(deletedInternalPropRevsCount != -1);
             assertTrue(deletedUnmergedBCCount != -1);
-            assertTrue(updatedDetailedGCDocsCount != -1);
-            if (mode == DetailedGCMode.GAP_ORPHANS
-                    || mode == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS
-                    || mode == DetailedGCMode.ALL_ORPHANS_EMPTYPROPS) {
+            assertTrue(updatedFullGCDocsCount != -1);
+            if (mode == FullGCMode.GAP_ORPHANS
+                    || mode == FullGCMode.GAP_ORPHANS_EMPTYPROPS
+                    || mode == FullGCMode.ALL_ORPHANS_EMPTYPROPS) {
                 assertEquals(0, deletedPropRevsCount);
                 assertEquals(0, deletedInternalPropRevsCount);
                 assertEquals(0, deletedUnmergedBCCount);
-            } else if (mode == DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS) {
+            } else if (mode == FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS) {
                 assertEquals(0, deletedInternalPropsCount);
                 assertEquals(0, deletedInternalPropRevsCount);
             }
@@ -177,7 +177,7 @@ public class VersionGarbageCollectorIT {
             this.deletedPropRevsCount = deletedPropRevsCount;
             this.deletedInternalPropRevsCount = deletedInternalPropRevsCount;
             this.deletedUnmergedBCCount = deletedUnmergedBCCount;
-            this.updatedDetailedGCDocsCount = updatedDetailedGCDocsCount;
+            this.updatedFullGCDocsCount = updatedFullGCDocsCount;
         }
     }
 
@@ -185,7 +185,7 @@ public class VersionGarbageCollectorIT {
     public DocumentStoreFixture fixture;
 
     @Parameter(1)
-    public DetailedGCMode detailedGcMode;
+    public FullGCMode fullGcMode;
 
     private Clock clock;
 
@@ -199,14 +199,14 @@ public class VersionGarbageCollectorIT {
 
     private ExecutorService execService;
 
-    private DetailedGCMode originalDetailedGcMode;
+    private FullGCMode originalFullGcMode;
 
     @Parameterized.Parameters(name="{index}: {0} with {1}")
     public static java.util.Collection<Object[]> params() throws IOException {
         java.util.Collection<Object[]> params = new LinkedList<>();
         for (Object[] fixture : AbstractDocumentStoreTest.fixtures()) {
             DocumentStoreFixture f = (DocumentStoreFixture)fixture[0];
-            for (DetailedGCMode gcType : DetailedGCMode.values()) {
+            for (FullGCMode gcType : FullGCMode.values()) {
                 params.add(new Object[] {f, gcType});
             }
         }
@@ -231,13 +231,13 @@ public class VersionGarbageCollectorIT {
         MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
         gc = store1.getVersionGarbageCollector();
 
-        originalDetailedGcMode = VersionGarbageCollector.getDetailedGcMode();
-        writeStaticField(VersionGarbageCollector.class, "detailedGcMode", detailedGcMode, true);
+        originalFullGcMode = VersionGarbageCollector.getFullGcMode();
+        writeStaticField(VersionGarbageCollector.class, "fullGcMode", fullGcMode, true);
     }
 
     @After
     public void tearDown() throws Exception {
-        writeStaticField(VersionGarbageCollector.class, "detailedGcMode", originalDetailedGcMode, true);
+        writeStaticField(VersionGarbageCollector.class, "fullGcMode", originalFullGcMode, true);
         if (store2 != null) {
             store2.dispose();
         }
@@ -312,15 +312,15 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
         assertTrue(stats.ignoredGCDueToCheckPoint);
-        assertFalse(stats.ignoredDetailedGCDueToCheckPoint);
-        assertFalse(stats.detailedGCDryRunMode);
+        assertFalse(stats.ignoredFullGCDueToCheckPoint);
+        assertFalse(stats.fullGCDryRunMode);
         assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
         assertFalse("GC should be performed", stats.ignoredGCDueToCheckPoint);
-        assertFalse("Detailed GC shouldn't be performed", stats.ignoredDetailedGCDueToCheckPoint);
+        assertFalse("Full GC shouldn't be performed", stats.ignoredFullGCDueToCheckPoint);
         assertFalse(stats.canceled);
     }
 
@@ -389,19 +389,19 @@ public class VersionGarbageCollectorIT {
 
     private VersionGCStats gc(VersionGarbageCollector gc, long maxRevisionAge, TimeUnit unit) throws IOException {
         final VersionGCStats stats = gc.gc(maxRevisionAge, unit);
-        if (stats.skippedDetailedGCDocsCount != 0) {
-            (new Exception("here: " + stats.skippedDetailedGCDocsCount)).printStackTrace(System.out);
+        if (stats.skippedFullGCDocsCount != 0) {
+            (new Exception("here: " + stats.skippedFullGCDocsCount)).printStackTrace(System.out);
         }
-        assertEquals(0, stats.skippedDetailedGCDocsCount);
+        assertEquals(0, stats.skippedFullGCDocsCount);
         return stats;
     }
 
     // OAK-10199
     @Test
-    public void testDetailedGCNeedRepeat() throws Exception {
+    public void testFullGCNeedRepeat() throws Exception {
         long expiryTime = 5001, maxAge = 20, batchSize = /*PROGRESS_BATCH_SIZE+1*/ 10001;
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // create a bunch of garbage
         NodeBuilder b1 = store1.getRoot().builder();
@@ -418,7 +418,7 @@ public class VersionGarbageCollectorIT {
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime);
         VersionGCStats stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertFalse("Detailed GC should be performed", stats.ignoredDetailedGCDueToCheckPoint);
+        assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
         assertFalse(stats.canceled);
         assertStatsCountsEqual(stats,
                 gapOrphOnly(),
@@ -434,31 +434,31 @@ public class VersionGarbageCollectorIT {
 
     // OAK-10199
     @Test
-    public void detailedGCIgnoredForCheckpoint() throws Exception {
+    public void fullGCIgnoredForCheckpoint() throws Exception {
         long expiryTime = 100, maxAge = 20;
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         Revision cp = Revision.fromString(store1.checkpoint(expiryTime));
 
         //Fast forward time to future but before expiry of checkpoint
         clock.waitUntil(cp.getTimestamp() + expiryTime - maxAge);
         VersionGCStats stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertTrue(stats.ignoredDetailedGCDueToCheckPoint);
+        assertTrue(stats.ignoredFullGCDueToCheckPoint);
         assertTrue(stats.canceled);
 
         //Fast forward time to future such that checkpoint get expired
         clock.waitUntil(clock.getTime() + expiryTime + 1);
         stats = gc(gc, maxAge, TimeUnit.MILLISECONDS);
-        assertFalse("Detailed GC should be performed", stats.ignoredDetailedGCDueToCheckPoint);
+        assertFalse("Full GC should be performed", stats.ignoredFullGCDueToCheckPoint);
         assertFalse(stats.canceled);
     }
 
     @Test
-    public void testDetailedGCNotIgnoredForRGCCheckpoint() throws Exception {
+    public void testFullGCNotIgnoredForRGCCheckpoint() throws Exception {
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
@@ -508,7 +508,7 @@ public class VersionGarbageCollectorIT {
                 betweenChkp(0, 1, 0, 0, 0, 0, 1),
                 btwnChkpUBC(0, 1, 0, 0, 0, 0, 1));
         assertTrue(stats.ignoredGCDueToCheckPoint);
-        assertTrue(stats.ignoredDetailedGCDueToCheckPoint);
+        assertTrue(stats.ignoredFullGCDueToCheckPoint);
         assertTrue(stats.canceled);
     }
 
@@ -532,8 +532,8 @@ public class VersionGarbageCollectorIT {
         b1.getChildNode("z").setProperty("prop", "baz", STRING);
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -606,8 +606,8 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = TimeUnit.MINUTES.toMillis(10);
 
@@ -652,8 +652,8 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(20);
 
@@ -706,8 +706,8 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(20);
 
@@ -724,8 +724,8 @@ public class VersionGarbageCollectorIT {
 
             Document document = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
             assert document != null;
-            assertEquals(document.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
-            assertEquals(document.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+            assertEquals(document.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+            assertEquals(document.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
         }
     }
 
@@ -739,8 +739,8 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -837,8 +837,8 @@ public class VersionGarbageCollectorIT {
         store1.merge(b2, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
 
@@ -863,8 +863,8 @@ public class VersionGarbageCollectorIT {
         MongoTestUtils.setReadPreference(store1, ReadPreference.primary());
         gc = store1.getVersionGarbageCollector();
         store1.runBackgroundOperations();
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         //4. Check that deleted property does get collected again
         // increment the clock again by more than 2 hours + delta
@@ -893,8 +893,8 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -964,8 +964,8 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -1044,8 +1044,8 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -1115,8 +1115,8 @@ public class VersionGarbageCollectorIT {
         assertTrue(jcrContent.hasProperty("prop10"));
         assertTrue(jcrContent.hasProperty("prop0"));
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -1182,20 +1182,20 @@ public class VersionGarbageCollectorIT {
     }
 
     static void assertStatsCountsZero(VersionGCStats stats) {
-        GCCounts c = new GCCounts(VersionGarbageCollector.getDetailedGcMode());
+        GCCounts c = new GCCounts(VersionGarbageCollector.getFullGcMode());
         assertStatsCountsEqual(stats, c);
     }
 
     static void assertStatsCountsEqual(VersionGCStats stats, GCCounts... counts) {
         GCCounts c = null;
         for (GCCounts a : counts) {
-            if (a.mode == VersionGarbageCollector.getDetailedGcMode()) {
+            if (a.mode == VersionGarbageCollector.getFullGcMode()) {
                 c = a;
                 break;
             }
         }
-        if (c == null && VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.NONE) {
-            c = new GCCounts(DetailedGCMode.NONE);
+        if (c == null && VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE) {
+            c = new GCCounts(FullGCMode.NONE);
         }
         assertNotNull(stats);
         assertNotNull(c);
@@ -1205,7 +1205,7 @@ public class VersionGarbageCollectorIT {
         assertEquals(c.mode + "/propRevs", c.deletedPropRevsCount, stats.deletedPropRevsCount);
         assertEquals(c.mode + "/internalPropRevs", c.deletedInternalPropRevsCount, stats.deletedInternalPropRevsCount);
         assertEquals(c.mode + "/unmergedBC", c.deletedUnmergedBCCount, stats.deletedUnmergedBCCount);
-        assertEquals(c.mode + "/updatedDetailedGCDocsCount", c.updatedDetailedGCDocsCount, stats.updatedDetailedGCDocsCount);
+        assertEquals(c.mode + "/updatedFullGCDocsCount", c.updatedFullGCDocsCount, stats.updatedFullGCDocsCount);
     }
 
     @Test
@@ -1219,15 +1219,15 @@ public class VersionGarbageCollectorIT {
         }
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
         clock.waitUntil(getCurrentTimestamp() + maxAge);
         VersionGCStats stats = gc(gc, maxAge, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
 
         //Remove property
         NodeBuilder b2 = store1.getRoot().builder();
@@ -1242,7 +1242,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + delta);
         stats = gc(gc, maxAge*2, HOURS);
         assertEquals(0, stats.deletedPropsCount);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId); // as GC hadn't run
 
         //3. Check that deleted property does get collected post maxAge
@@ -1269,13 +1269,13 @@ public class VersionGarbageCollectorIT {
 
         VersionGarbageCollector gc = new VersionGarbageCollector(store1, gcSupport, true, false, false);
         stats = gc.gc(maxAge*2, HOURS);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedPropsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
 
     @Test
-    public void cancelDetailedGCAfterFirstBatch() throws Exception {
+    public void cancelFullGCAfterFirstBatch() throws Exception {
         //1. Create nodes with properties
         NodeBuilder b1 = store1.getRoot().builder();
 
@@ -1288,8 +1288,8 @@ public class VersionGarbageCollectorIT {
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -1338,7 +1338,7 @@ public class VersionGarbageCollectorIT {
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         stats = gcRef.get().gc(maxAge*2, HOURS);
         assertTrue(stats.canceled);
-        assertEquals(0, stats.updatedDetailedGCDocsCount);
+        assertEquals(0, stats.updatedFullGCDocsCount);
         assertEquals(0, stats.deletedPropsCount);
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
     }
@@ -1374,8 +1374,8 @@ public class VersionGarbageCollectorIT {
         // (the test goal is to cause that resolution to fail in case
         // we would delete the parent's _revisions entry)
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -1427,8 +1427,8 @@ public class VersionGarbageCollectorIT {
         store1.merge(nb, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -1479,8 +1479,8 @@ public class VersionGarbageCollectorIT {
             assertEquals("OakOak0001: write operation failed", cfe.getMessage());
         }
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -1519,8 +1519,8 @@ public class VersionGarbageCollectorIT {
         invalidateCaches(store1);
         assertEquals("1", store1.getRoot().getChildNode("node1").getProperty("a").getValue(Type.STRING));
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -1594,8 +1594,8 @@ public class VersionGarbageCollectorIT {
         mergedBranchCommit(store1, b -> b.child("foo").removeProperty("p"));
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -1611,7 +1611,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 3, 1, 1, 7, 2, 3),
                 betweenChkp(0, 3, 0, 0, 1, 0, 3),
                 btwnChkpUBC(0, 3, 1, 1, 8, 2, 3));
-        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS, DetailedGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS)) {
             assertBranchRevisionRemovedFromAllDocuments(store1, br1);
             assertBranchRevisionRemovedFromAllDocuments(store1, br4);
         }
@@ -1641,8 +1641,8 @@ public class VersionGarbageCollectorIT {
         mergedBranchCommit(store1, b -> b.child("foo").removeProperty("p"));
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -1658,7 +1658,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 3, 2, 1, 15, 4, 3),
                 betweenChkp(0, 3, 0, 0,  1, 0, 3),
                 btwnChkpUBC(0, 3, 2, 1, 16, 4, 3));
-        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS, DetailedGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS)) {
             assertBranchRevisionRemovedFromAllDocuments(store1, br1);
             assertBranchRevisionRemovedFromAllDocuments(store1, br2);
             assertBranchRevisionRemovedFromAllDocuments(store1, br3);
@@ -1666,9 +1666,9 @@ public class VersionGarbageCollectorIT {
         }
     }
 
-    static boolean isModeOneOf(DetailedGCMode... modes) {
-        for (DetailedGCMode rdgcType : modes) {
-            if (VersionGarbageCollector.getDetailedGcMode() == rdgcType) {
+    static boolean isModeOneOf(FullGCMode... modes) {
+        for (FullGCMode rdgcType : modes) {
+            if (VersionGarbageCollector.getFullGcMode() == rdgcType) {
                 return true;
             }
         }
@@ -1678,7 +1678,7 @@ public class VersionGarbageCollectorIT {
     // OAK-8646 END
 
     /**
-     * Tests whether DetailedGC properly deletes a late-written addChild "/grand/parent/a"
+     * Tests whether FullGC properly deletes a late-written addChild "/grand/parent/a"
      */
     @Test
     public void lateWriteCreateChildGC() throws Exception {
@@ -1694,7 +1694,7 @@ public class VersionGarbageCollectorIT {
     }
 
     /**
-     * Tests whether DetailedGC can delete a whole subtree "/a/b/c/d/**" that was
+     * Tests whether FullGC can delete a whole subtree "/a/b/c/d/**" that was
      * added via late-writes.
      */
     @Test
@@ -1730,7 +1730,7 @@ public class VersionGarbageCollectorIT {
     }
 
     /**
-     * Tests whether DetailedGC can delete a large amount of randomly
+     * Tests whether FullGC can delete a large amount of randomly
      * created orphans (that were added in a late-write manner)
      */
     @Test
@@ -1762,7 +1762,7 @@ public class VersionGarbageCollectorIT {
     @Test
     public void lateWriteRemoveChildGC_noSweep() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
         createNodes("/a/b/c/d");
         lateWriteRemoveNodes(of("/a/b"), null);
 
@@ -1801,7 +1801,7 @@ public class VersionGarbageCollectorIT {
     @Ignore(value = "OAK-10658 : fails currently as invalidation is missing (in classic GC) after late-write-then-sweep-then-GC")
     public void lateWriteRemoveChildGC_withSweep() throws Exception {
         assumeTrue(fixture.hasSinglePersistence());
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
         createNodes("/a/b/c/d");
         lateWriteRemoveNodes(of("/a/b"), "/foo");
 
@@ -1845,7 +1845,7 @@ public class VersionGarbageCollectorIT {
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
         // clean everything older than one hour
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
         VersionGCStats stats = gc(store1.getVersionGarbageCollector(), 1, HOURS);
         assertNotNull(stats);
         // expected 2 updated (deletions): /a/b/c/d and /a/b/c/d/e
@@ -1859,7 +1859,7 @@ public class VersionGarbageCollectorIT {
                 betweenChkp(2, 0, 0, 0, 3, 0, 4),
                 btwnChkpUBC(2, 0, 0, 0, 3, 0, 4));
 
-        if (isModeOneOf(DetailedGCMode.NONE)) {
+        if (isModeOneOf(FullGCMode.NONE)) {
             // in these modes the inconsistency isn't cleaned up
             // which means there will be a OakMerge0004 exception upon
             // trying to create the node(s) again.
@@ -1869,7 +1869,7 @@ public class VersionGarbageCollectorIT {
         }
     }
 
-    @Ignore(value="this is a reminder to add bundling-detailedGC tests in general, plus some of those cases combined with OAK-10542")
+    @Ignore(value="this is a reminder to add bundling-fullGC tests in general, plus some of those cases combined with OAK-10542")
     @Test
     public void testBundlingAndLatestSplit() throws Exception {
         fail("yet to be implemented");
@@ -1907,8 +1907,8 @@ public class VersionGarbageCollectorIT {
         mergedBranchCommit(store1, b -> b.child("x").child("jcr:content").removeProperty("p"));
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAgeHours = 1;
         long maxAgeMillis = TimeUnit.HOURS.toMillis(maxAgeHours);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -1929,127 +1929,127 @@ public class VersionGarbageCollectorIT {
     }
 
     static GCCounts gapOrphOnly() {
-        return new GCCounts(DetailedGCMode.GAP_ORPHANS);
+        return new GCCounts(FullGCMode.GAP_ORPHANS);
     }
 
     static GCCounts gapOrphOnly(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
+            int updatedFullGCDocsCount) {
         assertEquals(0, deletedInternalPropsCount);
         assertEquals(0, deletedPropRevsCount);
         assertEquals(0, deletedInternalPropRevsCount);
         assertEquals(0, deletedUnmergedBCCount);
-        return new GCCounts(DetailedGCMode.GAP_ORPHANS, deletedDocGCCount,
+        return new GCCounts(FullGCMode.GAP_ORPHANS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
-                updatedDetailedGCDocsCount);
+                updatedFullGCDocsCount);
     }
 
     static GCCounts gapOrphProp() {
-        return new GCCounts(DetailedGCMode.GAP_ORPHANS_EMPTYPROPS);
+        return new GCCounts(FullGCMode.GAP_ORPHANS_EMPTYPROPS);
     }
 
     static GCCounts gapOrphProp(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
+            int updatedFullGCDocsCount) {
         assertEquals(0, deletedInternalPropsCount);
         assertEquals(0, deletedPropRevsCount);
         assertEquals(0, deletedInternalPropRevsCount);
         assertEquals(0, deletedUnmergedBCCount);
-        return new GCCounts(DetailedGCMode.GAP_ORPHANS_EMPTYPROPS, deletedDocGCCount,
+        return new GCCounts(FullGCMode.GAP_ORPHANS_EMPTYPROPS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
-                updatedDetailedGCDocsCount);
+                updatedFullGCDocsCount);
     }
 
     static GCCounts allOrphProp() {
-        return new GCCounts(DetailedGCMode.ALL_ORPHANS_EMPTYPROPS);
+        return new GCCounts(FullGCMode.ALL_ORPHANS_EMPTYPROPS);
     }
 
     static GCCounts allOrphProp(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
+            int updatedFullGCDocsCount) {
         assertEquals(0, deletedInternalPropsCount);
         assertEquals(0, deletedPropRevsCount);
         assertEquals(0, deletedInternalPropRevsCount);
         assertEquals(0, deletedUnmergedBCCount);
-        return new GCCounts(DetailedGCMode.ALL_ORPHANS_EMPTYPROPS, deletedDocGCCount,
+        return new GCCounts(FullGCMode.ALL_ORPHANS_EMPTYPROPS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
-                updatedDetailedGCDocsCount);
+                updatedFullGCDocsCount);
     }
 
     static GCCounts keepOneFull() {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS);
     }
 
     static GCCounts keepOneFull(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS, deletedDocGCCount,
+            int updatedFullGCDocsCount) {
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_ALL_PROPS, deletedDocGCCount,
                 deletedPropsCount, deletedInternalPropsCount, deletedPropRevsCount,
                 deletedInternalPropRevsCount, deletedUnmergedBCCount,
-                updatedDetailedGCDocsCount);
+                updatedFullGCDocsCount);
     }
 
     static GCCounts keepOneUser() {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS);
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS);
     }
 
     static GCCounts keepOneUser(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS,
+            int updatedFullGCDocsCount) {
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS,
                 deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
                 deletedPropRevsCount, deletedInternalPropRevsCount,
-                deletedUnmergedBCCount, updatedDetailedGCDocsCount);
+                deletedUnmergedBCCount, updatedFullGCDocsCount);
     }
 
     static GCCounts unmergedBcs() {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC);
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC);
     }
 
     static GCCounts unmergedBcs(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC,
+            int updatedFullGCDocsCount) {
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC,
                 deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
                 deletedPropRevsCount, deletedInternalPropRevsCount,
-                deletedUnmergedBCCount, updatedDetailedGCDocsCount);
+                deletedUnmergedBCCount, updatedFullGCDocsCount);
     }
 
     static GCCounts betweenChkp() {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC);
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC);
     }
 
     static GCCounts betweenChkp(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC,
+            int updatedFullGCDocsCount) {
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC,
                 deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
                 deletedPropRevsCount, deletedInternalPropRevsCount,
-                deletedUnmergedBCCount, updatedDetailedGCDocsCount);
+                deletedUnmergedBCCount, updatedFullGCDocsCount);
     }
 
     static GCCounts btwnChkpUBC() {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC);
     }
 
     static GCCounts btwnChkpUBC(int deletedDocGCCount, int deletedPropsCount,
             int deletedInternalPropsCount, int deletedPropRevsCount,
             int deletedInternalPropRevsCount, int deletedUnmergedBCCount,
-            int updatedDetailedGCDocsCount) {
-        return new GCCounts(DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC,
+            int updatedFullGCDocsCount) {
+        return new GCCounts(FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC,
                 deletedDocGCCount, deletedPropsCount, deletedInternalPropsCount,
                 deletedPropRevsCount, deletedInternalPropRevsCount,
-                deletedUnmergedBCCount, updatedDetailedGCDocsCount);
+                deletedUnmergedBCCount, updatedFullGCDocsCount);
     }
 
     @Test
@@ -2077,7 +2077,7 @@ public class VersionGarbageCollectorIT {
         b1.child("x").child("jcr:content").setProperty(nasty_key2, "v2", STRING);
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // make some overwrites for DetailedGC to cleanup
+        // make some overwrites for FullGC to cleanup
         b1 = store1.getRoot().builder();
         for (int i = 0; i < 6; i++) {
             b1.child("x").child("jcr:content").setProperty("bprop"+i, "t2", STRING);
@@ -2090,8 +2090,8 @@ public class VersionGarbageCollectorIT {
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        writeField(gc, "detailedGCEnabled", true, true);
+        // enable the full gc flag
+        writeField(gc, "fullGCEnabled", true, true);
         long maxAgeHours = 1;
         long maxAgeMillis = TimeUnit.HOURS.toMillis(maxAgeHours);
         //1. Go past GC age and check no GC done as nothing deleted
@@ -2118,12 +2118,12 @@ public class VersionGarbageCollectorIT {
 
         NodeDocument doc = store1.getDocumentStore().find(NODES, "1:/x", -1);
         assertNotNull(doc);
-        if (VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.NONE || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.GAP_ORPHANS
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ALL_ORPHANS_EMPTYPROPS
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC) {
+        if (VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_WITH_UNMERGED_BC
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.NONE || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS_EMPTYPROPS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS_EMPTYPROPS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_UNMERGED_BC
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC) {
             // this mode doesn't currently delete all revisions,
             // thus would fail below assert.
             return;
@@ -2147,8 +2147,8 @@ public class VersionGarbageCollectorIT {
         b1.child("z").setProperty("prop", "foo", STRING);
         store1.merge(b1, EmptyHook.INSTANCE, CommitInfo.EMPTY);
 
-        // enable the detailed gc flag
-        enableDetailGC(gc);
+        // enable the full gc flag
+        enableFullGC(gc);
         long maxAge = 1; //hours
         long delta = MINUTES.toMillis(10);
 
@@ -2174,16 +2174,16 @@ public class VersionGarbageCollectorIT {
                 btwnChkpUBC(0, 1, 0, 0, 1, 0, 2));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
 
-        // 4. Save values of detailedGC settings collection fields
+        // 4. Save values of fullGC settings collection fields
         final String oldestModifiedDocId = stats.oldestModifiedDocId;
         final long oldestModifiedDocTimeStamp = stats.oldestModifiedDocTimeStamp;
 
         final Document documentBefore = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
         assert documentBefore != null;
-        assertEquals(documentBefore.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
-        assertEquals(documentBefore.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+        assertEquals(documentBefore.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+        assertEquals(documentBefore.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
 
-        //5. Verify that in dryRun mode property does not get gc and detailedGC fields remain the same
+        //5. Verify that in dryRun mode property does not get gc and fullGC fields remain the same
         NodeBuilder b3 = store1.getRoot().builder();
         b3.child("x").removeProperty("test");
         store1.merge(b3, EmptyHook.INSTANCE, CommitInfo.EMPTY);
@@ -2191,7 +2191,7 @@ public class VersionGarbageCollectorIT {
 
         clock.waitUntil(clock.getTime() + HOURS.toMillis(maxAge*2) + delta);
         // enabled dryRun mode
-        enableDetailGCDryRun(gc);
+        enableFullGCDryRun(gc);
         stats = gc(gc, maxAge*2, HOURS);
 
         final String oldestModifiedDryRunDocId = stats.oldestModifiedDocId;
@@ -2207,15 +2207,15 @@ public class VersionGarbageCollectorIT {
                 betweenChkp(0, 1, 0, 0, 1, 0, 2),
                 btwnChkpUBC(0, 1, 0, 0, 1, 0, 2));
         assertEquals(MIN_ID_VALUE, stats.oldestModifiedDocId);
-        assertTrue(stats.detailedGCDryRunMode);
+        assertTrue(stats.fullGCDryRunMode);
 
         final Document documentAfter = store1.getDocumentStore().find(SETTINGS, SETTINGS_COLLECTION_ID);
         assert documentAfter != null;
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP), oldestModifiedDocTimeStamp);
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP), oldestModifiedDocId);
 
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_TIMESTAMP_PROP), oldestModifiedDocDryRunTimeStamp);
-        assertEquals(documentAfter.get(SETTINGS_COLLECTION_DETAILED_GC_DRY_RUN_DOCUMENT_ID_PROP), oldestModifiedDryRunDocId);
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP), oldestModifiedDocDryRunTimeStamp);
+        assertEquals(documentAfter.get(SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP), oldestModifiedDryRunDocId);
     }
 
     @Test
@@ -2242,9 +2242,9 @@ public class VersionGarbageCollectorIT {
         mergedBranchCommit(store1, b -> b.child("foo").removeProperty("p"));
         store1.runBackgroundOperations();
 
-        // enable the detailed gc flag
-        enableDetailGC(gc);
-        enableDetailGCDryRun(gc);
+        // enable the full gc flag
+        enableFullGC(gc);
+        enableFullGCDryRun(gc);
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -2259,7 +2259,7 @@ public class VersionGarbageCollectorIT {
                 unmergedBcs(0, 3, 2, 1,15, 4, 3),
                 betweenChkp(0, 3, 0, 0, 1, 0, 3),
                 btwnChkpUBC(0, 3, 2, 1,16, 4, 3));
-        assertTrue(stats.detailedGCDryRunMode);
+        assertTrue(stats.fullGCDryRunMode);
 
         assertBranchRevisionNotRemovedFromAllDocuments(store1, br1);
         assertBranchRevisionNotRemovedFromAllDocuments(store1, br2);
@@ -2292,7 +2292,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(of("/bar"));
         assertPropertyExist("/bar", "p");
 
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -2334,7 +2334,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(of("/foo/bar/baz"));
         assertPropertyExist("/foo/bar/baz", "prop");
 
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -2380,7 +2380,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(of("/bar"));
         assertPropertyExist("/bar", "prop");
 
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -2420,7 +2420,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(of("/bar"));
         assertPropertyNotExist("/bar", "p");
 
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -2456,7 +2456,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(of("/foo/bar/baz"));
         assertPropertyNotExist("/foo/bar/baz", "prop");
 
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -2516,7 +2516,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(of("/bar"));
         assertPropertyNotExist("/bar", "prop");
 
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -3696,7 +3696,7 @@ public class VersionGarbageCollectorIT {
 
     /**
      * Creates a bunch of parents properly, then creates a bunch of orphans in
-     * late-write manner (i.e. not properly), then runs DetailedGC and assets that
+     * late-write manner (i.e. not properly), then runs FullGC and assets that
      * everything was deleted as expected
      *
      * @param parents                 the nodes that should be created properly -
@@ -3704,7 +3704,7 @@ public class VersionGarbageCollectorIT {
      * @param orphans                 the nodes that should be created inproperly -
      *                                each one in a separate late-write way
      * @param expectedNumOrphanedDocs the expected number of orphan documents that
-     *                                DetailedGC should cleanup
+     *                                FullGC should cleanup
      * @param unrelatedPath           an unrelated path that should be merged after
      *                                late-write - ensures lastRev is updated on
      *                                root to allow detecting late-writes as such
@@ -3720,7 +3720,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(orphans);
         assertNodesDontExist(parents, orphans);
 
-        enableDetailGC(store1.getVersionGarbageCollector());
+        enableFullGC(store1.getVersionGarbageCollector());
 
         // wait two hours
         clock.waitUntil(clock.getTime() + HOURS.toMillis(2));
@@ -3731,7 +3731,7 @@ public class VersionGarbageCollectorIT {
         assertDocumentsExist(parents);
         // and the main assert being: have those lateCreated (orphans) docs been deleted
         assertNodesDontExist(parents, orphans);
-        if (!isModeOneOf(DetailedGCMode.NONE, DetailedGCMode.GAP_ORPHANS, DetailedGCMode.GAP_ORPHANS_EMPTYPROPS)) {
+        if (!isModeOneOf(FullGCMode.NONE, FullGCMode.GAP_ORPHANS, FullGCMode.GAP_ORPHANS_EMPTYPROPS)) {
             assertDocumentsDontExist(orphans);
         }
     }

@@ -138,7 +138,7 @@ public class DocumentNodeStoreService {
     static final String DEFAULT_DB = "oak";
     static final boolean DEFAULT_SO_KEEP_ALIVE = true;
     static final boolean DEFAULT_THROTTLING_ENABLED = false;
-    static final boolean DEFAULT_DETAILED_GC_ENABLED = false;
+    static final boolean DEFAULT_FULL_GC_ENABLED = false;
     static final boolean DEFAULT_EMBEDDED_VERIFICATION_ENABLED = true;
     static final int DEFAULT_MONGO_LEASE_SO_TIMEOUT_MILLIS = 30000;
     static final String DEFAULT_PERSISTENT_CACHE = "cache";
@@ -190,12 +190,12 @@ public class DocumentNodeStoreService {
      */
     private static final String FT_NAME_CANCEL_INVALIDATION = "FT_CANCELINVALIDATION_OAK-10595";
     /**
-     * Feature toggle name to enable detailed GC for Mongo Document Store
+     * Feature toggle name to enable full GC for Mongo Document Store
      */
-    private static final String FT_NAME_DETAILED_GC = "FT_DETAILED_GC_OAK-10199";
+    private static final String FT_NAME_FULL_GC = "FT_FULL_GC_OAK-10199";
 
     /**
-     * Feature toggle name to enable embedded verification for detailed GC mode for Mongo Document Store
+     * Feature toggle name to enable embedded verification for full GC mode for Mongo Document Store
      */
     private static final String FT_NAME_EMBEDDED_VERIFICATION = "FT_EMBEDDED_VERIFICATION_OAK-10633";
 
@@ -236,7 +236,7 @@ public class DocumentNodeStoreService {
     private Feature docStoreThrottlingFeature;
     private Feature noChildOrderCleanupFeature;
     private Feature cancelInvalidationFeature;
-    private Feature docStoreDetailedGCFeature;
+    private Feature docStoreFullGCFeature;
     private Feature docStoreEmbeddedVerificationFeature;
     private ComponentContext context;
     private Whiteboard whiteboard;
@@ -274,7 +274,7 @@ public class DocumentNodeStoreService {
         docStoreThrottlingFeature = Feature.newFeature(FT_NAME_DOC_STORE_THROTTLING, whiteboard);
         noChildOrderCleanupFeature = Feature.newFeature(FT_NAME_DOC_STORE_NOCOCLEANUP, whiteboard);
         cancelInvalidationFeature = Feature.newFeature(FT_NAME_CANCEL_INVALIDATION, whiteboard);
-        docStoreDetailedGCFeature = Feature.newFeature(FT_NAME_DETAILED_GC, whiteboard);
+        docStoreFullGCFeature = Feature.newFeature(FT_NAME_FULL_GC, whiteboard);
 
         registerNodeStoreIfPossible();
     }
@@ -494,10 +494,10 @@ public class DocumentNodeStoreService {
                 setDocStoreThrottlingFeature(docStoreThrottlingFeature).
                 setNoChildOrderCleanupFeature(noChildOrderCleanupFeature).
                 setCancelInvalidationFeature(cancelInvalidationFeature).
-                setDocStoreDetailedGCFeature(docStoreDetailedGCFeature).
+                setDocStoreFullGCFeature(docStoreFullGCFeature).
                 setDocStoreEmbeddedVerificationFeature(docStoreEmbeddedVerificationFeature).
                 setThrottlingEnabled(config.throttlingEnabled()).
-                setDetailedGCEnabled(config.detailedGCEnabled()).
+                setFullGCEnabled(config.fullGCEnabled()).
                 setEmbeddedVerificationEnabled(config.embeddedVerificationEnabled()).
                 setSuspendTimeoutMillis(config.suspendTimeoutMillis()).
                 setClusterIdReuseDelayAfterRecovery(config.clusterIdReuseDelayAfterRecoveryMillis()).
@@ -653,8 +653,8 @@ public class DocumentNodeStoreService {
             cancelInvalidationFeature.close();
         }
 
-        if (docStoreDetailedGCFeature != null) {
-            docStoreDetailedGCFeature.close();
+        if (docStoreFullGCFeature != null) {
+            docStoreFullGCFeature.close();
         }
 
         if (docStoreEmbeddedVerificationFeature != null) {
@@ -1031,9 +1031,9 @@ public class DocumentNodeStoreService {
                 VersionGCStats s = gc.gc(versionGCMaxAgeInSecs, TimeUnit.SECONDS);
                 stats.addRun(s);
                 lastResult = s.toString();
-                if (s.skippedDetailedGCDocsCount > 0) {
-                    LOGGER.warn("Version Garbage Collector's DetailedGC skipped {} documents due to error,"
-                            + " see logs for more details", s.skippedDetailedGCDocsCount);
+                if (s.skippedFullGCDocsCount > 0) {
+                    LOGGER.warn("Version Garbage Collector's FullGC skipped {} documents due to error,"
+                            + " see logs for more details", s.skippedFullGCDocsCount);
                 }
             } catch (Exception e) {
                 lastResult = e;

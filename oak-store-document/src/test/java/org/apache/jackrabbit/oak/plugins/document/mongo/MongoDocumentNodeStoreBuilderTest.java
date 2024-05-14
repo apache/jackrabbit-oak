@@ -49,15 +49,15 @@ public class MongoDocumentNodeStoreBuilderTest {
     }
 
     @Test
-    public void detailedGCDisabled() {
+    public void fullGCDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertFalse(builder.isDetailedGCEnabled());
+        assertFalse(builder.isFullGCEnabled());
     }
 
     @Test
-    public void detailedGCFeatureToggleDisabled() {
+    public void fullGCFeatureToggleDisabled() {
         MongoDocumentNodeStoreBuilder builder = new MongoDocumentNodeStoreBuilder();
-        assertNull(builder.getDocStoreDetailedGCFeature());
+        assertNull(builder.getDocStoreFullGCFeature());
     }
 
     @Test

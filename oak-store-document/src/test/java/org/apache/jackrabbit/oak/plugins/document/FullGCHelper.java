@@ -18,7 +18,7 @@
  */
 package org.apache.jackrabbit.oak.plugins.document;
 
-import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.DetailedGCMode;
+import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.FullGCMode;
 import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.commit.CommitInfo;
 import org.apache.jackrabbit.oak.spi.commit.EmptyHook;
@@ -35,28 +35,28 @@ import static org.apache.commons.lang3.reflect.FieldUtils.writeField;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class DetailGCHelper {
+public class FullGCHelper {
 
-    public static void enableDetailGC(final VersionGarbageCollector vgc) throws IllegalAccessException {
+    public static void enableFullGC(final VersionGarbageCollector vgc) throws IllegalAccessException {
         if (vgc != null) {
-            writeField(vgc, "detailedGCEnabled", true, true);
+            writeField(vgc, "fullGCEnabled", true, true);
         }
     }
 
-    public static void disableDetailGC(final VersionGarbageCollector vgc) throws IllegalAccessException {
+    public static void disableFullGC(final VersionGarbageCollector vgc) throws IllegalAccessException {
         if (vgc != null) {
-            writeField(vgc, "detailedGCEnabled", false, true);
+            writeField(vgc, "fullGCEnabled", false, true);
         }
     }
-    public static void enableDetailGCDryRun(final VersionGarbageCollector vgc) throws IllegalAccessException {
+    public static void enableFullGCDryRun(final VersionGarbageCollector vgc) throws IllegalAccessException {
         if (vgc != null) {
-            writeField(vgc, "isDetailedGCDryRun", true, true);
+            writeField(vgc, "isFullGCDryRun", true, true);
         }
     }
 
-    public static void disableDetailGCDryRun(final VersionGarbageCollector vgc) throws IllegalAccessException {
+    public static void disableFullGCDryRun(final VersionGarbageCollector vgc) throws IllegalAccessException {
         if (vgc != null) {
-            writeField(vgc, "isDetailedGCDryRun", false, true);
+            writeField(vgc, "isFullGCDryRun", false, true);
         }
     }
 
@@ -74,10 +74,10 @@ public class DetailGCHelper {
             final DocumentNodeStore store, final RevisionVector br,
             final String... exceptIds) {
         assertTrue(br.isBranch());
-        if (VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.GAP_ORPHANS
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.GAP_ORPHANS_EMPTYPROPS
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ALL_ORPHANS_EMPTYPROPS
-                || VersionGarbageCollector.getDetailedGcMode() == DetailedGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC) {
+        if (VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.GAP_ORPHANS_EMPTYPROPS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ALL_ORPHANS_EMPTYPROPS
+                || VersionGarbageCollector.getFullGcMode() == FullGCMode.ORPHANS_EMPTYPROPS_BETWEEN_CHECKPOINTS_NO_UNMERGED_BC) {
             // then we must skip these asserts, as we cannot guarantee
             // that all revisions are cleaned up in this mode
             return;
@@ -99,7 +99,7 @@ public class DetailGCHelper {
             for (Entry<String, Object> e : target.data.entrySet()) {
                 String k = e.getKey();
                 final boolean internal = k.startsWith("_");
-                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.getDetailedGcMode() != DetailedGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS);
+                final boolean dgcSupportsInternalPropCleanup = (VersionGarbageCollector.getFullGcMode() != FullGCMode.ORPHANS_EMPTYPROPS_KEEP_ONE_USER_PROPS);
                 if (internal && !dgcSupportsInternalPropCleanup) {
                     // skip
                     continue;

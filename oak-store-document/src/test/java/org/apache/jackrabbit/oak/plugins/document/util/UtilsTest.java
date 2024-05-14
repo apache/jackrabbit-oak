@@ -57,7 +57,7 @@ import org.slf4j.event.Level;
 
 import static org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder.newDocumentNodeStoreBuilder;
 import static org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentNodeStoreBuilder.newRDBDocumentNodeStoreBuilder;
-import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isDetailedGCEnabled;
+import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isFullGCEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isEmbeddedVerificationEnabled;
 import static org.apache.jackrabbit.oak.plugins.document.util.Utils.isThrottlingEnabled;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -187,53 +187,53 @@ public class UtilsTest {
     }
 
     @Test
-    public void detailedGCEnabledDefaultValue() {
-        boolean detailedGCEnabled = isDetailedGCEnabled(newDocumentNodeStoreBuilder());
-        assertFalse("Detailed GC is disabled by default", detailedGCEnabled);
+    public void fullGCEnabledDefaultValue() {
+        boolean fullGCEnabled = isFullGCEnabled(newDocumentNodeStoreBuilder());
+        assertFalse("Full GC is disabled by default", fullGCEnabled);
     }
 
     @Test
-    public void detailedGCExplicitlyDisabled() {
+    public void fullGCExplicitlyDisabled() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        builder.setDetailedGCEnabled(false);
-        Feature docStoreDetailedGCFeature = mock(Feature.class);
-        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
-        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
-        assertFalse("Detailed GC is disabled explicitly", detailedGCEnabled);
+        builder.setFullGCEnabled(false);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertFalse("Full GC is disabled explicitly", fullGCEnabled);
     }
 
     @Test
-    public void detailedGCEnabledViaConfiguration() {
+    public void fullGCEnabledViaConfiguration() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        builder.setDetailedGCEnabled(true);
-        Feature docStoreDetailedGCFeature = mock(Feature.class);
-        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(false);
-        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
-        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
-        assertTrue("Detailed GC is enabled via configuration", detailedGCEnabled);
+        builder.setFullGCEnabled(true);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(false);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertTrue("Full GC is enabled via configuration", fullGCEnabled);
     }
 
     @Test
-    public void detailedGCEnabledViaFeatureToggle() {
+    public void fullGCEnabledViaFeatureToggle() {
         DocumentNodeStoreBuilder<?> builder = newDocumentNodeStoreBuilder();
-        builder.setDetailedGCEnabled(false);
-        Feature docStoreDetailedGCFeature = mock(Feature.class);
-        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
-        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
-        assertTrue("Detailed GC is enabled via Feature Toggle", detailedGCEnabled);
+        builder.setFullGCEnabled(false);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertTrue("Full GC is enabled via Feature Toggle", fullGCEnabled);
     }
 
     @Test
-    public void detailedGCDisabledForRDB() {
+    public void fullGCDisabledForRDB() {
         DocumentNodeStoreBuilder<?> builder = newRDBDocumentNodeStoreBuilder();
-        builder.setDetailedGCEnabled(true);
-        Feature docStoreDetailedGCFeature = mock(Feature.class);
-        when(docStoreDetailedGCFeature.isEnabled()).thenReturn(true);
-        builder.setDocStoreDetailedGCFeature(docStoreDetailedGCFeature);
-        boolean detailedGCEnabled = isDetailedGCEnabled(builder);
-        assertFalse("Detailed GC is disabled for RDB Document Store", detailedGCEnabled);
+        builder.setFullGCEnabled(true);
+        Feature docStoreFullGCFeature = mock(Feature.class);
+        when(docStoreFullGCFeature.isEnabled()).thenReturn(true);
+        builder.setDocStoreFullGCFeature(docStoreFullGCFeature);
+        boolean fullGCEnabled = isFullGCEnabled(builder);
+        assertFalse("Full GC is disabled for RDB Document Store", fullGCEnabled);
     }
 
     @Test
