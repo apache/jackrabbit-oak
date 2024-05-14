@@ -441,23 +441,24 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 // One of the download tasks finished with an exception. Cancel the other one. Trying to cancel the
                 // task that already failed has no effect
                 LOG.info("Error during download. Canceling download threads. Error: {}", e.toString());
-                ascendingDownloadFuture.cancel(true);
-                descendingDownloadFuture.cancel(true);
+                downloadThreadPool.shutdownNow();
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {
                 LOG.info("Thread interrupted. Cancelling download threads.");
                 // The parent thread was interrupted. Shutdown the download threads.
-                ascendingDownloadFuture.cancel(true);
-                descendingDownloadFuture.cancel(true);
+                downloadThreadPool.shutdownNow();
                 throw e;
             } finally {
-                LOG.info("Shutting down download thread pool.");
-                downloadThreadPool.shutdown();
+                if (!downloadThreadPool.isShutdown()) {
+                    LOG.info("Shutting down download thread pool.");
+                    downloadThreadPool.shutdown();
+                }
                 boolean success = downloadThreadPool.awaitTermination(5, TimeUnit.SECONDS);
                 if (!success) {
                     LOG.warn("Download thread pool did not shut down in 5 seconds. Forcing shutdown.");
                     downloadThreadPool.shutdownNow();
                 }
+                LOG.info("Download thread pool shutdown complete.");
             }
         } else {
             // Single threaded dump
@@ -473,8 +474,11 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
             try {
                 downloadTask.download(mongoFilter);
                 downloadTask.reportFinalResults();
-            } catch (InterruptedException | TimeoutException e) {
+            } catch (InterruptedException e) {
                 LOG.warn("Thread interrupted.");
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                LOG.warn("Timeout: {}", e.toString());
                 throw new RuntimeException(e);
             } finally {
                 mongoServerSelector.threadFinished();

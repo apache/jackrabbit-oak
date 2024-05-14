@@ -48,6 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -147,14 +148,14 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
     private static final int MIN_ENTRY_BATCH_BUFFER_SIZE_MB = 32;
     private static final int MAX_AUTODETECT_WORKING_MEMORY_MB = 4000;
 
-    private static class MonitorTask<T> implements Runnable {
-        private final ArrayBlockingQueue<T[]> mongoDocQueue;
+    private static class MonitorTask implements Runnable {
+        private final ArrayBlockingQueue<NodeDocument[]> mongoDocQueue;
         private final ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue;
         private final ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue;
         private final ArrayBlockingQueue<Path> sortedFilesQueue;
         private final TransformStageStatistics transformStageStatistics;
 
-        public MonitorTask(ArrayBlockingQueue<T[]> mongoDocQueue,
+        public MonitorTask(ArrayBlockingQueue<NodeDocument[]> mongoDocQueue,
                            ArrayBlockingQueue<NodeStateEntryBatch> emptyBatchesQueue,
                            ArrayBlockingQueue<NodeStateEntryBatch> nonEmptyBatchesQueue,
                            ArrayBlockingQueue<Path> sortedFilesQueue,
@@ -382,7 +383,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
         // all the tasks, so that if one of them fails, we can abort the whole pipeline. Otherwise, if we wait on
         // Future instances, we can only wait on one of them, so that if any of the others fail, we have no easy way
         // to detect this failure.
-        ExecutorCompletionService ecs = new ExecutorCompletionService(threadPool);
+        ExecutorCompletionService ecs = new ExecutorCompletionService<>(threadPool);
         ScheduledExecutorService monitorThreadPool = Executors.newScheduledThreadPool(1,
                 new ThreadFactoryBuilder().setNameFormat("monitor").setDaemon(true).build()
         );
@@ -414,7 +415,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             LOG.info("[TASK:PIPELINED-DUMP:START] Starting to build FFS");
             Stopwatch start = Stopwatch.createStarted();
 
-            ecs.submit(new PipelinedMongoDownloadTask(
+            Future<PipelinedMongoDownloadTask.Result> downloadFuture = ecs.submit(new PipelinedMongoDownloadTask(
                     mongoClientURI,
                     docStore,
                     (int) (mongoDocBatchMaxSizeMB * FileUtils.ONE_MB),
@@ -425,9 +426,10 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     indexingReporter
             ));
 
+            ArrayList<Future<PipelinedTransformTask.Result>> transformFutures = new ArrayList<>(numberOfTransformThreads);
             for (int i = 0; i < numberOfTransformThreads; i++) {
                 NodeStateEntryWriter entryWriter = new NodeStateEntryWriter(blobStore);
-                ecs.submit(new PipelinedTransformTask(
+                transformFutures.add(ecs.submit(new PipelinedTransformTask(
                         docStore,
                         documentNodeStore,
                         rootRevision,
@@ -437,10 +439,10 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                         emptyBatchesQueue,
                         nonEmptyBatchesQueue,
                         transformStageStatistics
-                ));
+                )));
             }
 
-            ecs.submit(new PipelinedSortBatchTask(
+            Future<PipelinedSortBatchTask.Result> sortBatchFuture = ecs.submit(new PipelinedSortBatchTask(
                     this.getStoreDir().toPath(),
                     pathComparator,
                     this.getAlgorithm(),
@@ -459,7 +461,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                     statisticsProvider,
                     indexingReporter);
 
-            ecs.submit(mergeSortTask);
+            Future<PipelinedMergeSortTask.Result> mergeSortFuture = ecs.submit(mergeSortTask);
 
             Path flatFileStore = null;
             try {
@@ -478,6 +480,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                                 mongoDocQueue.put(SENTINEL_MONGO_DOCUMENT);
                             }
                             mergeSortTask.stopEagerMerging();
+                            downloadFuture = null;
 
                         } else if (result instanceof PipelinedTransformTask.Result) {
                             PipelinedTransformTask.Result transformResult = (PipelinedTransformTask.Result) result;
@@ -492,6 +495,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                                 // Terminate the sort thread.
                                 nonEmptyBatchesQueue.put(SENTINEL_NSE_BUFFER);
                                 transformStageStatistics.publishStatistics(statisticsProvider, indexingReporter);
+                                transformFutures.clear();
                             }
 
                         } else if (result instanceof PipelinedSortBatchTask.Result) {
@@ -507,32 +511,22 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                             }
                             emptyBatchesQueue.clear();
                             printStatistics(mongoDocQueue, emptyBatchesQueue, nonEmptyBatchesQueue, sortedFilesQueue, transformStageStatistics, true);
+                            sortBatchFuture = null;
 
                         } else if (result instanceof PipelinedMergeSortTask.Result) {
                             PipelinedMergeSortTask.Result mergeSortedFilesTask = (PipelinedMergeSortTask.Result) result;
                             Path ffs = mergeSortedFilesTask.getFlatFileStoreFile();
                             LOG.info("Merge-sort sort task finished. FFS: {}, Size: {}", ffs, humanReadableByteCountBin(Files.size(ffs)));
                             flatFileStore = mergeSortedFilesTask.getFlatFileStoreFile();
+                            mergeSortFuture = null;
 
                         } else {
                             throw new RuntimeException("Unknown result type: " + result);
                         }
                         tasksFinished++;
                     } catch (ExecutionException ex) {
-                        LOG.warn("Execution error dumping from MongoDB: " + ex + ". Shutting down all threads");
-                        threadPool.shutdownNow();
-                        boolean terminated = threadPool.awaitTermination(5, TimeUnit.SECONDS);
-                        if (!terminated) {
-                            LOG.warn("Thread pool failed to terminate");
-                        }
                         throw new RuntimeException(ex.getCause());
                     } catch (Throwable ex) {
-                        LOG.warn("Error dumping from MongoDB: " + ex);
-                        threadPool.shutdownNow();
-                        boolean terminated = threadPool.awaitTermination(5, TimeUnit.SECONDS);
-                        if (!terminated) {
-                            LOG.warn("Thread pool failed to terminate");
-                        }
                         throw new RuntimeException(ex);
                     }
                 }
@@ -545,7 +539,15 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
                 indexingReporter.addTiming("Build FFS (Dump+Merge)", FormattingUtils.formatToSeconds(elapsedSeconds));
 
                 LOG.info("[INDEXING_REPORT:BUILD_FFS]\n{}", indexingReporter.generateReport());
-            } catch (InterruptedException e) {
+            } catch (Throwable e) {
+                LOG.warn("Error dumping from MongoDB. Cancelling all tasks. Error: {}", e.toString());
+                // Cancel in order
+                cancelFuture(downloadFuture);
+                for (Future<?> transformTask : transformFutures) {
+                    cancelFuture(transformTask);
+                }
+                cancelFuture(sortBatchFuture);
+                cancelFuture(mergeSortFuture);
                 throw new RuntimeException(e);
             } finally {
                 // No longer need to monitor the size of the queues,
@@ -553,8 +555,25 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             }
             return flatFileStore.toFile();
         } finally {
+            LOG.info("Shutting down build FFS thread pool");
             threadPool.shutdown();
-            monitorThreadPool.shutdown();
+            try {
+                boolean success = threadPool.awaitTermination(5, TimeUnit.SECONDS);
+                if (!success) {
+                    LOG.warn("Thread pool did not shutdown in time. Forcing shutdown");
+                    threadPool.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                LOG.warn("Interrupted while waiting for thread pool to shutdown");
+            }
+            monitorThreadPool.shutdownNow();
+        }
+    }
+
+    private void cancelFuture(Future<?> future) {
+        if (future != null) {
+            LOG.info("Cancelling future: {}", future);
+            future.cancel(true);
         }
     }
 
