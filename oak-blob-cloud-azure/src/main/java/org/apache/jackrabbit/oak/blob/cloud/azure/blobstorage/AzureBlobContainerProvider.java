@@ -35,11 +35,14 @@ import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions;
 import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.jackrabbit.core.data.DataStoreException;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.InvalidKeyException;
 import java.time.Instant;
@@ -54,7 +57,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-public class AzureBlobContainerProvider {
+public class AzureBlobContainerProvider implements Closeable {
     private static final Logger log = LoggerFactory.getLogger(AzureBlobContainerProvider.class);
     private static final String DEFAULT_ENDPOINT_SUFFIX = "core.windows.net";
     private static final String AZURE_DEFAULT_SCOPE = "https://storage.azure.com/.default";
@@ -323,5 +326,10 @@ public class AzureBlobContainerProvider {
                 log.error("Error while acquiring new access token: ", e);
             }
         }
+    }
+
+    @Override
+    public void close() throws IOException {
+        new ExecutorCloser(executorService).close();
     }
 }
