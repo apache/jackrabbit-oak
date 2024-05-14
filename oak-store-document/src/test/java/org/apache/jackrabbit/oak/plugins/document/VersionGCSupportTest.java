@@ -65,7 +65,7 @@ public class VersionGCSupportTest {
 
     @Parameterized.Parameters(name="{0}")
     public static java.util.Collection<DocumentStoreFixture> fixtures() {
-        List<DocumentStoreFixture> fixtures = new ArrayList<>(3);
+        List<DocumentStoreFixture> fixtures = new ArrayList<>();
         if (RDB_H2.isAvailable()) {
             fixtures.add(RDB_H2);
         }

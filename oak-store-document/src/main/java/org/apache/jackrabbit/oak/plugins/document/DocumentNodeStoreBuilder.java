@@ -312,7 +312,6 @@ public class DocumentNodeStoreBuilder<T extends DocumentNodeStoreBuilder<T>> {
         return this.embeddedVerificationEnabled;
     }
 
-
     public T setReadOnlyMode() {
         this.isReadOnlyMode = true;
         return thisBuilder();

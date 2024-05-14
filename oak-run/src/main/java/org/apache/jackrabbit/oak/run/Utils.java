@@ -72,6 +72,7 @@ import org.apache.jackrabbit.guava.common.collect.Maps;
 import org.apache.jackrabbit.guava.common.io.Closer;
 import org.apache.jackrabbit.guava.common.io.Files;
 import com.mongodb.MongoClientURI;
+import com.mongodb.MongoURI;
 
 import joptsimple.ArgumentAcceptingOptionSpec;
 import joptsimple.OptionParser;
@@ -183,7 +184,7 @@ class Utils {
             System.exit(1);
         }
 
-        if (src.startsWith(MONGODB_PREFIX) || src.startsWith("jdbc")) {
+        if (src.startsWith(MongoURI.MONGODB_PREFIX) || src.startsWith("jdbc")) {
             DocumentNodeStoreBuilder<?> builder = createDocumentMKBuilder(options, closer);
             if (builder != null) {
                 if (readOnlyMode) {
