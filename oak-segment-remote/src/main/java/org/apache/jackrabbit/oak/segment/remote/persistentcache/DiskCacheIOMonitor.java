@@ -42,6 +42,10 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
  *          a timer metrics for the time spent reading from segment disk cache</li>
  *     <li>{@link #OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME}:
  *          a timer metrics for the time spent writing to segment disk cache</li>
+ *     <li>{@link #OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CALCULATED}:
+ *          a histogram for the calculated segment disk cache size</li>
+ *     <li>{@link #OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CHANGE}:
+ *          a histogram for the segment disk cache size change</li>
  * </ul>
  */
 public class DiskCacheIOMonitor extends IOMonitorAdapter {
@@ -49,8 +53,8 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
     public static final String OAK_SEGMENT_CACHE_DISK_SEGMENT_WRITE_BYTES = "oak.segment.cache.disk.segment-write-bytes";
     public static final String OAK_SEGMENT_CACHE_DISK_SEGMENT_READ_TIME = "oak.segment.cache.disk.segment-read-time";
     public static final String OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME = "oak.segment.cache.disk.segment-write-time";
-    public static final String OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_CALCULATED = "oak.segment.cache.disk.cache-size-calculated";
-    public static final String OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_ON_DISK = "oak.segment.cache.disk.cache-size-on-disk";
+    public static final String OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CALCULATED = "oak.segment.cache.disk.cache-size-calculated";
+    public static final String OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CHANGE = "oak.segment.cache.disk.cache-size-change";
 
     private final MeterStats segmentReadBytes;
     private final MeterStats segmentWriteBytes;
@@ -69,9 +73,9 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
         segmentWriteTime = statisticsProvider.getTimer(
                 OAK_SEGMENT_CACHE_DISk_SEGMENT_WRITE_TIME, StatsOptions.METRICS_ONLY);
         cacheSizeCalculated = statisticsProvider.getHistogram(
-                OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_CALCULATED, StatsOptions.METRICS_ONLY);
+                OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CALCULATED, StatsOptions.METRICS_ONLY);
         cacheSizeOnDisk = statisticsProvider.getHistogram(
-                OAK_SEGMENT_CACHE_DISk_CACHE_SIZE_ON_DISK, StatsOptions.METRICS_ONLY);
+                OAK_SEGMENT_CACHE_DISK_CACHE_SIZE_CHANGE, StatsOptions.METRICS_ONLY);
     }
 
     @Override
@@ -86,8 +90,8 @@ public class DiskCacheIOMonitor extends IOMonitorAdapter {
         segmentWriteTime.update(elapsed, NANOSECONDS);
     }
 
-    public void updateCacheSize(long calculated, long onDisk) {
+    public void updateCacheSize(long calculated, long change) {
         cacheSizeCalculated.update(calculated);
-        cacheSizeOnDisk.update(onDisk);
+        cacheSizeOnDisk.update(change);
     }
 }

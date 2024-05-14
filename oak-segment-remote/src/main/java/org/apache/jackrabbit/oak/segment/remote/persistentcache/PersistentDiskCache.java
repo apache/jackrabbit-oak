@@ -158,7 +158,8 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                     } catch (AtomicMoveNotSupportedException e) {
                         Files.move(tempSegmentFile.toPath(), segmentFile.toPath());
                     }
-                    cacheSize.addAndGet(fileSize);
+                    long cacheSizeAfter = cacheSize.addAndGet(fileSize);
+                    diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, fileSize);
                 } catch (Exception e) {
                     logger.error("Error writing segment {} to cache", segmentId, e);
                     try {
@@ -214,7 +215,7 @@ public class PersistentDiskCache extends AbstractPersistentCache {
                             return;
                         }
                         long cacheSizeAfter = cacheSize.addAndGet(-length);
-                        diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, directory.length());
+                        diskCacheIOMonitor.updateCacheSize(cacheSizeAfter, -length);
                         segment.delete();
                         evictionCount.incrementAndGet();
                     } else {
