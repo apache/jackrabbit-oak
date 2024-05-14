@@ -221,7 +221,7 @@ public class VersionGarbageCollector {
     private VersionGCOptions options;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
-    private DetailedRevisionGCStatsCollector fullGCStats = new FullRevisionGCStatsCollectorImpl(NOOP);
+    private FullRevisionGCStatsCollector fullGCStats = new FullRevisionGCStatsCollectorImpl(NOOP);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
@@ -427,21 +427,21 @@ public class VersionGarbageCollector {
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
         final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
-        final Stopwatch collectFullGarbage = Stopwatch.createUnstarted();
+        final Stopwatch collectFullGC = Stopwatch.createUnstarted();
         final Stopwatch collectOrphanNodes = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedProps = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedOldRevs = Stopwatch.createUnstarted();
         final Stopwatch collectUnmergedBC = Stopwatch.createUnstarted();
         long activeElapsed, fullGCActiveElapsed, collectDeletedDocsElapsed, checkDeletedDocsElapsed, deleteDeletedDocsElapsed,
                 collectAndDeleteSplitDocsElapsed, deleteSplitDocsElapsed, sortDocIdsElapsed, updateResurrectedDocumentsElapsed,
-                fullGCDocsElapsed, collectFullGarbageElapsed, collectOrphanNodesElapsed, collectDeletedPropsElapsed,
+                fullGCDocsElapsed, collectFullGCElapsed, collectOrphanNodesElapsed, collectDeletedPropsElapsed,
                 deleteFullGCDocsElapsed, collectDeletedOldRevsElapsed, collectUnmergedBCElapsed;
 
         @Override
         public String toString() {
             String timings;
             String fmt = "timeToCollectDeletedDocs=%s, timeToCheckDeletedDocs=%s, timeToSortDocIds=%s, timeTakenToUpdateResurrectedDocs=%s, timeTakenToDeleteDeletedDocs=%s, timeTakenToCollectAndDeleteSplitDocs=%s%s, " +
-                    "timeToRunFullGC=%s, which includes [timeToDeleteFullGarbage=%s and timeToCollectFullGarbage=%s, (of which timeToCollectOrphanNodes=%s timeToCollectDeletedProps=%s, timeToCollectOldRevs=%s, timeToCollectUnmergedBranchCommits=%s)]";
+                    "timeToRunFullGC=%s, which includes [timeToDeleteFullGC=%s and timeToCollectFullGC=%s, (of which timeToCollectOrphanNodes=%s timeToCollectDeletedProps=%s, timeToCollectOldRevs=%s, timeToCollectUnmergedBranchCommits=%s)]";
 
             // aggregated timings?
             if (iterationCount > 0) {
@@ -458,7 +458,7 @@ public class VersionGarbageCollector {
                         timeDeletingSplitDocs,
                         df.format(fullGCDocsElapsed, MICROSECONDS),
                         df.format(deleteFullGCDocsElapsed, MICROSECONDS),
-                        df.format(collectFullGarbageElapsed, MICROSECONDS),
+                        df.format(collectFullGCElapsed, MICROSECONDS),
                         df.format(collectOrphanNodesElapsed, MICROSECONDS),
                         df.format(collectDeletedPropsElapsed, MICROSECONDS),
                         df.format(collectDeletedOldRevsElapsed, MICROSECONDS),
@@ -478,7 +478,7 @@ public class VersionGarbageCollector {
                         timeDeletingSplitDocs,
                         df.format(fullGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(deleteFullGCDocs.elapsed(MICROSECONDS), MICROSECONDS),
-                        df.format(collectFullGarbage.elapsed(MICROSECONDS), MICROSECONDS),
+                        df.format(collectFullGC.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectOrphanNodes.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDeletedProps.elapsed(MICROSECONDS), MICROSECONDS),
                         df.format(collectDeletedOldRevs.elapsed(MICROSECONDS), MICROSECONDS),
@@ -547,7 +547,7 @@ public class VersionGarbageCollector {
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocumentsElapsed;
                 this.fullGCDocsElapsed += run.fullGCDocsElapsed;
                 this.deleteFullGCDocsElapsed += run.deleteFullGCDocsElapsed;
-                this.collectFullGarbageElapsed += run.collectFullGarbageElapsed;
+                this.collectFullGCElapsed += run.collectFullGCElapsed;
                 this.collectOrphanNodesElapsed += run.collectOrphanNodesElapsed;
                 this.collectDeletedPropsElapsed += run.collectDeletedPropsElapsed;
                 this.collectDeletedOldRevsElapsed += run.collectDeletedOldRevsElapsed;
@@ -565,7 +565,7 @@ public class VersionGarbageCollector {
                 this.updateResurrectedDocumentsElapsed += run.updateResurrectedDocuments.elapsed(MICROSECONDS);
                 this.fullGCDocsElapsed += run.fullGCDocs.elapsed(MICROSECONDS);
                 this.deleteFullGCDocsElapsed += run.deleteFullGCDocs.elapsed(MICROSECONDS);
-                this.collectFullGarbageElapsed += run.collectFullGarbage.elapsed(MICROSECONDS);
+                this.collectFullGCElapsed += run.collectFullGC.elapsed(MICROSECONDS);
                 this.collectOrphanNodesElapsed += run.collectOrphanNodes.elapsed(MICROSECONDS);
                 this.collectDeletedPropsElapsed += run.collectDeletedProps.elapsed(MICROSECONDS);
                 this.collectDeletedOldRevsElapsed += run.collectDeletedOldRevs.elapsed(MICROSECONDS);
@@ -617,7 +617,7 @@ public class VersionGarbageCollector {
             this.watches.put(GCPhase.SPLITS_CLEANUP, stats.collectAndDeleteSplitDocs);
             this.watches.put(GCPhase.UPDATING, stats.updateResurrectedDocuments);
             this.watches.put(GCPhase.FULL_GC, stats.fullGCDocs);
-            this.watches.put(GCPhase.FULL_GC_COLLECT_GARBAGE, stats.collectFullGarbage);
+            this.watches.put(GCPhase.FULL_GC_COLLECT_GARBAGE, stats.collectFullGC);
             this.watches.put(GCPhase.FULL_GC_COLLECT_ORPHAN_NODES, stats.collectOrphanNodes);
             this.watches.put(GCPhase.FULL_GC_COLLECT_PROPS, stats.collectDeletedProps);
             this.watches.put(GCPhase.FULL_GC_COLLECT_OLD_REVS, stats.collectDeletedOldRevs);
@@ -760,7 +760,7 @@ public class VersionGarbageCollector {
                     } else {
                         final RevisionVector headRevision = nodeStore.getHeadRevision();
                         monitor.info("Looking at revisions in {} for full GC", rec.scopeFullGC);
-                        collectFullGarbage(phases, headRevision, rec);
+                        collectFullGC(phases, headRevision, rec);
                     }
                 }
 
@@ -805,7 +805,7 @@ public class VersionGarbageCollector {
          * @param headRevision the current head revision of node store
          * @param rec {@link VersionGCRecommendations} to recommend GC operation
          */
-        private void collectFullGarbage(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec) {
+        private void collectFullGC(final GCPhases phases, final RevisionVector headRevision, final VersionGCRecommendations rec) {
 
             final long oldestModifiedMs = rec.scopeFullGC.fromMs;
             final long toModifiedMs = rec.scopeFullGC.toMs;
@@ -857,9 +857,9 @@ public class VersionGarbageCollector {
 
                                 final Long modified = lastDoc.getModified();
                                 if (modified == null) {
-                                    monitor.warn("collectFullGarbage : document has no _modified property : {}", doc.getId());
+                                    monitor.warn("collectFullGC : document has no _modified property : {}", doc.getId());
                                 } else if (SECONDS.toMillis(modified) < fromModifiedMs) {
-                                    monitor.warn("collectFullGarbage : document has older _modified than query boundary : {} (from: {}, to: {})",
+                                    monitor.warn("collectFullGC : document has older _modified than query boundary : {} (from: {}, to: {})",
                                             modified, timestampToString(fromModifiedMs), timestampToString(toModifiedMs));
                                 }
                             }

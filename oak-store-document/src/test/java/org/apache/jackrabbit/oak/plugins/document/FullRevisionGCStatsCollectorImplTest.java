@@ -36,7 +36,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.commons.lang3.reflect.FieldUtils.readField;
 import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_DELETED_OLD_REVS_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_DELETED_PROPS_TIMER;
-import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_DETAILED_GARBAGE_TIMER;
+import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_FULL_GC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_ORPHAN_NODES_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COLLECT_UNMERGED_BC_TIMER;
 import static org.apache.jackrabbit.oak.plugins.document.FullRevisionGCStatsCollectorImpl.COUNTER;
@@ -127,7 +127,7 @@ public class FullRevisionGCStatsCollectorImplTest {
         final VersionGarbageCollector.VersionGCStats vgcs = new VersionGarbageCollector.VersionGCStats();
         vgcs.fullGCActiveElapsed = MILLISECONDS.toMicros(2);
         vgcs.fullGCDocsElapsed = MILLISECONDS.toMicros(3);
-        vgcs.collectFullGarbageElapsed = MILLISECONDS.toMicros(5);
+        vgcs.collectFullGCElapsed = MILLISECONDS.toMicros(5);
         vgcs.collectOrphanNodesElapsed = MILLISECONDS.toMicros(6);
         vgcs.collectDeletedPropsElapsed = MILLISECONDS.toMicros(7);
         vgcs.collectDeletedOldRevsElapsed = MILLISECONDS.toMicros(11);
@@ -138,7 +138,7 @@ public class FullRevisionGCStatsCollectorImplTest {
         stats.finished(vgcs);
         assertTimer(2, FULL_GC_ACTIVE_TIMER);
         assertTimer(3, FULL_GC_TIMER);
-        assertTimer(5, COLLECT_DETAILED_GARBAGE_TIMER);
+        assertTimer(5, COLLECT_FULL_GC_TIMER);
         assertTimer(6, COLLECT_ORPHAN_NODES_TIMER);
         assertTimer(7, COLLECT_DELETED_PROPS_TIMER);
         assertTimer(11, COLLECT_DELETED_OLD_REVS_TIMER);
