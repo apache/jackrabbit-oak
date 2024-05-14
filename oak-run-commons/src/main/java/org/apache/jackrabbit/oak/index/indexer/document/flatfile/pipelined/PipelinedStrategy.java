@@ -25,6 +25,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.IOUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.NodeStateEntryWriter;
 import org.apache.jackrabbit.oak.index.indexer.document.indexstore.IndexStoreSortStrategyBase;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
@@ -556,16 +557,7 @@ public class PipelinedStrategy extends IndexStoreSortStrategyBase {
             return flatFileStore.toFile();
         } finally {
             LOG.info("Shutting down build FFS thread pool");
-            threadPool.shutdown();
-            try {
-                boolean success = threadPool.awaitTermination(5, TimeUnit.SECONDS);
-                if (!success) {
-                    LOG.warn("Thread pool did not shutdown in time. Forcing shutdown");
-                    threadPool.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                LOG.warn("Interrupted while waiting for thread pool to shutdown");
-            }
+            new ExecutorCloser(threadPool).close();
             monitorThreadPool.shutdownNow();
         }
     }

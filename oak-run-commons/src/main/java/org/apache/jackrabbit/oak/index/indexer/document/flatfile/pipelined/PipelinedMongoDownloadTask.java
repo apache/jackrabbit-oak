@@ -38,6 +38,7 @@ import org.apache.jackrabbit.guava.common.base.Stopwatch;
 import org.apache.jackrabbit.guava.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.jackrabbit.oak.commons.IOUtils;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.concurrent.ExecutorCloser;
 import org.apache.jackrabbit.oak.index.indexer.document.flatfile.pipelined.MongoRegexPathFilterFactory.MongoFilterPaths;
 import org.apache.jackrabbit.oak.plugins.document.Collection;
 import org.apache.jackrabbit.oak.plugins.document.NodeDocument;
@@ -449,15 +450,8 @@ public class PipelinedMongoDownloadTask implements Callable<PipelinedMongoDownlo
                 downloadThreadPool.shutdownNow();
                 throw e;
             } finally {
-                if (!downloadThreadPool.isShutdown()) {
-                    LOG.info("Shutting down download thread pool.");
-                    downloadThreadPool.shutdown();
-                }
-                boolean success = downloadThreadPool.awaitTermination(5, TimeUnit.SECONDS);
-                if (!success) {
-                    LOG.warn("Download thread pool did not shut down in 5 seconds. Forcing shutdown.");
-                    downloadThreadPool.shutdownNow();
-                }
+                LOG.info("Shutting down download thread pool.");
+                new ExecutorCloser(downloadThreadPool).close();
                 LOG.info("Download thread pool shutdown complete.");
             }
         } else {
