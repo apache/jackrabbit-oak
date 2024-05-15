@@ -19,9 +19,9 @@ package org.apache.jackrabbit.oak.run;
 
 import static com.mongodb.MongoURI.MONGODB_PREFIX;
 import static java.util.Arrays.asList;
+import static java.util.Objects.isNull;
 import static java.util.Optional.empty;
 import static java.util.Optional.of;
-import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.apache.jackrabbit.oak.commons.PropertiesUtil.populate;
 import static org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode.DISABLED;
 import static org.apache.jackrabbit.oak.plugins.document.mongo.MongoDocumentNodeStoreBuilder.newMongoDocumentNodeStoreBuilder;
@@ -55,7 +55,6 @@ import org.apache.jackrabbit.oak.plugins.blob.datastore.DataStoreBlobStore;
 import org.apache.jackrabbit.oak.plugins.blob.datastore.OakFileDataStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStore;
 import org.apache.jackrabbit.oak.plugins.document.DocumentNodeStoreBuilder;
-import org.apache.jackrabbit.oak.plugins.document.LeaseCheckMode;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDataSourceFactory;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBOptions;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
@@ -218,7 +217,7 @@ class Utils {
 
     static Optional<MongoConnection> getMongoConnection(final NodeStoreOptions options, final Closer closer) {
         String src = options.getStoreArg();
-        if (isEmpty(src) || !src.startsWith(MONGODB_PREFIX)) {
+        if (isNull(src) || !src.startsWith(MONGODB_PREFIX)) {
             return empty();
         }
 

@@ -127,7 +127,7 @@ public class VersionGarbageCollector {
     /**
      * Split document types which can be safely garbage collected
      */
-    private static final Set<SplitDocType> GC_TYPES = EnumSet.of(
+    private static final Set<NodeDocument.SplitDocType> GC_TYPES = EnumSet.of(
             DEFAULT_LEAF, COMMIT_ROOT_ONLY, DEFAULT_NO_BRANCH);
 
     /**
@@ -420,13 +420,13 @@ public class VersionGarbageCollector {
         final Stopwatch fullGCActive = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedDocs = Stopwatch.createUnstarted();
         final Stopwatch checkDeletedDocs = Stopwatch.createUnstarted();
-        final Stopwatch fullGCDocs = Stopwatch.createUnstarted();
-        final Stopwatch deleteFullGCDocs = Stopwatch.createUnstarted();
+        final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
+        final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch deleteSplitDocs = Stopwatch.createUnstarted();
         final Stopwatch sortDocIds = Stopwatch.createUnstarted();
         final Stopwatch updateResurrectedDocuments = Stopwatch.createUnstarted();
-        final Stopwatch deleteDeletedDocs = Stopwatch.createUnstarted();
-        final Stopwatch collectAndDeleteSplitDocs = Stopwatch.createUnstarted();
+        final Stopwatch fullGCDocs = Stopwatch.createUnstarted();
+        final Stopwatch deleteFullGCDocs = Stopwatch.createUnstarted();
         final Stopwatch collectFullGC = Stopwatch.createUnstarted();
         final Stopwatch collectOrphanNodes = Stopwatch.createUnstarted();
         final Stopwatch collectDeletedProps = Stopwatch.createUnstarted();

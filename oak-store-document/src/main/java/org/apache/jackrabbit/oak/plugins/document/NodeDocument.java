@@ -1015,7 +1015,6 @@ public final class NodeDocument extends Document {
             if (local.isEmpty()) {
                 continue;
             }
-
             // first check local map, which contains most recent values
             Value value = getLatestValue(nodeStore, local.entrySet(),
                     readRevision, validRevisions, lastRevs);
