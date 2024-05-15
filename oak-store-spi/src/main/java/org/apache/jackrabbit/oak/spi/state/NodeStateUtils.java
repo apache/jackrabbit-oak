@@ -53,12 +53,7 @@ public final class NodeStateUtils {
      * @return true if one of the nodes is hidden
      */
     public static boolean isHiddenPath(@NotNull String path) {
-        for (String n : PathUtils.elements(path)) {
-            if (isHidden(n)) {
-                return true;
-            }
-        }
-        return false;
+        return path.startsWith(":") || path.contains("/:");
     }
 
     @Nullable
