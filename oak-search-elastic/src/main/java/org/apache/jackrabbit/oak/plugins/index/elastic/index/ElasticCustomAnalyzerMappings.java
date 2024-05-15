@@ -112,11 +112,8 @@ public class ElasticCustomAnalyzerMappings {
         LUCENE_ELASTIC_TRANSFORMERS = new LinkedHashMap<>();
 
         LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterFilterFactory.class, luceneParams -> {
-            Consumer<String> transformFlag = flag -> {
-                if (luceneParams.containsKey(flag)) {
-                    luceneParams.put(flag, Integer.parseInt(luceneParams.get(flag).toString()) == 1);
-                }
-            };
+            Consumer<String> transformFlag = flag -> luceneParams.computeIfPresent(flag, (k, v) -> Integer.parseInt(v.toString()) == 1);
+
             transformFlag.accept("generateWordParts");
             transformFlag.accept("generateNumberParts");
             transformFlag.accept("catenateWords");
