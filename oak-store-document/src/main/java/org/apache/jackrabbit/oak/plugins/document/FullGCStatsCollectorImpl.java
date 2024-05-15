@@ -29,9 +29,9 @@ import static org.apache.jackrabbit.oak.stats.StatsOptions.DEFAULT;
 import static org.apache.jackrabbit.oak.stats.StatsOptions.METRICS_ONLY;
 
 /**
- * {@link DocumentNodeStore} Detailed revision garbage collection statistics.
+ * {@link DocumentNodeStore} Full garbage collection statistics.
  */
-class FullRevisionGCStatsCollectorImpl implements FullRevisionGCStatsCollector {
+class FullGCStatsCollectorImpl implements FullGCStatsCollector {
 
     static final String FULL_GC = "FullGC";
     static final String READ_DOC = "READ_DOC";
@@ -70,7 +70,7 @@ class FullRevisionGCStatsCollectorImpl implements FullRevisionGCStatsCollector {
     private final CounterStats counter;
     private final CounterStats failureCounter;
 
-    FullRevisionGCStatsCollectorImpl(StatisticsProvider provider) {
+    FullGCStatsCollectorImpl(StatisticsProvider provider) {
 
         readDoc = meter(provider, READ_DOC);
         deletedOrphanNode = meter(provider, DELETED_ORPHAN_NODE);
@@ -92,7 +92,7 @@ class FullRevisionGCStatsCollectorImpl implements FullRevisionGCStatsCollector {
         failureCounter = counter(provider, FAILURE_COUNTER);
     }
 
-    //---------------------< DetailedRevisionGCStatsCollector >-------------------------
+    //---------------------< FullGCStatsCollector >-------------------------
 
     @Override
     public void documentRead() {

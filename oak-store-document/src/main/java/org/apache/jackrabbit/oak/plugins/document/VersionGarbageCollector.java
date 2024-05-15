@@ -146,22 +146,22 @@ public class VersionGarbageCollector {
     static final String SETTINGS_COLLECTION_REC_INTERVAL_PROP = "recommendedIntervalMs";
 
     /**
-     * Property name to timestamp till when last detailed-GC run happened
+     * Property name to timestamp till when last full-GC run happened
      */
     static final String SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP = "fullGCTimeStamp";
 
     /**
-     * Property name to _id till when last detailed-GC run happened
+     * Property name to _id till when last full-GC run happened
      */
     static final String SETTINGS_COLLECTION_FULL_GC_DOCUMENT_ID_PROP = "fullGCId";
 
     /**
-     * Property name to timestamp till when last detailed-GC run happened in dryRun mode only
+     * Property name to timestamp till when last full-GC run happened in dryRun mode only
      */
     static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_TIMESTAMP_PROP = "fullGCDryRunTimeStamp";
 
     /**
-     * Property name to _id till when last detailed-GC run happened in dryRun mode only
+     * Property name to _id till when last full-GC run happened in dryRun mode only
      */
     static final String SETTINGS_COLLECTION_FULL_GC_DRY_RUN_DOCUMENT_ID_PROP = "fullGCDryRunId";
 
@@ -221,7 +221,7 @@ public class VersionGarbageCollector {
     private VersionGCOptions options;
     private GCMonitor gcMonitor = GCMonitor.EMPTY;
     private RevisionGCStats gcStats = new RevisionGCStats(NOOP);
-    private FullRevisionGCStatsCollector fullGCStats = new FullRevisionGCStatsCollectorImpl(NOOP);
+    private FullGCStatsCollector fullGCStats = new FullGCStatsCollectorImpl(NOOP);
 
     VersionGarbageCollector(DocumentNodeStore nodeStore,
                             VersionGCSupport gcSupport,
@@ -240,7 +240,7 @@ public class VersionGarbageCollector {
 
     void setStatisticsProvider(StatisticsProvider provider) {
         this.gcStats = new RevisionGCStats(provider);
-        this.fullGCStats = new FullRevisionGCStatsCollectorImpl(provider);
+        this.fullGCStats = new FullGCStatsCollectorImpl(provider);
     }
 
     @NotNull
@@ -756,7 +756,7 @@ public class VersionGarbageCollector {
                     stats.fullGCActive.start();
                     if (rec.ignoreFullGCDueToCheckPoint) {
                         phases.stats.ignoredFullGCDueToCheckPoint = true;
-                        monitor.skipped("Checkpoint prevented detailed revision garbage collection");
+                        monitor.skipped("Checkpoint prevented Full garbage collection");
                     } else {
                         final RevisionVector headRevision = nodeStore.getHeadRevision();
                         monitor.info("Looking at revisions in {} for full GC", rec.scopeFullGC);
@@ -789,12 +789,12 @@ public class VersionGarbageCollector {
         }
 
         /**
-         * "Detailed garbage" refers to additional garbage identified as part of OAK-10199
+         * "Full garbage" refers to additional garbage identified as part of OAK-10199
          * et al: essentially garbage that in earlier versions of Oak were ignored. This
          * includes: deleted properties, revision information within documents, branch
          * commit related garbage.
          * <p>
-         * The "detailed garbage" collector can be instructed to do a full repository scan
+         * The "Full garbage" collector can be instructed to do a full repository scan
          * - or incrementally based on where it last left off. When doing a full
          * repository scan (but not limited to that), it executes in (small) batches
          * followed by voluntary paused (aka throttling) to avoid excessive load on the
@@ -845,7 +845,7 @@ public class VersionGarbageCollector {
                                 }
                                 docsTraversed++;
                                 if (docsTraversed % 100 == 0) {
-                                    monitor.info("Iterated through {} documents so far. {} had detailed garbage", docsTraversed, gc.getGarbageCount());
+                                    monitor.info("Iterated through {} documents so far. {} had Full garbage", docsTraversed, gc.getGarbageCount());
                                 }
 
                                 lastDoc = doc;
@@ -1072,7 +1072,7 @@ public class VersionGarbageCollector {
             }
 
             fullGCStats.documentRead();
-            monitor.info("Collecting Detailed Garbage for doc [{}]", doc.getId());
+            monitor.info("Collecting Full Garbage for doc [{}]", doc.getId());
 
             if (AUDIT_LOG.isTraceEnabled()) {
                 AUDIT_LOG.trace("<Collecting> Garbage in doc [{}]", doc.getId());
@@ -1474,7 +1474,7 @@ public class VersionGarbageCollector {
 
                 // to know whether the node is actually deleted, would potentially
                 // require several commit value lookups.
-                // in order to keep the execution time of detailGC in this regard small,
+                // in order to keep the execution time of fullGC in this regard small,
                 // the code here stops with any further checks and just sets
                 // "_deletedOnce" to true and updates "_modified" - the DeletedDocsGC
                 // later would either resurrect or delete the document properly (eg
@@ -1822,7 +1822,7 @@ public class VersionGarbageCollector {
 
             if (updateOpList.isEmpty() && orphanOrDeletedRemovalMap.isEmpty()) {
                 if (log.isDebugEnabled() || isFullGCDryRun) {
-                    log.debug("Skipping removal of detailed garbage, cause no garbage detected");
+                    log.debug("Skipping removal of Full garbage, cause no garbage detected");
                 }
                 return;
             }
@@ -1836,7 +1836,7 @@ public class VersionGarbageCollector {
             }
 
             if (cancel.get()) {
-                log.info("Aborting the removal of detailed garbage since RGC had been cancelled");
+                log.info("Aborting the removal of Full garbage since RGC had been cancelled");
                 return;
             }
 
