@@ -228,9 +228,9 @@ public class VersionGCRecommendations {
         scope = gcResult.gcScope;
         ignoreDueToCheckPoint = gcResult.ignoreGC;
 
-        final GCResult detailGCResult = getResult(options, checkpoint, clock, DGC, scopeFullGC);
-        scopeFullGC = detailGCResult.gcScope;
-        ignoreFullGCDueToCheckPoint = detailGCResult.ignoreGC;
+        final GCResult fullGCResult = getResult(options, checkpoint, clock, DGC, scopeFullGC);
+        scopeFullGC = fullGCResult.gcScope;
+        ignoreFullGCDueToCheckPoint = fullGCResult.ignoreGC;
 
         if (scope.getDurationMs() <= options.precisionMs) {
             // If we have narrowed the collect time interval down as much as we can, no

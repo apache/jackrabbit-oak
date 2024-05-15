@@ -21,10 +21,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 
 /**
- * Collector interface for {@link DocumentNodeStore} full revision garbage collection
+ * Collector interface for {@link DocumentNodeStore} full garbage collection
  * statistics.
  */
-public interface FullRevisionGCStatsCollector {
+public interface FullGCStatsCollector {
 
     /**
      * Total No. of documents read during FullGC phase
