@@ -28,6 +28,7 @@ import org.apache.jackrabbit.oak.plugins.document.mongo.MongoTestUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoVersionGCSupport;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.rdb.RDBVersionGCSupport;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -100,7 +101,7 @@ public class VersionGCSupportTest {
 
     @After
     public void after() throws Exception {
-        store.remove(NODES, ids);
+        store.remove(Collection.NODES, ids);
         fixture.dispose();
     }
 
@@ -109,12 +110,12 @@ public class VersionGCSupportTest {
         long offset = SECONDS.toMillis(42);
         for (int i = 0; i < 5; i++) {
             Revision r = new Revision(offset + SECONDS.toMillis(i), 0, 1);
-            String id = getIdFromPath("/doc-" + i);
+            String id = Utils.getIdFromPath("/doc-" + i);
             ids.add(id);
             UpdateOp op = new UpdateOp(id, true);
-            setModified(op, r);
+            NodeDocument.setModified(op, r);
             NodeDocument.setDeleted(op, r, true);
-            store.create(NODES, of(op));
+            store.create(Collection.NODES, of(op));
         }
 
         assertPossiblyDeleted(0, 41, 0);
@@ -177,12 +178,12 @@ public class VersionGCSupportTest {
         long secs = 123456;
         long offset = SECONDS.toMillis(secs);
         Revision r = new Revision(offset, 0, 1);
-        String id = getIdFromPath("/doc-del");
+        String id = Utils.getIdFromPath("/doc-del");
         ids.add(id);
         UpdateOp op = new UpdateOp(id, true);
-        setModified(op, r);
+        NodeDocument.setModified(op, r);
         NodeDocument.setDeleted(op, r, true);
-        store.create(NODES, of(op));
+        store.create(Collection.NODES, of(op));
 
         long reportedSecs = gcSupport.getOldestDeletedOnceTimestamp(SIMPLE, 1) / SECONDS.toMillis(1);
         assertTrue("diff (s) should be < 5: " + Math.abs(secs - reportedSecs), Math.abs(secs - reportedSecs) < 5);

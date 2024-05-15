@@ -86,7 +86,7 @@ public class VersionGCTest {
     public void setUp() throws Exception {
         execService = Executors.newCachedThreadPool();
         Clock clock = new Clock.Virtual();
-        clock.waitUntil(currentTimeMillis());
+        clock.waitUntil(System.currentTimeMillis());
         Revision.setClock(clock);
         ns = builderProvider.newBuilder()
                 .clock(clock)
@@ -589,7 +589,7 @@ public class VersionGCTest {
         @Override
         public <T extends Document> T find(Collection<T> collection,
                                            String key) {
-            if (collection == SETTINGS
+            if (collection == Collection.SETTINGS
                     && key.equals("versionGC")) {
                 findVersionGC.incrementAndGet();
             }
