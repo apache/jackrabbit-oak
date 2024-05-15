@@ -376,7 +376,7 @@ public class RevisionsCommand implements Command {
             }));
             if (options.isContinuous()) {
                 while (running.get()) {
-                    long lastRun = currentTimeMillis();
+                    long lastRun = System.currentTimeMillis();
                     collectOnce(gc, options, executor);
                     waitWhile(running, lastRun + 5000);
                 }
@@ -410,7 +410,7 @@ public class RevisionsCommand implements Command {
     private void collectOnce(VersionGarbageCollector gc,
                              RevisionsOptions options,
                              ExecutorService executor) throws IOException {
-        long started = currentTimeMillis();
+        long started = System.currentTimeMillis();
         System.out.println("starting gc collect");
         Future<VersionGCStats> f = executor.submit(() -> gc.gc(options.getOlderThan(), SECONDS));
         if (options.getTimeLimit() >= 0) {
@@ -428,7 +428,7 @@ public class RevisionsCommand implements Command {
         }
         try {
             VersionGCStats stats = f.get();
-            long ended = currentTimeMillis();
+            long ended = System.currentTimeMillis();
             System.out.printf(Locale.US, "%21s  %s%n", "Started:", fmtTimestamp(started));
             System.out.printf(Locale.US, "%21s  %s%n", "Ended:", fmtTimestamp(ended));
             System.out.printf(Locale.US, "%21s  %s%n", "Duration:", fmtDuration(ended - started));
@@ -441,7 +441,7 @@ public class RevisionsCommand implements Command {
     }
 
     private static void waitWhile(AtomicBoolean condition, long until) {
-        long now = currentTimeMillis();
+        long now = System.currentTimeMillis();
         while (now < until) {
             if (condition.get()) {
                 try {
@@ -450,7 +450,7 @@ public class RevisionsCommand implements Command {
                     // ignore
                 }
             }
-            now = currentTimeMillis();
+            now = System.currentTimeMillis();
         }
     }
 
