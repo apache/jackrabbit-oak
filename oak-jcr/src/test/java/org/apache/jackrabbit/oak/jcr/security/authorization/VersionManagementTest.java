@@ -427,4 +427,36 @@ public class VersionManagementTest extends AbstractEvaluationTest {
         versionManager.checkin(nodePath);
         versionManager.checkout(nodePath);
     }
+
+    /*
+        * 1. Create a versionable unstructured node at nodeName1/nodeName2/nodeName1
+        * 2. Create a versionable unstructured node at nodeName1/nodeName3/nodeName1
+        * 3. remove nodeName1/nodeName3/nodeName1 (that's because move(src,dest) throws an exception if dest already exists)
+        * 4. move nodeName1/nodeName2/nodeName1 to nodeName1/nodeName3/nodeName1
+
+            path = nodeName1
+                - childNPath = nodeName2
+                - childNPath2 = nodeName3
+            siblingPath = nodeName2
+     */
+    @Test
+    public void testMoveVersionableNode() throws Exception {
+        modify(path, REP_WRITE, true);
+        modify(path, Privilege.JCR_NODE_TYPE_MANAGEMENT, true);
+        modify(path, Privilege.JCR_VERSION_MANAGEMENT, true);
+
+        Node sourceParent = testSession.getNode(childNPath); // nodeName1/nodeName2
+        Node sourceNode = createVersionableNode(sourceParent); // nodeName1/nodeName2/nodeName1
+        sourceNode.checkin();
+        sourceNode.checkout();
+
+        Node destParent = testSession.getNode(childNPath2); // nodeName1/nodeName3
+        Node destNode = createVersionableNode(destParent); // nodeName1/nodeName3/nodeName1
+        destNode.checkin();
+        destNode.checkout();
+
+        superuser.removeItem(destNode.getPath());
+        superuser.move(sourceNode.getPath(), destNode.getPath());
+        superuser.save();
+    }
 }
