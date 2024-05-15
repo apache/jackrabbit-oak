@@ -25,6 +25,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.jackrabbit.oak.plugins.document.VersionGarbageCollector.VersionGCStats;
 import org.apache.jackrabbit.oak.plugins.document.util.TimeInterval;
+import org.apache.jackrabbit.oak.plugins.document.util.Utils;
 import org.apache.jackrabbit.oak.spi.gc.GCMonitor;
 import org.apache.jackrabbit.oak.stats.Clock;
 import org.jetbrains.annotations.NotNull;
@@ -103,8 +104,8 @@ public class VersionGCRecommendations {
      * @param vgc                VersionGC support class
      * @param options            options for running the gc
      * @param gcMonitor          monitor class for messages
-     * @param fullGCEnabled  whether fullGC is enabled or not
-     * @param isFullGCDryRun whether fullGC is running in dryRun mode or not
+     * @param fullGCEnabled      whether fullGC is enabled or not
+     * @param isFullGCDryRun     whether fullGC is running in dryRun mode or not
      */
     VersionGCRecommendations(long maxRevisionAgeMs, Checkpoints checkpoints, Clock clock, VersionGCSupport vgc,
                                     VersionGCOptions options, GCMonitor gcMonitor, boolean fullGCEnabled,
@@ -126,19 +127,19 @@ public class VersionGCRecommendations {
         this.fullGCEnabled = fullGCEnabled;
         this.isFullGCDryRun = isFullGCDryRun;
 
-        TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, MAX_VALUE);
+        TimeInterval keep = new TimeInterval(clock.getTime() - maxRevisionAgeMs, Long.MAX_VALUE);
 
         Map<String, Object> settings = getVGCSettings();
         lastOldestTimestamp = (long) settings.get(SETTINGS_COLLECTION_OLDEST_TIMESTAMP_PROP);
         if (lastOldestTimestamp == 0) {
             log.info("No lastOldestTimestamp found, querying for the oldest deletedOnce candidate");
             oldestPossible = vgc.getOldestDeletedOnceTimestamp(clock, options.precisionMs) - 1;
-            log.info("lastOldestTimestamp found: {}", timestampToString(oldestPossible));
+            log.info("lastOldestTimestamp found: {}", Utils.timestampToString(oldestPossible));
         } else {
             oldestPossible = lastOldestTimestamp - 1;
         }
 
-        TimeInterval scope = new TimeInterval(oldestPossible, MAX_VALUE);
+        TimeInterval scope = new TimeInterval(oldestPossible, Long.MAX_VALUE);
         scope = scope.notLaterThan(keep.fromMs);
 
         fullGCTimestamp = (long) settings.get(SETTINGS_COLLECTION_FULL_GC_TIMESTAMP_PROP);
@@ -265,7 +266,7 @@ public class VersionGCRecommendations {
             long nextDuration = Math.max(precisionMs, scope.getDurationMs() / 2);
             gcmon.info("Limit {} documents exceeded, reducing next collection interval to {} seconds",
                     this.maxCollect, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
-            setLongSetting(SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
+            setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
             stats.needRepeat = true;
         } else if (!stats.canceled && !stats.ignoredGCDueToCheckPoint && !isFullGCDryRun) {
             // success, we would not expect to encounter revisions older than this in the future
@@ -288,7 +289,7 @@ public class VersionGCRecommendations {
                     long nextDuration = (long) Math.ceil(suggestedIntervalMs * 1.5);
                     log.debug("successful run using {}% of limit, raising recommended interval to {} seconds",
                             Math.round(usedFraction * 1000) / 10.0, TimeUnit.MILLISECONDS.toSeconds(nextDuration));
-                    setLongSetting(SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
+                    setLongSetting(VersionGarbageCollector.SETTINGS_COLLECTION_REC_INTERVAL_PROP, nextDuration);
                 } else {
                     log.debug("not increasing limit: collected {} documents ({}% >= {}% limit)", count, usedFraction,
                             allowedFraction);
