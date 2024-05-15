@@ -19,7 +19,6 @@ package org.apache.jackrabbit.oak.spi.state;
 import static org.apache.jackrabbit.guava.common.base.Preconditions.checkNotNull;
 import static org.apache.jackrabbit.guava.common.base.Strings.repeat;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.jackrabbit.JcrConstants;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
@@ -53,7 +52,7 @@ public final class NodeStateUtils {
      * @return true if one of the nodes is hidden
      */
     public static boolean isHiddenPath(@NotNull String path) {
-        return path.startsWith(":") || path.contains("/:");
+        return (!path.isEmpty() && path.charAt(0) == ':') || path.contains("/:");
     }
 
     @Nullable
@@ -87,9 +86,7 @@ public final class NodeStateUtils {
         if (node == null) {
             return "[null]";
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append(toString(node, 1, "  ", "/"));
-        return sb.toString();
+        return toString(node, 1, "  ", "/");
     }
 
     private static String toString(NodeState ns, int level, String prepend,
@@ -114,7 +111,7 @@ public final class NodeStateUtils {
             node.append("}");
         }
         for (ChildNodeEntry c : ns.getChildNodeEntries()) {
-            node.append(IOUtils.LINE_SEPARATOR);
+            node.append(System.lineSeparator());
             node.append(toString(c.getNodeState(), level + 1, prepend,
                     c.getName()));
         }
