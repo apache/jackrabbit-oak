@@ -40,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 public class ElasticCustomAnalyzerMappings {
@@ -111,33 +112,21 @@ public class ElasticCustomAnalyzerMappings {
         LUCENE_ELASTIC_TRANSFORMERS = new LinkedHashMap<>();
 
         LUCENE_ELASTIC_TRANSFORMERS.put(WordDelimiterFilterFactory.class, luceneParams -> {
-            if (luceneParams.containsKey("generateWordParts")) {
-                luceneParams.put("generateWordParts", Integer.parseInt(luceneParams.get("generateWordParts").toString()) == 1);
-            }
-            if (luceneParams.containsKey("generateNumberParts")) {
-                luceneParams.put("generateNumberParts", Integer.parseInt(luceneParams.get("generateNumberParts").toString()) == 1);
-            }
-            if (luceneParams.containsKey("catenateWords")) {
-                luceneParams.put("catenateWords", Integer.parseInt(luceneParams.get("catenateWords").toString()) == 1);
-            }
-            if (luceneParams.containsKey("catenateNumbers")) {
-                luceneParams.put("catenateNumbers", Integer.parseInt(luceneParams.get("catenateNumbers").toString()) == 1);
-            }
-            if (luceneParams.containsKey("catenateAll")) {
-                luceneParams.put("catenateAll", Integer.parseInt(luceneParams.get("catenateAll").toString()) == 1);
-            }
-            if (luceneParams.containsKey("splitOnCaseChange")) {
-                luceneParams.put("splitOnCaseChange", Integer.parseInt(luceneParams.get("splitOnCaseChange").toString()) == 1);
-            }
-            if (luceneParams.containsKey("preserveOriginal")) {
-                luceneParams.put("preserveOriginal", Integer.parseInt(luceneParams.get("preserveOriginal").toString()) == 1);
-            }
-            if (luceneParams.containsKey("splitOnNumerics")) {
-                luceneParams.put("splitOnNumerics", Integer.parseInt(luceneParams.get("splitOnNumerics").toString()) == 1);
-            }
-            if (luceneParams.containsKey("stemEnglishPossessive")) {
-                luceneParams.put("stemEnglishPossessive", Integer.parseInt(luceneParams.get("stemEnglishPossessive").toString()) == 1);
-            }
+            Consumer<String> transformFlag = flag -> {
+                if (luceneParams.containsKey(flag)) {
+                    luceneParams.put(flag, Integer.parseInt(luceneParams.get(flag).toString()) == 1);
+                }
+            };
+            transformFlag.accept("generateWordParts");
+            transformFlag.accept("generateNumberParts");
+            transformFlag.accept("catenateWords");
+            transformFlag.accept("catenateNumbers");
+            transformFlag.accept("catenateAll");
+            transformFlag.accept("splitOnCaseChange");
+            transformFlag.accept("preserveOriginal");
+            transformFlag.accept("splitOnNumerics");
+            transformFlag.accept("stemEnglishPossessive");
+
             return reKey.apply(luceneParams, Map.of(
                     "protectedTokens", "protected_words"
             ));
