@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -173,7 +174,7 @@ public class RevisionsCommand implements Command {
 
         String getSubCmd() {
             List<String> args = getOtherArgs();
-            if (!args.isEmpty()) {
+            if (args.size() > 0) {
                 return args.get(0);
             }
             return "info";
@@ -412,7 +413,12 @@ public class RevisionsCommand implements Command {
                              ExecutorService executor) throws IOException {
         long started = System.currentTimeMillis();
         System.out.println("starting gc collect");
-        Future<VersionGCStats> f = executor.submit(() -> gc.gc(options.getOlderThan(), SECONDS));
+        Future<VersionGCStats> f = executor.submit(new Callable<VersionGCStats>() {
+            @Override
+            public VersionGCStats call() throws Exception {
+                return gc.gc(options.getOlderThan(), SECONDS);
+            }
+        });
         if (options.getTimeLimit() >= 0) {
             try {
                 f.get(options.getTimeLimit(), SECONDS);
