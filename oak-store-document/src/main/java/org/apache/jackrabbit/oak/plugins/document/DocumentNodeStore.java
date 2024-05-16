@@ -3477,7 +3477,7 @@ public final class DocumentNodeStore
         return diff;
     }
 
-    private void diffManyChildren(JsopWriter w, Path path,
+    void diffManyChildren(JsopWriter w, Path path,
                                   RevisionVector fromRev,
                                   RevisionVector toRev) {
         long minTimestamp = Utils.getMinTimestampForDiff(

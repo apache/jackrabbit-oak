@@ -32,6 +32,9 @@ import com.mongodb.client.MongoDatabase;
 
 import org.apache.jackrabbit.oak.api.CommitFailedException;
 import org.apache.jackrabbit.oak.commons.PathUtils;
+import org.apache.jackrabbit.oak.commons.json.JsopBuilder;
+import org.apache.jackrabbit.oak.commons.json.JsopStream;
+import org.apache.jackrabbit.oak.commons.json.JsopWriter;
 import org.apache.jackrabbit.oak.plugins.document.memory.MemoryDocumentStore;
 import org.apache.jackrabbit.oak.plugins.document.util.MongoConnection;
 import org.apache.jackrabbit.oak.spi.blob.BlobStore;
@@ -49,6 +52,7 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -60,8 +64,7 @@ public class ClusterTest {
     @Rule
     public MongoConnectionFactory connectionFactory = new MongoConnectionFactory();
 
-    private static final boolean MONGO_DB = false;
-    // private static final boolean MONGO_DB = true;
+    private static final boolean MONGO_DB = true;
 
     private List<DocumentMK> mks = Lists.newArrayList();
     private MemoryDocumentStore ds;
@@ -352,6 +355,35 @@ public class ClusterTest {
     }
 
     @Test
+    @Ignore("OAK-10812")
+    public void diffManyChildrenReadOnlyMode() throws Exception {
+        DocumentMK mk1 = createMK(1, 0);
+        DocumentMK mk2 = createMK(2, 0);
+        NodeBuilder builder = mk1.getNodeStore().getRoot().builder();
+        builder.child("foo1").child("bar1");
+        merge(mk1.getNodeStore(), builder);
+        mk1.runBackgroundOperations();
+        mk2.runBackgroundOperations();
+        RevisionVector fromRev = mk1.getNodeStore().getRoot().getLastRevision();
+        Thread.sleep(1000);
+        builder = mk1.getNodeStore().getRoot().builder();
+        builder.getChildNode("foo1").getChildNode("bar1").setProperty("test", "test");
+        merge(mk1.getNodeStore(), builder);
+        disposeMK(mk1);
+        Thread.sleep(1000);
+        mk1 = createMK(1, 0);
+        DocumentMK mk1ro = createMK(1, 0, true);
+        DocumentNodeStore ns1ro = mk1ro.getNodeStore();
+        RevisionVector toRev = ns1ro.getRoot().getLastRevision();
+        Thread.sleep(5000);
+        JsopWriter w1 = new JsopStream();
+        ns1ro.diffManyChildren(w1, ns1ro.getRoot().getPath(), fromRev, toRev);
+        JsopWriter w2 = new JsopStream();
+        mk1.getNodeStore().diffManyChildren(w2, ns1ro.getRoot().getPath(), fromRev, toRev);
+        assertEquals(w1.toString(), w2.toString());
+    }
+
+    @Test
     public void fromExternalChange() throws Exception {
         final List<DocumentNodeState> rootStates1 = Lists.newArrayList();
         DocumentNodeStore ns1 = createMK(1, 0).getNodeStore();
@@ -419,10 +451,12 @@ public class ClusterTest {
         return createMK(clusterId, 10);
     }
 
-    private DocumentMK createMK(int clusterId, int asyncDelay) {
+    private DocumentMK createMK(int clusterId, int asyncDelay, boolean readonly) {
         if (MONGO_DB) {
             MongoConnection connection = connectionFactory.getConnection();
-            return register(new DocumentMK.Builder()
+            DocumentMK.Builder builder = new DocumentMK.Builder();
+            if (readonly) { builder.setReadOnlyMode(); };
+            return register(builder
                     .setMongoDB(connection.getMongoClient(), connection.getDBName())
                     .setClusterId(clusterId).setAsyncDelay(asyncDelay).open());
         } else {
@@ -434,6 +468,10 @@ public class ClusterTest {
             }
             return createMK(clusterId, asyncDelay, ds, bs);
         }
+    }
+
+    private DocumentMK createMK(int clusterId, int asyncDelay) {
+        return createMK(clusterId, asyncDelay, false);
     }
 
     private DocumentMK createMK(int clusterId, int asyncDelay,
