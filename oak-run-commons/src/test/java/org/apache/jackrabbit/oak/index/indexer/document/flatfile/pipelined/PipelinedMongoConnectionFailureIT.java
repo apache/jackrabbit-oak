@@ -26,7 +26,9 @@ import org.apache.jackrabbit.oak.plugins.document.DocumentMKBuilderProvider;
 import org.apache.jackrabbit.oak.plugins.document.MongoUtils;
 import org.apache.jackrabbit.oak.plugins.document.mongo.MongoDockerRule;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.RestoreSystemProperties;
@@ -72,6 +74,11 @@ public class PipelinedMongoConnectionFailureIT {
 
     private Proxy proxy;
     private String mongoUri;
+
+    @BeforeClass
+    public static void setup() throws IOException {
+        Assume.assumeTrue(MongoUtils.isAvailable());
+    }
 
     @Before
     public void before() throws Exception {
