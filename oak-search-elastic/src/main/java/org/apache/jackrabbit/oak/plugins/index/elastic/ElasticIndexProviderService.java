@@ -136,7 +136,7 @@ public class ElasticIndexProviderService {
     private StatisticsProvider statisticsProvider;
 
     @Reference
-    protected NodeStore nodeStore;
+    private NodeStore nodeStore;
 
     @Reference
     private AsyncIndexInfoService asyncIndexInfoService;
