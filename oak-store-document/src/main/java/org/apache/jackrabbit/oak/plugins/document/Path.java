@@ -222,7 +222,7 @@ public final class Path implements CacheValue, Comparable<Path> {
             if (p == null) {
                 p = new Path(name);
             } else {
-                p = new Path(p, StringCache.get(name));
+                p = new Path(p, name);
             }
         }
         if (p == null) {
