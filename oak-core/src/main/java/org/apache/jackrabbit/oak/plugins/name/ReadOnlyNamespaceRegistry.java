@@ -25,6 +25,7 @@ import javax.jcr.NamespaceRegistry;
 import javax.jcr.RepositoryException;
 import javax.jcr.UnsupportedRepositoryOperationException;
 
+import org.apache.jackrabbit.util.Text;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Root;
 import org.apache.jackrabbit.oak.api.Tree;
@@ -36,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Read-only namespace registry. Used mostly internally when access to the
@@ -131,15 +133,15 @@ public class ReadOnlyNamespaceRegistry
     protected void checkConsistency() {
         final String jcrPrimaryType = "jcr:primaryType";
         List<String> prefixes = Arrays.asList(getPrefixes());
-        List<String> uris = Arrays.asList(getURIs());
-        if (prefixes.size() != uris.size()) {
-            LOG.error("The namespace registry is inconsistent: found {} registered namespace prefixes and {} registered namespace URIs. The numbers have to be equal.", prefixes.size(), uris.size());
+        List<String> encodedUris = Arrays.stream(getURIs()).map(Namespaces::encodeUri).collect(Collectors.toList());
+        if (prefixes.size() != encodedUris.size()) {
+            LOG.error("The namespace registry is inconsistent: found {} registered namespace prefixes and {} registered namespace URIs. The numbers have to be equal.", prefixes.size(), encodedUris.size());
         }
         int mappedPrefixCount = 0;
         for (PropertyState propertyState : namespaces.getProperties()) {
-            mappedPrefixCount++;
             String prefix = propertyState.getName();
             if (!prefix.equals(jcrPrimaryType)) {
+                mappedPrefixCount++;
                 if (!prefixes.contains(prefix)) {
                     LOG.error("The namespace registry is inconsistent: namespace prefix {} is mapped to a namespace URI, but not contained in the list of registered namespace prefixes.", prefix);
                 }
@@ -150,31 +152,33 @@ public class ReadOnlyNamespaceRegistry
                 }
             }
         }
-        if (mappedPrefixCount != prefixes.size()) {
+        //prefixes contains the unmapped empty prefix
+        if (mappedPrefixCount + 1 != prefixes.size()) {
             LOG.error("The namespace registry is inconsistent: found {} mapped namespace prefixes and {} registered namespace prefixes. The numbers have to be equal.", mappedPrefixCount, prefixes.size());
         }
         int mappedUriCount = 0;
         for (PropertyState propertyState : nsdata.getProperties()) {
-            mappedUriCount++;
-            String uri = propertyState.getName();
-            switch (uri) {
+            String encodedUri = propertyState.getName();
+            switch (encodedUri) {
                 case REP_PREFIXES:
                 case REP_URIS:
                 case jcrPrimaryType:
                     break;
                 default:
-                    if (!uris.contains(uri)) {
-                        LOG.error("The namespace registry is inconsistent: namespace URI {} is mapped to a namespace prefix, but not contained in the list of registered namespace URIs.", uri);
+                    mappedUriCount++;
+                    if (!encodedUris.contains(encodedUri)) {
+                        LOG.error("The namespace registry is inconsistent: encoded namespace URI {} is mapped to a namespace prefix, but not contained in the list of registered namespace URIs.", encodedUri);
                     }
                     try {
-                        getPrefix(uri);
+                        getPrefix(Text.unescapeIllegalJcrChars(encodedUri));
                     } catch (NamespaceException e) {
-                        LOG.error("The namespace registry is inconsistent: namespace URI {} is not mapped to a namespace prefix.", uri);
+                        LOG.error("The namespace registry is inconsistent: namespace URI {} is not mapped to a namespace prefix.", encodedUri);
                     }
             }
         }
-        if (mappedUriCount != uris.size()) {
-            LOG.error("The namespace registry is inconsistent: found {} mapped namespace URIs and {} registered namespace URIs. The numbers have to be equal.", mappedUriCount, uris.size());
+        //encodedUris contains the unmapped empty namespace URI
+        if (mappedUriCount + 1 != encodedUris.size()) {
+            LOG.error("The namespace registry is inconsistent: found {} mapped namespace URIs and {} registered namespace URIs. The numbers have to be equal.", mappedUriCount, encodedUris.size());
         }
         CONSISTENCY_CHECKED = true;
     }
