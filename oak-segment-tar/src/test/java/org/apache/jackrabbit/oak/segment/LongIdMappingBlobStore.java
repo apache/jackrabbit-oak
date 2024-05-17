@@ -25,7 +25,7 @@ public class LongIdMappingBlobStore extends IdMappingBlobStore {
 
     @Override
     protected String generateId() {
-        return Strings.repeat("0", Segment.BLOB_ID_SMALL_LIMIT) + next++;
+        return Strings.repeat("0", Segment.BLOB_ID_SMALL_LIMIT * 20) + next++;
     }
 
 }
