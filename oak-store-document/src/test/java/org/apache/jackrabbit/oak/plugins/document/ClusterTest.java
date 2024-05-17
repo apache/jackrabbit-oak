@@ -355,7 +355,6 @@ public class ClusterTest {
     }
 
     @Test
-    @Ignore("OAK-10812")
     public void diffManyChildrenReadOnlyMode() throws Exception {
         DocumentMK mk1 = createMK(1, 0);
         DocumentMK mk2 = createMK(2, 0);
