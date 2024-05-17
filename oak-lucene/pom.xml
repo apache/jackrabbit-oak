@@ -107,7 +107,7 @@
             <_exportcontents>
               !org.apache.lucene.queryparser.xml,
               !org.apache.lucene.queryparser.xml.builders,
-              org.apache.lucene.*;version=${lucene.version}
+              org.apache.lucene.*;version=4.7.2-oak2<!-- second Oak modification of original lucence-core 4.7.2 source code, see OAK-10786 for further information -->
             </_exportcontents>
             <Export-Package>
                 org.apache.jackrabbit.oak.plugins.index.lucene,
@@ -142,6 +142,8 @@
             <exclude>**/test.txt</exclude>
             <exclude>**/fvs.csv</exclude>
             <exclude>src/test/resources/**/*.txt</exclude>
+            <!-- see OAK-10786 -->
+            <exclude>src/main/java/org/apache/lucene/util/automaton/*</exclude>
           </excludes>
         </configuration>
       </plugin>
@@ -213,11 +215,6 @@
     </dependency>
 
     <!-- Lucene dependencies -->
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-core</artifactId>
-      <version>${lucene.version}</version>
-    </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-analyzers-common</artifactId>

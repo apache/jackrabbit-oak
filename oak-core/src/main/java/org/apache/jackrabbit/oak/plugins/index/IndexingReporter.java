@@ -20,6 +20,9 @@ package org.apache.jackrabbit.oak.plugins.index;
 
 import java.util.List;
 
+/**
+ * Stores diagnostic and performance information about indexing operations for reporting at the end of the indexing job.
+ */
 public interface IndexingReporter {
     IndexingReporter NOOP = new IndexingReporter() {
         @Override
