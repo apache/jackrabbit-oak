@@ -19,6 +19,10 @@ package org.apache.jackrabbit.oak.plugins.document;
 import static java.util.Collections.emptyList;
 import static org.apache.jackrabbit.oak.plugins.memory.PropertyStates.createProperty;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.List;
 
 import javax.jcr.PropertyType;
@@ -26,6 +30,7 @@ import javax.jcr.PropertyType;
 import org.apache.jackrabbit.guava.common.collect.Lists;
 import org.apache.jackrabbit.oak.api.PropertyState;
 import org.apache.jackrabbit.oak.api.Type;
+import org.apache.jackrabbit.oak.commons.Compression;
 import org.apache.jackrabbit.oak.commons.json.JsopReader;
 import org.apache.jackrabbit.oak.commons.json.JsopTokenizer;
 import org.apache.jackrabbit.oak.json.TypeCodes;
@@ -38,11 +43,15 @@ import org.apache.jackrabbit.oak.plugins.memory.PropertyStates;
 import org.apache.jackrabbit.oak.plugins.memory.StringPropertyState;
 import org.apache.jackrabbit.oak.plugins.value.Conversions;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * PropertyState implementation with lazy parsing of the JSOP encoded value.
  */
 final class DocumentPropertyState implements PropertyState {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DocumentPropertyState.class);
 
     private final DocumentNodeStore store;
 
@@ -51,11 +60,42 @@ final class DocumentPropertyState implements PropertyState {
     private final String value;
 
     private PropertyState parsed;
+    private byte[] compressedValue;
+    private final Compression compression = Compression.GZIP;
+
+    public static final int DEFAULT_COMPRESSION_THRESHOLD = Integer.getInteger("oak.mongo.compressionThreshold", 1024);
 
     DocumentPropertyState(DocumentNodeStore store, String name, String value) {
         this.store = store;
         this.name = name;
-        this.value = value;
+
+        int size = value.getBytes().length;
+        if (size > DEFAULT_COMPRESSION_THRESHOLD) {
+            compressedValue =  compress(value.getBytes());
+            this.value = null;
+        } else {
+            this.value = value;
+        }
+    }
+
+    private byte[] compress(byte[] value) {
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            OutputStream compressionOutputStream = compression.getOutputStream(out);
+            compressionOutputStream.write(value);
+            compressionOutputStream.close();
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to compress data", e);
+        }
+    }
+
+    private String decompress(byte[] value) {
+        try {
+            return new String(compression.getInputStream(new ByteArrayInputStream(value)).readAllBytes());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to decompress data", e);
+        }
     }
 
     @NotNull
@@ -116,7 +156,7 @@ final class DocumentPropertyState implements PropertyState {
      */
     @NotNull
     String getValue() {
-        return value;
+        return value != null ? value : decompress(this.compressedValue);
     }
 
     //------------------------------------------------------------< Object >--
@@ -128,7 +168,7 @@ final class DocumentPropertyState implements PropertyState {
         } else if (object instanceof DocumentPropertyState) {
             DocumentPropertyState other = (DocumentPropertyState) object;
             return this.name.equals(other.name)
-                    && this.value.equals(other.value);
+                    && this.getValue().equals(other.getValue());
         }
         // fall back to default equality check in AbstractPropertyState
         return object instanceof PropertyState
@@ -149,7 +189,7 @@ final class DocumentPropertyState implements PropertyState {
 
     private PropertyState parsed() {
         if (parsed == null) {
-            JsopReader reader = new JsopTokenizer(value);
+            JsopReader reader = new JsopTokenizer(getValue());
             if (reader.matches('[')) {
                 parsed = readArrayProperty(name, reader);
             } else {
